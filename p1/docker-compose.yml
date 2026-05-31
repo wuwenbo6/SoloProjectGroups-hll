@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb-liquid-level
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=admin123456
+      - DOCKER_INFLUXDB_INIT_ORG=liquid-level-org
+      - DOCKER_INFLUXDB_INIT_BUCKET=liquid-level-bucket
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=liquid-level-token
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: liquid-level-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_TOKEN=liquid-level-token
+      - INFLUXDB_ORG=liquid-level-org
+      - INFLUXDB_BUCKET=liquid-level-bucket
+    depends_on:
+      - influxdb
+    volumes:
+      - ./backend:/app
+    restart: unless-stopped
+
+volumes:
+  influxdb-data:
