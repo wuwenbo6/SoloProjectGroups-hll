@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>古籍汉字识别与校勘系统</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="stroke-anim.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>古籍汉字识别与校勘系统</h1>
+            <div class="header-actions">
+                <button id="btn-open-image" class="btn btn-primary">打开图像</button>
+                <button id="btn-batch-recognize" class="btn btn-secondary">批量识别</button>
+                <button id="btn-start-collation" class="btn btn-secondary">开始校勘</button>
+                <button id="btn-view-history" class="btn btn-secondary">校勘记录</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="image-panel">
+                <div class="panel-header">
+                    <h2>古籍图像</h2>
+                    <div class="panel-tools">
+                        <button id="btn-zoom-in" class="btn-icon" title="放大">+</button>
+                        <button id="btn-zoom-out" class="btn-icon" title="缩小">-</button>
+                        <button id="btn-reset-zoom" class="btn-icon" title="重置">⟲</button>
+                    </div>
+                </div>
+                <div class="image-container" id="image-container">
+                    <canvas id="image-canvas"></canvas>
+                    <div class="placeholder" id="image-placeholder">
+                        <p>点击"打开图像"按钮加载古籍图像</p>
+                    </div>
+                    <div class="batch-selections" id="batch-selections"></div>
+                </div>
+            </div>
+
+            <div class="side-panel">
+                <div class="recognition-panel">
+                    <h3>识别结果</h3>
+                    <div class="recognition-content" id="recognition-content">
+                        <p class="hint">在图像上框选区域进行识别</p>
+                    </div>
+                    <div class="candidates-section" id="candidates-section" style="display: none;">
+                        <h4>候选字</h4>
+                        <div class="candidates-list" id="candidates-list"></div>
+                    </div>
+                    <div class="manual-edit" id="manual-edit" style="display: none;">
+                        <h4>手动修正</h4>
+                        <input type="text" id="manual-input" placeholder="输入正确的汉字">
+                        <button id="btn-confirm-edit" class="btn btn-primary btn-small">确认</button>
+                    </div>
+                </div>
+
+                <div class="stroke-animation-panel" id="stroke-animation-panel" style="display: none;">
+                    <h3>笔画顺序</h3>
+                    <div class="stroke-canvas-container">
+                        <canvas id="stroke-canvas" width="100" height="100"></canvas>
+                    </div>
+                    <div class="stroke-info" id="stroke-info">笔画: 0/0</div>
+                    <div class="stroke-controls">
+                        <button id="btn-stroke-play" class="btn btn-small btn-secondary">▶ 播放</button>
+                        <button id="btn-stroke-pause" class="btn btn-small btn-secondary">⏸ 暂停</button>
+                        <button id="btn-stroke-reset" class="btn btn-small btn-secondary">⟲ 重置</button>
+                        <button id="btn-stroke-prev" class="btn btn-small btn-secondary">◀ 上一笔</button>
+                        <button id="btn-stroke-next" class="btn btn-small btn-secondary">下一笔 ▶</button>
+                    </div>
+                    <div class="speed-control">
+                        <label>速度:</label>
+                        <input type="range" id="stroke-speed" min="10" max="100" value="30">
+                    </div>
+                </div>
+
+                <div class="batch-results-panel" id="batch-results-panel" style="display: none;">
+                    <h3>批量识别结果</h3>
+                    <div class="batch-tools">
+                        <button id="btn-clear-batch" class="btn btn-small btn-secondary">清空</button>
+                        <button id="btn-copy-batch" class="btn btn-small btn-secondary">复制文本</button>
+                    </div>
+                    <div class="batch-list" id="batch-list"></div>
+                    <div class="batch-summary">
+                        <span id="batch-count">已识别: 0 字</span>
+                    </div>
+                </div>
+
+                <div class="collation-panel" id="collation-panel" style="display: none;">
+                    <h3>版本校勘</h3>
+                    <div class="version-inputs">
+                        <div class="version-item">
+                            <label>版本1 (四库全书抄本A)</label>
+                            <textarea id="version1-text" rows="4" placeholder="输入或粘贴版本1文本"></textarea>
+                            <button class="btn btn-small btn-use-recognition" data-target="version1">使用识别结果</button>
+                            <button class="btn btn-small btn-use-batch" data-target="version1">使用批量结果</button>
+                        </div>
+                        <div class="version-item">
+                            <label>版本2 (四库全书抄本B)</label>
+                            <textarea id="version2-text" rows="4" placeholder="输入或粘贴版本2文本"></textarea>
+                            <button class="btn btn-small btn-use-recognition" data-target="version2">使用识别结果</button>
+                            <button class="btn btn-small btn-use-batch" data-target="version2">使用批量结果</button>
+                        </div>
+                        <div class="version-item">
+                            <label>版本3 (其他版本)</label>
+                            <textarea id="version3-text" rows="4" placeholder="输入或粘贴版本3文本"></textarea>
+                            <button class="btn btn-small btn-use-recognition" data-target="version3">使用识别结果</button>
+                            <button class="btn btn-small btn-use-batch" data-target="version3">使用批量结果</button>
+                        </div>
+                    </div>
+                    <button id="btn-compare" class="btn btn-primary">对比版本</button>
+                    <div class="comparison-result" id="comparison-result" style="display: none;">
+                        <h4>差异对比</h4>
+                        <div class="diff-display" id="diff-display"></div>
+                        <div class="collation-note">
+                            <label>校勘记</label>
+                            <textarea id="collation-note" rows="4" placeholder="输入校勘说明..."></textarea>
+                        </div>
+                        <div class="collation-actions">
+                            <button id="btn-save-collation" class="btn btn-primary">保存校勘</button>
+                            <button id="btn-export-txt" class="btn btn-secondary">导出TXT</button>
+                            <button id="btn-export-tex" class="btn btn-secondary">导出LaTeX</button>
+                            <button id="btn-export-html" class="btn btn-secondary">导出HTML</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="history-panel" id="history-panel" style="display: none;">
+                    <h3>校勘记录</h3>
+                    <div class="history-list" id="history-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
