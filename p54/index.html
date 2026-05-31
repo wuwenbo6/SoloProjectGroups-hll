@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>眼动追踪实验平台</title>
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>眼动追踪实验平台</h1>
+            <nav>
+                <button id="nav-experiment" class="nav-btn active">实验</button>
+                <button id="nav-results" class="nav-btn">结果分析</button>
+                <button id="nav-pupil" class="nav-btn">瞳孔分析</button>
+                <button id="nav-compare" class="nav-btn">被试对比</button>
+                <button id="nav-report" class="nav-btn">报告导出</button>
+            </nav>
+        </header>
+
+        <section id="experiment-section" class="section active">
+            <div id="calibration-panel">
+                <h2>步骤 1: 被试信息</h2>
+                <div class="form-group">
+                    <label>被试编号:</label>
+                    <input type="text" id="subject-id" placeholder="例如: S001">
+                </div>
+                <div class="form-group">
+                    <label>年龄:</label>
+                    <input type="number" id="subject-age" min="1" max="120">
+                </div>
+                <div class="form-group">
+                    <label>性别:</label>
+                    <select id="subject-gender">
+                        <option value="male">男</option>
+                        <option value="female">女</option>
+                        <option value="other">其他</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>实验模式:</label>
+                    <select id="experiment-mode">
+                        <option value="full">完整实验 (刺激+问卷)</option>
+                        <option value="stimulus">仅刺激呈现</option>
+                        <option value="survey">仅问卷</option>
+                    </select>
+                </div>
+                <button id="start-calibration" class="btn btn-primary">开始校准</button>
+            </div>
+
+            <div id="calibration-points" style="display: none;">
+                <h2>步骤 2: 眼动校准</h2>
+                <p class="instruction">请注视屏幕上出现的点，点击每个点完成校准。每点会自动采样多次，请保持注视。</p>
+                <div id="calibration-container"></div>
+            </div>
+
+            <div id="stimulus-section" style="display: none;">
+                <h2>步骤 3: 刺激呈现</h2>
+                <p class="instruction">请观察以下图片，瞳孔数据将被记录用于认知负荷分析。</p>
+                
+                <div id="stimulus-container" class="stimulus-container">
+                    <div id="stimulus-countdown" class="stimulus-countdown">3</div>
+                    <img id="stimulus-image" class="stimulus-image" src="" alt="刺激图片">
+                    <div id="stimulus-info" class="stimulus-info"></div>
+                </div>
+
+                <div id="stimulus-progress" class="stimulus-progress">
+                    <div class="progress-bar">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                    <span id="progress-text">刺激 0/3</span>
+                </div>
+
+                <div id="pupil-monitor" class="pupil-monitor">
+                    <div class="pupil-item">
+                        <span class="pupil-label">左眼直径:</span>
+                        <span id="pupil-left" class="pupil-value">--</span>
+                    </div>
+                    <div class="pupil-item">
+                        <span class="pupil-label">右眼直径:</span>
+                        <span id="pupil-right" class="pupil-value">--</span>
+                    </div>
+                    <div class="pupil-item">
+                        <span class="pupil-label">平均直径:</span>
+                        <span id="pupil-avg" class="pupil-value">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="survey-section" style="display: none;">
+                <h2>步骤 4: 问卷填写</h2>
+                <p class="instruction">请认真阅读并回答以下问题。您的眼动数据将被记录用于研究。</p>
+                
+                <div id="survey-container" class="survey-container">
+                    <div class="question" data-aoi="q1">
+                        <h3>问题 1: 您对当前产品的整体满意度如何?</h3>
+                        <div class="options">
+                            <label><input type="radio" name="q1" value="1"> 非常不满意</label>
+                            <label><input type="radio" name="q1" value="2"> 不满意</label>
+                            <label><input type="radio" name="q1" value="3"> 一般</label>
+                            <label><input type="radio" name="q1" value="4"> 满意</label>
+                            <label><input type="radio" name="q1" value="5"> 非常满意</label>
+                        </div>
+                    </div>
+
+                    <div class="question" data-aoi="q2">
+                        <h3>问题 2: 您认为产品的易用性如何?</h3>
+                        <div class="options">
+                            <label><input type="radio" name="q2" value="1"> 非常难用</label>
+                            <label><input type="radio" name="q2" value="2"> 难用</label>
+                            <label><input type="radio" name="q2" value="3"> 一般</label>
+                            <label><input type="radio" name="q2" value="4"> 易用</label>
+                            <label><input type="radio" name="q2" value="5"> 非常易用</label>
+                        </div>
+                    </div>
+
+                    <div class="question" data-aoi="q3">
+                        <h3>问题 3: 您是否愿意向朋友推荐此产品?</h3>
+                        <div class="options">
+                            <label><input type="radio" name="q3" value="1"> 绝对不会</label>
+                            <label><input type="radio" name="q3" value="2"> 可能不会</label>
+                            <label><input type="radio" name="q3" value="3"> 不确定</label>
+                            <label><input type="radio" name="q3" value="4"> 可能会</label>
+                            <label><input type="radio" name="q3" value="5"> 一定会</label>
+                        </div>
+                    </div>
+
+                    <div class="question" data-aoi="q4">
+                        <h3>问题 4: 请阅读以下文字描述并回答您的理解程度。</h3>
+                        <p class="text-passage">本产品采用先进的人工智能算法，能够实时分析用户行为模式，提供个性化的推荐服务。系统通过深度学习技术不断优化用户体验，确保每一次交互都能带来价值。我们注重用户隐私保护，所有数据均采用端到端加密处理。</p>
+                        <div class="options">
+                            <label><input type="radio" name="q4" value="1"> 完全不理解</label>
+                            <label><input type="radio" name="q4" value="2"> 不太理解</label>
+                            <label><input type="radio" name="q4" value="3"> 基本理解</label>
+                            <label><input type="radio" name="q4" value="4"> 比较理解</label>
+                            <label><input type="radio" name="q4" value="5"> 完全理解</label>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="submit-survey" class="btn btn-primary">提交问卷</button>
+            </div>
+
+            <div id="experiment-complete" style="display: none;">
+                <h2>实验完成!</h2>
+                <p>感谢您的参与。您的数据已成功保存。</p>
+                <div id="experiment-summary" class="experiment-summary"></div>
+                <div style="margin-top: 20px;">
+                    <button id="view-results" class="btn btn-primary">查看我的结果</button>
+                </div>
+            </div>
+
+            <div id="tracking-status" class="tracking-status">
+                <span class="status-indicator" id="eye-status">●</span>
+                <span id="eye-status-text">等待校准...</span>
+            </div>
+        </section>
+
+        <section id="results-section" class="section">
+            <h2>实验结果分析</h2>
+            
+            <div class="results-controls">
+                <div class="control-group">
+                    <label>选择被试:</label>
+                    <select id="result-subject-select">
+                        <option value="">请选择被试...</option>
+                    </select>
+                </div>
+                <button id="load-results" class="btn btn-primary">加载结果</button>
+            </div>
+
+            <div id="heatmap-container" class="visualization-container">
+                <h3>注视热点图</h3>
+                <div class="heatmap-wrapper">
+                    <canvas id="heatmap-canvas"></canvas>
+                    <div id="heatmap-overlay"></div>
+                </div>
+            </div>
+
+            <div id="timeseries-container" class="visualization-container">
+                <h3>时序注视序列</h3>
+                <canvas id="timeseries-canvas"></canvas>
+            </div>
+
+            <div id="aoi-results-container" class="visualization-container">
+                <h3>兴趣区 (AOI) 停留时间分析</h3>
+                <div id="aoi-chart-container">
+                    <canvas id="aoi-chart-canvas"></canvas>
+                </div>
+                <div id="aoi-stats-table"></div>
+            </div>
+        </section>
+
+        <section id="pupil-section" class="section">
+            <h2>瞳孔直径与认知负荷分析</h2>
+            
+            <div class="results-controls">
+                <div class="control-group">
+                    <label>选择被试:</label>
+                    <select id="pupil-subject-select">
+                        <option value="">请选择被试...</option>
+                    </select>
+                </div>
+                <button id="load-pupil-results" class="btn btn-primary">加载瞳孔数据</button>
+            </div>
+
+            <div id="pupil-summary-cards" class="summary-cards" style="display: none;">
+                <div class="summary-card">
+                    <div class="card-value" id="card-baseline">--</div>
+                    <div class="card-label">基线瞳孔直径</div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-value" id="card-mean">--</div>
+                    <div class="card-label">平均瞳孔直径</div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-value" id="card-load">--</div>
+                    <div class="card-label">认知负荷指数</div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-value" id="card-dilation">--</div>
+                    <div class="card-label">瞳孔扩张率</div>
+                </div>
+            </div>
+
+            <div id="pupil-chart-container" class="visualization-container" style="display: none;">
+                <h3>瞳孔直径时间序列</h3>
+                <canvas id="pupil-chart-canvas"></canvas>
+            </div>
+
+            <div id="stimulus-pupil-container" class="visualization-container" style="display: none;">
+                <h3>刺激材料瞳孔分析</h3>
+                <div id="stimulus-pupil-stats"></div>
+            </div>
+        </section>
+
+        <section id="compare-section" class="section">
+            <h2>多被试对比分析</h2>
+            
+            <div class="compare-controls">
+                <div class="control-group">
+                    <label>选择被试 (按住Ctrl多选):</label>
+                    <select id="compare-subjects" multiple size="8">
+                    </select>
+                </div>
+                <button id="load-comparison" class="btn btn-primary">生成对比报告</button>
+            </div>
+
+            <div id="comparison-results" style="display: none;">
+                <div class="comparison-container">
+                    <h3>AOI停留时间对比</h3>
+                    <canvas id="comparison-chart"></canvas>
+                </div>
+                
+                <div class="comparison-container">
+                    <h3>统计数据对比</h3>
+                    <div id="comparison-table"></div>
+                </div>
+
+                <div class="comparison-container">
+                    <h3>扫描路径对比</h3>
+                    <div class="scanpath-grid" id="scanpath-comparison"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="report-section" class="section">
+            <h2>统计报告导出</h2>
+            
+            <div class="results-controls">
+                <div class="control-group">
+                    <label>选择被试 (Ctrl多选，留空导出全部):</label>
+                    <select id="report-subjects" multiple size="8">
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>导出格式:</label>
+                    <select id="report-format">
+                        <option value="csv">CSV (Excel兼容)</option>
+                        <option value="json">JSON</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <button id="export-report" class="btn btn-primary">导出报告</button>
+                <button id="preview-report" class="btn">预览数据</button>
+            </div>
+
+            <div id="report-preview-container" class="visualization-container" style="display: none;">
+                <h3>数据预览</h3>
+                <div id="report-preview-table"></div>
+            </div>
+        </section>
+    </div>
+
+    <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+    <script src="static/js/app.js"></script>
+</body>
+</html>

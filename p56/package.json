@@ -1,0 +1,17 @@
+{
+  "name": "av-simulation-visualizer",
+  "version": "1.0.0",
+  "description": "Three.js visualization for autonomous vehicle simulation",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.160.0",
+    "socket.io-client": "^4.7.2"
+  },
+  "devDependencies": {
+    "vite": "^5.0.8"
+  }
+}

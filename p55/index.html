@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>票据打印机 - 模板设计器</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <h1>🖨️ 票据打印机模板设计器</h1>
+      <div class="header-actions">
+        <select id="printerTypeSelect">
+          <option value="usb">USB打印机</option>
+          <option value="network">网络打印机</option>
+        </select>
+        <button id="connectBtn" class="btn btn-primary">连接打印机</button>
+        <button id="networkConfigBtn" class="btn btn-info">⚙️ 网络设置</button>
+        <button id="queueBtn" class="btn btn-secondary">📋 队列</button>
+        <button id="exportPdfBtn" class="btn btn-success">📄 导出PDF</button>
+        <button id="saveBtn" class="btn btn-success">保存模板</button>
+        <button id="printBtn" class="btn btn-warning">打印测试</button>
+        <select id="templateSelect"></select>
+        <button id="deleteBtn" class="btn btn-danger">删除</button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <aside class="sidebar left-sidebar">
+        <h3>📦 字段库</h3>
+        <div class="field-library">
+          <div class="field-item" draggable="true" data-type="text" data-label="文本">
+            <span class="field-icon">📝</span>
+            <span>文本</span>
+          </div>
+          <div class="field-item" draggable="true" data-type="title" data-label="标题">
+            <span class="field-icon">🏷️</span>
+            <span>标题</span>
+          </div>
+          <div class="field-item" draggable="true" data-type="barcode" data-label="条码">
+            <span class="field-icon">📊</span>
+            <span>条码</span>
+          </div>
+          <div class="field-item" draggable="true" data-type="qrcode" data-label="二维码">
+            <span class="field-icon">📱</span>
+            <span>二维码</span>
+          </div>
+          <div class="field-item" draggable="true" data-type="line" data-label="分割线">
+            <span class="field-icon">➖</span>
+            <span>分割线</span>
+          </div>
+          <div class="field-item" draggable="true" data-type="space" data-label="空白行">
+            <span class="field-icon">⬜</span>
+            <span>空白行</span>
+          </div>
+        </div>
+        <div class="printer-status">
+          <h3>🖨️ 打印机状态</h3>
+          <div id="printerStatus" class="status-disconnected">未连接</div>
+          <div id="networkPrinterStatus" class="status-disconnected" style="display:none;">网络: 未配置</div>
+        </div>
+      </aside>
+
+      <section class="canvas-area">
+        <div class="canvas-header">
+          <h3>🎨 模板设计区</h3>
+          <span class="hint">拖拽字段到设计区</span>
+        </div>
+        <div id="designCanvas" class="design-canvas">
+          <div class="canvas-placeholder">
+            👆 从左侧拖拽字段到此处开始设计
+          </div>
+        </div>
+      </section>
+
+      <aside class="sidebar right-sidebar">
+        <h3>👁️ 实时预览</h3>
+        <div id="previewArea" class="preview-area">
+          <div class="receipt-preview">
+            <div class="receipt-paper" id="receiptPaper">
+            </div>
+          </div>
+        </div>
+        <h3>⚙️ 属性设置</h3>
+        <div id="propertyPanel" class="property-panel">
+          <p class="hint">选择字段以编辑属性</p>
+        </div>
+      </aside>
+    </main>
+
+    <div id="networkConfigModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>⚙️ 网络打印机设置</h2>
+          <button class="close-btn" onclick="closeNetworkConfigModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>启用网络打印机</label>
+            <input type="checkbox" id="networkPrinterEnabled">
+          </div>
+          <div class="form-group">
+            <label>打印机IP地址</label>
+            <input type="text" id="networkPrinterIp" placeholder="例如: 192.168.1.100">
+          </div>
+          <div class="form-group">
+            <label>端口号</label>
+            <input type="number" id="networkPrinterPort" value="9100" placeholder="默认: 9100">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeNetworkConfigModal()">取消</button>
+          <button class="btn btn-info" onclick="testNetworkPrinter()">测试连接</button>
+          <button class="btn btn-primary" onclick="saveNetworkConfig()">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="queueModal" class="modal" style="display:none;">
+      <div class="modal-content modal-large">
+        <div class="modal-header">
+          <h2>📋 打印队列管理</h2>
+          <button class="close-btn" onclick="closeQueueModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="queue-actions">
+            <button class="btn btn-success" onclick="retryQueue()">🔄 重试失败</button>
+            <button class="btn btn-danger" onclick="clearQueue()">🗑️ 清空队列</button>
+            <span id="queueCount" class="queue-count">0 个任务</span>
+          </div>
+          <div id="queueList" class="queue-list">
+            <p class="hint">暂无打印任务</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeQueueModal()">关闭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="lib/jsbarcode.js"></script>
+  <script src="lib/qrcode.js"></script>
+  <script src="js/escpos.js"></script>
+  <script src="js/printer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

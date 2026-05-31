@@ -1,0 +1,42 @@
+{
+  "name": "receipt-printer-app",
+  "version": "1.1.0",
+  "description": "Electron应用 - WebHID票据打印机模板设计器",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder"
+  },
+  "keywords": ["electron", "webhid", "escpos", "printer", "receipt"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
+    "iconv-lite": "^0.6.3",
+    "qrcode": "^1.5.3",
+    "jsbarcode": "^3.11.6",
+    "pdfkit": "^0.14.0",
+    "svg-to-pdfkit": "^0.1.8",
+    "net": "^1.0.2"
+  },
+  "build": {
+    "appId": "com.receipt.printer",
+    "productName": "票据打印机",
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.utilities"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

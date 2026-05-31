@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FM-Index 基因序列比对工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-family: 'Courier New', monospace;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 12px 32px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .results-count {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .results-count span {
+            color: #667eea;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .strand-plus {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .strand-minus {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-exact {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-mismatch {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-indel {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f0f0f0;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .index-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .index-info h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .index-info ul {
+            list-style: none;
+        }
+
+        .index-info li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .index-info li:last-child {
+            border-bottom: none;
+        }
+
+        .index-info .record-name {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .index-info .badge-rna {
+            background: #e7f3ff;
+            color: #0066cc;
+            margin-left: 8px;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .export-btn {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .alignment-view {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .alignment-view .query {
+            color: #667eea;
+        }
+
+        .alignment-view .match {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .alignment-view .mismatch {
+            color: #dc3545;
+        }
+
+        .alignment-view .gap {
+            color: #6c757d;
+        }
+
+        .alignment-view .ref {
+            color: #6c757d;
+        }
+
+        .cigar {
+            background: #e7f3ff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #0066cc;
+        }
+
+        .detail-row {
+            display: none;
+        }
+
+        .detail-row td {
+            background: #f8f9fa;
+        }
+
+        .expand-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            color: #667eea;
+        }
+
+        .expand-btn:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .form-row {
+                flex-direction: column;
+            }
+
+            .card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧬 FM-Index 基因序列比对工具</h1>
+            <p>支持精确匹配、错配匹配、Gap比对的高效序列比对工具</p>
+        </div>
+
+        <div class="card">
+            <div id="indexInfo" class="index-info">
+                <h3>📊 索引信息</h3>
+                <div id="indexInfoContent">正在加载...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 20px; color: #333;">🔍 序列比对</h2>
+            
+            <div class="form-group">
+                <label for="pattern">输入查询序列 (DNA/RNA: A, T, U, C, G, N)</label>
+                <textarea id="pattern" placeholder="例如: ATCGATCG 或 AUCGAUCG"></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="searchType">比对类型</label>
+                    <select id="searchType">
+                        <option value="exact">精确匹配</option>
+                        <option value="approx">错配匹配</option>
+                        <option value="gapped">Gap比对 (插入/删除)</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="mismatchGroup" style="display: none;">
+                    <label for="mismatches">最大错配数</label>
+                    <input type="number" id="mismatches" min="0" max="10" value="1">
+                </div>
+
+                <div class="form-group" id="editGroup" style="display: none;">
+                    <label for="maxEdit">最大编辑距离</label>
+                    <input type="number" id="maxEdit" min="0" max="10" value="2">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="includeRC" checked>
+                        <label for="includeRC">包含反向互补链</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showDetail">
+                        <label for="showDetail">显示比对详情</label>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 10px; flex-wrap: wrap;">
+                <button class="btn btn-primary" id="searchBtn" onclick="search()">
+                    🔍 比对
+                </button>
+                <button class="btn btn-secondary" onclick="clearResults()">
+                    清空结果
+                </button>
+            </div>
+        </div>
+
+        <div class="card" id="resultsCard" style="display: none;">
+            <div class="results-header">
+                <div class="results-count">
+                    找到 <span id="resultCount">0</span> 个匹配
+                </div>
+                <div class="export-btn">
+                    <button class="btn btn-secondary" onclick="exportCSV()">
+                        📥 导出 CSV
+                    </button>
+                    <button class="btn btn-success" onclick="exportSAM()">
+                        📥 导出 SAM
+                    </button>
+                </div>
+            </div>
+
+            <div id="resultsContent"></div>
+            
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentResults = [];
+        let currentPage = 1;
+        const pageSize = 50;
+        let currentPattern = '';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadIndexInfo();
+            
+            document.getElementById('searchType').addEventListener('change', function() {
+                const type = this.value;
+                document.getElementById('mismatchGroup').style.display = type === 'approx' ? 'block' : 'none';
+                document.getElementById('editGroup').style.display = type === 'gapped' ? 'block' : 'none';
+            });
+
+            document.getElementById('pattern').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    search();
+                }
+            });
+        });
+
+        async function loadIndexInfo() {
+            try {
+                const response = await fetch('/api/info');
+                const data = await response.json();
+                
+                let html = `<p><strong>序列数量:</strong> ${data.total_records}</p>`;
+                html += `<p><strong>总长度:</strong> ${data.total_length.toLocaleString()} bp</p>`;
+                html += `<p><strong>序列类型:</strong> ${data.is_rna ? 'RNA' : 'DNA'} <span class="badge badge-rna">${data.is_rna ? 'RNA' : 'DNA'}</span></p>`;
+                html += `<p><strong>内存使用:</strong> ${data.memory_mb.toFixed(2)} MB</p>`;
+                html += '<ul style="margin-top: 10px;">';
+                
+                data.records.forEach(record => {
+                    html += `<li><span class="record-name">${record.name}</span>: ${record.length.toLocaleString()} bp`;
+                    if (record.description) {
+                        html += `<br><small style="color: #666;">${record.description}</small>`;
+                    }
+                    html += '</li>';
+                });
+                
+                html += '</ul>';
+                document.getElementById('indexInfoContent').innerHTML = html;
+            } catch (error) {
+                document.getElementById('indexInfoContent').innerHTML = 
+                    '<span style="color: #dc3545;">加载索引信息失败</span>';
+            }
+        }
+
+        async function search() {
+            const pattern = document.getElementById('pattern').value.trim().toUpperCase();
+            const searchType = document.getElementById('searchType').value;
+            const mismatches = document.getElementById('mismatches').value;
+            const maxEdit = document.getElementById('maxEdit').value;
+            const includeRC = document.getElementById('includeRC').checked;
+
+            if (!pattern) {
+                alert('请输入查询序列');
+                return;
+            }
+
+            if (!/^[ATUCGN]+$/.test(pattern)) {
+                alert('序列只能包含 A, T, U, C, G, N 字符');
+                return;
+            }
+
+            currentPattern = pattern;
+            const resultsCard = document.getElementById('resultsCard');
+            const resultsContent = document.getElementById('resultsContent');
+            
+            resultsCard.style.display = 'block';
+            resultsContent.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>正在比对...</p>
+                </div>
+            `;
+
+            try {
+                let url;
+                if (searchType === 'exact') {
+                    url = `/api/search/exact?pattern=${encodeURIComponent(pattern)}&rc=${includeRC}`;
+                } else {
+                    const gapped = searchType === 'gapped';
+                    const edit = gapped ? maxEdit : mismatches;
+                    url = `/api/search/approx?pattern=${encodeURIComponent(pattern)}&mismatches=${edit}&rc=${includeRC}&gapped=${gapped}&max_edit=${edit}`;
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (!data.success) {
+                    resultsContent.innerHTML = `<div class="error">${data.message}</div>`;
+                    return;
+                }
+
+                currentResults = data.results;
+                currentPage = 1;
+                
+                renderResults();
+            } catch (error) {
+                resultsContent.innerHTML = `<div class="error">比对失败: ${error.message}</div>`;
+            }
+        }
+
+        function renderResults() {
+            const resultsContent = document.getElementById('resultsContent');
+            const resultCount = document.getElementById('resultCount');
+            const pagination = document.getElementById('pagination');
+            const showDetail = document.getElementById('showDetail').checked;
+
+            resultCount.textContent = currentResults.length;
+
+            if (currentResults.length === 0) {
+                resultsContent.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                        <h3>未找到匹配结果</h3>
+                        <p>尝试调整查询参数或增加允许的编辑距离</p>
+                    </div>
+                `;
+                pagination.innerHTML = '';
+                return;
+            }
+
+            const totalPages = Math.ceil(currentResults.length / pageSize);
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageResults = currentResults.slice(start, end);
+
+            let tableHtml = `
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>序列名称</th>
+                                <th>位置</th>
+                                <th>编辑距离</th>
+                                <th>链</th>
+                                <th>CIGAR</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            pageResults.forEach((result, index) => {
+                const globalIndex = start + index;
+                const badgeClass = result.edit_distance === 0 ? 'badge-exact' : 
+                                  (result.alignment ? 'badge-indel' : 'badge-mismatch');
+                const strandClass = result.strand === '+' ? 'strand-plus' : 'strand-minus';
+                const cigar = result.alignment ? result.alignment.cigar : `${currentPattern.length}M`;
+                
+                tableHtml += `
+                    <tr onclick="toggleDetail(${globalIndex})" style="cursor: pointer;">
+                        <td>${globalIndex + 1}</td>
+                        <td><strong>${result.record_name}</strong></td>
+                        <td>${result.position.toLocaleString()}</td>
+                        <td><span class="badge ${badgeClass}">${result.edit_distance}</span></td>
+                        <td><span class="${strandClass}">${result.strand}</span></td>
+                        <td><span class="cigar">${cigar}</span></td>
+                        <td><button class="expand-btn">▼</button></td>
+                    </tr>
+                `;
+
+                if (showDetail && result.alignment) {
+                    tableHtml += `
+                        <tr class="detail-row" id="detail-${globalIndex}">
+                            <td colspan="7">
+                                <div class="alignment-view">
+                                    <div class="query">Query:  ${result.alignment.query}</div>
+                                    <div class="match">        ${generateMatchLine(result.alignment.query, result.alignment.reference)}</div>
+                                    <div class="ref">Ref:    ${result.alignment.reference}</div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+
+            tableHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            resultsContent.innerHTML = tableHtml;
+
+            if (totalPages > 1) {
+                let paginationHtml = '';
+                paginationHtml += `<button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>`;
+                
+                const maxVisible = 10;
+                let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+                
+                if (endPage - startPage + 1 < maxVisible) {
+                    startPage = Math.max(1, endPage - maxVisible + 1);
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    paginationHtml += `<button class="${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+                }
+                
+                paginationHtml += `<button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>`;
+                pagination.innerHTML = paginationHtml;
+            } else {
+                pagination.innerHTML = '';
+            }
+        }
+
+        function generateMatchLine(query, ref) {
+            let line = '';
+            for (let i = 0; i < query.length && i < ref.length; i++) {
+                if (query[i] === ref[i] && query[i] !== '-') {
+                    line += '|';
+                } else if (query[i] === '-' || ref[i] === '-') {
+                    line += ' ';
+                } else {
+                    line += '*';
+                }
+            }
+            return line;
+        }
+
+        function toggleDetail(index) {
+            const row = document.getElementById(`detail-${index}`);
+            if (row) {
+                row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+            }
+        }
+
+        function goToPage(page) {
+            const totalPages = Math.ceil(currentResults.length / pageSize);
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                renderResults();
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('pattern').value = '';
+            document.getElementById('resultsCard').style.display = 'none';
+            currentResults = [];
+            currentPage = 1;
+        }
+
+        function exportCSV() {
+            if (currentResults.length === 0) return;
+
+            let csv = '序号,序列名称,位置,编辑距离,链,CIGAR\n';
+            currentResults.forEach((result, index) => {
+                const cigar = result.alignment ? result.alignment.cigar : `${currentPattern.length}M`;
+                csv += `${index + 1},${result.record_name},${result.position},${result.edit_distance},${result.strand},${cigar}\n`;
+            });
+
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `alignment_results_${new Date().toISOString().slice(0, 10)}.csv`;
+            link.click();
+        }
+
+        async function exportSAM() {
+            const pattern = document.getElementById('pattern').value.trim().toUpperCase();
+            const searchType = document.getElementById('searchType').value;
+            const mismatches = document.getElementById('mismatches').value;
+            const maxEdit = document.getElementById('maxEdit').value;
+            const includeRC = document.getElementById('includeRC').checked;
+
+            if (!pattern) return;
+
+            let url;
+            if (searchType === 'exact') {
+                url = `/api/search/exact?pattern=${encodeURIComponent(pattern)}&rc=${includeRC}&format=sam`;
+            } else {
+                const gapped = searchType === 'gapped';
+                const edit = gapped ? maxEdit : mismatches;
+                url = `/api/search/approx?pattern=${encodeURIComponent(pattern)}&mismatches=${edit}&rc=${includeRC}&gapped=${gapped}&max_edit=${edit}&format=sam`;
+            }
+
+            window.location.href = url;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADS-B 航班追踪器</title>
+  <link rel="stylesheet" href="node_modules/leaflet/dist/leaflet.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="toolbar">
+      <h1>✈️ ADS-B 航班追踪器</h1>
+      <div class="controls">
+        <div class="connection-group">
+          <input type="text" id="host" value="localhost" placeholder="主机">
+          <input type="number" id="port" value="30003" placeholder="端口">
+          <button id="connectBtn" class="btn btn-primary">连接</button>
+          <button id="disconnectBtn" class="btn btn-danger" disabled>断开</button>
+        </div>
+        <div class="weather-group">
+          <button id="weatherToggle" class="btn btn-secondary">🌤️ 气象</button>
+          <button id="windToggle" class="btn btn-secondary" style="display: none;">💨 风场</button>
+        </div>
+        <div class="export-group">
+          <button id="exportBtn" class="btn btn-secondary">📊 导出CSV</button>
+        </div>
+        <div class="playback-group">
+          <button id="historyBtn" class="btn btn-secondary">历史回放</button>
+        </div>
+      </div>
+    </header>
+    
+    <div id="alertPanel" class="alert-panel hidden">
+      <div class="alert-header">
+        <span class="alert-icon">⚠️</span>
+        <strong>冲突告警</strong>
+        <button id="closeAlert" class="close-btn">✕</button>
+      </div>
+      <div id="alertContent" class="alert-content"></div>
+    </div>
+    
+    <div class="main-content">
+      <div id="map" class="map-container"></div>
+      
+      <aside class="sidebar">
+        <div class="sidebar-tabs">
+          <button class="tab-btn active" data-tab="flights">✈️ 航班</button>
+          <button class="tab-btn" data-tab="conflicts">⚠️ 冲突</button>
+          <button class="tab-btn" data-tab="weather">🌤️ 气象</button>
+        </div>
+        
+        <div id="flightsTab" class="tab-content active">
+          <div class="sidebar-header">
+            <h2>航班列表 (<span id="flightCount">0</span>)</h2>
+          </div>
+          <div id="flightList" class="flight-list"></div>
+        </div>
+        
+        <div id="conflictsTab" class="tab-content">
+          <div class="sidebar-header">
+            <h2>冲突告警 (<span id="conflictCount">0</span>)</h2>
+          </div>
+          <div id="conflictList" class="conflict-list"></div>
+          <button id="exportConflictsBtn" class="btn btn-secondary btn-full">导出冲突数据</button>
+        </div>
+        
+        <div id="weatherTab" class="tab-content">
+          <div class="sidebar-header">
+            <h2>气象信息</h2>
+          </div>
+          <div class="weather-controls">
+            <label class="checkbox-label">
+              <input type="checkbox" id="showStorms" checked>
+              雷暴区
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="showWind">
+              风场箭头
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="showClouds">
+              云层
+            </label>
+          </div>
+          <div id="stormList" class="storm-list"></div>
+        </div>
+      </aside>
+    </div>
+
+    <div id="playbackPanel" class="playback-panel hidden">
+      <div class="playback-controls">
+        <button id="playPauseBtn" class="btn btn-primary">▶ 播放</button>
+        <button id="stopPlaybackBtn" class="btn btn-secondary">停止</button>
+        <input type="range" id="playbackSlider" min="0" max="100" value="0" class="slider">
+        <span id="playbackTime">00:00:00</span>
+        <select id="playbackSpeed" class="speed-select">
+          <option value="1">1x</option>
+          <option value="2">2x</option>
+          <option value="5">5x</option>
+          <option value="10">10x</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="exportModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>📊 导出数据</h3>
+          <button class="close-modal">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="export-options">
+            <label>
+              <input type="radio" name="exportType" value="flights" checked>
+              航班摘要（时间范围）
+            </label>
+            <label>
+              <input type="radio" name="exportType" value="single">
+              单架飞机轨迹
+            </label>
+            <label>
+              <input type="radio" name="exportType" value="report">
+              完整报告
+            </label>
+          </div>
+          <div id="timeRangeInputs" class="input-group">
+            <label>开始时间:</label>
+            <input type="datetime-local" id="exportStartTime">
+            <label>结束时间:</label>
+            <input type="datetime-local" id="exportEndTime">
+          </div>
+          <div id="flightSelectInput" class="input-group hidden">
+            <label>选择航班:</label>
+            <select id="exportFlightSelect"></select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="cancelExport" class="btn btn-secondary">取消</button>
+          <button id="confirmExport" class="btn btn-primary">导出</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="node_modules/leaflet/dist/leaflet.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+simulation:
+  num_vehicles: 6
+  map_size: 200
+  time_step: 0.1
+
+vehicle:
+  min_velocity: 2.0
+  max_velocity: 10.0
+  vehicle_length: 4.0
+  vehicle_width: 2.0
+
+conflict_detection:
+  warning_distance: 5.0
+  critical_distance: 2.0
+  prediction_horizon: 5.0
+  detection_interval: 0.5
+
+database:
+  path: "events.db"
+  max_log_entries: 10000
+
+ros2_bridge:
+  enabled: false
+  topics:
+    vehicle_state: "/vehicle_states"
+    vehicle_path: "/vehicle_paths"
+    conflict_alert: "/conflict_alerts"
+
+visualization:
+  update_rate: 10
+  show_paths: true
+  show_conflict_markers: true
