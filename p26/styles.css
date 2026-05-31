@@ -1,0 +1,304 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #1a1a2e;
+  color: #eee;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: #16213e;
+  border-bottom: 1px solid #0f3460;
+}
+
+.toolbar-left h1 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.toolbar-center {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  background: #0f3460;
+  color: #eee;
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  background: #1a4a8a;
+}
+
+.btn-primary {
+  background: #e94560;
+}
+
+.btn-primary:hover {
+  background: #ff6b6b;
+}
+
+.btn-success {
+  background: #28a745;
+}
+
+.btn-success:hover {
+  background: #32cd32;
+}
+
+.btn-warning {
+  background: #f39c12;
+}
+
+.btn-warning:hover {
+  background: #f1c40f;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 13px;
+}
+
+.main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 250px;
+  background: #16213e;
+  padding: 15px;
+  overflow-y: auto;
+  border-right: 1px solid #0f3460;
+}
+
+.sidebar.right {
+  border-right: none;
+  border-left: 1px solid #0f3460;
+}
+
+.sidebar h3 {
+  font-size: 14px;
+  margin-bottom: 10px;
+  color: #e94560;
+}
+
+.annotation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.annotation-item {
+  padding: 8px;
+  background: #0f3460;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.annotation-item:hover {
+  background: #1a4a8a;
+}
+
+.annotation-item .delete-btn {
+  color: #e94560;
+  cursor: pointer;
+}
+
+.series-info {
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.tool-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.tool-settings label {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.tool-settings input[type="text"],
+.tool-settings input[type="color"] {
+  padding: 6px;
+  border: 1px solid #0f3460;
+  border-radius: 4px;
+  background: #1a1a2e;
+  color: #eee;
+}
+
+.model-list, .training-jobs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.model-item {
+  padding: 8px;
+  background: #0f3460;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.training-job {
+  padding: 10px;
+  background: #0f3460;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.training-job .status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  margin-top: 5px;
+}
+
+.status.pending { background: #f39c12; }
+.status.running { background: #3498db; }
+.status.completed { background: #28a745; }
+.status.failed { background: #e94560; }
+
+.viewer-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #0a0a1a;
+  position: relative;
+}
+
+.dicom-viewer {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.volume-viewer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #0a0a1a;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+#volumeCanvas {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+}
+
+.volume-controls {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(22, 33, 62, 0.95);
+  padding: 15px 25px;
+  border-radius: 8px;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.volume-controls label {
+  font-size: 12px;
+  color: #ccc;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.volume-controls input[type="range"] {
+  width: 100px;
+}
+
+.btn-small {
+  padding: 5px 12px;
+  font-size: 12px;
+}
+
+#cornerstoneCanvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.placeholder {
+  text-align: center;
+  color: #666;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.slider-container {
+  padding: 10px 20px;
+  background: #16213e;
+  border-top: 1px solid #0f3460;
+}
+
+#sliceSlider {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  background: #0f3460;
+  border-radius: 3px;
+  outline: none;
+}
+
+#sliceSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #e94560;
+  border-radius: 50%;
+  cursor: pointer;
+}

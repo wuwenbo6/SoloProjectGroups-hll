@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel-2 影像处理系统</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            color: white;
+            padding: 15px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 380px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-section {
+            padding: 20px;
+            border-bottom: 1px solid #e0e6ed;
+        }
+
+        .sidebar-section h3 {
+            font-size: 16px;
+            color: #1e3a5f;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: #2d5a87;
+            background: #f7fafc;
+        }
+
+        .upload-area.dragover {
+            border-color: #2d5a87;
+            background: #ebf8ff;
+        }
+
+        .upload-icon {
+            font-size: 40px;
+            color: #a0aec0;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            color: #4a5568;
+            font-size: 14px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .task-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .task-item {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .task-item:hover {
+            background: #edf2f7;
+        }
+
+        .task-item.active {
+            border-color: #2d5a87;
+            background: #ebf8ff;
+        }
+
+        .task-name {
+            font-weight: 600;
+            color: #1e3a5f;
+            margin-bottom: 5px;
+        }
+
+        .task-meta {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .task-status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-top: 8px;
+        }
+
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-processing { background: #dbeafe; color: #1e40af; }
+        .status-completed { background: #d1fae5; color: #065f46; }
+        .status-failed { background: #fee2e2; color: #991b1b; }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px;
+            min-width: 200px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .layer-selector {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .layer-btn {
+            padding: 6px 12px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .layer-btn:hover {
+            background: #f7fafc;
+        }
+
+        .layer-btn.active {
+            background: #2d5a87;
+            color: white;
+            border-color: #2d5a87;
+        }
+
+        .compare-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e0;
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #2d5a87;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        .time-slider-container {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px 25px;
+            width: 60%;
+            max-width: 600px;
+        }
+
+        .time-slider-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .time-slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .time-markers {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #718096;
+        }
+
+        .stats-panel {
+            position: absolute;
+            bottom: 100px;
+            left: 20px;
+            z-index: 100;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px;
+            min-width: 220px;
+        }
+
+        .stats-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e3a5f;
+            margin-bottom: 12px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #edf2f7;
+            font-size: 13px;
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #718096;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #1e3a5f;
+        }
+
+        .toolbar {
+            position: absolute;
+            top: 20px;
+            left: 80px;
+            z-index: 100;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 8px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .tool-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .tool-btn:hover {
+            background: #f7fafc;
+        }
+
+        .tool-btn.active {
+            background: #2d5a87;
+            color: white;
+        }
+
+        .download-btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        .download-btn:hover {
+            opacity: 0.9;
+        }
+
+        .download-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #2d5a87;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 12px;
+        }
+
+        .legend-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 8px;
+        }
+
+        .legend-gradient {
+            height: 20px;
+            width: 150px;
+            border-radius: 4px;
+        }
+
+        .legend-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #718096;
+            margin-top: 4px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #cbd5e0;
+            border-radius: 50%;
+            border-top-color: #2d5a87;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🛰️ Sentinel-2 遥感影像处理系统</h1>
+    </header>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <h3>📤 上传影像</h3>
+                <input type="text" class="form-input" id="taskName" placeholder="任务名称">
+
+                <div style="margin-bottom: 10px;">
+                    <label class="control-label">☁️ 云掩膜处理</label>
+                    <select class="form-input" id="cloudMaskOption" style="margin-top: 5px; margin-bottom: 5px;">
+                        <option value="auto">自动检测 (推荐)</option>
+                        <option value="scl">SCL 波段优先</option>
+                        <option value="qa">QA 波段优先</option>
+                        <option value="spectral">光谱检测</option>
+                        <option value="none">不应用云掩膜</option>
+                    </select>
+                    <div style="font-size: 11px; color: #718096; line-height: 1.4;">
+                        自动模式优先使用SCL/QA波段，无质量波段时使用光谱检测算法
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 10px; padding: 10px; background: #f0f9ff; border-radius: 6px; font-size: 12px; color: #1e40af;">
+                    <strong>💡 大影像支持</strong><br>
+                    系统自动采用分块处理，支持10GB+大影像
+                </div>
+
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">
+                        拖放 JP2/TIFF 文件到此处<br>
+                        或点击选择文件
+                    </div>
+                </div>
+                <input type="file" class="file-input" id="fileInput" accept=".jp2,.tif,.tiff">
+            </div>
+
+            <div class="sidebar-section">
+                <h3>📋 处理任务</h3>
+                <div class="task-list" id="taskList">
+                    <div style="text-align: center; color: #a0aec0; padding: 30px;">
+                        暂无任务
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section" id="downloadSection" style="display: none;">
+                <h3>💾 下载结果</h3>
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+                    <button class="download-btn" onclick="downloadResult('ndvi')">📥 下载 NDVI GeoTIFF</button>
+                    <button class="download-btn" onclick="downloadResult('evi')">📥 下载 EVI GeoTIFF</button>
+                    <button class="download-btn" onclick="downloadResult('ndwi')">📥 下载 NDWI GeoTIFF</button>
+                </div>
+            </div>
+
+            <div class="sidebar-section" id="classificationSection" style="display: none;">
+                <h3>🏞️ 土地覆盖分类</h3>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button class="download-btn" onclick="runClassification()">🔄 开始分类</button>
+                    <div id="classificationStats" style="display: none;">
+                        <div class="stat-row">
+                            <span class="stat-label">🔵 水体</span>
+                            <span class="stat-value" id="waterArea">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">🟢 森林</span>
+                            <span class="stat-value" id="forestArea">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">🔴 建筑</span>
+                            <span class="stat-value" id="builtArea">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">🟠 裸地</span>
+                            <span class="stat-value" id="bareArea">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">🟡 农田</span>
+                            <span class="stat-value" id="farmArea">-</span>
+                        </div>
+                    </div>
+                    <div id="classificationStatus" style="font-size: 12px; color: #718096; text-align: center;">
+                        点击按钮开始土地覆盖分类
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section" id="changeDetectSection">
+                <h3>🔄 变化检测</h3>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <input type="text" class="form-input" id="changeTaskName" placeholder="变化检测任务名">
+                    <select class="form-input" id="beforeTaskSelect">
+                        <option value="">选择前期影像</option>
+                    </select>
+                    <select class="form-input" id="afterTaskSelect">
+                        <option value="">选择后期影像</option>
+                    </select>
+                    <select class="form-input" id="changeIndexType">
+                        <option value="ndvi">NDVI</option>
+                        <option value="evi">EVI</option>
+                        <option value="ndwi">NDWI</option>
+                    </select>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span style="font-size: 12px; color: #718096;">变化阈值:</span>
+                        <input type="number" class="form-input" id="changeThreshold" value="0.1" step="0.05" min="0.01" max="0.5" style="flex: 1; margin: 0;">
+                    </div>
+                    <button class="download-btn" onclick="runChangeDetection()">📊 开始变化检测</button>
+                </div>
+            </div>
+
+            <div class="sidebar-section" id="reportSection" style="display: none;">
+                <h3>📑 统计报表</h3>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button class="download-btn" onclick="downloadReport('classification')">📋 下载分类报表</button>
+                    <button class="download-btn" onclick="downloadReport('full')">📊 下载完整报表</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div class="toolbar">
+                <button class="tool-btn" id="drawPolygonBtn" title="绘制多边形统计">📐</button>
+                <button class="tool-btn" id="clearDrawBtn" title="清除绘制">🗑️</button>
+            </div>
+
+            <div class="map-controls">
+                <div class="control-group">
+                    <label class="control-label">图层选择</label>
+                    <div class="layer-selector">
+                        <button class="layer-btn active" data-layer="ndvi">NDVI</button>
+                        <button class="layer-btn" data-layer="evi">EVI</button>
+                        <button class="layer-btn" data-layer="ndwi">NDWI</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">图层对比</label>
+                    <div class="compare-toggle">
+                        <span style="font-size: 12px; color: #718096;">关闭</span>
+                        <label class="switch">
+                            <input type="checkbox" id="compareToggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span style="font-size: 12px; color: #718096;">开启</span>
+                    </div>
+                </div>
+                <div id="compareLayerSelect" class="control-group hidden">
+                    <label class="control-label">对比图层</label>
+                    <div class="layer-selector">
+                        <button class="layer-btn" data-compare="ndvi">NDVI</button>
+                        <button class="layer-btn" data-compare="evi">EVI</button>
+                        <button class="layer-btn active" data-compare="ndwi">NDWI</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-panel" id="statsPanel">
+                <div class="stats-title">📊 区域统计</div>
+                <div id="statsContent">
+                    <div style="color: #a0aec0; font-size: 12px;">
+                        请在地图上绘制多边形进行区域统计
+                    </div>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-title" id="legendTitle">NDVI</div>
+                <div class="legend-gradient" id="legendGradient" style="background: linear-gradient(to right, #f44336, #ffeb3b, #4caf50);"></div>
+                <div class="legend-labels">
+                    <span>-1.0</span>
+                    <span>0.0</span>
+                    <span>1.0</span>
+                </div>
+            </div>
+
+            <div class="time-slider-container" id="timeSliderContainer" style="display: none;">
+                <div class="time-slider-label">⏱️ 时序分析 - 拖动滑块查看不同时间的影像</div>
+                <input type="range" class="time-slider" id="timeSlider" min="0" max="100" value="50">
+                <div class="time-markers" id="timeMarkers">
+                    <span>2024-01</span>
+                    <span>2024-06</span>
+                    <span>2024-12</span>
+                </div>
+            </div>
+
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+
+        let currentTask = null;
+        let map, drawInteraction, vectorSource, vectorLayer;
+        let rasterLayers = { ndvi: null, evi: null, ndwi: null };
+        let currentLayer = 'ndvi';
+        let compareLayer = 'ndwi';
+        let compareEnabled = false;
+
+        function initMap() {
+            const osmLayer = new ol.layer.Tile({
+                source: new ol.source.OSM(),
+                opacity: 0.3
+            });
+
+            map = new ol.Map({
+                target: 'map',
+                layers: [osmLayer],
+                view: new ol.View({
+                    center: ol.proj.fromLonLat([116.4, 39.9]),
+                    zoom: 10
+                })
+            });
+
+            vectorSource = new ol.source.Vector();
+            vectorLayer = new ol.layer.Vector({
+                source: vectorSource,
+                style: new ol.style.Style({
+                    fill: new ol.style.Fill({
+                        color: 'rgba(45, 90, 135, 0.2)'
+                    }),
+                    stroke: new ol.style.Stroke({
+                        color: '#2d5a87',
+                        width: 2
+                    })
+                })
+            });
+            map.addLayer(vectorLayer);
+
+            ['ndvi', 'evi', 'ndwi'].forEach(type => {
+                rasterLayers[type] = new ol.layer.Tile({
+                    visible: false,
+                    opacity: 0.8
+                });
+                map.addLayer(rasterLayers[type]);
+            });
+
+            rasterLayers['ndvi'].setVisible(true);
+            initDrawInteraction();
+        }
+
+        function initDrawInteraction() {
+            drawInteraction = new ol.interaction.Draw({
+                source: vectorSource,
+                type: 'Polygon'
+            });
+
+            drawInteraction.on('drawend', async function(event) {
+                const feature = event.feature;
+                const geometry = feature.getGeometry();
+                const wgs84Geometry = geometry.clone().transform(map.getView().getProjection(), 'EPSG:4326');
+                const wkt = new ol.format.WKT().writeGeometry(wgs84Geometry);
+
+                await calculateStatistics(wkt);
+
+                map.removeInteraction(drawInteraction);
+                document.getElementById('drawPolygonBtn').classList.remove('active');
+            });
+
+            document.getElementById('drawPolygonBtn').addEventListener('click', function() {
+                if (this.classList.contains('active')) {
+                    map.removeInteraction(drawInteraction);
+                    this.classList.remove('active');
+                } else {
+                    map.addInteraction(drawInteraction);
+                    this.classList.add('active');
+                    vectorSource.clear();
+                }
+            });
+
+            document.getElementById('clearDrawBtn').addEventListener('click', function() {
+                vectorSource.clear();
+                document.getElementById('statsContent').innerHTML = `
+                    <div style="color: #a0aec0; font-size: 12px;">
+                        请在地图上绘制多边形进行区域统计
+                    </div>
+                `;
+            });
+        }
+
+        async function calculateStatistics(wkt) {
+            if (!currentTask) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/tasks/${currentTask.id}/statistics`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        polygon_wkt: wkt,
+                        index_type: currentLayer
+                    })
+                });
+
+                const stats = await response.json();
+                displayStatistics(stats);
+            } catch (error) {
+                console.error('统计计算失败:', error);
+            }
+        }
+
+        function displayStatistics(stats) {
+            const content = document.getElementById('statsContent');
+            content.innerHTML = `
+                <div style="margin-bottom: 8px; font-size: 11px; color: #718096;">
+                    索引类型: <strong>${stats.index_type.toUpperCase()}</strong>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">均值</span>
+                    <span class="stat-value">${stats.mean_value ? stats.mean_value.toFixed(4) : '-'}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">中位数</span>
+                    <span class="stat-value">${stats.median_value ? stats.median_value.toFixed(4) : '-'}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">最小值</span>
+                    <span class="stat-value">${stats.min_value ? stats.min_value.toFixed(4) : '-'}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">最大值</span>
+                    <span class="stat-value">${stats.max_value ? stats.max_value.toFixed(4) : '-'}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">标准差</span>
+                    <span class="stat-value">${stats.std_value ? stats.std_value.toFixed(4) : '-'}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">有效像素</span>
+                    <span class="stat-value">${stats.valid_pixels || 0}</span>
+                </div>
+            `;
+        }
+
+        function setupUpload() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+
+            uploadArea.addEventListener('click', () => fileInput.click());
+
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    uploadFile(files[0]);
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    uploadFile(e.target.files[0]);
+                }
+            });
+        }
+
+        async function uploadFile(file) {
+            const taskName = document.getElementById('taskName').value || file.name;
+            const cloudMaskOption = document.getElementById('cloudMaskOption').value;
+
+            const formData = new FormData();
+            formData.append('task_name', taskName);
+            formData.append('apply_cloud_mask', cloudMaskOption);
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${API_BASE}/tasks`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    await loadTasks();
+                    document.getElementById('taskName').value = '';
+                    document.getElementById('fileInput').value = '';
+                    startTaskPolling();
+                }
+            } catch (error) {
+                console.error('上传失败:', error);
+                alert('上传失败，请重试');
+            }
+        }
+
+        async function loadTasks() {
+            try {
+                const response = await fetch(`${API_BASE}/tasks`);
+                const data = await response.json();
+                displayTasks(data.tasks);
+            } catch (error) {
+                console.error('加载任务失败:', error);
+            }
+        }
+
+        function displayTasks(tasks) {
+            const taskList = document.getElementById('taskList');
+
+            if (tasks.length === 0) {
+                taskList.innerHTML = `
+                    <div style="text-align: center; color: #a0aec0; padding: 30px;">
+                        暂无任务
+                    </div>
+                `;
+                return;
+            }
+
+            taskList.innerHTML = tasks.map(task => `
+                <div class="task-item ${currentTask && currentTask.id === task.id ? 'active' : ''}" onclick="selectTask(${task.id})">
+                    <div class="task-name">${task.task_name}</div>
+                    <div class="task-meta">${task.original_filename}</div>
+                    <div style="font-size: 11px; color: #718096; margin-top: 4px;">
+                        ${getCloudMaskText(task.apply_cloud_mask)}
+                    </div>
+                    <span class="task-status status-${task.status}">
+                        ${task.status === 'processing' ? '<span class="loading"></span> ' : ''}
+                        ${getStatusText(task.status)}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                'pending': '等待中',
+                'processing': '处理中',
+                'completed': '已完成',
+                'failed': '失败'
+            };
+            return statusMap[status] || status;
+        }
+
+        function getCloudMaskText(option) {
+            const maskMap = {
+                'none': '🌤️ 无云掩膜',
+                'auto': '☁️ 自动云检测',
+                'scl': '☁️ SCL波段检测',
+                'qa': '☁️ QA波段检测',
+                'spectral': '☁️ 光谱检测'
+            };
+            return maskMap[option] || '☁️ 自动云检测';
+        }
+
+        async function selectTask(taskId) {
+            try {
+                const response = await fetch(`${API_BASE}/tasks/${taskId}`);
+                currentTask = await response.json();
+
+                displayTasks(await getTasks());
+
+                if (currentTask.status === 'completed') {
+                    document.getElementById('downloadSection').style.display = 'block';
+                    document.getElementById('classificationSection').style.display = 'block';
+                    loadRasterLayers();
+                    loadExistingClassification(taskId);
+                    populateChangeTaskSelects();
+                } else {
+                    document.getElementById('downloadSection').style.display = 'none';
+                    document.getElementById('classificationSection').style.display = 'none';
+                    document.getElementById('reportSection').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('加载任务详情失败:', error);
+            }
+        }
+
+        async function loadExistingClassification(taskId) {
+            try {
+                const response = await fetch(`${API_BASE}/classification/task/${taskId}`);
+                const classifications = await response.json();
+
+                if (classifications.length > 0) {
+                    const latest = classifications[0];
+                    if (latest.status === 'completed') {
+                        displayClassificationStats(latest);
+                        document.getElementById('classificationStatus').textContent = '分类完成 ✓';
+                        document.getElementById('reportSection').style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('加载分类结果失败:', error);
+            }
+        }
+
+        async function getTasks() {
+            const response = await fetch(`${API_BASE}/tasks`);
+            const data = await response.json();
+            return data.tasks;
+        }
+
+        async function loadRasterLayers() {
+            if (!currentTask) return;
+
+            const defaultExtent = ol.proj.transformExtent(
+                [116.0, 39.5, 117.0, 40.5],
+                'EPSG:4326',
+                'EPSG:3857'
+            );
+
+            for (const type of ['ndvi', 'evi', 'ndwi']) {
+                const pathKey = `${type}_path`;
+                if (!currentTask[pathKey]) continue;
+
+                try {
+                    const response = await fetch(`${API_BASE}/tasks/${currentTask.id}/preview/${type}/base64`);
+                    const data = await response.json();
+
+                    if (data.bbox) {
+                        const extent = ol.proj.transformExtent(
+                            data.bbox,
+                            'EPSG:4326',
+                            'EPSG:3857'
+                        );
+
+                        const source = new ol.source.ImageStatic({
+                            url: data.image,
+                            imageExtent: extent,
+                            projection: 'EPSG:3857'
+                        });
+
+                        rasterLayers[type].setSource(source);
+                        rasterLayers[type].setExtent(extent);
+                    } else {
+                        const source = new ol.source.ImageStatic({
+                            url: data.image,
+                            imageExtent: defaultExtent,
+                            projection: 'EPSG:3857'
+                        });
+
+                        rasterLayers[type].setSource(source);
+                        rasterLayers[type].setExtent(defaultExtent);
+                    }
+                } catch (error) {
+                    console.error(`Failed to load ${type} layer:`, error);
+                }
+            }
+
+            const firstLayer = ['ndvi', 'evi', 'ndwi'].find(t => currentTask[`${t}_path`]);
+            if (firstLayer && rasterLayers[firstLayer].getSource()) {
+                const extent = rasterLayers[firstLayer].getExtent();
+                if (extent) {
+                    map.getView().fit(extent, { padding: [50, 50, 50, 50] });
+                }
+            }
+        }
+
+        function setupLayerControls() {
+            document.querySelectorAll('.layer-btn[data-layer]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.layer-btn[data-layer]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const layer = this.dataset.layer;
+                    rasterLayers[currentLayer].setVisible(false);
+                    currentLayer = layer;
+                    rasterLayers[currentLayer].setVisible(true);
+
+                    if (compareEnabled) {
+                        updateSwipeControl();
+                    }
+
+                    updateLegend();
+                });
+            });
+
+            document.querySelectorAll('.layer-btn[data-compare]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.layer-btn[data-compare]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    compareLayer = this.dataset.compare;
+                    if (compareEnabled) {
+                        updateSwipeControl();
+                    }
+                });
+            });
+
+            document.getElementById('compareToggle').addEventListener('change', function() {
+                compareEnabled = this.checked;
+                document.getElementById('compareLayerSelect').classList.toggle('hidden', !compareEnabled);
+
+                if (compareEnabled) {
+                    rasterLayers[compareLayer].setVisible(true);
+                    initSwipeControl();
+                } else {
+                    rasterLayers[compareLayer].setVisible(false);
+                    removeSwipeControl();
+                    rasterLayers[currentLayer].setVisible(true);
+                }
+            });
+        }
+
+        let swipeControl = null;
+
+        function initSwipeControl() {
+            removeSwipeControl();
+
+            swipeControl = new ol.control.Control({
+                element: document.createElement('div')
+            });
+
+            const swipe = document.createElement('div');
+            swipe.style.cssText = `
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                width: 4px;
+                background: white;
+                z-index: 1000;
+                cursor: ew-resize;
+                box-shadow: 0 0 10px rgba(0,0,0,0.3);
+                left: 50%;
+            `;
+            swipe.innerHTML = `<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 24px; height: 24px; background: #2d5a87; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">⟺</div>`;
+
+            map.getViewport().appendChild(swipe);
+
+            let isDragging = false;
+
+            swipe.addEventListener('mousedown', () => isDragging = true);
+            document.addEventListener('mouseup', () => isDragging = false);
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const rect = map.getViewport().getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const percent = (x / rect.width) * 100;
+                swipe.style.left = Math.max(0, Math.min(100, percent)) + '%';
+                updateLayerVisibility(percent);
+            });
+
+            updateLayerVisibility(50);
+        }
+
+        function updateLayerVisibility(percent) {
+            const layers = map.getLayers().getArray();
+            layers.forEach(layer => {
+                if (layer === rasterLayers[currentLayer] || layer === rasterLayers[compareLayer]) {
+                    layer.on('prerender', function(evt) {
+                        const ctx = evt.context;
+                        const width = ctx.canvas.width * (percent / 100);
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.rect(0, 0, width, ctx.canvas.height);
+                        ctx.clip();
+                    });
+
+                    layer.on('postrender', function(evt) {
+                        evt.context.restore();
+                    });
+                }
+            });
+        }
+
+        function updateSwipeControl() {
+            if (swipeControl) {
+                initSwipeControl();
+            }
+        }
+
+        function removeSwipeControl() {
+            const swipes = map.getViewport().querySelectorAll('div[style*="cursor: ew-resize"]');
+            swipes.forEach(s => s.remove());
+
+            Object.values(rasterLayers).forEach(layer => {
+                layer.un('prerender');
+                layer.un('postrender');
+            });
+        }
+
+        function updateLegend() {
+            const title = document.getElementById('legendTitle');
+            const gradient = document.getElementById('legendGradient');
+
+            const legends = {
+                ndvi: { title: 'NDVI - 植被指数', gradient: 'linear-gradient(to right, #f44336, #ffeb3b, #4caf50)' },
+                evi: { title: 'EVI - 增强植被指数', gradient: 'linear-gradient(to right, #f0f9e8, #ccebc5, #7bccc4, #2b8cbe, #084081)' },
+                ndwi: { title: 'NDWI - 水体指数', gradient: 'linear-gradient(to right, #f7fbff, #deebf7, #9ecae1, #3182bd, #08519c)' }
+            };
+
+            const legend = legends[currentLayer];
+            title.textContent = legend.title;
+            gradient.style.background = legend.gradient;
+        }
+
+        function downloadResult(indexType) {
+            if (!currentTask) return;
+            window.open(`${API_BASE}/tasks/${currentTask.id}/download/${indexType}`, '_blank');
+        }
+
+        let currentClassificationId = null;
+
+        async function runClassification() {
+            if (!currentTask) {
+                alert('请先选择一个处理任务');
+                return;
+            }
+
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '⏳ 分类中...';
+            document.getElementById('classificationStatus').textContent = '正在进行土地覆盖分类...';
+
+            try {
+                const response = await fetch(`${API_BASE}/classification`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task_id: currentTask.id })
+                });
+
+                const classification = await response.json();
+                currentClassificationId = classification.id;
+
+                await pollClassificationStatus(classification.id);
+            } catch (error) {
+                console.error('分类失败:', error);
+                document.getElementById('classificationStatus').textContent = '分类失败，请重试';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔄 开始分类';
+            }
+        }
+
+        async function pollClassificationStatus(classificationId) {
+            const interval = setInterval(async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/classification/${classificationId}`);
+                    const classification = await response.json();
+
+                    if (classification.status === 'completed') {
+                        clearInterval(interval);
+                        displayClassificationStats(classification);
+                        document.getElementById('classificationStatus').textContent = '分类完成 ✓';
+                        document.getElementById('reportSection').style.display = 'block';
+                    } else if (classification.status === 'failed') {
+                        clearInterval(interval);
+                        document.getElementById('classificationStatus').textContent = `分类失败: ${classification.error_message}`;
+                    } else {
+                        document.getElementById('classificationStatus').textContent = `分类中... (${classification.status})`;
+                    }
+                } catch (error) {
+                    clearInterval(interval);
+                }
+            }, 2000);
+        }
+
+        function displayClassificationStats(stats) {
+            document.getElementById('classificationStats').style.display = 'block';
+            document.getElementById('waterArea').textContent = stats.water_area_km2.toFixed(2) + ' km²';
+            document.getElementById('forestArea').textContent = stats.forest_area_km2.toFixed(2) + ' km²';
+            document.getElementById('builtArea').textContent = stats.built_area_km2.toFixed(2) + ' km²';
+            document.getElementById('bareArea').textContent = stats.bare_area_km2.toFixed(2) + ' km²';
+            document.getElementById('farmArea').textContent = stats.farm_area_km2.toFixed(2) + ' km²';
+        }
+
+        async function populateChangeTaskSelects() {
+            const tasks = await getTasks();
+            const completedTasks = tasks.filter(t => t.status === 'completed');
+
+            const beforeSelect = document.getElementById('beforeTaskSelect');
+            const afterSelect = document.getElementById('afterTaskSelect');
+
+            beforeSelect.innerHTML = '<option value="">选择前期影像</option>';
+            afterSelect.innerHTML = '<option value="">选择后期影像</option>';
+
+            completedTasks.forEach(task => {
+                beforeSelect.innerHTML += `<option value="${task.id}">${task.task_name}</option>`;
+                afterSelect.innerHTML += `<option value="${task.id}">${task.task_name}</option>`;
+            });
+        }
+
+        async function runChangeDetection() {
+            const taskName = document.getElementById('changeTaskName').value || '变化检测';
+            const beforeId = document.getElementById('beforeTaskSelect').value;
+            const afterId = document.getElementById('afterTaskSelect').value;
+            const indexType = document.getElementById('changeIndexType').value;
+            const threshold = parseFloat(document.getElementById('changeThreshold').value);
+
+            if (!beforeId || !afterId) {
+                alert('请选择前期和后期影像');
+                return;
+            }
+
+            if (beforeId === afterId) {
+                alert('前期和后期影像不能相同');
+                return;
+            }
+
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '⏳ 检测中...';
+
+            try {
+                const response = await fetch(`${API_BASE}/change-detection`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        task_name: taskName,
+                        before_task_id: parseInt(beforeId),
+                        after_task_id: parseInt(afterId),
+                        index_type: indexType,
+                        threshold: threshold
+                    })
+                });
+
+                const result = await response.json();
+                alert(`变化检测任务已创建，ID: ${result.id}`);
+
+                pollChangeDetectionStatus(result.id);
+            } catch (error) {
+                console.error('变化检测失败:', error);
+                alert('变化检测失败，请重试');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '📊 开始变化检测';
+            }
+        }
+
+        async function pollChangeDetectionStatus(changeId) {
+            const interval = setInterval(async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/change-detection/${changeId}`);
+                    const result = await response.json();
+
+                    if (result.status === 'completed') {
+                        clearInterval(interval);
+                        alert(`变化检测完成！\n严重退化: ${result.severe_degradation} 像素\n显著改善: ${result.significant_improvement} 像素`);
+                    } else if (result.status === 'failed') {
+                        clearInterval(interval);
+                        alert(`变化检测失败: ${result.error_message}`);
+                    }
+                } catch (error) {
+                    clearInterval(interval);
+                }
+            }, 2000);
+        }
+
+        function downloadReport(type) {
+            if (!currentTask) {
+                alert('请先选择一个处理任务');
+                return;
+            }
+
+            if (type === 'classification') {
+                window.open(`${API_BASE}/tasks/${currentTask.id}/report/classification`, '_blank');
+            } else if (type === 'full') {
+                window.open(`${API_BASE}/tasks/${currentTask.id}/report/full`, '_blank');
+            }
+        }
+
+        let pollingInterval = null;
+
+        function startTaskPolling() {
+            if (pollingInterval) clearInterval(pollingInterval);
+
+            pollingInterval = setInterval(async () => {
+                const tasks = await getTasks();
+                const hasProcessing = tasks.some(t => t.status === 'processing' || t.status === 'pending');
+
+                displayTasks(tasks);
+
+                if (!hasProcessing) {
+                    clearInterval(pollingInterval);
+                }
+            }, 2000);
+        }
+
+        function init() {
+            initMap();
+            setupUpload();
+            setupLayerControls();
+            loadTasks();
+            startTaskPolling();
+            populateChangeTaskSelects();
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

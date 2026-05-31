@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SWAT水文模拟系统</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">SWAT水文模拟系统</a>
+            <div class="navbar-nav">
+                <button class="btn btn-outline-light me-2" onclick="showWatershedModal()">新建流域</button>
+                <button class="btn btn-outline-light me-2" onclick="showScenarioModal()">情景管理</button>
+                <button class="btn btn-outline-light me-2" onclick="showSensitivityModal()">敏感度分析</button>
+                <button class="btn btn-outline-light" onclick="showCalibrationModal()">参数校准</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-3 sidebar">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5>流域选择</h5>
+                    </div>
+                    <div class="card-body">
+                        <select id="watershedSelect" class="form-select" onchange="selectWatershed()">
+                            <option value="">选择流域...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5>模拟列表</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="simulationList" class="list-group">
+                            <p class="text-muted">请先选择流域</p>
+                        </div>
+                        <button class="btn btn-primary w-100 mt-2" onclick="showSimulationModal()">
+                            新建模拟
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5>参数调整</h5>
+                    </div>
+                    <div class="card-body" id="parameterPanel">
+                        <p class="text-muted">请先创建模拟</p>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5>运行模拟</h5>
+                    </div>
+                    <div class="card-body">
+                        <button id="runSimulationBtn" class="btn btn-success w-100" onclick="runSimulation()" disabled>
+                            运行模拟
+                        </button>
+                        <div class="mt-2" id="simulationStatus"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-9 main-content">
+                <ul class="nav nav-tabs" id="resultTabs" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active" id="map-tab" data-bs-toggle="tab" data-bs-target="#map" type="button">
+                            子流域地图
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="timeseries-tab" data-bs-toggle="tab" data-bs-target="#timeseries" type="button">
+                            时间序列
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button">
+                            结果汇总
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="scenario-tab" data-bs-toggle="tab" data-bs-target="#scenario" type="button">
+                            情景对比
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="sensitivity-tab" data-bs-toggle="tab" data-bs-target="#sensitivity" type="button">
+                            敏感度分析
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report" type="button">
+                            报告导出
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="resultTabContent">
+                    <div class="tab-pane fade show active" id="map" role="tabpanel">
+                        <div id="mapContainer"></div>
+                        <div class="mt-2">
+                            <label>图例：
+                                <span class="badge bg-info me-2">子流域 1</span>
+                                <span class="badge bg-success me-2">子流域 2</span>
+                                <span class="badge bg-warning me-2">子流域 3</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="timeseries" role="tabpanel">
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <select id="variableSelect" class="form-select" onchange="updateTimeseries()">
+                                    <option value="streamflow">径流 (m³/s)</option>
+                                    <option value="sediment_yield">泥沙产量 (t)</option>
+                                    <option value="nitrate_load">硝氮负荷 (kg)</option>
+                                    <option value="phosphorus_load">磷负荷 (kg)</option>
+                                    <option value="total_nitrogen">总氮 (kg)</option>
+                                    <option value="total_phosphorus">总磷 (kg)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="chartContainer" style="height: 400px; margin-top: 10px;"></div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="summary" role="tabpanel">
+                        <div id="summaryContent" class="mt-3">
+                            <p class="text-muted">运行模拟后查看结果汇总</p>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="scenario" role="tabpanel">
+                        <div class="mt-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5>情景对比分析</h5>
+                                <div>
+                                    <button class="btn btn-primary btn-sm" onclick="loadScenarios()">
+                                        刷新列表
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="scenarioList" class="mb-3">
+                                <p class="text-muted">选择流域后加载情景</p>
+                            </div>
+                            <div id="scenarioComparison" class="mt-4">
+                                <p class="text-muted">选择多个情景进行对比分析</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="sensitivity" role="tabpanel">
+                        <div class="mt-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5>Morris敏感度分析</h5>
+                                <button class="btn btn-primary btn-sm" onclick="showSensitivityModal()">
+                                    新建分析
+                                </button>
+                            </div>
+                            <div id="sensitivityList">
+                                <p class="text-muted">选择流域后查看分析列表</p>
+                            </div>
+                            <div id="sensitivityChart" class="mt-4" style="height: 400px; display: none;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="report" role="tabpanel">
+                        <div class="mt-3">
+                            <h5>报告导出</h5>
+                            <div class="row mt-4">
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h6>📊 模拟报告</h6>
+                                            <p class="text-muted small">导出当前模拟的详细结果报告</p>
+                                            <button class="btn btn-primary btn-sm" onclick="exportSimulationReport()" 
+                                                    id="exportSimReportBtn" disabled>
+                                                导出HTML
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h6>🔄 情景对比报告</h6>
+                                            <p class="text-muted small">导岀多情景对比分析报告</p>
+                                            <button class="btn btn-primary btn-sm" onclick="exportScenarioReport()"
+                                                    id="exportScenarioReportBtn" disabled>
+                                                导出HTML
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h6>🎯 校准报告</h6>
+                                            <p class="text-muted small">导出SUFI-2参数校准结果报告</p>
+                                            <button class="btn btn-primary btn-sm" onclick="exportCalibrationReport()"
+                                                    id="exportCalibReportBtn" disabled>
+                                                导出HTML
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="watershedModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新建流域</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="watershedForm">
+                        <div class="mb-3">
+                            <label class="form-label">流域名称</label>
+                            <input type="text" class="form-control" id="watershedName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">描述</label>
+                            <textarea class="form-control" id="watershedDesc" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">SWAT项目路径</label>
+                            <input type="text" class="form-control" id="projectPath" placeholder="留空使用示例数据">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="createWatershed()">创建</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="simulationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新建模拟</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="simulationForm">
+                        <div class="mb-3">
+                            <label class="form-label">模拟名称</label>
+                            <input type="text" class="form-control" id="simulationName" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">开始日期</label>
+                                <input type="date" class="form-control" id="startDate" value="2010-01-01">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">结束日期</label>
+                                <input type="date" class="form-control" id="endDate" value="2010-12-31">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">输出间隔</label>
+                            <select class="form-select" id="outputInterval">
+                                <option value="daily">日</option>
+                                <option value="monthly">月</option>
+                                <option value="yearly">年</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="createSimulation()">创建</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="calibrationModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">SUFI-2 参数校准</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">校准名称</label>
+                                <input type="text" class="form-control" id="calibrationName" value="SUFI2_Calibration">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">目标函数</label>
+                                <select class="form-select" id="objectiveFunction">
+                                    <option value="NSE">Nash-Sutcliffe Efficiency (NSE)</option>
+                                    <option value="KGE">Kling-Gupta Efficiency (KGE)</option>
+                                    <option value="R2">Coefficient of Determination (R²)</option>
+                                    <option value="RMSE">Root Mean Square Error (RMSE)</option>
+                                </select>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">迭代次数</label>
+                                    <input type="number" class="form-control" id="totalIterations" value="10" min="1">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">采样数</label>
+                                    <input type="number" class="form-control" id="nSamples" value="100" min="10">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">待校准参数</label>
+                            <div id="calibrationParams" class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="param_CN2" checked>
+                                    <label class="form-check-label" for="param_CN2">
+                                        CN2 (曲线数)
+                                    </label>
+                                    <div class="row mt-1">
+                                        <div class="col"><input type="number" class="form-control form-control-sm" id="CN2_min" value="50" placeholder="最小值"></div>
+                                        <div class="col"><input type="number" class="form-control form-control-sm" id="CN2_max" value="90" placeholder="最大值"></div>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="param_SOL_AWC" checked>
+                                    <label class="form-check-label" for="param_SOL_AWC">
+                                        SOL_AWC (土壤可利用水量)
+                                    </label>
+                                    <div class="row mt-1">
+                                        <div class="col"><input type="number" class="form-control form-control-sm" id="SOL_AWC_min" value="0.1" step="0.01" placeholder="最小值"></div>
+                                        <div class="col"><input type="number" class="form-control form-control-sm" id="SOL_AWC_max" value="0.4" step="0.01" placeholder="最大值"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div id="calibrationProgress" style="display: none;">
+                            <div class="progress">
+                                <div class="progress-bar" id="calibProgressBar" style="width: 0%"></div>
+                            </div>
+                            <div id="calibStatus" class="mt-2 text-center"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary" id="startCalibrationBtn" onclick="startCalibration()">
+                        开始校准
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <div class="modal fade" id="scenarioModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">情景管理</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs" id="scenarioTabs" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" id="create-scenario-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#create-scenario" type="button">
+                                新建情景
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" id="preset-scenario-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#preset-scenario" type="button">
+                                预设情景
+                            </button>
+                        </li>
+                    </ul>
+                    <div class="tab-content mt-3">
+                        <div class="tab-pane fade show active" id="create-scenario">
+                            <div class="mb-3">
+                                <label class="form-label">情景名称</label>
+                                <input type="text" class="form-control" id="scenarioName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">情景描述</label>
+                                <textarea class="form-control" id="scenarioDescription" rows="2"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="isBaseline">
+                                    <label class="form-check-label">设为基准情景</label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">参数设置</label>
+                                <div id="scenarioParams" class="border rounded p-3" style="max-height: 250px; overflow-y: auto;">
+                                    <div class="row mb-2">
+                                        <div class="col-4"><strong>参数</strong></div>
+                                        <div class="col-3"><strong>值</strong></div>
+                                        <div class="col-3"><strong>类型</strong></div>
+                                        <div class="col-2"></div>
+                                    </div>
+                                    <div id="scenarioParamList"></div>
+                                    <button class="btn btn-sm btn-outline-primary mt-2" onclick="addScenarioParam()">
+                                        + 添加参数
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="preset-scenario">
+                            <div id="presetScenarioList" class="list-group">
+                                <p class="text-muted">加载中...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary" onclick="createScenario()">创建情景</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="sensitivityModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Morris敏感度分析</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">分析名称</label>
+                                <input type="text" class="form-control" id="sensitivityName" 
+                                       value="Morris敏感度分析">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">目标变量</label>
+                                <select class="form-select" id="sensitivityTarget">
+                                    <option value="streamflow">径流</option>
+                                    <option value="sediment_yield">泥沙产量</option>
+                                    <option value="nitrate_load">硝氮负荷</option>
+                                </select>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">样本数</label>
+                                    <input type="number" class="form-control" id="sensitivitySamples" 
+                                           value="20" min="5">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">水平数</label>
+                                    <input type="number" class="form-control" id="sensitivityLevels" 
+                                           value="4" min="2" max="10">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">待分析参数</label>
+                            <div id="sensitivityParams" class="border rounded p-2" 
+                                 style="max-height: 300px; overflow-y: auto;">
+                                <p class="text-muted">加载中...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="sensitivityProgress" class="mt-3" style="display: none;">
+                        <div class="progress">
+                            <div class="progress-bar" id="sensProgressBar" style="width: 0%"></div>
+                        </div>
+                        <div id="sensStatus" class="mt-2 text-center"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary" id="startSensitivityBtn" 
+                            onclick="startSensitivityAnalysis()">
+                        开始分析
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/advanced.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

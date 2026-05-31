@@ -1,0 +1,16 @@
+peer:
+  ledger:
+    history:
+      enableHistoryDatabase: true
+    state:
+      stateDatabase: CouchDB
+      couchDBConfig:
+        couchDBAddress: couchdb:5984
+        username:
+        password:
+        maxRetries: 3
+        maxRetriesOnStartup: 10
+        requestTimeout: 35s
+        queryLimit: 10000
+        maxBatchUpdateSize: 1000
+        warmIndexesAfterNBlocks: 1

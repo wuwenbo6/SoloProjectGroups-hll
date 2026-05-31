@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fpga-compiler-service
+  labels:
+    app: fpga-compiler
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: fpga-compiler
+  template:
+    metadata:
+      labels:
+        app: fpga-compiler
+    spec:
+      containers:
+      - name: fpga-compiler
+        image: fpga-compiler-service:latest
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "256Mi"
+          limits:
+            cpu: "2000m"
+            memory: "512Mi"
+        env:
+        - name: GIN_MODE
+          value: "release"
+        livenessProbe:
+          httpGet:
+            path: /api/cluster/info
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /api/cluster/info
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
+        - name: tmp-storage
+          mountPath: /app/tmp
+      volumes:
+      - name: tmp-storage
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fpga-compiler-service
+  labels:
+    app: fpga-compiler
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: fpga-compiler
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: fpga-compiler-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: fpga-compiler-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

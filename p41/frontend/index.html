@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>无人机编队飞行控制系统</title>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div id="app">
+    <div id="ui-panel">
+      <h1>无人机编队飞行控制</h1>
+      
+      <div class="section">
+        <h2>编队管理</h2>
+        <div class="form-group">
+          <label>编队名称:</label>
+          <input type="text" id="formation-name" placeholder="输入编队名称">
+        </div>
+        <div class="button-row">
+          <button id="save-formation">保存编队方案</button>
+          <button id="load-formation">加载编队方案</button>
+          <button id="delete-formation">删除编队方案</button>
+        </div>
+        <div id="formation-list" class="list-container"></div>
+      </div>
+
+      <div class="section">
+        <h2>航点上传</h2>
+        <input type="file" id="csv-upload" accept=".csv">
+        <div class="button-row">
+          <button id="load-waypoints">加载航点</button>
+          <button id="clear-waypoints">清除航点</button>
+        </div>
+        <div id="waypoint-info" class="info-text"></div>
+      </div>
+
+      <div class="section">
+        <h2>图案/文字轨迹</h2>
+        <div class="form-group">
+          <label>输入文字:</label>
+          <input type="text" id="text-input" placeholder="输入要显示的文字" maxlength="10">
+        </div>
+        <div class="form-group">
+          <label>选择图案:</label>
+          <select id="pattern-select">
+            <option value="">-- 选择预设图案 --</option>
+            <option value="circle">圆形</option>
+            <option value="square">方形</option>
+            <option value="star">星形</option>
+            <option value="heart">心形</option>
+            <option value="triangle">三角形</option>
+          </select>
+        </div>
+        <div class="button-row">
+          <button id="generate-pattern">生成轨迹</button>
+          <button id="apply-formation">应用编队</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>飞行控制</h2>
+        <div class="form-group">
+          <label>无人机数量:</label>
+          <input type="number" id="drone-count" value="10" min="1" max="100">
+        </div>
+        <div class="form-group">
+          <label>飞行速度:</label>
+          <input type="range" id="speed-control" min="0.1" max="5" step="0.1" value="1">
+          <span id="speed-value">1.0</span>
+        </div>
+        <div class="form-group">
+          <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="collision-avoidance" checked>
+            启用碰撞检测
+          </label>
+        </div>
+        <div class="button-row">
+          <button id="start-fly">开始飞行</button>
+          <button id="pause-fly">暂停</button>
+          <button id="stop-fly">停止</button>
+          <button id="return-home">返航</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>灯光控制</h2>
+        <div class="form-group">
+          <label>灯光模式:</label>
+          <select id="light-mode">
+            <option value="static">静态</option>
+            <option value="pulse">脉冲</option>
+            <option value="rainbow">彩虹</option>
+            <option value="sync">同步闪烁</option>
+            <option value="wave">波浪</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>主色调:</label>
+          <input type="color" id="light-color" value="#ff0000">
+        </div>
+        <div class="form-group">
+          <label>闪烁频率:</label>
+          <input type="range" id="light-frequency" min="0.1" max="5" step="0.1" value="1">
+          <span id="frequency-value">1.0</span> Hz
+        </div>
+        <button id="apply-lights">应用灯光</button>
+      </div>
+
+      <div class="section">
+        <h2>数据导出</h2>
+        <div class="button-row">
+          <button id="export-kml">导出KML</button>
+          <button id="download-kml">下载KML文件</button>
+        </div>
+        <div id="export-info" class="info-text"></div>
+      </div>
+
+      <div class="section">
+        <h2>电池详情</h2>
+        <div id="battery-stats" class="stats-panel"></div>
+      </div>
+
+      <div class="section">
+        <h2>状态监控</h2>
+        <div id="drone-stats" class="stats-panel"></div>
+      </div>
+    </div>
+
+    <div id="scene-container"></div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

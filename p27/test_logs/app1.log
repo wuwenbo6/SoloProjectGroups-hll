@@ -1,0 +1,15 @@
+2024-01-15 10:00:01 INFO Starting application server
+2024-01-15 10:00:02 INFO Database connection established
+2024-01-15 10:00:03 DEBUG Loading configuration from /etc/app/config.yaml
+2024-01-15 10:00:05 INFO Server listening on port 8080
+2024-01-15 10:00:10 INFO User admin logged in successfully
+2024-01-15 10:00:15 WARNING High memory usage detected: 85%
+2024-01-15 10:00:20 ERROR Failed to connect to payment gateway
+2024-01-15 10:00:25 INFO Retrying connection in 5 seconds
+2024-01-15 10:00:30 DEBUG Request processing time: 234ms
+2024-01-15 10:00:35 INFO Transaction completed successfully
+2024-01-15 10:00:40 INFO User user123 logged in
+2024-01-15 10:00:45 DEBUG Cache hit rate: 92%
+2024-01-15 10:00:50 ERROR Database timeout occurred
+2024-01-15 10:00:55 INFO Performing health check
+2024-01-15 10:01:00 INFO All services healthy

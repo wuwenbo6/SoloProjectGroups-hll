@@ -1,0 +1,24 @@
+{
+  "name": "dicom-annotator",
+  "version": "1.0.0",
+  "description": "DICOM Annotation Tool with MONAI AI Segmentation",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "concurrently \"npm run start:backend\" \"npm run start:electron\"",
+    "start:electron": "electron .",
+    "start:backend": "cd backend && python app.py",
+    "dev": "electron ."
+  },
+  "dependencies": {
+    "cornerstone-core": "^2.6.1",
+    "cornerstone-tools": "^6.0.10",
+    "cornerstone-wado-image-loader": "^4.12.0",
+    "dicom-parser": "^1.8.21",
+    "axios": "^1.6.2",
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "concurrently": "^8.2.2"
+  }
+}

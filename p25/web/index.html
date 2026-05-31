@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光伏电站监控系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>☀️ 光伏电站监控系统</h1>
+            <div class="header-info">
+                <span id="currentTime"></span>
+                <span class="status-badge" id="connectionStatus">连接中...</span>
+            </div>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="dashboard">实时监控</button>
+            <button class="tab-btn" data-tab="inverters">逆变器</button>
+            <button class="tab-btn" data-tab="reports">报表统计</button>
+            <button class="tab-btn" data-tab="alarms">告警中心</button>
+        </nav>
+
+        <section id="dashboard" class="tab-content active">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-icon">⚡</div>
+                    <div class="metric-content">
+                        <div class="metric-label">实时功率</div>
+                        <div class="metric-value" id="totalPower">0</div>
+                        <div class="metric-unit">kW</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">📊</div>
+                    <div class="metric-content">
+                        <div class="metric-label">当日发电量</div>
+                        <div class="metric-value" id="totalEnergy">0</div>
+                        <div class="metric-unit">kWh</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">📈</div>
+                    <div class="metric-content">
+                        <div class="metric-label">PR值</div>
+                        <div class="metric-value" id="prValue">0</div>
+                        <div class="metric-unit">%</div>
+                        <div class="metric-progress">
+                            <div class="progress-bar" id="prProgress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">🔧</div>
+                    <div class="metric-content">
+                        <div class="metric-label">运行逆变器</div>
+                        <div class="metric-value" id="inverterCount">0</div>
+                        <div class="metric-unit">台</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>功率趋势</h3>
+                    <canvas id="powerChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>PR值趋势</h3>
+                    <canvas id="prChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="inverters" class="tab-content">
+            <div class="inverters-grid" id="invertersGrid">
+            </div>
+        </section>
+
+        <section id="reports" class="tab-content">
+            <div class="report-form">
+                <div class="form-group">
+                    <label>报表类型</label>
+                    <select id="reportType">
+                        <option value="daily">日报表</option>
+                        <option value="monthly">月报表</option>
+                        <option value="yearly">年报表</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>日期</label>
+                    <input type="date" id="reportDate">
+                </div>
+                <button id="generateReport" class="btn-primary">生成报表</button>
+            </div>
+
+            <div class="report-result" id="reportResult">
+                <div class="report-summary">
+                    <div class="report-metric">
+                        <div class="report-label">总发电量</div>
+                        <div class="report-value" id="reportEnergy">--</div>
+                        <div class="report-unit">kWh</div>
+                    </div>
+                    <div class="report-metric">
+                        <div class="report-label">最大功率</div>
+                        <div class="report-value" id="reportMaxPower">--</div>
+                        <div class="report-unit">kW</div>
+                    </div>
+                    <div class="report-metric">
+                        <div class="report-label">平均PR</div>
+                        <div class="report-value" id="reportAvgPR">--</div>
+                        <div class="report-unit">%</div>
+                    </div>
+                    <div class="report-metric">
+                        <div class="report-label">利用小时</div>
+                        <div class="report-value" id="reportPeakHours">--</div>
+                        <div class="report-unit">h</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="alarms" class="tab-content">
+            <div class="alarms-header">
+                <h3>活动告警</h3>
+                <span class="alarm-count" id="alarmCount">0</span>
+            </div>
+            <div class="alarms-list" id="alarmsList">
+            </div>
+        </section>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logtail Search - 日志搜索工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .search-box {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 300px;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .context-select {
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .search-btn {
+            padding: 15px 40px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .search-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .files-info {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .files-info span {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #f0f2ff;
+            color: #667eea;
+            padding: 4px 10px;
+            border-radius: 12px;
+            margin-right: 8px;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+
+        .results {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .results-header {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .results-header h2 {
+            font-size: 1.3rem;
+            color: #333;
+        }
+
+        .results-count {
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .results-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .result-item {
+            padding: 20px 30px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+        }
+
+        .result-item:hover {
+            background: #fafafa;
+        }
+
+        .result-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .result-file {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .result-line {
+            background: #f3e5f5;
+            color: #7b1fa2;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .result-content {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+
+        .match-line {
+            background: #2d2d2d;
+        }
+
+        .context-line {
+            color: #808080;
+            font-style: italic;
+        }
+
+        .highlight {
+            background: #ffeb3b;
+            color: #000;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 30px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f0f0f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 30px;
+            color: #666;
+        }
+
+        .no-results-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 Logtail Search</h1>
+            <p>实时日志搜索工具 - 倒排索引 + Zstandard压缩</p>
+        </header>
+
+        <div class="search-box">
+            <form class="search-form" id="searchForm">
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    id="searchInput" 
+                    placeholder="输入搜索关键词..."
+                    autocomplete="off"
+                >
+                <select class="context-select" id="contextSelect">
+                    <option value="0">无上下文</option>
+                    <option value="1">1行上下文</option>
+                    <option value="2" selected>2行上下文</option>
+                    <option value="3">3行上下文</option>
+                    <option value="5">5行上下文</option>
+                </select>
+                <button type="submit" class="search-btn" id="searchBtn">搜索</button>
+            </form>
+            <div class="files-info" id="filesInfo">
+                <strong>监控文件：</strong>
+                <span id="fileList">加载中...</span>
+            </div>
+        </div>
+
+        <div class="results" id="results">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>准备就绪，输入关键词开始搜索...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const searchForm = document.getElementById('searchForm');
+        const searchInput = document.getElementById('searchInput');
+        const contextSelect = document.getElementById('contextSelect');
+        const searchBtn = document.getElementById('searchBtn');
+        const results = document.getElementById('results');
+        const fileList = document.getElementById('fileList');
+
+        async function loadFiles() {
+            try {
+                const response = await fetch('/api/files');
+                const data = await response.json();
+                if (data.success && data.data) {
+                    fileList.innerHTML = data.data.map(f => 
+                        `<span>📄 ${f.path}</span>`
+                    ).join('');
+                }
+            } catch (error) {
+                fileList.innerHTML = '<span style="background: #ffebee; color: #c62828;">加载失败</span>';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function highlightText(text, keyword) {
+            if (!keyword) return escapeHtml(text);
+            
+            let result = escapeHtml(text);
+            const keywords = [keyword];
+            
+            const chineseKeywords = extractChineseKeywords(keyword);
+            keywords.push(...chineseKeywords);
+            
+            const uniqueKeywords = [...new Set(keywords.filter(k => k.length > 0))];
+            
+            uniqueKeywords.sort((a, b) => b.length - a.length);
+            
+            const placeholder = '\x00';
+            const replacements = [];
+            
+            uniqueKeywords.forEach((kw, idx) => {
+                const regex = new RegExp(`(${kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                result = result.replace(regex, (match) => {
+                    const marker = `${placeholder}${replacements.length}${placeholder}`;
+                    replacements.push(`<span class="highlight">${match}</span>`);
+                    return marker;
+                });
+            });
+            
+            replacements.forEach((replacement, idx) => {
+                const marker = `${placeholder}${idx}${placeholder}`;
+                result = result.replace(new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), replacement);
+            });
+            
+            return result;
+        }
+
+        function extractChineseKeywords(text) {
+            const keywords = [];
+            const chineseRegex = /[\u4e00-\u9fa5]+/g;
+            let match;
+            
+            while ((match = chineseRegex.exec(text)) !== null) {
+                const chinesePart = match[0];
+                keywords.push(chinesePart);
+                
+                for (let len = 1; len <= chinesePart.length; len++) {
+                    for (let start = 0; start <= chinesePart.length - len; start++) {
+                        const subKeyword = chinesePart.substring(start, start + len);
+                        if (subKeyword.length >= 1) {
+                            keywords.push(subKeyword);
+                        }
+                    }
+                }
+            }
+            
+            return keywords;
+        }
+
+        async function performSearch(keyword, context) {
+            searchBtn.disabled = true;
+            results.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>正在搜索 "${keyword}"...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`/api/search?q=${encodeURIComponent(keyword)}&context=${context}`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    results.innerHTML = `
+                        <div class="error-message">
+                            <strong>错误：</strong> ${data.error || '搜索失败'}
+                        </div>
+                    `;
+                    return;
+                }
+
+                const resultData = data.data;
+                const totalMatches = resultData.lines.length;
+
+                if (totalMatches === 0) {
+                    results.innerHTML = `
+                        <div class="no-results">
+                            <div class="no-results-icon">🔍</div>
+                            <h3>未找到匹配结果</h3>
+                            <p>没有找到包含 "${keyword}" 的日志行</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let resultsHtml = `
+                    <div class="results-header">
+                        <h2>搜索结果</h2>
+                        <span class="results-count">${totalMatches} 条匹配</span>
+                    </div>
+                    <div class="results-list">
+                `;
+
+                resultData.lines.forEach(line => {
+                    resultsHtml += `<div class="result-item">`;
+                    resultsHtml += `
+                        <div class="result-meta">
+                            <span class="result-file">📄 ${line.file}</span>
+                            <span class="result-line">第 ${line.line_number} 行</span>
+                        </div>
+                    `;
+                    resultsHtml += `<div class="result-content">`;
+                    
+                    line.context_before.forEach(ctx => {
+                        resultsHtml += `<div class="context-line">${escapeHtml(ctx)}</div>`;
+                    });
+                    
+                    resultsHtml += `<div class="match-line">${highlightText(line.content, keyword)}</div>`;
+                    
+                    line.context_after.forEach(ctx => {
+                        resultsHtml += `<div class="context-line">${escapeHtml(ctx)}</div>`;
+                    });
+                    
+                    resultsHtml += `</div></div>`;
+                });
+
+                resultsHtml += '</div>';
+                results.innerHTML = resultsHtml;
+
+            } catch (error) {
+                results.innerHTML = `
+                    <div class="error-message">
+                        <strong>网络错误：</strong> ${error.message}
+                    </div>
+                `;
+            } finally {
+                searchBtn.disabled = false;
+            }
+        }
+
+        searchForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const keyword = searchInput.value.trim();
+            const context = contextSelect.value;
+            if (keyword) {
+                performSearch(keyword, context);
+            }
+        });
+
+        function hasChinese(text) {
+            return /[\u4e00-\u9fa5]/.test(text);
+        }
+
+        let searchTimeout;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            const keyword = searchInput.value.trim();
+            const context = contextSelect.value;
+            const hasChineseChar = hasChinese(keyword);
+            const minLength = hasChineseChar ? 1 : 2;
+            
+            if (keyword.length >= minLength) {
+                searchTimeout = setTimeout(() => {
+                    performSearch(keyword, context);
+                }, 300);
+            }
+        });
+
+        loadFiles();
+        searchInput.focus();
+    </script>
+</body>
+</html>

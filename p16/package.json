@@ -1,0 +1,19 @@
+{
+  "name": "produce-traceability-system",
+  "version": "1.0.0",
+  "description": "农产品溯源区块链系统",
+  "scripts": {
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev"
+  },
+  "keywords": [
+    "blockchain",
+    "hyperledger-fabric",
+    "traceability",
+    "produce"
+  ],
+  "author": "",
+  "license": "MIT"
+}

@@ -1,0 +1,1423 @@
+Executing (default): SELECT 1+1 AS result
+Database connection established successfully.
+Executing (default): SELECT name FROM sqlite_master WHERE type='table' AND name='devices';
+Executing (default): PRAGMA TABLE_INFO(`devices`);
+Executing (default): PRAGMA foreign_key_list(`devices`)
+Executing (default): PRAGMA INDEX_LIST(`devices`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_devices_1`)
+Executing (default): PRAGMA foreign_key_list(`devices`)
+Executing (default): PRAGMA TABLE_INFO(`devices`);
+Executing (default): PRAGMA INDEX_LIST(`devices`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_devices_1`)
+Executing (default): PRAGMA foreign_key_list(`devices`)
+Executing (default): CREATE TABLE IF NOT EXISTS `devices_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `area` VARCHAR(255), `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `devices_backup` SELECT `id`, `name`, `area`, `brightness`, `colorTemperature`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `devices`;
+Executing (default): DROP TABLE `devices`;
+Executing (default): CREATE TABLE IF NOT EXISTS `devices` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `area` VARCHAR(255), `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `devices` SELECT `id`, `name`, `area`, `brightness`, `colorTemperature`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `devices_backup`;
+Executing (default): DROP TABLE `devices_backup`;
+Executing (default): PRAGMA TABLE_INFO(`devices`);
+Executing (default): PRAGMA INDEX_LIST(`devices`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_devices_1`)
+Executing (default): PRAGMA foreign_key_list(`devices`)
+Executing (default): CREATE TABLE IF NOT EXISTS `devices_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `area` VARCHAR(255), `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `devices_backup` SELECT `id`, `name`, `area`, `brightness`, `colorTemperature`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `devices`;
+Executing (default): DROP TABLE `devices`;
+Executing (default): CREATE TABLE IF NOT EXISTS `devices` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `area` VARCHAR(255), `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `devices` SELECT `id`, `name`, `area`, `brightness`, `colorTemperature`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `devices_backup`;
+Executing (default): DROP TABLE `devices_backup`;
+Executing (default): PRAGMA TABLE_INFO(`devices`);
+Executing (default): PRAGMA INDEX_LIST(`devices`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_devices_1`)
+Executing (default): PRAGMA foreign_key_list(`devices`)
+Executing (default): CREATE TABLE IF NOT EXISTS `devices_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `area` VARCHAR(255), `brightness` INTEGER DEFAULT 50, `colorTemperature` INTEGER DEFAULT '4000', `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `devices_backup` SELECT `id`, `name`, `area`, `brightness`, `colorTemperature`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `devices`;
+Executing (default): DROP TABLE `devices`;
+Executing (default): CREATE TABLE IF NOT EXISTS `devices` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `area` VARCHAR(255), `brightness` INTEGER DEFAULT 50, `colorTemperature` INTEGER DEFAULT '4000', `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `devices` SELECT `id`, `name`, `area`, `brightness`, `colorTemperature`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `devices_backup`;
+Executing (default): DROP TABLE `devices_backup`;
+Executing (default): PRAGMA TABLE_INFO(`devices`);
+Executing (default): PRAGMA INDEX_LIST(`devices`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_devices_1`)
+Executing (default): PRAGMA foreign_key_list(`devices`)
+Executing (default): CREATE TABLE IF NOT EXISTS `devices_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `area` VARCHAR(255), `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT 4000, `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `devices_backup` SELECT `id`, `name`, `area`, `brightness`, `colorTemperature`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `devices`;
+Executing (default): DROP TABLE `devices`;
+Executing (default): CREATE TABLE IF NOT EXISTS `devices` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `area` VARCHAR(255), `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT 4000, `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `devices` SELECT `id`, `name`, `area`, `brightness`, `colorTemperature`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `devices_backup`;
+Executing (default): DROP TABLE `devices_backup`;
+Executing (default): PRAGMA TABLE_INFO(`devices`);
+Executing (default): PRAGMA INDEX_LIST(`devices`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_devices_1`)
+Executing (default): PRAGMA foreign_key_list(`devices`)
+Executing (default): CREATE TABLE IF NOT EXISTS `devices_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `area` VARCHAR(255), `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `devices_backup` SELECT `id`, `name`, `area`, `brightness`, `colorTemperature`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `devices`;
+Executing (default): DROP TABLE `devices`;
+Executing (default): CREATE TABLE IF NOT EXISTS `devices` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `area` VARCHAR(255), `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `devices` SELECT `id`, `name`, `area`, `brightness`, `colorTemperature`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `devices_backup`;
+Executing (default): DROP TABLE `devices_backup`;
+Executing (default): PRAGMA TABLE_INFO(`devices`);
+Executing (default): PRAGMA INDEX_LIST(`devices`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_devices_1`)
+Executing (default): PRAGMA foreign_key_list(`devices`)
+Executing (default): CREATE TABLE IF NOT EXISTS `devices_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `area` VARCHAR(255), `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `devices_backup` SELECT `id`, `name`, `area`, `brightness`, `colorTemperature`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `devices`;
+Executing (default): DROP TABLE `devices`;
+Executing (default): CREATE TABLE IF NOT EXISTS `devices` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `area` VARCHAR(255), `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `devices` SELECT `id`, `name`, `area`, `brightness`, `colorTemperature`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `devices_backup`;
+Executing (default): DROP TABLE `devices_backup`;
+Executing (default): PRAGMA TABLE_INFO(`devices`);
+Executing (default): PRAGMA INDEX_LIST(`devices`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_devices_1`)
+Executing (default): PRAGMA foreign_key_list(`devices`)
+Executing (default): CREATE TABLE IF NOT EXISTS `devices_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `area` VARCHAR(255), `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `devices_backup` SELECT `id`, `name`, `area`, `brightness`, `colorTemperature`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `devices`;
+Executing (default): DROP TABLE `devices`;
+Executing (default): CREATE TABLE IF NOT EXISTS `devices` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `area` VARCHAR(255), `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `devices` SELECT `id`, `name`, `area`, `brightness`, `colorTemperature`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `devices_backup`;
+Executing (default): DROP TABLE `devices_backup`;
+Executing (default): PRAGMA TABLE_INFO(`devices`);
+Executing (default): PRAGMA INDEX_LIST(`devices`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_devices_1`)
+Executing (default): PRAGMA foreign_key_list(`devices`)
+Executing (default): CREATE TABLE IF NOT EXISTS `devices_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `area` VARCHAR(255), `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `devices_backup` SELECT `id`, `name`, `area`, `brightness`, `colorTemperature`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `devices`;
+Executing (default): DROP TABLE `devices`;
+Executing (default): CREATE TABLE IF NOT EXISTS `devices` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `area` VARCHAR(255), `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `devices` SELECT `id`, `name`, `area`, `brightness`, `colorTemperature`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `devices_backup`;
+Executing (default): DROP TABLE `devices_backup`;
+Executing (default): PRAGMA INDEX_LIST(`devices`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_devices_1`)
+Executing (default): SELECT name FROM sqlite_master WHERE type='table' AND name='scenes';
+Executing (default): PRAGMA TABLE_INFO(`scenes`);
+Executing (default): PRAGMA foreign_key_list(`scenes`)
+Executing (default): PRAGMA INDEX_LIST(`scenes`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_scenes_1`)
+Executing (default): PRAGMA foreign_key_list(`scenes`)
+Executing (default): PRAGMA TABLE_INFO(`scenes`);
+Executing (default): PRAGMA INDEX_LIST(`scenes`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_scenes_1`)
+Executing (default): PRAGMA foreign_key_list(`scenes`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scenes_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `isPreset` TINYINT(1) DEFAULT 0, `targetAreas` JSON, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scenes_backup` SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes`;
+Executing (default): DROP TABLE `scenes`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scenes` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `isPreset` TINYINT(1) DEFAULT 0, `targetAreas` JSON, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scenes` SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes_backup`;
+Executing (default): DROP TABLE `scenes_backup`;
+Executing (default): PRAGMA TABLE_INFO(`scenes`);
+Executing (default): PRAGMA INDEX_LIST(`scenes`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_scenes_1`)
+Executing (default): PRAGMA foreign_key_list(`scenes`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scenes_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `isPreset` TINYINT(1) DEFAULT 0, `targetAreas` JSON, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scenes_backup` SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes`;
+Executing (default): DROP TABLE `scenes`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scenes` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `isPreset` TINYINT(1) DEFAULT 0, `targetAreas` JSON, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scenes` SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes_backup`;
+Executing (default): DROP TABLE `scenes_backup`;
+Executing (default): PRAGMA TABLE_INFO(`scenes`);
+Executing (default): PRAGMA INDEX_LIST(`scenes`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_scenes_1`)
+Executing (default): PRAGMA foreign_key_list(`scenes`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scenes_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `brightness` INTEGER DEFAULT 50, `colorTemperature` INTEGER DEFAULT '4000', `isPreset` TINYINT(1) DEFAULT 0, `targetAreas` JSON, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scenes_backup` SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes`;
+Executing (default): DROP TABLE `scenes`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scenes` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `brightness` INTEGER DEFAULT 50, `colorTemperature` INTEGER DEFAULT '4000', `isPreset` TINYINT(1) DEFAULT 0, `targetAreas` JSON, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scenes` SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes_backup`;
+Executing (default): DROP TABLE `scenes_backup`;
+Executing (default): PRAGMA TABLE_INFO(`scenes`);
+Executing (default): PRAGMA INDEX_LIST(`scenes`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_scenes_1`)
+Executing (default): PRAGMA foreign_key_list(`scenes`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scenes_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT 4000, `isPreset` TINYINT(1) DEFAULT 0, `targetAreas` JSON, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scenes_backup` SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes`;
+Executing (default): DROP TABLE `scenes`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scenes` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT 4000, `isPreset` TINYINT(1) DEFAULT 0, `targetAreas` JSON, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scenes` SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes_backup`;
+Executing (default): DROP TABLE `scenes_backup`;
+Executing (default): PRAGMA TABLE_INFO(`scenes`);
+Executing (default): PRAGMA INDEX_LIST(`scenes`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_scenes_1`)
+Executing (default): PRAGMA foreign_key_list(`scenes`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scenes_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `isPreset` TINYINT(1) DEFAULT 0, `targetAreas` JSON, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scenes_backup` SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes`;
+Executing (default): DROP TABLE `scenes`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scenes` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `isPreset` TINYINT(1) DEFAULT 0, `targetAreas` JSON, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scenes` SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes_backup`;
+Executing (default): DROP TABLE `scenes_backup`;
+Executing (default): PRAGMA TABLE_INFO(`scenes`);
+Executing (default): PRAGMA INDEX_LIST(`scenes`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_scenes_1`)
+Executing (default): PRAGMA foreign_key_list(`scenes`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scenes_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `isPreset` TINYINT(1) DEFAULT 0, `targetAreas` JSON, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scenes_backup` SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes`;
+Executing (default): DROP TABLE `scenes`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scenes` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `isPreset` TINYINT(1) DEFAULT 0, `targetAreas` JSON, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scenes` SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes_backup`;
+Executing (default): DROP TABLE `scenes_backup`;
+Executing (default): PRAGMA TABLE_INFO(`scenes`);
+Executing (default): PRAGMA INDEX_LIST(`scenes`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_scenes_1`)
+Executing (default): PRAGMA foreign_key_list(`scenes`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scenes_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `isPreset` TINYINT(1) DEFAULT 0, `targetAreas` JSON, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scenes_backup` SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes`;
+Executing (default): DROP TABLE `scenes`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scenes` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `isPreset` TINYINT(1) DEFAULT 0, `targetAreas` JSON, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scenes` SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes_backup`;
+Executing (default): DROP TABLE `scenes_backup`;
+Executing (default): PRAGMA TABLE_INFO(`scenes`);
+Executing (default): PRAGMA INDEX_LIST(`scenes`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_scenes_1`)
+Executing (default): PRAGMA foreign_key_list(`scenes`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scenes_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `isPreset` TINYINT(1) DEFAULT 0, `targetAreas` JSON, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scenes_backup` SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes`;
+Executing (default): DROP TABLE `scenes`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scenes` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `brightness` INTEGER DEFAULT '50', `colorTemperature` INTEGER DEFAULT '4000', `isPreset` TINYINT(1) DEFAULT 0, `targetAreas` JSON, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scenes` SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes_backup`;
+Executing (default): DROP TABLE `scenes_backup`;
+Executing (default): PRAGMA INDEX_LIST(`scenes`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_scenes_1`)
+Executing (default): SELECT name FROM sqlite_master WHERE type='table' AND name='scheduled_tasks';
+Executing (default): PRAGMA TABLE_INFO(`scheduled_tasks`);
+Executing (default): PRAGMA foreign_key_list(`scheduled_tasks`)
+Executing (default): PRAGMA INDEX_LIST(`scheduled_tasks`)
+Executing (default): PRAGMA foreign_key_list(`scheduled_tasks`)
+Executing (default): PRAGMA TABLE_INFO(`scheduled_tasks`);
+Executing (default): PRAGMA INDEX_LIST(`scheduled_tasks`)
+Executing (default): PRAGMA foreign_key_list(`scheduled_tasks`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks_backup` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks`;
+Executing (default): DROP TABLE `scheduled_tasks`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks_backup`;
+Executing (default): DROP TABLE `scheduled_tasks_backup`;
+Executing (default): PRAGMA TABLE_INFO(`scheduled_tasks`);
+Executing (default): PRAGMA INDEX_LIST(`scheduled_tasks`)
+Executing (default): PRAGMA foreign_key_list(`scheduled_tasks`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks_backup` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks`;
+Executing (default): DROP TABLE `scheduled_tasks`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks_backup`;
+Executing (default): DROP TABLE `scheduled_tasks_backup`;
+Executing (default): PRAGMA TABLE_INFO(`scheduled_tasks`);
+Executing (default): PRAGMA INDEX_LIST(`scheduled_tasks`)
+Executing (default): PRAGMA foreign_key_list(`scheduled_tasks`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks_backup` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks`;
+Executing (default): DROP TABLE `scheduled_tasks`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks_backup`;
+Executing (default): DROP TABLE `scheduled_tasks_backup`;
+Executing (default): PRAGMA TABLE_INFO(`scheduled_tasks`);
+Executing (default): PRAGMA INDEX_LIST(`scheduled_tasks`)
+Executing (default): PRAGMA foreign_key_list(`scheduled_tasks`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks_backup` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks`;
+Executing (default): DROP TABLE `scheduled_tasks`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks_backup`;
+Executing (default): DROP TABLE `scheduled_tasks_backup`;
+Executing (default): PRAGMA TABLE_INFO(`scheduled_tasks`);
+Executing (default): PRAGMA INDEX_LIST(`scheduled_tasks`)
+Executing (default): PRAGMA foreign_key_list(`scheduled_tasks`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks_backup` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks`;
+Executing (default): DROP TABLE `scheduled_tasks`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks_backup`;
+Executing (default): DROP TABLE `scheduled_tasks_backup`;
+Executing (default): PRAGMA TABLE_INFO(`scheduled_tasks`);
+Executing (default): PRAGMA INDEX_LIST(`scheduled_tasks`)
+Executing (default): PRAGMA foreign_key_list(`scheduled_tasks`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks_backup` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks`;
+Executing (default): DROP TABLE `scheduled_tasks`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks_backup`;
+Executing (default): DROP TABLE `scheduled_tasks_backup`;
+Executing (default): PRAGMA TABLE_INFO(`scheduled_tasks`);
+Executing (default): PRAGMA INDEX_LIST(`scheduled_tasks`)
+Executing (default): PRAGMA foreign_key_list(`scheduled_tasks`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks_backup` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks`;
+Executing (default): DROP TABLE `scheduled_tasks`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks_backup`;
+Executing (default): DROP TABLE `scheduled_tasks_backup`;
+Executing (default): PRAGMA TABLE_INFO(`scheduled_tasks`);
+Executing (default): PRAGMA INDEX_LIST(`scheduled_tasks`)
+Executing (default): PRAGMA foreign_key_list(`scheduled_tasks`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks_backup` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks`;
+Executing (default): DROP TABLE `scheduled_tasks`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks_backup`;
+Executing (default): DROP TABLE `scheduled_tasks_backup`;
+Executing (default): PRAGMA TABLE_INFO(`scheduled_tasks`);
+Executing (default): PRAGMA INDEX_LIST(`scheduled_tasks`)
+Executing (default): PRAGMA foreign_key_list(`scheduled_tasks`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks_backup` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks`;
+Executing (default): DROP TABLE `scheduled_tasks`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks_backup`;
+Executing (default): DROP TABLE `scheduled_tasks_backup`;
+Executing (default): PRAGMA TABLE_INFO(`scheduled_tasks`);
+Executing (default): PRAGMA INDEX_LIST(`scheduled_tasks`)
+Executing (default): PRAGMA foreign_key_list(`scheduled_tasks`)
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks_backup` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks`;
+Executing (default): DROP TABLE `scheduled_tasks`;
+Executing (default): CREATE TABLE IF NOT EXISTS `scheduled_tasks` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `cronExpression` VARCHAR(255) NOT NULL, `sceneId` VARCHAR(255), `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastExecuted` DATETIME, `nextExecution` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `scheduled_tasks` SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks_backup`;
+Executing (default): DROP TABLE `scheduled_tasks_backup`;
+Executing (default): PRAGMA INDEX_LIST(`scheduled_tasks`)
+Executing (default): SELECT name FROM sqlite_master WHERE type='table' AND name='sensors';
+Executing (default): PRAGMA TABLE_INFO(`sensors`);
+Executing (default): PRAGMA foreign_key_list(`sensors`)
+Executing (default): PRAGMA INDEX_LIST(`sensors`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_sensors_1`)
+Executing (default): PRAGMA foreign_key_list(`sensors`)
+Executing (default): PRAGMA TABLE_INFO(`sensors`);
+Executing (default): PRAGMA INDEX_LIST(`sensors`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_sensors_1`)
+Executing (default): PRAGMA foreign_key_list(`sensors`)
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors_backup` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors`;
+Executing (default): DROP TABLE `sensors`;
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors_backup`;
+Executing (default): DROP TABLE `sensors_backup`;
+Executing (default): PRAGMA TABLE_INFO(`sensors`);
+Executing (default): PRAGMA INDEX_LIST(`sensors`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_sensors_1`)
+Executing (default): PRAGMA foreign_key_list(`sensors`)
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors_backup` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors`;
+Executing (default): DROP TABLE `sensors`;
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors_backup`;
+Executing (default): DROP TABLE `sensors_backup`;
+Executing (default): PRAGMA TABLE_INFO(`sensors`);
+Executing (default): PRAGMA INDEX_LIST(`sensors`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_sensors_1`)
+Executing (default): PRAGMA foreign_key_list(`sensors`)
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors_backup` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors`;
+Executing (default): DROP TABLE `sensors`;
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors_backup`;
+Executing (default): DROP TABLE `sensors_backup`;
+Executing (default): PRAGMA TABLE_INFO(`sensors`);
+Executing (default): PRAGMA INDEX_LIST(`sensors`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_sensors_1`)
+Executing (default): PRAGMA foreign_key_list(`sensors`)
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors_backup` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors`;
+Executing (default): DROP TABLE `sensors`;
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors_backup`;
+Executing (default): DROP TABLE `sensors_backup`;
+Executing (default): PRAGMA TABLE_INFO(`sensors`);
+Executing (default): PRAGMA INDEX_LIST(`sensors`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_sensors_1`)
+Executing (default): PRAGMA foreign_key_list(`sensors`)
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors_backup` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors`;
+Executing (default): DROP TABLE `sensors`;
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors_backup`;
+Executing (default): DROP TABLE `sensors_backup`;
+Executing (default): PRAGMA TABLE_INFO(`sensors`);
+Executing (default): PRAGMA INDEX_LIST(`sensors`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_sensors_1`)
+Executing (default): PRAGMA foreign_key_list(`sensors`)
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors_backup` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors`;
+Executing (default): DROP TABLE `sensors`;
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors_backup`;
+Executing (default): DROP TABLE `sensors_backup`;
+Executing (default): PRAGMA TABLE_INFO(`sensors`);
+Executing (default): PRAGMA INDEX_LIST(`sensors`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_sensors_1`)
+Executing (default): PRAGMA foreign_key_list(`sensors`)
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors_backup` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors`;
+Executing (default): DROP TABLE `sensors`;
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors_backup`;
+Executing (default): DROP TABLE `sensors_backup`;
+Executing (default): PRAGMA TABLE_INFO(`sensors`);
+Executing (default): PRAGMA INDEX_LIST(`sensors`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_sensors_1`)
+Executing (default): PRAGMA foreign_key_list(`sensors`)
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors_backup` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors`;
+Executing (default): DROP TABLE `sensors`;
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors_backup`;
+Executing (default): DROP TABLE `sensors_backup`;
+Executing (default): PRAGMA TABLE_INFO(`sensors`);
+Executing (default): PRAGMA INDEX_LIST(`sensors`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_sensors_1`)
+Executing (default): PRAGMA foreign_key_list(`sensors`)
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors_backup` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors_backup` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors`;
+Executing (default): DROP TABLE `sensors`;
+Executing (default): CREATE TABLE IF NOT EXISTS `sensors` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `type` TEXT NOT NULL, `area` VARCHAR(255), `value` FLOAT, `unit` VARCHAR(255), `online` TINYINT(1) DEFAULT 1, `lastUpdate` DATETIME, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `sensors` SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors_backup`;
+Executing (default): DROP TABLE `sensors_backup`;
+Executing (default): PRAGMA INDEX_LIST(`sensors`)
+Executing (default): PRAGMA INDEX_INFO(`sqlite_autoindex_sensors_1`)
+Executing (default): SELECT name FROM sqlite_master WHERE type='table' AND name='automation_rules';
+Executing (default): PRAGMA TABLE_INFO(`automation_rules`);
+Executing (default): PRAGMA foreign_key_list(`automation_rules`)
+Executing (default): PRAGMA INDEX_LIST(`automation_rules`)
+Executing (default): PRAGMA foreign_key_list(`automation_rules`)
+Executing (default): PRAGMA TABLE_INFO(`automation_rules`);
+Executing (default): PRAGMA INDEX_LIST(`automation_rules`)
+Executing (default): PRAGMA foreign_key_list(`automation_rules`)
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules_backup` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules`;
+Executing (default): DROP TABLE `automation_rules`;
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules_backup`;
+Executing (default): DROP TABLE `automation_rules_backup`;
+Executing (default): PRAGMA TABLE_INFO(`automation_rules`);
+Executing (default): PRAGMA INDEX_LIST(`automation_rules`)
+Executing (default): PRAGMA foreign_key_list(`automation_rules`)
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules_backup` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules`;
+Executing (default): DROP TABLE `automation_rules`;
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules_backup`;
+Executing (default): DROP TABLE `automation_rules_backup`;
+Executing (default): PRAGMA TABLE_INFO(`automation_rules`);
+Executing (default): PRAGMA INDEX_LIST(`automation_rules`)
+Executing (default): PRAGMA foreign_key_list(`automation_rules`)
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules_backup` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules`;
+Executing (default): DROP TABLE `automation_rules`;
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules_backup`;
+Executing (default): DROP TABLE `automation_rules_backup`;
+Executing (default): PRAGMA TABLE_INFO(`automation_rules`);
+Executing (default): PRAGMA INDEX_LIST(`automation_rules`)
+Executing (default): PRAGMA foreign_key_list(`automation_rules`)
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules_backup` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules`;
+Executing (default): DROP TABLE `automation_rules`;
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules_backup`;
+Executing (default): DROP TABLE `automation_rules_backup`;
+Executing (default): PRAGMA TABLE_INFO(`automation_rules`);
+Executing (default): PRAGMA INDEX_LIST(`automation_rules`)
+Executing (default): PRAGMA foreign_key_list(`automation_rules`)
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules_backup` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules`;
+Executing (default): DROP TABLE `automation_rules`;
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules_backup`;
+Executing (default): DROP TABLE `automation_rules_backup`;
+Executing (default): PRAGMA TABLE_INFO(`automation_rules`);
+Executing (default): PRAGMA INDEX_LIST(`automation_rules`)
+Executing (default): PRAGMA foreign_key_list(`automation_rules`)
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules_backup` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules`;
+Executing (default): DROP TABLE `automation_rules`;
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules_backup`;
+Executing (default): DROP TABLE `automation_rules_backup`;
+Executing (default): PRAGMA TABLE_INFO(`automation_rules`);
+Executing (default): PRAGMA INDEX_LIST(`automation_rules`)
+Executing (default): PRAGMA foreign_key_list(`automation_rules`)
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules_backup` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules`;
+Executing (default): DROP TABLE `automation_rules`;
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules_backup`;
+Executing (default): DROP TABLE `automation_rules_backup`;
+Executing (default): PRAGMA TABLE_INFO(`automation_rules`);
+Executing (default): PRAGMA INDEX_LIST(`automation_rules`)
+Executing (default): PRAGMA foreign_key_list(`automation_rules`)
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT 0, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules_backup` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules`;
+Executing (default): DROP TABLE `automation_rules`;
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT 0, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules_backup`;
+Executing (default): DROP TABLE `automation_rules_backup`;
+Executing (default): PRAGMA TABLE_INFO(`automation_rules`);
+Executing (default): PRAGMA INDEX_LIST(`automation_rules`)
+Executing (default): PRAGMA foreign_key_list(`automation_rules`)
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules_backup` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules`;
+Executing (default): DROP TABLE `automation_rules`;
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules_backup`;
+Executing (default): DROP TABLE `automation_rules_backup`;
+Executing (default): PRAGMA TABLE_INFO(`automation_rules`);
+Executing (default): PRAGMA INDEX_LIST(`automation_rules`)
+Executing (default): PRAGMA foreign_key_list(`automation_rules`)
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules_backup` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules_backup` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules`;
+Executing (default): DROP TABLE `automation_rules`;
+Executing (default): CREATE TABLE IF NOT EXISTS `automation_rules` (`id` INTEGER PRIMARY KEY, `name` VARCHAR(255) NOT NULL, `description` TEXT, `triggerType` TEXT NOT NULL, `triggerCondition` JSON NOT NULL, `action` JSON NOT NULL, `enabled` TINYINT(1) DEFAULT 1, `lastTriggered` DATETIME, `triggerCount` INTEGER DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `automation_rules` SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules_backup`;
+Executing (default): DROP TABLE `automation_rules_backup`;
+Executing (default): PRAGMA INDEX_LIST(`automation_rules`)
+Executing (default): SELECT name FROM sqlite_master WHERE type='table' AND name='ControlLogs';
+Executing (default): PRAGMA TABLE_INFO(`ControlLogs`);
+Executing (default): PRAGMA foreign_key_list(`ControlLogs`)
+Executing (default): PRAGMA INDEX_LIST(`ControlLogs`)
+Executing (default): PRAGMA INDEX_INFO(`control_logs_timestamp`)
+Executing (default): PRAGMA INDEX_INFO(`control_logs_action`)
+Executing (default): PRAGMA INDEX_INFO(`control_logs_device_id`)
+Executing (default): PRAGMA foreign_key_list(`ControlLogs`)
+Executing (default): PRAGMA TABLE_INFO(`ControlLogs`);
+Executing (default): PRAGMA INDEX_LIST(`ControlLogs`)
+Executing (default): PRAGMA INDEX_INFO(`control_logs_timestamp`)
+Executing (default): PRAGMA INDEX_INFO(`control_logs_action`)
+Executing (default): PRAGMA INDEX_INFO(`control_logs_device_id`)
+Executing (default): PRAGMA foreign_key_list(`ControlLogs`)
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs_backup` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs_backup` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs`;
+Executing (default): DROP TABLE `ControlLogs`;
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs_backup`;
+Executing (default): DROP TABLE `ControlLogs_backup`;
+Executing (default): PRAGMA TABLE_INFO(`ControlLogs`);
+Executing (default): PRAGMA INDEX_LIST(`ControlLogs`)
+Executing (default): PRAGMA foreign_key_list(`ControlLogs`)
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs_backup` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs_backup` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs`;
+Executing (default): DROP TABLE `ControlLogs`;
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs_backup`;
+Executing (default): DROP TABLE `ControlLogs_backup`;
+Executing (default): PRAGMA TABLE_INFO(`ControlLogs`);
+Executing (default): PRAGMA INDEX_LIST(`ControlLogs`)
+Executing (default): PRAGMA foreign_key_list(`ControlLogs`)
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs_backup` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs_backup` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs`;
+Executing (default): DROP TABLE `ControlLogs`;
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs_backup`;
+Executing (default): DROP TABLE `ControlLogs_backup`;
+Executing (default): PRAGMA TABLE_INFO(`ControlLogs`);
+Executing (default): PRAGMA INDEX_LIST(`ControlLogs`)
+Executing (default): PRAGMA foreign_key_list(`ControlLogs`)
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs_backup` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs_backup` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs`;
+Executing (default): DROP TABLE `ControlLogs`;
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs_backup`;
+Executing (default): DROP TABLE `ControlLogs_backup`;
+Executing (default): PRAGMA TABLE_INFO(`ControlLogs`);
+Executing (default): PRAGMA INDEX_LIST(`ControlLogs`)
+Executing (default): PRAGMA foreign_key_list(`ControlLogs`)
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs_backup` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs_backup` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs`;
+Executing (default): DROP TABLE `ControlLogs`;
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs_backup`;
+Executing (default): DROP TABLE `ControlLogs_backup`;
+Executing (default): PRAGMA TABLE_INFO(`ControlLogs`);
+Executing (default): PRAGMA INDEX_LIST(`ControlLogs`)
+Executing (default): PRAGMA foreign_key_list(`ControlLogs`)
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs_backup` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs_backup` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs`;
+Executing (default): DROP TABLE `ControlLogs`;
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs_backup`;
+Executing (default): DROP TABLE `ControlLogs_backup`;
+Executing (default): PRAGMA TABLE_INFO(`ControlLogs`);
+Executing (default): PRAGMA INDEX_LIST(`ControlLogs`)
+Executing (default): PRAGMA foreign_key_list(`ControlLogs`)
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs_backup` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs_backup` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs`;
+Executing (default): DROP TABLE `ControlLogs`;
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs_backup`;
+Executing (default): DROP TABLE `ControlLogs_backup`;
+Executing (default): PRAGMA TABLE_INFO(`ControlLogs`);
+Executing (default): PRAGMA INDEX_LIST(`ControlLogs`)
+Executing (default): PRAGMA foreign_key_list(`ControlLogs`)
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs_backup` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs_backup` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs`;
+Executing (default): DROP TABLE `ControlLogs`;
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs_backup`;
+Executing (default): DROP TABLE `ControlLogs_backup`;
+Executing (default): PRAGMA TABLE_INFO(`ControlLogs`);
+Executing (default): PRAGMA INDEX_LIST(`ControlLogs`)
+Executing (default): PRAGMA foreign_key_list(`ControlLogs`)
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs_backup` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs_backup` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs`;
+Executing (default): DROP TABLE `ControlLogs`;
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs_backup`;
+Executing (default): DROP TABLE `ControlLogs_backup`;
+Executing (default): PRAGMA TABLE_INFO(`ControlLogs`);
+Executing (default): PRAGMA INDEX_LIST(`ControlLogs`)
+Executing (default): PRAGMA foreign_key_list(`ControlLogs`)
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs_backup` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs_backup` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs`;
+Executing (default): DROP TABLE `ControlLogs`;
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs_backup`;
+Executing (default): DROP TABLE `ControlLogs_backup`;
+Executing (default): PRAGMA TABLE_INFO(`ControlLogs`);
+Executing (default): PRAGMA INDEX_LIST(`ControlLogs`)
+Executing (default): PRAGMA foreign_key_list(`ControlLogs`)
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs_backup` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs_backup` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs`;
+Executing (default): DROP TABLE `ControlLogs`;
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs_backup`;
+Executing (default): DROP TABLE `ControlLogs_backup`;
+Executing (default): PRAGMA TABLE_INFO(`ControlLogs`);
+Executing (default): PRAGMA INDEX_LIST(`ControlLogs`)
+Executing (default): PRAGMA foreign_key_list(`ControlLogs`)
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs_backup` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs_backup` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs`;
+Executing (default): DROP TABLE `ControlLogs`;
+Executing (default): CREATE TABLE IF NOT EXISTS `ControlLogs` (`id` INTEGER PRIMARY KEY, `deviceId` VARCHAR(255), `deviceName` VARCHAR(255), `action` TEXT NOT NULL, `actionSource` VARCHAR(255), `brightness` INTEGER, `colorTemperature` INTEGER, `area` VARCHAR(255), `affectedDevices` INTEGER, `energyConsumption` FLOAT DEFAULT '0', `timestamp` DATETIME NOT NULL, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `ControlLogs` SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs_backup`;
+Executing (default): DROP TABLE `ControlLogs_backup`;
+Executing (default): PRAGMA INDEX_LIST(`ControlLogs`)
+Executing (default): CREATE INDEX `control_logs_timestamp` ON `ControlLogs` (`timestamp`)
+Executing (default): CREATE INDEX `control_logs_action` ON `ControlLogs` (`action`)
+Executing (default): CREATE INDEX `control_logs_device_id` ON `ControlLogs` (`deviceId`)
+Executing (default): SELECT name FROM sqlite_master WHERE type='table' AND name='EnergyStats';
+Executing (default): PRAGMA TABLE_INFO(`EnergyStats`);
+Executing (default): PRAGMA foreign_key_list(`EnergyStats`)
+Executing (default): PRAGMA INDEX_LIST(`EnergyStats`)
+Executing (default): PRAGMA INDEX_INFO(`energy_stats_period_timestamp`)
+Executing (default): PRAGMA INDEX_INFO(`energy_stats_area`)
+Executing (default): PRAGMA foreign_key_list(`EnergyStats`)
+Executing (default): PRAGMA TABLE_INFO(`EnergyStats`);
+Executing (default): PRAGMA INDEX_LIST(`EnergyStats`)
+Executing (default): PRAGMA INDEX_INFO(`energy_stats_period_timestamp`)
+Executing (default): PRAGMA INDEX_INFO(`energy_stats_area`)
+Executing (default): PRAGMA foreign_key_list(`EnergyStats`)
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats_backup` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats_backup` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats`;
+Executing (default): DROP TABLE `EnergyStats`;
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats_backup`;
+Executing (default): DROP TABLE `EnergyStats_backup`;
+Executing (default): PRAGMA TABLE_INFO(`EnergyStats`);
+Executing (default): PRAGMA INDEX_LIST(`EnergyStats`)
+Executing (default): PRAGMA foreign_key_list(`EnergyStats`)
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats_backup` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats_backup` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats`;
+Executing (default): DROP TABLE `EnergyStats`;
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats_backup`;
+Executing (default): DROP TABLE `EnergyStats_backup`;
+Executing (default): PRAGMA TABLE_INFO(`EnergyStats`);
+Executing (default): PRAGMA INDEX_LIST(`EnergyStats`)
+Executing (default): PRAGMA foreign_key_list(`EnergyStats`)
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats_backup` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats_backup` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats`;
+Executing (default): DROP TABLE `EnergyStats`;
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats_backup`;
+Executing (default): DROP TABLE `EnergyStats_backup`;
+Executing (default): PRAGMA TABLE_INFO(`EnergyStats`);
+Executing (default): PRAGMA INDEX_LIST(`EnergyStats`)
+Executing (default): PRAGMA foreign_key_list(`EnergyStats`)
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats_backup` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats_backup` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats`;
+Executing (default): DROP TABLE `EnergyStats`;
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats_backup`;
+Executing (default): DROP TABLE `EnergyStats_backup`;
+Executing (default): PRAGMA TABLE_INFO(`EnergyStats`);
+Executing (default): PRAGMA INDEX_LIST(`EnergyStats`)
+Executing (default): PRAGMA foreign_key_list(`EnergyStats`)
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats_backup` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats_backup` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats`;
+Executing (default): DROP TABLE `EnergyStats`;
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats_backup`;
+Executing (default): DROP TABLE `EnergyStats_backup`;
+Executing (default): PRAGMA TABLE_INFO(`EnergyStats`);
+Executing (default): PRAGMA INDEX_LIST(`EnergyStats`)
+Executing (default): PRAGMA foreign_key_list(`EnergyStats`)
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats_backup` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats_backup` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats`;
+Executing (default): DROP TABLE `EnergyStats`;
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats_backup`;
+Executing (default): DROP TABLE `EnergyStats_backup`;
+Executing (default): PRAGMA TABLE_INFO(`EnergyStats`);
+Executing (default): PRAGMA INDEX_LIST(`EnergyStats`)
+Executing (default): PRAGMA foreign_key_list(`EnergyStats`)
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats_backup` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT 0, `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats_backup` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats`;
+Executing (default): DROP TABLE `EnergyStats`;
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT 0, `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats_backup`;
+Executing (default): DROP TABLE `EnergyStats_backup`;
+Executing (default): PRAGMA TABLE_INFO(`EnergyStats`);
+Executing (default): PRAGMA INDEX_LIST(`EnergyStats`)
+Executing (default): PRAGMA foreign_key_list(`EnergyStats`)
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats_backup` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT 0, `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats_backup` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats`;
+Executing (default): DROP TABLE `EnergyStats`;
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT 0, `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats_backup`;
+Executing (default): DROP TABLE `EnergyStats_backup`;
+Executing (default): PRAGMA TABLE_INFO(`EnergyStats`);
+Executing (default): PRAGMA INDEX_LIST(`EnergyStats`)
+Executing (default): PRAGMA foreign_key_list(`EnergyStats`)
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats_backup` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats_backup` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats`;
+Executing (default): DROP TABLE `EnergyStats`;
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats_backup`;
+Executing (default): DROP TABLE `EnergyStats_backup`;
+Executing (default): PRAGMA TABLE_INFO(`EnergyStats`);
+Executing (default): PRAGMA INDEX_LIST(`EnergyStats`)
+Executing (default): PRAGMA foreign_key_list(`EnergyStats`)
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats_backup` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats_backup` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats`;
+Executing (default): DROP TABLE `EnergyStats`;
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats_backup`;
+Executing (default): DROP TABLE `EnergyStats_backup`;
+Executing (default): PRAGMA TABLE_INFO(`EnergyStats`);
+Executing (default): PRAGMA INDEX_LIST(`EnergyStats`)
+Executing (default): PRAGMA foreign_key_list(`EnergyStats`)
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats_backup` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats_backup` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats`;
+Executing (default): DROP TABLE `EnergyStats`;
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats_backup`;
+Executing (default): DROP TABLE `EnergyStats_backup`;
+Executing (default): PRAGMA TABLE_INFO(`EnergyStats`);
+Executing (default): PRAGMA INDEX_LIST(`EnergyStats`)
+Executing (default): PRAGMA foreign_key_list(`EnergyStats`)
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats_backup` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats_backup` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats`;
+Executing (default): DROP TABLE `EnergyStats`;
+Executing (default): CREATE TABLE IF NOT EXISTS `EnergyStats` (`id` INTEGER PRIMARY KEY, `period` TEXT NOT NULL, `timestamp` DATETIME NOT NULL, `area` VARCHAR(255), `totalKwh` FLOAT DEFAULT '0', `peakKwh` FLOAT DEFAULT '0', `averageBrightness` FLOAT DEFAULT '0', `deviceCount` INTEGER DEFAULT '0', `runtimeMinutes` INTEGER DEFAULT '0', `estimatedCost` FLOAT DEFAULT '0', `daylightSavings` FLOAT DEFAULT '0', `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL);
+Executing (default): INSERT INTO `EnergyStats` SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats_backup`;
+Executing (default): DROP TABLE `EnergyStats_backup`;
+Executing (default): PRAGMA INDEX_LIST(`EnergyStats`)
+Executing (default): CREATE INDEX `energy_stats_period_timestamp` ON `EnergyStats` (`period`, `timestamp`)
+Executing (default): CREATE INDEX `energy_stats_area` ON `EnergyStats` (`area`)
+Database models synchronized.
+Executing (3f6e97e4-c150-4223-8a9a-541d9ed29bd7): BEGIN DEFERRED TRANSACTION;
+Executing (3f6e97e4-c150-4223-8a9a-541d9ed29bd7): SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes` AS `Scene` WHERE `Scene`.`id` = 'meeting';
+Executing (3f6e97e4-c150-4223-8a9a-541d9ed29bd7): COMMIT;
+Executing (a9589c24-f317-4132-b75d-bb7f542e1efc): BEGIN DEFERRED TRANSACTION;
+Executing (a9589c24-f317-4132-b75d-bb7f542e1efc): SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes` AS `Scene` WHERE `Scene`.`id` = 'off-duty';
+Executing (a9589c24-f317-4132-b75d-bb7f542e1efc): COMMIT;
+Executing (e00d6fb3-4a7b-46f7-992c-5410d1e35810): BEGIN DEFERRED TRANSACTION;
+Executing (e00d6fb3-4a7b-46f7-992c-5410d1e35810): SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes` AS `Scene` WHERE `Scene`.`id` = 'presentation';
+Executing (e00d6fb3-4a7b-46f7-992c-5410d1e35810): COMMIT;
+Executing (cda76495-5686-41b0-b70a-59cf96df7aca): BEGIN DEFERRED TRANSACTION;
+Executing (cda76495-5686-41b0-b70a-59cf96df7aca): SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes` AS `Scene` WHERE `Scene`.`id` = 'lunch';
+Executing (cda76495-5686-41b0-b70a-59cf96df7aca): COMMIT;
+Executing (03cfa8ff-e592-4005-9757-13dde7238e31): BEGIN DEFERRED TRANSACTION;
+Executing (03cfa8ff-e592-4005-9757-13dde7238e31): SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes` AS `Scene` WHERE `Scene`.`id` = 'all-on';
+Executing (03cfa8ff-e592-4005-9757-13dde7238e31): COMMIT;
+Executing (ae32b99a-25c5-4139-af3b-ba27e9ae772b): BEGIN DEFERRED TRANSACTION;
+Executing (ae32b99a-25c5-4139-af3b-ba27e9ae772b): SELECT `id`, `name`, `description`, `brightness`, `colorTemperature`, `isPreset`, `targetAreas`, `createdAt`, `updatedAt` FROM `scenes` AS `Scene` WHERE `Scene`.`id` = 'all-off';
+Executing (ae32b99a-25c5-4139-af3b-ba27e9ae772b): COMMIT;
+Executing (f8e51a23-598d-4c14-b24d-4d2f15058897): BEGIN DEFERRED TRANSACTION;
+Executing (f8e51a23-598d-4c14-b24d-4d2f15058897): SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors` AS `Sensor` WHERE `Sensor`.`id` = 'sensor-motion-001';
+Executing (f8e51a23-598d-4c14-b24d-4d2f15058897): COMMIT;
+Executing (8057ba61-4166-4479-a4e7-7987f247a177): BEGIN DEFERRED TRANSACTION;
+Executing (8057ba61-4166-4479-a4e7-7987f247a177): SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors` AS `Sensor` WHERE `Sensor`.`id` = 'sensor-motion-002';
+Executing (8057ba61-4166-4479-a4e7-7987f247a177): COMMIT;
+Executing (f00a714b-e485-46d9-9901-129f93d619c3): BEGIN DEFERRED TRANSACTION;
+Executing (f00a714b-e485-46d9-9901-129f93d619c3): SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors` AS `Sensor` WHERE `Sensor`.`id` = 'sensor-light-001';
+Executing (f00a714b-e485-46d9-9901-129f93d619c3): COMMIT;
+Executing (b928c89c-99e3-481e-93ac-d7054e835840): BEGIN DEFERRED TRANSACTION;
+Executing (b928c89c-99e3-481e-93ac-d7054e835840): SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors` AS `Sensor` WHERE `Sensor`.`id` = 'sensor-light-002';
+Executing (b928c89c-99e3-481e-93ac-d7054e835840): COMMIT;
+Executing (e6b53422-58b2-4e91-8878-49ea7279da23): BEGIN DEFERRED TRANSACTION;
+Executing (e6b53422-58b2-4e91-8878-49ea7279da23): SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors` AS `Sensor` WHERE `Sensor`.`id` = 'sensor-temp-001';
+Executing (e6b53422-58b2-4e91-8878-49ea7279da23): COMMIT;
+Executing (0e6aebc7-1fad-4995-88c9-059405217ae7): BEGIN DEFERRED TRANSACTION;
+Executing (0e6aebc7-1fad-4995-88c9-059405217ae7): SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors` AS `Sensor` WHERE `Sensor`.`id` = 'sensor-temp-002';
+Executing (0e6aebc7-1fad-4995-88c9-059405217ae7): COMMIT;
+Executing (546b9908-b6b8-4c38-88cc-b540f91c1b59): BEGIN DEFERRED TRANSACTION;
+Executing (546b9908-b6b8-4c38-88cc-b540f91c1b59): SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors` AS `Sensor` WHERE `Sensor`.`id` = 'sensor-occupancy-001';
+Executing (546b9908-b6b8-4c38-88cc-b540f91c1b59): COMMIT;
+Executing (d7bf8768-a94d-4a7d-9b60-e7597272f4f8): BEGIN DEFERRED TRANSACTION;
+Executing (d7bf8768-a94d-4a7d-9b60-e7597272f4f8): SELECT `id`, `name`, `type`, `area`, `value`, `unit`, `online`, `lastUpdate`, `createdAt`, `updatedAt` FROM `sensors` AS `Sensor` WHERE `Sensor`.`id` = 'sensor-occupancy-002';
+Executing (d7bf8768-a94d-4a7d-9b60-e7597272f4f8): COMMIT;
+Executing (default): SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules` AS `AutomationRule` WHERE `AutomationRule`.`name` = '感应开灯' LIMIT 1;
+Executing (default): SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules` AS `AutomationRule` WHERE `AutomationRule`.`name` = '人走灯灭' LIMIT 1;
+Executing (default): SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules` AS `AutomationRule` WHERE `AutomationRule`.`name` = '自动亮度调节' LIMIT 1;
+Executing (default): SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules` AS `AutomationRule` WHERE `AutomationRule`.`name` = '日光补偿' LIMIT 1;
+Database initialization completed.
+MQTT Broker started on TCP port 1883 and WS port 8081
+MQTT TCP Server listening on port 1883
+MQTT WebSocket Server listening on port 8081
+Client connected: backend-server
+Backend MQTT client connected
+Client connected: ble-gateway-001
+Client backend-server subscribed to: blemesh/status/#
+BLE Mesh Gateway ble-gateway-001 connected to MQTT broker
+Initialized 200 BLE Mesh devices
+Executing (default): SELECT `id`, `name`, `description`, `cronExpression`, `sceneId`, `action`, `enabled`, `lastExecuted`, `nextExecution`, `createdAt`, `updatedAt` FROM `scheduled_tasks` AS `ScheduledTask` WHERE `ScheduledTask`.`enabled` = 1;
+Client ble-gateway-001 subscribed to: blemesh/command/#
+Client ble-gateway-001 subscribed to: blemesh/control/+
+Client ble-gateway-001 published to blemesh/status/devices
+Scheduler started with 0 tasks
+Automation Engine started
+Energy Service started
+Daylight Compensation Service started
+Executing (default): SELECT `id`, `name`, `description`, `triggerType`, `triggerCondition`, `action`, `enabled`, `lastTriggered`, `triggerCount`, `createdAt`, `updatedAt` FROM `automation_rules` AS `AutomationRule` WHERE `AutomationRule`.`triggerType` = 'daylight' AND `AutomationRule`.`enabled` = 1;
+Server running on port 3001
+API: http://localhost:3001/api
+Socket.io: ws://localhost:3001
+Client backend-server subscribed to: sensors/data/#
+Queueing scene meeting for 200 devices
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): SELECT SUM(`totalKwh`) AS `totalKwh`, MAX(`peakKwh`) AS `peakKwh`, AVG(`averageBrightness`) AS `avgBrightness`, SUM(`runtimeMinutes`) AS `totalRuntime`, SUM(`estimatedCost`) AS `totalCost`, SUM(`daylightSavings`) AS `totalSavings` FROM `EnergyStats` AS `EnergyStats` WHERE (`EnergyStats`.`timestamp` >= '2026-05-23 03:16:10.541 +00:00' AND `EnergyStats`.`timestamp` <= '2026-05-24 03:16:10.541 +00:00') LIMIT 1;
+Executing (default): SELECT count(*) AS `count` FROM `ControlLogs` AS `ControlLog`;
+Executing (default): SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs` AS `ControlLog` ORDER BY `ControlLog`.`timestamp` DESC LIMIT 0, 2;
+Executing (default): SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs` AS `ControlLog` ORDER BY `ControlLog`.`timestamp` ASC;
+Executing (default): SELECT `id`, `deviceId`, `deviceName`, `action`, `actionSource`, `brightness`, `colorTemperature`, `area`, `affectedDevices`, `energyConsumption`, `timestamp`, `createdAt`, `updatedAt` FROM `ControlLogs` AS `ControlLog` ORDER BY `ControlLog`.`timestamp` ASC;
+Daylight compensation: Lux=746.0417737073333, Target=800, Brightness=35%, Affected=82
+Executing (100092f7-3c40-4924-91be-f7ac1b873645): BEGIN DEFERRED TRANSACTION;
+Executing (f5929747-f93e-47bd-940c-1f81e1085228): BEGIN DEFERRED TRANSACTION;
+Executing (ad828f27-159a-4eef-a2d5-d2adda4b2d39): BEGIN DEFERRED TRANSACTION;
+Executing (100092f7-3c40-4924-91be-f7ac1b873645): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区A' LIMIT 1;
+Executing (ad828f27-159a-4eef-a2d5-d2adda4b2d39): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '大厅' LIMIT 1;
+Executing (f5929747-f93e-47bd-940c-1f81e1085228): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区B' LIMIT 1;
+Executing (ad828f27-159a-4eef-a2d5-d2adda4b2d39): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (100092f7-3c40-4924-91be-f7ac1b873645): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (f5929747-f93e-47bd-940c-1f81e1085228): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (100092f7-3c40-4924-91be-f7ac1b873645): COMMIT;
+Executing (ad828f27-159a-4eef-a2d5-d2adda4b2d39): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (f5929747-f93e-47bd-940c-1f81e1085228): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (ad828f27-159a-4eef-a2d5-d2adda4b2d39): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (f5929747-f93e-47bd-940c-1f81e1085228): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (ad828f27-159a-4eef-a2d5-d2adda4b2d39): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (f5929747-f93e-47bd-940c-1f81e1085228): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (ad828f27-159a-4eef-a2d5-d2adda4b2d39): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (f5929747-f93e-47bd-940c-1f81e1085228): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (ad828f27-159a-4eef-a2d5-d2adda4b2d39): COMMIT;
+Executing (f5929747-f93e-47bd-940c-1f81e1085228): COMMIT;
+Failed to record daylight savings: SQLITE_BUSY: database is locked
+Failed to record daylight savings: SQLITE_BUSY: database is locked
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `ControlLogs` (`id`,`action`,`actionSource`,`brightness`,`area`,`affectedDevices`,`energyConsumption`,`timestamp`,`createdAt`,`updatedAt`) VALUES (NULL,'daylight','日光补偿',35,'办公区A,办公区B,大厅',82,'-0.044416666666666674','2026-05-24 03:16:55.173 +00:00','2026-05-24 03:17:00.174 +00:00','2026-05-24 03:17:00.174 +00:00');
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Daylight compensation: Lux=658.5926711869545, Target=800, Brightness=42%, Affected=81
+Executing (e9760c01-c1bf-4b31-909f-12c243514a75): BEGIN DEFERRED TRANSACTION;
+Executing (9db7d513-8ce0-4bbc-a38c-61f44c2df684): BEGIN DEFERRED TRANSACTION;
+Executing (68085b34-bc80-47db-b7e9-85a23bf52ac8): BEGIN DEFERRED TRANSACTION;
+Executing (e9760c01-c1bf-4b31-909f-12c243514a75): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区A' LIMIT 1;
+Executing (68085b34-bc80-47db-b7e9-85a23bf52ac8): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区B' LIMIT 1;
+Executing (9db7d513-8ce0-4bbc-a38c-61f44c2df684): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '大厅' LIMIT 1;
+Executing (e9760c01-c1bf-4b31-909f-12c243514a75): COMMIT;
+Executing (68085b34-bc80-47db-b7e9-85a23bf52ac8): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (9db7d513-8ce0-4bbc-a38c-61f44c2df684): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (68085b34-bc80-47db-b7e9-85a23bf52ac8): COMMIT;
+Executing (9db7d513-8ce0-4bbc-a38c-61f44c2df684): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (9db7d513-8ce0-4bbc-a38c-61f44c2df684): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (9db7d513-8ce0-4bbc-a38c-61f44c2df684): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (9db7d513-8ce0-4bbc-a38c-61f44c2df684): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (9db7d513-8ce0-4bbc-a38c-61f44c2df684): COMMIT;
+Failed to record daylight savings: SQLITE_BUSY: database is locked
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `ControlLogs` (`id`,`action`,`actionSource`,`brightness`,`area`,`affectedDevices`,`energyConsumption`,`timestamp`,`createdAt`,`updatedAt`) VALUES (NULL,'daylight','日光补偿',42,'办公区A,办公区B,大厅',81,'-0.03914999999999999','2026-05-24 03:21:55.178 +00:00','2026-05-24 03:22:00.179 +00:00','2026-05-24 03:22:00.179 +00:00');
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Daylight compensation: Lux=812.3900544346068, Target=800, Brightness=30%, Affected=81
+Executing (95b59d18-389c-4731-9a4f-5c818430217e): BEGIN DEFERRED TRANSACTION;
+Executing (51e00089-aa8d-4503-a7c1-0295087c61f6): BEGIN DEFERRED TRANSACTION;
+Executing (24ea503d-2167-4cb6-91d8-3f48db63d608): BEGIN DEFERRED TRANSACTION;
+Executing (95b59d18-389c-4731-9a4f-5c818430217e): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区B' LIMIT 1;
+Executing (51e00089-aa8d-4503-a7c1-0295087c61f6): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区A' LIMIT 1;
+Executing (24ea503d-2167-4cb6-91d8-3f48db63d608): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '大厅' LIMIT 1;
+Executing (24ea503d-2167-4cb6-91d8-3f48db63d608): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (51e00089-aa8d-4503-a7c1-0295087c61f6): COMMIT;
+Executing (95b59d18-389c-4731-9a4f-5c818430217e): COMMIT;
+Executing (24ea503d-2167-4cb6-91d8-3f48db63d608): COMMIT;
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `ControlLogs` (`id`,`action`,`actionSource`,`brightness`,`area`,`affectedDevices`,`energyConsumption`,`timestamp`,`createdAt`,`updatedAt`) VALUES (NULL,'daylight','日光补偿',30,'办公区A,办公区B,大厅',81,'-0.04724999999999999','2026-05-24 03:26:55.182 +00:00','2026-05-24 03:27:00.183 +00:00','2026-05-24 03:27:00.183 +00:00');
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Daylight compensation: Lux=607.7381598584461, Target=800, Brightness=47%, Affected=81
+Executing (54e4d835-a509-4fb6-8c09-a218aa4f81bf): BEGIN DEFERRED TRANSACTION;
+Executing (a5d152e7-6b45-426d-8b67-172a2388104b): BEGIN DEFERRED TRANSACTION;
+Executing (f311319e-e442-47b9-9fb3-1831d896bccc): BEGIN DEFERRED TRANSACTION;
+Executing (54e4d835-a509-4fb6-8c09-a218aa4f81bf): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区B' LIMIT 1;
+Executing (a5d152e7-6b45-426d-8b67-172a2388104b): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区A' LIMIT 1;
+Executing (f311319e-e442-47b9-9fb3-1831d896bccc): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '大厅' LIMIT 1;
+Executing (a5d152e7-6b45-426d-8b67-172a2388104b): COMMIT;
+Executing (54e4d835-a509-4fb6-8c09-a218aa4f81bf): COMMIT;
+Executing (f311319e-e442-47b9-9fb3-1831d896bccc): COMMIT;
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `ControlLogs` (`id`,`action`,`actionSource`,`brightness`,`area`,`affectedDevices`,`energyConsumption`,`timestamp`,`createdAt`,`updatedAt`) VALUES (NULL,'daylight','日光补偿',47,'办公区A,办公区B,大厅',81,'-0.035774999999999994','2026-05-24 03:36:55.283 +00:00','2026-05-24 03:37:00.285 +00:00','2026-05-24 03:37:00.285 +00:00');
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Daylight compensation: Lux=837.3256320807657, Target=800, Brightness=30%, Affected=81
+Executing (b3b2ff78-894a-4986-93ba-327dbd17e6f4): BEGIN DEFERRED TRANSACTION;
+Executing (b79360aa-b3e3-4cfc-85fe-f6c66a6f3127): BEGIN DEFERRED TRANSACTION;
+Executing (936d05e2-2ba9-4bce-ad53-104c4159494c): BEGIN DEFERRED TRANSACTION;
+Executing (b3b2ff78-894a-4986-93ba-327dbd17e6f4): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区B' LIMIT 1;
+Executing (b79360aa-b3e3-4cfc-85fe-f6c66a6f3127): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '大厅' LIMIT 1;
+Executing (936d05e2-2ba9-4bce-ad53-104c4159494c): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区A' LIMIT 1;
+Executing (b79360aa-b3e3-4cfc-85fe-f6c66a6f3127): COMMIT;
+Executing (b3b2ff78-894a-4986-93ba-327dbd17e6f4): COMMIT;
+Executing (936d05e2-2ba9-4bce-ad53-104c4159494c): COMMIT;
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `ControlLogs` (`id`,`action`,`actionSource`,`brightness`,`area`,`affectedDevices`,`energyConsumption`,`timestamp`,`createdAt`,`updatedAt`) VALUES (NULL,'daylight','日光补偿',30,'办公区A,办公区B,大厅',81,'-0.04724999999999999','2026-05-24 03:41:55.316 +00:00','2026-05-24 03:42:00.316 +00:00','2026-05-24 03:42:00.316 +00:00');
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Daylight compensation: Lux=618.1584863638468, Target=800, Brightness=46%, Affected=81
+Executing (09ac6687-706b-4af5-960f-8b46e520a12f): BEGIN DEFERRED TRANSACTION;
+Executing (f632e946-cd88-43af-b076-099924905308): BEGIN DEFERRED TRANSACTION;
+Executing (47ff7c82-1712-45ce-bb4c-8d553dbe3b73): BEGIN DEFERRED TRANSACTION;
+Executing (09ac6687-706b-4af5-960f-8b46e520a12f): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '大厅' LIMIT 1;
+Executing (47ff7c82-1712-45ce-bb4c-8d553dbe3b73): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区B' LIMIT 1;
+Executing (f632e946-cd88-43af-b076-099924905308): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区A' LIMIT 1;
+Executing (47ff7c82-1712-45ce-bb4c-8d553dbe3b73): COMMIT;
+Executing (09ac6687-706b-4af5-960f-8b46e520a12f): COMMIT;
+Executing (f632e946-cd88-43af-b076-099924905308): COMMIT;
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `ControlLogs` (`id`,`action`,`actionSource`,`brightness`,`area`,`affectedDevices`,`energyConsumption`,`timestamp`,`createdAt`,`updatedAt`) VALUES (NULL,'daylight','日光补偿',46,'办公区A,办公区B,大厅',81,'-0.036449999999999996','2026-05-24 03:46:55.326 +00:00','2026-05-24 03:47:00.327 +00:00','2026-05-24 03:47:00.327 +00:00');
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Daylight compensation: Lux=710.4614855784716, Target=800, Brightness=38%, Affected=81
+Executing (16c63f67-c431-4220-9bb0-e10f6aacc132): BEGIN DEFERRED TRANSACTION;
+Executing (b63484b8-9bba-4980-805a-ea5d84581db3): BEGIN DEFERRED TRANSACTION;
+Executing (fdbc8b31-6be5-4f4e-9fa1-375e1b6a43c1): BEGIN DEFERRED TRANSACTION;
+Executing (16c63f67-c431-4220-9bb0-e10f6aacc132): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区B' LIMIT 1;
+Executing (fdbc8b31-6be5-4f4e-9fa1-375e1b6a43c1): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区A' LIMIT 1;
+Executing (b63484b8-9bba-4980-805a-ea5d84581db3): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '大厅' LIMIT 1;
+Executing (16c63f67-c431-4220-9bb0-e10f6aacc132): COMMIT;
+Executing (fdbc8b31-6be5-4f4e-9fa1-375e1b6a43c1): COMMIT;
+Executing (b63484b8-9bba-4980-805a-ea5d84581db3): COMMIT;
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `ControlLogs` (`id`,`action`,`actionSource`,`brightness`,`area`,`affectedDevices`,`energyConsumption`,`timestamp`,`createdAt`,`updatedAt`) VALUES (NULL,'daylight','日光补偿',38,'办公区A,办公区B,大厅',81,'-0.04184999999999999','2026-05-24 03:51:56.012 +00:00','2026-05-24 03:52:01.014 +00:00','2026-05-24 03:52:01.014 +00:00');
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Daylight compensation: Lux=969.6772005523145, Target=800, Brightness=30%, Affected=81
+Executing (eefbc7e8-3c07-4a0e-8b0e-5d2cc225a715): BEGIN DEFERRED TRANSACTION;
+Executing (effb3c7f-bdb2-4f50-b972-5f0946ff35d7): BEGIN DEFERRED TRANSACTION;
+Executing (2d1b48c7-4491-4665-bb9a-24a28871965b): BEGIN DEFERRED TRANSACTION;
+Executing (eefbc7e8-3c07-4a0e-8b0e-5d2cc225a715): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区A' LIMIT 1;
+Executing (effb3c7f-bdb2-4f50-b972-5f0946ff35d7): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区B' LIMIT 1;
+Executing (2d1b48c7-4491-4665-bb9a-24a28871965b): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 03:00:00.000 +00:00' AND `EnergyStats`.`area` = '大厅' LIMIT 1;
+Executing (2d1b48c7-4491-4665-bb9a-24a28871965b): COMMIT;
+Executing (eefbc7e8-3c07-4a0e-8b0e-5d2cc225a715): COMMIT;
+Executing (effb3c7f-bdb2-4f50-b972-5f0946ff35d7): COMMIT;
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `ControlLogs` (`id`,`action`,`actionSource`,`brightness`,`area`,`affectedDevices`,`energyConsumption`,`timestamp`,`createdAt`,`updatedAt`) VALUES (NULL,'daylight','日光补偿',30,'办公区A,办公区B,大厅',81,'-0.04724999999999999','2026-05-24 03:56:56.023 +00:00','2026-05-24 03:57:01.114 +00:00','2026-05-24 03:57:01.114 +00:00');
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Daylight compensation: Lux=657.0330273748078, Target=800, Brightness=43%, Affected=81
+Executing (c6bcbe36-71d4-4c40-896d-a0e06cba8da5): BEGIN DEFERRED TRANSACTION;
+Executing (0505c8dc-7261-454e-9983-b85e3d6ac075): BEGIN DEFERRED TRANSACTION;
+Executing (c98c762b-3c70-490d-aa6f-9d1246bbd6a9): BEGIN DEFERRED TRANSACTION;
+Executing (0505c8dc-7261-454e-9983-b85e3d6ac075): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 04:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区B' LIMIT 1;
+Executing (c6bcbe36-71d4-4c40-896d-a0e06cba8da5): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 04:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区A' LIMIT 1;
+Executing (c98c762b-3c70-490d-aa6f-9d1246bbd6a9): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 04:00:00.000 +00:00' AND `EnergyStats`.`area` = '大厅' LIMIT 1;
+Executing (c6bcbe36-71d4-4c40-896d-a0e06cba8da5): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (c98c762b-3c70-490d-aa6f-9d1246bbd6a9): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (0505c8dc-7261-454e-9983-b85e3d6ac075): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (c6bcbe36-71d4-4c40-896d-a0e06cba8da5): COMMIT;
+Executing (c98c762b-3c70-490d-aa6f-9d1246bbd6a9): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (0505c8dc-7261-454e-9983-b85e3d6ac075): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (c98c762b-3c70-490d-aa6f-9d1246bbd6a9): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (0505c8dc-7261-454e-9983-b85e3d6ac075): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (c98c762b-3c70-490d-aa6f-9d1246bbd6a9): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (0505c8dc-7261-454e-9983-b85e3d6ac075): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (c98c762b-3c70-490d-aa6f-9d1246bbd6a9): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (0505c8dc-7261-454e-9983-b85e3d6ac075): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (c98c762b-3c70-490d-aa6f-9d1246bbd6a9): COMMIT;
+Executing (0505c8dc-7261-454e-9983-b85e3d6ac075): COMMIT;
+Failed to record daylight savings: SQLITE_BUSY: database is locked
+Failed to record daylight savings: SQLITE_BUSY: database is locked
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `ControlLogs` (`id`,`action`,`actionSource`,`brightness`,`area`,`affectedDevices`,`energyConsumption`,`timestamp`,`createdAt`,`updatedAt`) VALUES (NULL,'daylight','日光补偿',43,'办公区A,办公区B,大厅',81,'-0.038474999999999995','2026-05-24 04:06:56.036 +00:00','2026-05-24 04:07:01.063 +00:00','2026-05-24 04:07:01.063 +00:00');
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Daylight compensation: Lux=858.3672753430887, Target=800, Brightness=30%, Affected=81
+Executing (0f1683c0-e9d2-4ecc-be97-fb68393f50aa): BEGIN DEFERRED TRANSACTION;
+Executing (7ae432f6-e15d-48a3-a12f-80e01a762812): BEGIN DEFERRED TRANSACTION;
+Executing (5f527e4b-f094-4825-a3f6-6094f804e26c): BEGIN DEFERRED TRANSACTION;
+Executing (7ae432f6-e15d-48a3-a12f-80e01a762812): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 04:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区B' LIMIT 1;
+Executing (0f1683c0-e9d2-4ecc-be97-fb68393f50aa): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 04:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区A' LIMIT 1;
+Executing (5f527e4b-f094-4825-a3f6-6094f804e26c): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 04:00:00.000 +00:00' AND `EnergyStats`.`area` = '大厅' LIMIT 1;
+Executing (7ae432f6-e15d-48a3-a12f-80e01a762812): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (5f527e4b-f094-4825-a3f6-6094f804e26c): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (0f1683c0-e9d2-4ecc-be97-fb68393f50aa): COMMIT;
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (7ae432f6-e15d-48a3-a12f-80e01a762812): COMMIT;
+Executing (5f527e4b-f094-4825-a3f6-6094f804e26c): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (5f527e4b-f094-4825-a3f6-6094f804e26c): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (5f527e4b-f094-4825-a3f6-6094f804e26c): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (5f527e4b-f094-4825-a3f6-6094f804e26c): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (5f527e4b-f094-4825-a3f6-6094f804e26c): COMMIT;
+Failed to record daylight savings: SQLITE_BUSY: database is locked
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `ControlLogs` (`id`,`action`,`actionSource`,`brightness`,`area`,`affectedDevices`,`energyConsumption`,`timestamp`,`createdAt`,`updatedAt`) VALUES (NULL,'daylight','日光补偿',30,'办公区A,办公区B,大厅',81,'-0.04724999999999999','2026-05-24 04:11:56.101 +00:00','2026-05-24 04:12:01.103 +00:00','2026-05-24 04:12:01.103 +00:00');
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (default): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (default): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (default): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (default): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (default): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (default): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (default): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Daylight compensation: Lux=645.0067424811504, Target=800, Brightness=44%, Affected=82
+Executing (487f1467-4271-4a08-b67a-5ff738444265): BEGIN DEFERRED TRANSACTION;
+Executing (1906a879-e055-4afb-ad40-88c7f12b099f): BEGIN DEFERRED TRANSACTION;
+Executing (e8721233-04fc-4739-b937-484393a25fb9): BEGIN DEFERRED TRANSACTION;
+Executing (487f1467-4271-4a08-b67a-5ff738444265): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 04:00:00.000 +00:00' AND `EnergyStats`.`area` = '大厅' LIMIT 1;
+Executing (e8721233-04fc-4739-b937-484393a25fb9): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 04:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区B' LIMIT 1;
+Executing (1906a879-e055-4afb-ad40-88c7f12b099f): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 04:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区A' LIMIT 1;
+Executing (1906a879-e055-4afb-ad40-88c7f12b099f): COMMIT;
+Executing (487f1467-4271-4a08-b67a-5ff738444265): COMMIT;
+Executing (e8721233-04fc-4739-b937-484393a25fb9): COMMIT;
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `ControlLogs` (`id`,`action`,`actionSource`,`brightness`,`area`,`affectedDevices`,`energyConsumption`,`timestamp`,`createdAt`,`updatedAt`) VALUES (NULL,'daylight','日光补偿',44,'办公区A,办公区B,大厅',82,'-0.03826666666666667','2026-05-24 04:36:56.802 +00:00','2026-05-24 04:37:01.805 +00:00','2026-05-24 04:37:01.805 +00:00');
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Daylight compensation: Lux=908.9355332852783, Target=800, Brightness=30%, Affected=82
+Executing (41a77831-e33b-490d-82c8-8158173b1d76): BEGIN DEFERRED TRANSACTION;
+Executing (c61c3a64-603a-4620-b4fb-e3bca6fe75b5): BEGIN DEFERRED TRANSACTION;
+Executing (31049816-9184-4323-b474-158d0dea8310): BEGIN DEFERRED TRANSACTION;
+Executing (41a77831-e33b-490d-82c8-8158173b1d76): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 04:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区A' LIMIT 1;
+Executing (c61c3a64-603a-4620-b4fb-e3bca6fe75b5): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 04:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区B' LIMIT 1;
+Executing (31049816-9184-4323-b474-158d0dea8310): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 04:00:00.000 +00:00' AND `EnergyStats`.`area` = '大厅' LIMIT 1;
+Executing (c61c3a64-603a-4620-b4fb-e3bca6fe75b5): COMMIT;
+Executing (41a77831-e33b-490d-82c8-8158173b1d76): COMMIT;
+Executing (31049816-9184-4323-b474-158d0dea8310): COMMIT;
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `ControlLogs` (`id`,`action`,`actionSource`,`brightness`,`area`,`affectedDevices`,`energyConsumption`,`timestamp`,`createdAt`,`updatedAt`) VALUES (NULL,'daylight','日光补偿',30,'办公区A,办公区B,大厅',82,'-0.04783333333333334','2026-05-24 04:42:56.787 +00:00','2026-05-24 04:43:01.788 +00:00','2026-05-24 04:43:01.788 +00:00');
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Daylight compensation: Lux=641.3765516810198, Target=800, Brightness=44%, Affected=80
+Executing (49a166b6-c185-4253-b811-0a004a95c312): BEGIN DEFERRED TRANSACTION;
+Executing (73bbc4f7-f5db-4c74-85b4-abef4d845906): BEGIN DEFERRED TRANSACTION;
+Executing (473d6b64-c9df-4829-90c5-b616364de036): BEGIN DEFERRED TRANSACTION;
+Executing (49a166b6-c185-4253-b811-0a004a95c312): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 04:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区A' LIMIT 1;
+Executing (73bbc4f7-f5db-4c74-85b4-abef4d845906): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 04:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区B' LIMIT 1;
+Executing (473d6b64-c9df-4829-90c5-b616364de036): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 04:00:00.000 +00:00' AND `EnergyStats`.`area` = '大厅' LIMIT 1;
+Executing (49a166b6-c185-4253-b811-0a004a95c312): COMMIT;
+Executing (73bbc4f7-f5db-4c74-85b4-abef4d845906): COMMIT;
+Executing (473d6b64-c9df-4829-90c5-b616364de036): COMMIT;
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `ControlLogs` (`id`,`action`,`actionSource`,`brightness`,`area`,`affectedDevices`,`energyConsumption`,`timestamp`,`createdAt`,`updatedAt`) VALUES (NULL,'daylight','日光补偿',44,'办公区A,办公区B,大厅',80,'-0.03733333333333333','2026-05-24 04:52:56.788 +00:00','2026-05-24 04:53:01.790 +00:00','2026-05-24 04:53:01.790 +00:00');
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Daylight compensation: Lux=814.6067104882909, Target=800, Brightness=30%, Affected=80
+Executing (ac6c44d5-3100-479e-bc75-e1be13f8ea9f): BEGIN DEFERRED TRANSACTION;
+Executing (4b307bb4-d615-4f9f-ad11-508ef2de2cbd): BEGIN DEFERRED TRANSACTION;
+Executing (77aa8c8a-9b05-4e74-a5d2-3d7051e67945): BEGIN DEFERRED TRANSACTION;
+Executing (ac6c44d5-3100-479e-bc75-e1be13f8ea9f): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 05:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区B' LIMIT 1;
+Executing (4b307bb4-d615-4f9f-ad11-508ef2de2cbd): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 05:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区A' LIMIT 1;
+Executing (77aa8c8a-9b05-4e74-a5d2-3d7051e67945): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 05:00:00.000 +00:00' AND `EnergyStats`.`area` = '大厅' LIMIT 1;
+Executing (4b307bb4-d615-4f9f-ad11-508ef2de2cbd): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (ac6c44d5-3100-479e-bc75-e1be13f8ea9f): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (77aa8c8a-9b05-4e74-a5d2-3d7051e67945): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (4b307bb4-d615-4f9f-ad11-508ef2de2cbd): COMMIT;
+Executing (ac6c44d5-3100-479e-bc75-e1be13f8ea9f): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (77aa8c8a-9b05-4e74-a5d2-3d7051e67945): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (ac6c44d5-3100-479e-bc75-e1be13f8ea9f): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (77aa8c8a-9b05-4e74-a5d2-3d7051e67945): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (ac6c44d5-3100-479e-bc75-e1be13f8ea9f): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (77aa8c8a-9b05-4e74-a5d2-3d7051e67945): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (ac6c44d5-3100-479e-bc75-e1be13f8ea9f): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (77aa8c8a-9b05-4e74-a5d2-3d7051e67945): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (ac6c44d5-3100-479e-bc75-e1be13f8ea9f): COMMIT;
+Executing (77aa8c8a-9b05-4e74-a5d2-3d7051e67945): COMMIT;
+Failed to record daylight savings: SQLITE_BUSY: database is locked
+Failed to record daylight savings: SQLITE_BUSY: database is locked
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `ControlLogs` (`id`,`action`,`actionSource`,`brightness`,`area`,`affectedDevices`,`energyConsumption`,`timestamp`,`createdAt`,`updatedAt`) VALUES (NULL,'daylight','日光补偿',30,'办公区A,办公区B,大厅',80,'-0.04666666666666666','2026-05-24 05:02:57.364 +00:00','2026-05-24 05:03:02.367 +00:00','2026-05-24 05:03:02.367 +00:00');
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (default): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (default): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (default): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (default): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (default): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (default): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Executing (default): INSERT INTO `EnergyStats` (`id`,`period`,`timestamp`,`area`,`totalKwh`,`peakKwh`,`averageBrightness`,`deviceCount`,`runtimeMinutes`,`estimatedCost`,`daylightSavings`,`createdAt`,`updatedAt`) VALUES (NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Daylight compensation: Lux=649.685766408022, Target=800, Brightness=43%, Affected=78
+Executing (9901ded5-e0e6-4c65-a708-67911bc7dff7): BEGIN DEFERRED TRANSACTION;
+Executing (d44aed56-e4ff-4225-aadf-392adbb1e856): BEGIN DEFERRED TRANSACTION;
+Executing (71a8c776-0d20-4f43-8272-a2b3b8e5f743): BEGIN DEFERRED TRANSACTION;
+Executing (71a8c776-0d20-4f43-8272-a2b3b8e5f743): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 05:00:00.000 +00:00' AND `EnergyStats`.`area` = '大厅' LIMIT 1;
+Executing (9901ded5-e0e6-4c65-a708-67911bc7dff7): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 05:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区A' LIMIT 1;
+Executing (d44aed56-e4ff-4225-aadf-392adbb1e856): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 05:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区B' LIMIT 1;
+Executing (71a8c776-0d20-4f43-8272-a2b3b8e5f743): COMMIT;
+Executing (9901ded5-e0e6-4c65-a708-67911bc7dff7): COMMIT;
+Executing (d44aed56-e4ff-4225-aadf-392adbb1e856): COMMIT;
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `ControlLogs` (`id`,`action`,`actionSource`,`brightness`,`area`,`affectedDevices`,`energyConsumption`,`timestamp`,`createdAt`,`updatedAt`) VALUES (NULL,'daylight','日光补偿',43,'办公区A,办公区B,大厅',78,'-0.03705','2026-05-24 05:22:57.053 +00:00','2026-05-24 05:23:02.054 +00:00','2026-05-24 05:23:02.054 +00:00');
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Daylight compensation: Lux=763.2986756586113, Target=800, Brightness=33%, Affected=78
+Executing (1e85c9c4-96fc-494a-a4b2-750a717f8a52): BEGIN DEFERRED TRANSACTION;
+Executing (bf964fae-d29a-4894-8077-d705ac1fc48b): BEGIN DEFERRED TRANSACTION;
+Executing (18956850-fb04-4f2e-9ffb-0a45ab4a1839): BEGIN DEFERRED TRANSACTION;
+Executing (1e85c9c4-96fc-494a-a4b2-750a717f8a52): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 05:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区A' LIMIT 1;
+Executing (18956850-fb04-4f2e-9ffb-0a45ab4a1839): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 05:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区B' LIMIT 1;
+Executing (bf964fae-d29a-4894-8077-d705ac1fc48b): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 05:00:00.000 +00:00' AND `EnergyStats`.`area` = '大厅' LIMIT 1;
+Executing (18956850-fb04-4f2e-9ffb-0a45ab4a1839): COMMIT;
+Executing (1e85c9c4-96fc-494a-a4b2-750a717f8a52): COMMIT;
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (bf964fae-d29a-4894-8077-d705ac1fc48b): COMMIT;
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `ControlLogs` (`id`,`action`,`actionSource`,`brightness`,`area`,`affectedDevices`,`energyConsumption`,`timestamp`,`createdAt`,`updatedAt`) VALUES (NULL,'daylight','日光补偿',33,'办公区A,办公区B,大厅',78,'-0.04355','2026-05-24 05:27:57.049 +00:00','2026-05-24 05:28:02.049 +00:00','2026-05-24 05:28:02.049 +00:00');
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Daylight compensation: Lux=714.1011759471465, Target=800, Brightness=38%, Affected=78
+Executing (4887da2c-7304-48a0-b738-bbd8790c4365): BEGIN DEFERRED TRANSACTION;
+Executing (7c7ec1fc-fdb9-43e6-9b01-fb105bbd9b56): BEGIN DEFERRED TRANSACTION;
+Executing (477f2ac3-4d39-4ab6-b44c-62f1e25252a6): BEGIN DEFERRED TRANSACTION;
+Executing (4887da2c-7304-48a0-b738-bbd8790c4365): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 05:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区A' LIMIT 1;
+Executing (7c7ec1fc-fdb9-43e6-9b01-fb105bbd9b56): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 05:00:00.000 +00:00' AND `EnergyStats`.`area` = '办公区B' LIMIT 1;
+Executing (477f2ac3-4d39-4ab6-b44c-62f1e25252a6): SELECT `id`, `period`, `timestamp`, `area`, `totalKwh`, `peakKwh`, `averageBrightness`, `deviceCount`, `runtimeMinutes`, `estimatedCost`, `daylightSavings`, `createdAt`, `updatedAt` FROM `EnergyStats` AS `EnergyStats` WHERE `EnergyStats`.`period` = 'hourly' AND `EnergyStats`.`timestamp` = '2026-05-24 05:00:00.000 +00:00' AND `EnergyStats`.`area` = '大厅' LIMIT 1;
+Executing (7c7ec1fc-fdb9-43e6-9b01-fb105bbd9b56): COMMIT;
+Executing (477f2ac3-4d39-4ab6-b44c-62f1e25252a6): COMMIT;
+Executing (4887da2c-7304-48a0-b738-bbd8790c4365): COMMIT;
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Executing (default): UPDATE `EnergyStats` SET `daylightSavings`=$1,`updatedAt`=$2 WHERE `id` = $3
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Executing (default): INSERT INTO `ControlLogs` (`id`,`action`,`actionSource`,`brightness`,`area`,`affectedDevices`,`energyConsumption`,`timestamp`,`createdAt`,`updatedAt`) VALUES (NULL,'daylight','日光补偿',38,'办公区A,办公区B,大厅',78,'-0.0403','2026-05-24 05:37:57.059 +00:00','2026-05-24 05:38:02.060 +00:00','2026-05-24 05:38:02.060 +00:00');
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Client ble-gateway-001 published to blemesh/status/batch
+Shutting down gracefully...
+Scheduler stopped
+Automation Engine stopped
+Server closed

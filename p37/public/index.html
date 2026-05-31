@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVC 视频流自适应播放器</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SVC 可伸缩视频流自适应播放器</h1>
+            <p class="subtitle">根据网络带宽动态切换视频质量层级</p>
+        </header>
+
+        <div class="main-content">
+            <section class="upload-section">
+                <h2>1. 上传视频</h2>
+                <div class="upload-area">
+                    <input type="file" id="videoInput" accept="video/*">
+                    <button id="uploadBtn" class="btn btn-primary">上传并编码</button>
+                    <div id="uploadStatus" class="status"></div>
+                </div>
+            </section>
+
+            <section class="video-list-section">
+                <h2>2. 选择视频</h2>
+                <div id="videoList" class="video-list">
+                    <p class="empty-text">暂无视频，请先上传</p>
+                </div>
+            </section>
+
+            <section class="bandwidth-section">
+                <h2>3. 带宽探测</h2>
+                <div class="bandwidth-controls">
+                    <button id="startProbeBtn" class="btn btn-secondary">开始带宽探测</button>
+                    <button id="stopProbeBtn" class="btn btn-danger" disabled>停止探测</button>
+                </div>
+                <div class="bandwidth-display">
+                    <div class="bandwidth-meter">
+                        <span class="label">当前带宽:</span>
+                        <span id="currentBandwidth" class="value">0 Mbps</span>
+                    </div>
+                    <div class="bandwidth-meter">
+                        <span class="label">当前层级:</span>
+                        <span id="currentLayer" class="value">基础层 (0)</span>
+                    </div>
+                    <div class="bandwidth-meter">
+                        <span class="label">连接状态:</span>
+                        <span id="wsStatus" class="value status-disconnected">未连接</span>
+                    </div>
+                </div>
+                <canvas id="bandwidthChart" width="400" height="150"></canvas>
+            </section>
+
+            <section class="player-section">
+                <h2>4. 视频播放</h2>
+                <div class="video-container">
+                    <video id="videoPlayer" controls class="video-player">
+                        您的浏览器不支持视频播放
+                    </video>
+                    <div id="mseStatus" class="mse-status"></div>
+                    <div id="abrStatus" class="abr-status"></div>
+                </div>
+                <div class="player-mode">
+                    <label class="mode-option">
+                        <input type="radio" name="playerMode" value="mse">
+                        MSE 模式
+                    </label>
+                    <label class="mode-option">
+                        <input type="radio" name="playerMode" value="hls" checked>
+                        HLS + MPC-ABR 模式
+                    </label>
+                </div>
+                <div class="layer-controls">
+                    <label>手动选择层级:</label>
+                    <select id="layerSelect" disabled>
+                        <option value="0">基础层 (360p)</option>
+                        <option value="1">增强层 1 (480p)</option>
+                        <option value="2">增强层 2 (720p)</option>
+                    </select>
+                    <label class="auto-switch">
+                        <input type="checkbox" id="autoSwitch" checked>
+                        自动切换层级
+                    </label>
+                </div>
+            </section>
+
+            <section class="info-section">
+                <h2>视频层级信息</h2>
+                <div id="layerInfo" class="layer-info">
+                    <p class="empty-text">请先选择视频</p>
+                </div>
+            </section>
+        </div>
+
+        <footer>
+            <p>SVC Adaptive Streaming Demo - Node.js + FFmpeg + MSE</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

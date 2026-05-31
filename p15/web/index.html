@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FPGA 加速编译服务</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .speedup-display {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            color: white;
+        }
+
+        .speedup-value {
+            font-size: 3em;
+            font-weight: bold;
+        }
+
+        .lb-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .lb-item {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .lb-item.active {
+            background: #e7f3ff;
+            border: 2px solid #667eea;
+        }
+
+        .queue-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .queue-fill {
+            height: 100%;
+            background: #667eea;
+            transition: width 0.3s ease;
+        }
+
+        .code-editor-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .editor-header {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .input-field {
+            flex: 1;
+            min-width: 150px;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .select-field {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .code-editor {
+            width: 100%;
+            height: 300px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            resize: vertical;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+
+        .code-editor:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .result-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .result-section.active {
+            display: block;
+        }
+
+        .output-box {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .timing-bar {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .time-bar {
+            flex: 1;
+            text-align: center;
+        }
+
+        .bar-container {
+            height: 40px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .bar-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+
+        .bar-normal {
+            background: #ff6b6b;
+        }
+
+        .bar-fpga {
+            background: #4ecdc4;
+        }
+
+        .tasks-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .section-header h3 {
+            margin: 0;
+            color: #333;
+        }
+
+        .task-table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow-x: auto;
+            display: block;
+        }
+
+        .task-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .task-table th,
+        .task-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            white-space: nowrap;
+        }
+
+        .task-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-running {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .lang-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .lang-c {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .lang-rust {
+            background: #fce4ec;
+            color: #c2185b;
+        }
+
+        .lang-go {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .fpga-info {
+            font-family: monospace;
+            font-size: 0.85em;
+            color: #666;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .code-stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .fpga-hint {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        .fpga-hint.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            display: block;
+        }
+
+        .fpga-hint.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .used-fpga-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .badge-yes {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-no {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .example-item {
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .example-item:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .example-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .example-desc {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ FPGA 加速编译服务</h1>
+            <p>支持 C / Rust / Go 多语言编译 | 基于队列长度的智能负载均衡</p>
+        </div>
+
+        <div class="dashboard">
+            <div class="card">
+                <h3>📊 统计信息</h3>
+                <div class="grid-2">
+                    <div>
+                        <div class="stat-value" id="totalTasks">0</div>
+                        <div class="stat-label">总任务数</div>
+                    </div>
+                    <div>
+                        <div class="stat-value" id="completedTasks">0</div>
+                        <div class="stat-label">已完成</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🚀 平均加速比</h3>
+                <div class="speedup-display">
+                    <div class="speedup-value" id="avgSpeedup">0.0x</div>
+                    <div>FPGA 加速效果</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>⚖️ 负载均衡状态</h3>
+                <div class="lb-stats" id="lbStats">
+                    <div class="lb-item" id="lb-c">
+                        <div><strong>C</strong></div>
+                        <div class="queue-bar"><div class="queue-fill" style="width: 0%"></div></div>
+                        <div style="font-size: 0.8em; color: #666;">队列: 0</div>
+                    </div>
+                    <div class="lb-item" id="lb-rust">
+                        <div><strong>Rust</strong></div>
+                        <div class="queue-bar"><div class="queue-fill" style="width: 0%"></div></div>
+                        <div style="font-size: 0.8em; color: #666;">队列: 0</div>
+                    </div>
+                    <div class="lb-item" id="lb-go">
+                        <div><strong>Go</strong></div>
+                        <div class="queue-bar"><div class="queue-fill" style="width: 0%"></div></div>
+                        <div style="font-size: 0.8em; color: #666;">队列: 0</div>
+                    </div>
+                </div>
+                <div style="margin-top: 15px; text-align: center;">
+                    <span style="font-size: 0.9em; color: #666;">推荐语言: </span>
+                    <span id="recommendedLang" style="font-weight: bold; color: #667eea;">-</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🖥️ 集群信息</h3>
+                <div id="clusterInfo" class="fpga-info">加载中...</div>
+            </div>
+        </div>
+
+        <div class="code-editor-section">
+            <h3 style="margin-bottom: 15px; color: #333;">📝 代码编辑器</h3>
+            
+            <div class="editor-header">
+                <select id="languageSelect" class="select-field" onchange="changeLanguage()">
+                    <option value="c">C 语言 (.c)</option>
+                    <option value="rust">Rust (.rs)</option>
+                    <option value="go">Go (.go)</option>
+                </select>
+                
+                <input type="text" id="filename" class="input-field" placeholder="文件名" value="program.c">
+            </div>
+            
+            <div class="code-stats">
+                <div class="stat-item">📏 行数: <strong id="lineCount">0</strong></div>
+                <div class="stat-item">📝 字符数: <strong id="charCount">0</strong></div>
+                <div class="stat-item">⚡ FPGA 最低要求: <strong>50 行</strong></div>
+            </div>
+
+            <div id="fpgaHint" class="fpga-hint"></div>
+
+            <textarea id="codeEditor" class="code-editor" placeholder="在此输入代码..." oninput="updateCodeStats()">
+#include <stdio.h>
+
+int main() {
+    printf("Hello, FPGA Accelerated World!\n");
+    
+    int sum = 0;
+    for (int i = 0; i < 100; i++) {
+        sum += i;
+    }
+    
+    printf("Sum: %d\n", sum);
+    return 0;
+}
+            </textarea>
+            
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="compileCode()">
+                    <span id="compileBtnText">⚡ 立即编译</span>
+                </button>
+                <button class="btn btn-info" onclick="compileAsync()">
+                    📋 异步编译
+                </button>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="useFPGA" checked>
+                    使用 FPGA 加速 (智能判断)
+                </label>
+                <button class="btn btn-secondary" onclick="openExamples()">📚 加载示例</button>
+            </div>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <h3 style="margin-bottom: 15px; color: #333;">📋 编译结果</h3>
+            
+            <div class="timing-bar">
+                <div class="time-bar">
+                    <div class="bar-container">
+                        <div class="bar-fill bar-normal" id="normalBar" style="width: 100%"></div>
+                    </div>
+                    <div>普通编译</div>
+                    <div style="font-weight: bold; color: #ff6b6b;" id="normalTime">0 ms</div>
+                </div>
+                <div class="time-bar">
+                    <div class="bar-container">
+                        <div class="bar-fill bar-fpga" id="fpgaBar" style="width: 30%"></div>
+                    </div>
+                    <div>FPGA 加速</div>
+                    <div style="font-weight: bold; color: #4ecdc4;" id="fpgaTime">0 ms</div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin: 20px 0;">
+                <span style="font-size: 1.5em; font-weight: bold;">
+                    加速比: <span id="speedupResult" style="color: #667eea;">0.0x</span>
+                </span>
+                <span id="usedFPGABadge" class="used-fpga-badge"></span>
+            </div>
+
+            <h4 style="margin: 15px 0 10px; color: #333;">编译输出:</h4>
+            <div class="output-box" id="compileOutput"></div>
+        </div>
+
+        <div class="tasks-section">
+            <div class="section-header">
+                <h3>📋 任务列表</h3>
+                <div class="export-buttons">
+                    <button class="btn btn-info" onclick="exportCSV()">📊 导出 CSV</button>
+                    <button class="btn btn-success" onclick="exportJSON()">📄 导出 JSON</button>
+                    <button class="btn btn-secondary" onclick="refreshTasks()">🔄 刷新</button>
+                </div>
+            </div>
+            <div class="task-table-wrapper">
+                <table class="task-table">
+                    <thead>
+                        <tr>
+                            <th>任务 ID</th>
+                            <th>语言</th>
+                            <th>文件名</th>
+                            <th>FPGA</th>
+                            <th>状态</th>
+                            <th>加速比</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="taskList">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="exampleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📚 选择示例代码</h3>
+                <button class="close-btn" onclick="closeExamples()">&times;</button>
+            </div>
+            <div id="exampleList">
+                <div class="example-item" onclick="loadExample('c_matrix')">
+                    <div class="example-title">🔢 C 矩阵运算</div>
+                    <div class="example-desc">大型矩阵乘法演示，展示 FPGA 加速效果</div>
+                </div>
+                <div class="example-item" onclick="loadExample('rust_hello')">
+                    <div class="example-title">🦀 Rust Hello World</div>
+                    <div class="example-desc">基础 Rust 程序示例</div>
+                </div>
+                <div class="example-item" onclick="loadExample('go_concurrent')">
+                    <div class="example-title">🔵 Go 并发示例</div>
+                    <div class="example-desc">Goroutine 并发编程示例</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const examples = {
+            c_matrix: {
+                lang: 'c',
+                filename: 'matrix_demo.c',
+                code: `#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+#define SIZE 50
+
+void multiply(int* a, int* b, int* c, int n) {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            int sum = 0;
+            for (int k = 0; k < n; k++) {
+                sum += a[i * n + k] * b[k * n + j];
+            }
+            c[i * n + j] = sum;
+        }
+    }
+}
+
+void transpose(int* m, int* t, int n) {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            t[j * n + i] = m[i * n + j];
+        }
+    }
+}
+
+int main() {
+    int* a = malloc(SIZE * SIZE * sizeof(int));
+    int* b = malloc(SIZE * SIZE * sizeof(int));
+    int* c = malloc(SIZE * SIZE * sizeof(int));
+    
+    for (int i = 0; i < SIZE * SIZE; i++) {
+        a[i] = rand() % 100;
+        b[i] = rand() % 100;
+    }
+    
+    multiply(a, b, c, SIZE);
+    
+    int sum = 0;
+    for (int i = 0; i < SIZE * SIZE; i++) {
+        sum += c[i];
+    }
+    
+    printf("Matrix multiplication result sum: %d\\n", sum);
+    
+    free(a);
+    free(b);
+    free(c);
+    return 0;
+}`
+            },
+            rust_hello: {
+                lang: 'rust',
+                filename: 'hello.rs',
+                code: `fn main() {
+    println!("Hello, FPGA from Rust!");
+    
+    let mut sum = 0;
+    for i in 0..100 {
+        sum += i;
+    }
+    
+    println!("Sum: {}", sum);
+    
+    let numbers: Vec<i32> = (1..=10).collect();
+    let doubled: Vec<i32> = numbers.iter().map(|x| x * 2).collect();
+    
+    println!("Doubled: {:?}", doubled);
+    
+    let result = calculate(42);
+    println!("Calculation result: {}", result);
+}
+
+fn calculate(n: i32) -> i32 {
+    let mut total = 0;
+    for i in 0..n {
+        total += fibonacci(i);
+    }
+    total
+}
+
+fn fibonacci(n: i32) -> i32 {
+    match n {
+        0 => 0,
+        1 => 1,
+        _ => fibonacci(n - 1) + fibonacci(n - 2),
+    }
+}`
+            },
+            go_concurrent: {
+                lang: 'go',
+                filename: 'concurrent.go',
+                code: `package main
+
+import (
+    "fmt"
+    "sync"
+    "time"
+)
+
+func worker(id int, jobs <-chan int, results chan<- int) {
+    for j := range jobs {
+        fmt.Printf("Worker %d processing job %d\\n", id, j)
+        time.Sleep(time.Millisecond * 100)
+        results <- j * 2
+    }
+}
+
+func main() {
+    fmt.Println("Go Concurrent Demo with FPGA!")
+    
+    const numJobs = 10
+    jobs := make(chan int, numJobs)
+    results := make(chan int, numJobs)
+    
+    for w := 1; w <= 3; w++ {
+        go worker(w, jobs, results)
+    }
+    
+    for j := 1; j <= numJobs; j++ {
+        jobs <- j
+    }
+    close(jobs)
+    
+    for a := 1; a <= numJobs; a++ {
+        result := <-results
+        fmt.Printf("Result: %d\\n", result)
+    }
+    
+    sum := 0
+    for i := 0; i < 100; i++ {
+        sum += i
+    }
+    fmt.Printf("Sum: %d\\n", sum)
+    
+    var wg sync.WaitGroup
+    for i := 0; i < 5; i++ {
+        wg.Add(1)
+        go func(n int) {
+            defer wg.Done()
+            fmt.Printf("Goroutine %d done\\n", n)
+        }(i)
+    }
+    wg.Wait()
+    
+    fmt.Println("All tasks completed!")
+}`
+            }
+        };
+
+        function changeLanguage() {
+            const lang = document.getElementById('languageSelect').value;
+            const filename = document.getElementById('filename');
+            const extMap = { c: '.c', rust: '.rs', go: '.go' };
+            
+            const currentName = filename.value.replace(/\.[^.]+$/, '');
+            filename.value = currentName + extMap[lang];
+            
+            if (lang === 'rust' && !document.getElementById('codeEditor').value.includes('fn main')) {
+                loadExample('rust_hello');
+            } else if (lang === 'go' && !document.getElementById('codeEditor').value.includes('package main')) {
+                loadExample('go_concurrent');
+            }
+        }
+
+        function updateCodeStats() {
+            const code = document.getElementById('codeEditor').value;
+            const lines = code.split('\n').length;
+            const chars = code.length;
+            
+            document.getElementById('lineCount').textContent = lines;
+            document.getElementById('charCount').textContent = chars;
+            
+            const hintEl = document.getElementById('fpgaHint');
+            if (lines < 50) {
+                hintEl.className = 'fpga-hint warning';
+                hintEl.textContent = `⚠️ 当前代码 ${lines} 行，低于 50 行阈值。FPGA 数据传输开销可能超过收益，将自动使用 CPU 模式。`;
+            } else {
+                hintEl.className = 'fpga-hint success';
+                hintEl.textContent = `✅ 当前代码 ${lines} 行，满足 FPGA 加速条件！`;
+            }
+        }
+
+        async function compileCode() {
+            const code = document.getElementById('codeEditor').value;
+            const filename = document.getElementById('filename').value;
+            const useFPGA = document.getElementById('useFPGA').checked;
+            const btnText = document.getElementById('compileBtnText');
+            
+            btnText.innerHTML = '<span class="loading"></span> 编译中...';
+            
+            try {
+                const response = await fetch('/api/compile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename, source_code: code, use_fpga: useFPGA })
+                });
+                
+                const result = await response.json();
+                
+                document.getElementById('resultSection').classList.add('active');
+                document.getElementById('compileOutput').textContent = result.output || result.error || '编译完成';
+                
+                const normalTime = result.timing.normal_time_ms;
+                const fpgaTime = result.timing.fpga_time_ms;
+                const speedup = result.timing.speedup;
+                
+                const maxTime = Math.max(normalTime, fpgaTime);
+                document.getElementById('normalBar').style.width = (normalTime / maxTime * 100) + '%';
+                document.getElementById('fpgaBar').style.width = (fpgaTime / maxTime * 100) + '%';
+                
+                document.getElementById('normalTime').textContent = normalTime.toFixed(3) + ' ms';
+                document.getElementById('fpgaTime').textContent = fpgaTime.toFixed(3) + ' ms';
+                document.getElementById('speedupResult').textContent = speedup.toFixed(2) + 'x';
+                
+                const badgeEl = document.getElementById('usedFPGABadge');
+                if (result.used_fpga) {
+                    badgeEl.className = 'used-fpga-badge badge-yes';
+                    badgeEl.textContent = 'FPGA 已启用 ✓';
+                } else {
+                    badgeEl.className = 'used-fpga-badge badge-no';
+                    badgeEl.textContent = 'CPU 模式';
+                }
+                
+            } catch (error) {
+                alert('编译错误: ' + error.message);
+            }
+            
+            btnText.innerHTML = '⚡ 立即编译';
+            refreshTasks();
+            updateStats();
+            updateLoadBalancerStatus();
+        }
+
+        async function compileAsync() {
+            const code = document.getElementById('codeEditor').value;
+            const filename = document.getElementById('filename').value;
+            const useFPGA = document.getElementById('useFPGA').checked;
+            
+            try {
+                const response = await fetch('/api/compile/async', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename, source_code: code, use_fpga: useFPGA })
+                });
+                
+                const result = await response.json();
+                alert(`任务已提交到队列！\n任务ID: ${result.task_id}\n语言: ${result.language}`);
+                
+                refreshTasks();
+                updateLoadBalancerStatus();
+            } catch (error) {
+                alert('提交错误: ' + error.message);
+            }
+        }
+
+        async function refreshTasks() {
+            try {
+                const response = await fetch('/api/tasks');
+                const data = await response.json();
+                
+                const tbody = document.getElementById('taskList');
+                tbody.innerHTML = '';
+                
+                data.tasks.forEach(task => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="font-family: monospace; font-size: 0.85em;">${task.id.substring(0, 8)}...</td>
+                        <td><span class="lang-badge lang-${task.language || 'c'}">${(task.language || 'c').toUpperCase()}</span></td>
+                        <td>${task.filename}</td>
+                        <td>${task.use_fpga ? '✅' : '❌'}</td>
+                        <td><span class="status-badge status-${task.status}">${task.status}</span></td>
+                        <td>${task.speedup ? task.speedup.toFixed(2) + 'x' : '-'}</td>
+                        <td>${new Date(task.created_at).toLocaleString()}</td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.85em;" 
+                                    onclick="viewTask('${task.id}')">查看</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error('Failed to load tasks:', error);
+            }
+        }
+
+        function viewTask(taskId) {
+            alert(`查看任务: ${taskId}\n(功能开发中)`);
+        }
+
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                document.getElementById('totalTasks').textContent = data.total_tasks;
+                document.getElementById('completedTasks').textContent = data.completed_tasks;
+                document.getElementById('avgSpeedup').textContent = data.avg_speedup.toFixed(2) + 'x';
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        async function updateLoadBalancerStatus() {
+            try {
+                const response = await fetch('/api/loadbalancer/status');
+                const data = await response.json();
+                
+                ['c', 'rust', 'go'].forEach(lang => {
+                    const el = document.getElementById(`lb-${lang}`);
+                    const langData = data[lang];
+                    if (langData && el) {
+                        const queueLen = langData.queue_length || 0;
+                        const fillWidth = Math.min(queueLen * 10, 100);
+                        el.querySelector('.queue-fill').style.width = fillWidth + '%';
+                        el.querySelector('div:last-child').textContent = `队列: ${queueLen}`;
+                    }
+                });
+                
+                const recResponse = await fetch('/api/loadbalancer/recommend');
+                const recData = await recResponse.json();
+                document.getElementById('recommendedLang').textContent = recData.recommended_language.toUpperCase();
+                
+                ['c', 'rust', 'go'].forEach(lang => {
+                    const el = document.getElementById(`lb-${lang}`);
+                    if (el) {
+                        el.classList.toggle('active', lang === recData.recommended_language);
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Failed to load LB status:', error);
+            }
+        }
+
+        async function loadClusterInfo() {
+            try {
+                const response = await fetch('/api/cluster/info');
+                const data = await response.json();
+                
+                let infoText = `模式: ${data.mode}\n`;
+                infoText += `K8s 就绪: ${data.k8s_ready ? '是' : '否'}\n`;
+                if (data.k8s_ready) {
+                    infoText += `节点数: ${data.node_count}\n`;
+                    infoText += `FPGA Pods: ${data.fpga_pod_count}`;
+                } else {
+                    infoText += `消息: ${data.message}`;
+                }
+                
+                document.getElementById('clusterInfo').textContent = infoText;
+            } catch (error) {
+                document.getElementById('clusterInfo').textContent = '本地模式';
+            }
+        }
+
+        function openExamples() {
+            document.getElementById('exampleModal').classList.add('active');
+        }
+
+        function closeExamples() {
+            document.getElementById('exampleModal').classList.remove('active');
+        }
+
+        function loadExample(key) {
+            const example = examples[key];
+            if (example) {
+                document.getElementById('languageSelect').value = example.lang;
+                document.getElementById('filename').value = example.filename;
+                document.getElementById('codeEditor').value = example.code;
+                updateCodeStats();
+                closeExamples();
+            }
+        }
+
+        function exportCSV() {
+            window.open('/api/report/csv', '_blank');
+        }
+
+        function exportJSON() {
+            window.open('/api/report/json', '_blank');
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('exampleModal');
+            if (event.target === modal) {
+                closeExamples();
+            }
+        }
+
+        window.onload = function() {
+            refreshTasks();
+            updateStats();
+            loadClusterInfo();
+            updateCodeStats();
+            updateLoadBalancerStatus();
+            
+            setInterval(updateLoadBalancerStatus, 3000);
+            setInterval(refreshTasks, 10000);
+        };
+    </script>
+</body>
+</html>

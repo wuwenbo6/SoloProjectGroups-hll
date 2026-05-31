@@ -1,0 +1,15 @@
+2024-01-15 09:00:01 INFO Worker process started
+2024-01-15 09:00:02 INFO Connecting to message queue
+2024-01-15 09:00:03 DEBUG Consuming messages from queue: orders
+2024-01-15 09:00:05 INFO Processed order #1001
+2024-01-15 09:00:10 INFO Processed order #1002
+2024-01-15 09:00:15 ERROR Failed to process order #1003: invalid payment
+2024-01-15 09:00:20 WARNING Queue backlog growing: 50 messages
+2024-01-15 09:00:25 INFO Retrying order #1003
+2024-01-15 09:00:30 DEBUG Batch processing: 10 messages
+2024-01-15 09:00:35 INFO Processed order #1003 successfully
+2024-01-15 09:00:40 INFO Database backup started
+2024-01-15 09:00:45 DEBUG Backup progress: 50%
+2024-01-15 09:00:50 INFO Database backup completed
+2024-01-15 09:00:55 INFO Health check passed
+2024-01-15 09:01:00 DEBUG Memory usage: 45%

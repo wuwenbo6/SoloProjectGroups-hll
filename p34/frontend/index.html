@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能排样系统 - SVG编辑器</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>🔧 智能板材排样系统</h1>
+            <div class="header-actions">
+                <button id="btn-solutions" class="btn btn-secondary">📂 方案管理</button>
+                <button id="btn-export-svg" class="btn btn-secondary">📤 导出SVG</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <aside class="sidebar left-sidebar">
+                <div class="panel">
+                    <h3>📐 绘图工具</h3>
+                    <div class="tool-buttons">
+                        <button class="tool-btn active" data-tool="select">👆 选择</button>
+                        <button class="tool-btn" data-tool="rectangle">⬜ 矩形</button>
+                        <button class="tool-btn" data-tool="circle">⭕ 圆形</button>
+                        <button class="tool-btn" data-tool="polygon">🔺 多边形</button>
+                        <button class="tool-btn" data-tool="freehand">✏️ 手绘</button>
+                        <button class="tool-btn" data-tool="delete">🗑️ 删除</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>📦 零件库</h3>
+                    <div id="parts-list" class="parts-list">
+                        <p class="empty-hint">暂无零件，请绘制</p>
+                    </div>
+                    <button id="btn-clear-parts" class="btn btn-danger btn-small">清空零件</button>
+                </div>
+
+                <div class="panel">
+                    <h3>⚙️ 排样参数</h3>
+                    <div class="form-group">
+                        <label>板材宽度 (mm)</label>
+                        <input type="number" id="sheet-width" value="1000" min="100">
+                    </div>
+                    <div class="form-group">
+                        <label>板材高度 (mm)</label>
+                        <input type="number" id="sheet-height" value="1000" min="100">
+                    </div>
+                    <div class="form-group">
+                        <label>种群大小</label>
+                        <input type="number" id="population-size" value="30" min="10" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label>迭代次数</label>
+                        <input type="number" id="generations" value="50" min="10" max="200">
+                    </div>
+                    <div class="form-group">
+                        <label>安全间距 (mm)</label>
+                        <input type="number" id="safe-distance" value="5" min="0" step="0.5">
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>🔥 切割优化</h3>
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" id="enable-common-edge" checked>
+                            启用共边切割
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>共边容差 (mm)</label>
+                        <input type="number" id="common-edge-tolerance" value="0.5" min="0" step="0.1">
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" id="enable-heat-zone" checked>
+                            启用热影响区约束
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>热影响区距离 (mm)</label>
+                        <input type="number" id="heat-zone-distance" value="25" min="5" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label>热影响惩罚系数</label>
+                        <input type="number" id="heat-penalty" value="3" min="0" step="0.5">
+                    </div>
+                    <button id="btn-run-nesting" class="btn btn-primary btn-large">🚀 开始排样</button>
+                </div>
+            </aside>
+
+            <main class="canvas-area">
+                <div class="canvas-tabs">
+                    <button class="tab-btn active" data-tab="editor">🎨 零件编辑器</button>
+                    <button class="tab-btn" data-tab="result">📊 排样结果</button>
+                    <button class="tab-btn" data-tab="animation">🎬 切割动画</button>
+                    <button class="tab-btn" data-tab="gcode">📝 G代码</button>
+                </div>
+
+                <div id="tab-editor" class="tab-content active">
+                    <div class="canvas-wrapper">
+                        <svg id="editor-canvas" class="editor-svg">
+                            <defs>
+                                <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e0e0e0" stroke-width="0.5"/>
+                                </pattern>
+                            </defs>
+                            <rect width="100%" height="100%" fill="url(#grid)"/>
+                            <g id="editor-parts"></g>
+                            <g id="editor-selection"></g>
+                        </svg>
+                    </div>
+                    <div class="canvas-info">
+                        <span id="mouse-pos">位置: 0, 0</span>
+                        <span id="part-count">零件数: 0</span>
+                    </div>
+                </div>
+
+                <div id="tab-result" class="tab-content">
+                    <div class="canvas-wrapper">
+                        <svg id="result-canvas" class="result-svg">
+                            <defs>
+                                <pattern id="result-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e0e0e0" stroke-width="0.5"/>
+                                </pattern>
+                            </defs>
+                            <g id="result-content"></g>
+                        </svg>
+                    </div>
+                    <div class="result-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">材料利用率</span>
+                            <span id="stat-utilization" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">废料率</span>
+                            <span id="stat-waste" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">切割路径长度</span>
+                            <span id="stat-distance" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">已放置零件</span>
+                            <span id="stat-parts" class="stat-value">-</span>
+                        </div>
+                    </div>
+                    <div class="result-stats" style="background: #f0f9ff;">
+                        <div class="stat-item">
+                            <span class="stat-label">共边数量</span>
+                            <span id="stat-common-edges" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">切割节省</span>
+                            <span id="stat-savings" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">热冲突解决</span>
+                            <span id="stat-conflicts" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">热影响违反</span>
+                            <span id="stat-heat-violations" class="stat-value">-</span>
+                        </div>
+                    </div>
+                    <div class="result-actions">
+                        <input type="text" id="solution-name" placeholder="方案名称" class="solution-input">
+                        <button id="btn-save-solution" class="btn btn-success">💾 保存方案</button>
+                        <button id="btn-download-gcode" class="btn btn-primary">📥 下载G代码</button>
+                        <button id="btn-download-dxf" class="btn btn-secondary">📐 下载DXF</button>
+                    </div>
+                </div>
+
+                <div id="tab-animation" class="tab-content">
+                    <div class="canvas-wrapper">
+                        <svg id="animation-canvas" class="animation-svg">
+                            <g id="animation-content"></g>
+                        </svg>
+                    </div>
+                    <div class="animation-controls">
+                        <button id="btn-play" class="btn btn-primary">▶️ 播放</button>
+                        <button id="btn-pause" class="btn btn-secondary">⏸️ 暂停</button>
+                        <button id="btn-reset" class="btn btn-secondary">🔄 重置</button>
+                        <div class="speed-control">
+                            <label>速度</label>
+                            <input type="range" id="animation-speed" min="1" max="10" value="5">
+                        </div>
+                        <span id="animation-progress">进度: 0/0</span>
+                    </div>
+                </div>
+
+                <div id="tab-gcode" class="tab-content">
+                    <div class="gcode-container">
+                        <pre id="gcode-display" class="gcode-content">等待生成G代码...</pre>
+                        <button id="btn-copy-gcode" class="btn btn-secondary">📋 复制到剪贴板</button>
+                    </div>
+                </div>
+            </main>
+
+            <aside class="sidebar right-sidebar" id="solutions-panel" style="display: none;">
+                <div class="panel">
+                    <h3>📂 已保存方案</h3>
+                    <div id="solutions-list" class="solutions-list">
+                        <p class="empty-hint">暂无保存的方案</p>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p id="loading-text">正在计算排样...</p>
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/editor.js"></script>
+    <script src="js/animation.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initEditor();
+            initAnimation();
+            loadSolutions();
+        });
+    </script>
+</body>
+</html>

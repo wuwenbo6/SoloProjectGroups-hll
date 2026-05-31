@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电路图识别系统 - Circuit OCR</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔌 电路图识别系统</h1>
+            <p class="subtitle">上传电路图图片，自动识别元件并生成SPICE网表</p>
+        </header>
+
+        <div class="main-content">
+            <section class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <h3>拖拽图片到此处或点击上传</h3>
+                    <p>支持 JPG、PNG、BMP 格式</p>
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                    <button class="btn btn-primary" id="uploadBtn">选择图片</button>
+                </div>
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <span id="fileName"></span>
+                    <button class="btn btn-danger" id="clearBtn">清除</button>
+                </div>
+                <button class="btn btn-success" id="recognizeBtn" disabled>开始识别</button>
+            </section>
+
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <div class="export-bar">
+                    <button class="btn btn-primary" id="exportSchBtn">📐 导出KiCad原理图</button>
+                    <button class="btn btn-primary" id="exportPcbBtn">🛠️ 导出KiCad PCB</button>
+                    <button class="btn btn-success" id="exportProjectBtn">📦 导出完整KiCad项目</button>
+                    <button class="btn btn-primary" id="downloadNetlist">📝 下载SPICE网表</button>
+                </div>
+                
+                <div class="error-summary" id="errorSummary" style="display: none;">
+                    <div class="error-counts">
+                        <span class="error-badge">❌ 错误: <strong id="errorCount">0</strong></span>
+                        <span class="warning-badge">⚠️ 警告: <strong id="warningCount">0</strong></span>
+                    </div>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="visualization">可视化</button>
+                    <button class="tab-btn" data-tab="components">元件列表</button>
+                    <button class="tab-btn" data-tab="connections">连接图</button>
+                    <button class="tab-btn" data-tab="routing">布线建议</button>
+                    <button class="tab-btn" data-tab="errors">错误检测</button>
+                    <button class="tab-btn" data-tab="netlist">SPICE网表</button>
+                </div>
+
+                <div class="tab-content">
+                    <div class="tab-pane active" id="visualization">
+                        <div class="image-compare">
+                            <div class="image-box">
+                                <h4>原始图片</h4>
+                                <img id="originalImage" alt="原始图片">
+                            </div>
+                            <div class="image-box">
+                                <h4>识别结果</h4>
+                                <img id="resultImage" alt="识别结果">
+                            </div>
+                            <div class="image-box">
+                                <h4>错误高亮</h4>
+                                <img id="errorImage" alt="错误高亮">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="components">
+                        <div class="stats">
+                            <div class="stat-card">
+                                <span class="stat-value" id="compCount">0</span>
+                                <span class="stat-label">元件总数</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-value" id="resistorCount">0</span>
+                                <span class="stat-label">电阻</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-value" id="capacitorCount">0</span>
+                                <span class="stat-label">电容</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-value" id="icCount">0</span>
+                                <span class="stat-label">IC芯片</span>
+                            </div>
+                        </div>
+                        <div class="components-list" id="componentsList"></div>
+                    </div>
+
+                    <div class="tab-pane" id="connections">
+                        <canvas id="connectionGraph"></canvas>
+                    </div>
+
+                    <div class="tab-pane" id="routing">
+                        <div class="routing-stats">
+                            <div class="stat-card">
+                                <span class="stat-value" id="totalWireLength">0</span>
+                                <span class="stat-label">总线长 (px)</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-value" id="totalVias">0</span>
+                                <span class="stat-label">过孔数量</span>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-value" id="routeCount">0</span>
+                                <span class="stat-label">建议连接数</span>
+                            </div>
+                        </div>
+                        <div class="routing-list" id="routingList"></div>
+                    </div>
+
+                    <div class="tab-pane" id="errors">
+                        <div class="error-list" id="errorList"></div>
+                    </div>
+
+                    <div class="tab-pane" id="netlist">
+                        <div class="netlist-header">
+                            <h3>SPICE 网表</h3>
+                        </div>
+                        <pre id="netlistContent"></pre>
+                    </div>
+                </div>
+            </section>
+
+            <section class="history-section">
+                <h3>📋 识别历史</h3>
+                <div class="history-list" id="historyList">
+                    <p class="empty-history">暂无识别记录</p>
+                </div>
+            </section>
+        </div>
+
+        <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+            <div class="loading-spinner"></div>
+            <p>正在识别电路图，请稍候...</p>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

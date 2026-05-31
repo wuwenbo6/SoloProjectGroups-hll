@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DICOM Annotator - Medical Image Segmentation</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="toolbar">
+      <div class="toolbar-left">
+        <h1>DICOM Annotator</h1>
+      </div>
+      <div class="toolbar-center">
+        <button id="loadDicomBtn" class="btn btn-primary">Load DICOM</button>
+        <button id="polygonToolBtn" class="btn">Polygon Tool</button>
+        <button id="growToolBtn" class="btn">Region Grow</button>
+        <button id="aiSegmentBtn" class="btn btn-success">AI Segmentation (Liver)</button>
+        <button id="volumeRenderBtn" class="btn">3D Volume</button>
+        <button id="exportNiftiBtn" class="btn">Export NIfTI</button>
+        <button id="exportDicomSegBtn" class="btn">Export DICOM-SEG</button>
+        <button id="saveAnnotationBtn" class="btn">Save Annotation</button>
+        <button id="submitTrainingBtn" class="btn btn-warning">Submit for Training</button>
+      </div>
+      <div class="toolbar-right">
+        <select id="seriesSelect" style="display: none;"></select>
+        <span id="sliceInfo">Slice: 0 / 0</span>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <aside class="sidebar">
+        <h3>Annotations</h3>
+        <div id="annotationList" class="annotation-list"></div>
+        <h3>Series Info</h3>
+        <div id="seriesInfo" class="series-info"></div>
+      </aside>
+
+      <main class="viewer-area">
+        <div id="dicomViewer" class="dicom-viewer">
+          <canvas id="cornerstoneCanvas"></canvas>
+          <div class="overlay" id="overlay" style="display: none;"></div>
+          <div class="placeholder" id="placeholder">
+            <p>Click "Load DICOM" to load a DICOM series</p>
+            <p>Supports CT/MRI images</p>
+          </div>
+        </div>
+        <div id="volumeViewer" class="volume-viewer" style="display: none;">
+          <canvas id="volumeCanvas"></canvas>
+          <div class="volume-controls">
+            <label>Threshold: <span id="thresholdValue">100</span></label>
+            <input type="range" id="thresholdSlider" min="-1000" max="1000" value="100">
+            <label>Opacity: <span id="volumeOpacityValue">0.5</span></label>
+            <input type="range" id="volumeOpacitySlider" min="0.1" max="1" step="0.1" value="0.5">
+            <button id="closeVolumeBtn" class="btn btn-small">Close 3D View</button>
+          </div>
+        </div>
+        <div class="slider-container">
+          <input type="range" id="sliceSlider" min="0" max="0" value="0" disabled>
+        </div>
+      </main>
+
+      <aside class="sidebar right">
+        <h3>Tool Settings</h3>
+        <div class="tool-settings">
+          <label>Label Name:</label>
+          <input type="text" id="labelName" value="Lesion">
+          <label>Color:</label>
+          <input type="color" id="labelColor" value="#ff0000">
+          <label>Opacity:</label>
+          <input type="range" id="labelOpacity" min="0.1" max="1" step="0.1" value="0.5">
+        </div>
+        <h3>AI Models</h3>
+        <div class="model-list">
+          <div class="model-item">
+            <input type="radio" name="model" id="liverModel" value="liver" checked>
+            <label for="liverModel">Liver Segmentation</label>
+          </div>
+        </div>
+        <h3>Region Grow Settings</h3>
+        <div class="tool-settings">
+          <label>Intensity Tolerance: <span id="growToleranceValue">50</span></label>
+          <input type="range" id="growTolerance" min="10" max="200" step="10" value="50">
+          <label>Max Growth: <span id="growMaxValue">1000</span></label>
+          <input type="range" id="growMaxPixels" min="100" max="5000" step="100" value="1000">
+          <label>3D Growth:</label>
+          <input type="checkbox" id="grow3D" checked>
+        </div>
+        <h3>Denoise Settings</h3>
+        <div class="tool-settings">
+          <label>Denoise Strength: <span id="denoiseValue">1.0</span></label>
+          <input type="range" id="denoiseStrength" min="0" max="2" step="0.1" value="1.0">
+          <small style="color: #888; font-size: 11px;">Low-dose CT: 1.0-1.5</small>
+        </div>
+        <h3>Training Jobs</h3>
+        <div id="trainingJobs" class="training-jobs"></div>
+      </aside>
+    </div>
+  </div>
+
+  <script src="node_modules/cornerstone-core/dist/cornerstone.js"></script>
+  <script src="node_modules/cornerstone-tools/dist/cornerstoneTools.js"></script>
+  <script src="node_modules/cornerstone-wado-image-loader/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
+  <script src="node_modules/dicom-parser/dist/dicomParser.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

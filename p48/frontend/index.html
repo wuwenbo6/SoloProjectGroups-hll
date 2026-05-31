@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D料堆体积测量系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 400px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            overflow-y: auto;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 12px 25px;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-status {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-badge.active {
+            background: rgba(0, 255, 128, 0.2);
+            color: #00ff80;
+        }
+
+        .status-badge.warning {
+            background: rgba(255, 200, 0, 0.2);
+            color: #ffc800;
+        }
+
+        .status-badge.critical {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+            animation: blink 1s infinite;
+        }
+
+        .status-badge.inactive {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .status-badge.active .status-dot { background: #00ff80; }
+        .status-badge.warning .status-dot { background: #ffc800; }
+        .status-badge.critical .status-dot { background: #ff4444; }
+
+        .viewer-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #viewer {
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls-overlay {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 11px;
+        }
+
+        .section {
+            margin-bottom: 18px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #00d4ff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .section-title::after {
+            content: '▼';
+            font-size: 9px;
+            transition: transform 0.3s ease;
+        }
+
+        .section-title.collapsed::after {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-bottom: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-warning {
+            background: rgba(255, 200, 0, 0.2);
+            color: #ffc800;
+            border: 1px solid rgba(255, 200, 0, 0.3);
+        }
+
+        .btn-warning:hover {
+            background: rgba(255, 200, 0, 0.3);
+        }
+
+        .btn-danger {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+            border: 1px solid rgba(255, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 68, 68, 0.3);
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 11px;
+            margin-bottom: 0;
+        }
+
+        .file-upload {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+            font-size: 12px;
+            padding: 9px 6px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(123, 44, 191, 0.1));
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .stats-card.warning {
+            background: linear-gradient(135deg, rgba(255, 200, 0, 0.1), rgba(255, 140, 0, 0.1));
+            border-color: rgba(255, 200, 0, 0.3);
+        }
+
+        .stats-card.full {
+            grid-column: span 2;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stats-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #00d4ff;
+        }
+
+        .stats-card.warning .stats-value {
+            color: #ffc800;
+        }
+
+        .stats-unit {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-left: 4px;
+        }
+
+        .stats-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+        }
+
+        .stats-change {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 6px;
+        }
+
+        .stats-change.stable {
+            background: rgba(0, 255, 128, 0.2);
+            color: #00ff80;
+        }
+
+        .stats-change.up {
+            background: rgba(0, 255, 128, 0.2);
+            color: #00ff80;
+        }
+
+        .stats-change.down {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+        }
+
+        .pile-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid #00d4ff;
+            transition: all 0.2s ease;
+        }
+
+        .pile-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .pile-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .pile-name {
+            font-weight: 600;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pile-color {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .pile-volume {
+            font-size: 14px;
+            font-weight: 700;
+            color: #7b2cbf;
+        }
+
+        .pile-raw-volume {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+            text-decoration: line-through;
+        }
+
+        .pile-coords {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .pile-stats {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+            font-size: 10px;
+        }
+
+        .pile-stat {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .alert-item {
+            background: rgba(255, 68, 68, 0.1);
+            border-left: 3px solid #ff4444;
+            border-radius: 4px;
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .alert-item.warning {
+            background: rgba(255, 200, 0, 0.1);
+            border-left-color: #ffc800;
+        }
+
+        .alert-item.acknowledged {
+            opacity: 0.5;
+        }
+
+        .alert-item:hover {
+            background: rgba(255, 68, 68, 0.2);
+        }
+
+        .alert-item.warning:hover {
+            background: rgba(255, 200, 0, 0.2);
+        }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .alert-type {
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        .alert-time {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .alert-message {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .alerts-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .alert-count {
+            background: #ff4444;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .alert-count.warning {
+            background: #ffc800;
+            color: #333;
+        }
+
+        .history-list {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 12px;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .history-time {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .history-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 4px;
+            font-size: 10px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 15px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status {
+            padding: 8px 10px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            display: none;
+        }
+
+        .status.success {
+            display: block;
+            background: rgba(0, 255, 128, 0.1);
+            border: 1px solid rgba(0, 255, 128, 0.3);
+            color: #00ff80;
+        }
+
+        .status.error {
+            display: block;
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            color: #ff4444;
+        }
+
+        .status.info {
+            display: block;
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            color: #00d4ff;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .input-group {
+            margin: 8px 0;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 4px;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 7px 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            color: white;
+            font-size: 12px;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+
+        .input-group input[type="range"] {
+            padding: 0;
+            height: 6px;
+        }
+
+        .real-time-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+
+        .pulse {
+            width: 8px;
+            height: 8px;
+            background: #00ff80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.3); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .frame-counter {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #00d4ff;
+        }
+
+        .smoothing-indicator {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            margin-left: 6px;
+        }
+
+        .smoothing-indicator.enabled {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+        }
+
+        .smoothing-indicator.disabled {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .report-section {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .report-section .btn {
+            flex: 1;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 6px 10px;
+            font-size: 11px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.6);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: rgba(0, 212, 255, 0.3);
+            color: #00d4ff;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="section">
+                <h2 class="section-title" onclick="toggleSection('controlSection')">
+                    控制
+                    <span id="smoothingIndicator" class="smoothing-indicator enabled">平滑: 开启</span>
+                </h2>
+                <div id="controlSection" class="section-content">
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="startRealtime()">
+                            ▶️ 实时
+                        </button>
+                        <button class="btn btn-secondary" onclick="stopRealtime()">
+                            ⏹️ 停止
+                        </button>
+                    </div>
+                    
+                    <button class="btn btn-secondary" onclick="generateTestData()">
+                        🎲 单帧测试
+                    </button>
+                    
+                    <div class="file-upload btn btn-secondary">
+                        📁 上传点云文件 (.pcd, .ply)
+                        <input type="file" id="fileInput" accept=".pcd,.ply" onchange="uploadFile()">
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button class="btn btn-danger" onclick="resetTracking()">
+                            🔄 重置
+                        </button>
+                        <button class="btn btn-warning" onclick="exportReport()">
+                            📊 导出日报
+                        </button>
+                    </div>
+                    
+                    <div class="real-time-indicator">
+                        <span id="pulseIndicator" class="pulse" style="display: none;"></span>
+                        <span id="realtimeStatus">待机中</span>
+                        <span id="frameCounter" class="frame-counter" style="margin-left: auto;"></span>
+                    </div>
+                    
+                    <div id="status" class="status"></div>
+                    <div id="loading" class="loading">
+                        <div class="spinner"></div>
+                        处理中...
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title" onclick="toggleSection('statsSection')">
+                    流量统计
+                </h2>
+                <div id="statsSection" class="section-content">
+                    <div class="stats-grid">
+                        <div class="stats-card full">
+                            <div class="stats-row">
+                                <div>
+                                    <div class="stats-label">实时流量</div>
+                                    <div class="stats-value">
+                                        <span id="flowRate">0.00</span>
+                                        <span class="stats-unit">吨/小时</span>
+                                    </div>
+                                </div>
+                                <div id="flowTrend" class="stats-change stable">稳定</div>
+                            </div>
+                        </div>
+                        <div class="stats-card">
+                            <div class="stats-label">今日累计</div>
+                            <div class="stats-value">
+                                <span id="todayVolume">0.00</span>
+                                <span class="stats-unit">m³</span>
+                            </div>
+                        </div>
+                        <div class="stats-card">
+                            <div class="stats-label">总重量</div>
+                            <div class="stats-value">
+                                <span id="todayWeight">0.00</span>
+                                <span class="stats-unit">吨</span>
+                            </div>
+                        </div>
+                        <div class="stats-card">
+                            <div class="stats-label">峰值流量</div>
+                            <div class="stats-value">
+                                <span id="peakFlow">0.00</span>
+                                <span class="stats-unit">吨/小时</span>
+                            </div>
+                        </div>
+                        <div class="stats-card">
+                            <div class="stats-label">7天累计</div>
+                            <div class="stats-value">
+                                <span id="weekVolume">0.00</span>
+                                <span class="stats-unit">吨</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title" onclick="toggleSection('alertsSection')">
+                    报警中心
+                    <span id="alertCount" class="alert-count" style="display: none;">0</span>
+                </h2>
+                <div id="alertsSection" class="section-content">
+                    <div class="alerts-header">
+                        <div class="tab-buttons">
+                            <button class="tab-btn active" onclick="switchAlertTab('unread')" data-tab="unread">
+                                未读
+                            </button>
+                            <button class="tab-btn" onclick="switchAlertTab('all')" data-tab="all">
+                                全部
+                            </button>
+                        </div>
+                        <button class="btn btn-small btn-secondary" onclick="acknowledgeAllAlerts()">
+                            全部确认
+                        </button>
+                    </div>
+                    <div id="alertList" class="history-list"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title" onclick="toggleSection('resultSection')">
+                    测量结果
+                </h2>
+                <div id="resultSection" class="section-content">
+                    <div class="stats-grid">
+                        <div class="stats-card full">
+                            <div class="stats-row">
+                                <div>
+                                    <div class="stats-value">
+                                        <span id="totalVolume">0.0000</span>
+                                        <span class="stats-unit">m³</span>
+                                    </div>
+                                    <div class="stats-label">总体积</div>
+                                </div>
+                                <div id="volumeChange" class="stats-change stable">稳定</div>
+                            </div>
+                        </div>
+                        <div class="stats-card">
+                            <div class="stats-value" id="totalWeight">0.00</div>
+                            <div class="stats-label">总重量 (吨)</div>
+                        </div>
+                        <div class="stats-card">
+                            <div class="stats-value" id="pileCount">0</div>
+                            <div class="stats-label">料堆数量</div>
+                        </div>
+                    </div>
+                    <div id="pileList"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title collapsed" onclick="toggleSection('smoothingSection')">
+                    平滑设置
+                </h2>
+                <div id="smoothingSection" class="section-content collapsed">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="enableSmoothing" checked onchange="updateConfig()">
+                        <label for="enableSmoothing">启用体积平滑</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="enableTracking" checked onchange="updateConfig()">
+                        <label for="enableTracking">启用料堆跟踪</label>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>平滑算法</label>
+                        <select id="smoothingMethod" onchange="updateConfig()">
+                            <option value="ema">指数移动平均 (EMA)</option>
+                            <option value="moving_average">移动平均</option>
+                            <option value="kalman">卡尔曼滤波</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>平滑窗口大小: <span id="windowValue">10</span></label>
+                        <input type="range" id="smoothingWindow" min="2" max="30" value="10" 
+                               onchange="updateConfig(); document.getElementById('windowValue').textContent = this.value">
+                    </div>
+
+                    <div class="input-group">
+                        <label>物料密度 (吨/m³): <span id="densityValue">1.6</span></label>
+                        <input type="range" id="materialDensity" min="0.5" max="5.0" step="0.1" value="1.6"
+                               onchange="updateConfig(); document.getElementById('densityValue').textContent = this.value">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title collapsed" onclick="toggleSection('groundSection')">
+                    地面分割设置
+                </h2>
+                <div id="groundSection" class="section-content collapsed">
+                    <div class="input-group">
+                        <label>地面距离阈值: <span id="groundThreshValue">0.03</span></label>
+                        <input type="range" id="groundThreshold" min="0.01" max="0.1" step="0.005" value="0.03"
+                               onchange="updateConfig(); document.getElementById('groundThreshValue').textContent = this.value">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>最大倾斜角 (°): <span id="angleValue">30</span></label>
+                        <input type="range" id="maxAngle" min="5" max="60" value="30"
+                               onchange="updateConfig(); document.getElementById('angleValue').textContent = this.value">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>聚类距离: <span id="clusterEpsValue">0.05</span></label>
+                        <input type="range" id="clusterEps" min="0.02" max="0.15" step="0.005" value="0.05"
+                               onchange="updateConfig(); document.getElementById('clusterEpsValue').textContent = this.value">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>体积变化报警阈值 (%): <span id="volumeAlertValue">30</span></label>
+                        <input type="range" id="volumeAlertThreshold" min="10" max="100" value="30"
+                               onchange="updateConfig(); document.getElementById('volumeAlertValue').textContent = this.value">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title collapsed" onclick="toggleSection('displaySection')">
+                    显示设置
+                </h2>
+                <div id="displaySection" class="section-content collapsed">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="showGround" checked onchange="toggleGround()">
+                        <label for="showGround">显示地面点云</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="showAxes" checked onchange="toggleAxes()">
+                        <label for="showAxes">显示坐标轴</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="autoRotate" onchange="toggleAutoRotate()">
+                        <label for="autoRotate">自动旋转</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="showRawVolume" onchange="renderPiles()">
+                        <label for="showRawVolume">显示原始体积</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title collapsed" onclick="toggleSection('historySection')">
+                    历史记录
+                </h2>
+                <div id="historySection" class="section-content collapsed">
+                    <button class="btn btn-secondary btn-small" onclick="loadHistory()">
+                        🔄 刷新历史
+                    </button>
+                    <div id="historyList" class="history-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <h1>3D 料堆体积测量系统</h1>
+                <div class="header-status">
+                    <span id="trackingStatus" class="status-badge active">
+                        <span class="status-dot"></span>
+                        跟踪: 开启
+                    </span>
+                    <span id="groundStatus" class="status-badge active">
+                        <span class="status-dot"></span>
+                        地面检测: 正常
+                    </span>
+                    <span id="alertStatus" class="status-badge inactive">
+                        <span class="status-dot"></span>
+                        报警: 正常
+                    </span>
+                </div>
+            </div>
+            <div class="viewer-container">
+                <div id="viewer"></div>
+                <div class="controls-overlay">
+                    <div>🖱️ 左键: 旋转</div>
+                    <div>🖱️ 右键: 平移</div>
+                    <div>🖱️ 滚轮: 缩放</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

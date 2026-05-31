@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USB PD Analyzer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: #161b22;
+            border-right: 1px solid #30363d;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .sidebar h1 {
+            font-size: 18px;
+            color: #58a6ff;
+            margin-bottom: 24px;
+            font-weight: 600;
+        }
+
+        .sidebar h2 {
+            font-size: 13px;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .control-section {
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 8px;
+        }
+
+        .btn-primary {
+            background: #238636;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #2ea043;
+        }
+
+        .btn-danger {
+            background: #da3633;
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            background: #f85149;
+        }
+
+        .btn-secondary {
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+        }
+
+        .btn-secondary:hover {
+            background: #30363d;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            color: #8b949e;
+            margin-bottom: 6px;
+        }
+
+        .input-group input[type="number"] {
+            width: 100%;
+            padding: 8px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 14px;
+        }
+
+        .input-group input[type="range"] {
+            width: 100%;
+            margin: 8px 0;
+        }
+
+        .slider-value {
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            color: #58a6ff;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            padding: 16px;
+            height: 40%;
+            min-height: 250px;
+        }
+
+        .chart-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-card h3 {
+            font-size: 14px;
+            color: #8b949e;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .chart-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .content-panels {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 16px;
+            padding: 0 16px 16px;
+            overflow: hidden;
+        }
+
+        .messages-panel {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 16px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h3 {
+            font-size: 14px;
+            color: #8b949e;
+            font-weight: 500;
+        }
+
+        .table-container {
+            flex: 1;
+            overflow: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            background: #21262d;
+        }
+
+        th {
+            padding: 10px 12px;
+            text-align: left;
+            color: #8b949e;
+            font-weight: 500;
+            border-bottom: 1px solid #30363d;
+        }
+
+        td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #21262d;
+        }
+
+        tr:hover {
+            background: #21262d;
+        }
+
+        .msg-type-source {
+            color: #58a6ff;
+        }
+
+        .msg-type-sink {
+            color: #f0883e;
+        }
+
+        .compliance-panel {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .compliance-content {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .compliance-status {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .status-compliant {
+            background: rgba(35, 134, 54, 0.15);
+            border: 1px solid #238636;
+        }
+
+        .status-warning {
+            background: rgba(187, 128, 9, 0.15);
+            border: 1px solid #bb8009;
+        }
+
+        .status-fail {
+            background: rgba(218, 54, 51, 0.15);
+            border: 1px solid #da3633;
+        }
+
+        .status-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-weight: bold;
+        }
+
+        .status-compliant .status-icon {
+            background: #238636;
+            color: #fff;
+        }
+
+        .status-warning .status-icon {
+            background: #bb8009;
+            color: #fff;
+        }
+
+        .status-fail .status-icon {
+            background: #da3633;
+            color: #fff;
+        }
+
+        .compliance-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #21262d;
+        }
+
+        .compliance-item:last-child {
+            border-bottom: none;
+        }
+
+        .compliance-item label {
+            font-size: 12px;
+            color: #8b949e;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .compliance-item .value {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .value-pass {
+            color: #3fb950;
+        }
+
+        .value-fail {
+            color: #f85149;
+        }
+
+        .value-warning {
+            color: #d29922;
+        }
+
+        .export-section {
+            padding: 16px;
+            border-top: 1px solid #30363d;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .export-buttons .btn {
+            flex: 1;
+            margin: 0;
+        }
+
+        .status-bar {
+            height: 32px;
+            background: #21262d;
+            border-top: 1px solid #30363d;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            font-size: 12px;
+            color: #8b949e;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            margin-right: 24px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-connected {
+            background: #3fb950;
+            box-shadow: 0 0 8px #3fb950;
+        }
+
+        .status-disconnected {
+            background: #6e7681;
+        }
+
+        .status-capturing {
+            background: #f85149;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-right {
+            margin-left: auto;
+            display: flex;
+            gap: 24px;
+        }
+
+        .port-select {
+            width: 100%;
+            padding: 8px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .port-select:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 40px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #30363d;
+            transition: 0.3s;
+            border-radius: 20px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #238636;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        .test-progress {
+            width: 100%;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #21262d;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #238636, #3fb950);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 12px;
+            color: #8b949e;
+            text-align: center;
+        }
+
+        .test-result-item {
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 6px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .test-result-pass {
+            background: rgba(35, 134, 54, 0.15);
+            border: 1px solid #238636;
+        }
+
+        .test-result-fail {
+            background: rgba(218, 54, 51, 0.15);
+            border: 1px solid #da3633;
+        }
+
+        .test-summary {
+            padding: 12px;
+            background: #21262d;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .test-summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 12px;
+        }
+
+        .test-summary-label {
+            color: #8b949e;
+        }
+
+        .test-summary-value {
+            font-weight: 600;
+        }
+
+        .test-category {
+            font-size: 11px;
+            color: #8b949e;
+            text-transform: uppercase;
+            margin: 8px 0 4px;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <h1>⚡ USB PD Analyzer</h1>
+
+            <div class="control-section">
+                <h2>控制面板</h2>
+                <button id="connectBtn" class="btn btn-primary">连接设备</button>
+                <button id="captureBtn" class="btn btn-secondary" disabled>开始捕获</button>
+            </div>
+
+            <div class="control-section">
+                <h2>端口选择</h2>
+                <div class="input-group">
+                    <label>当前端口</label>
+                    <select id="portSelect" class="port-select" disabled>
+                        <option value="0">Port 1 - CC1</option>
+                        <option value="1">Port 2 - CC2</option>
+                        <option value="2">Port 3 - SBU1</option>
+                        <option value="3">Port 4 - SBU2</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label style="display: flex; align-items: center; justify-content: space-between;">
+                        <span>端口轮询</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="pollingToggle" disabled>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </label>
+                </div>
+                <div class="input-group">
+                    <label>轮询间隔 (秒)</label>
+                    <input type="number" id="pollingInterval" min="0.5" max="10" step="0.5" value="1" disabled style="width: 100%;">
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h2>PDO 控制</h2>
+                <div class="input-group">
+                    <label>电压 (V)</label>
+                    <input type="range" id="voltageSlider" min="5" max="20" step="0.1" value="5" disabled>
+                    <div class="slider-value" id="voltageValue">5.0 V</div>
+                </div>
+                <div class="input-group">
+                    <label>电流限制 (A)</label>
+                    <input type="number" id="currentLimit" min="0.1" max="5" step="0.1" value="3" disabled>
+                </div>
+                <button id="setVoltageBtn" class="btn btn-secondary" disabled>设置电压</button>
+            </div>
+
+            <div class="control-section">
+                <h2>USB-IF 合规测试</h2>
+                <button id="startTestBtn" class="btn btn-secondary" disabled>开始测试</button>
+                <button id="stopTestBtn" class="btn btn-danger" disabled style="display: none;">停止测试</button>
+                <div class="test-progress" id="testProgress" style="display: none; margin-top: 12px;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">0 / 17</div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>电压波形</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="voltageChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>电流波形</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="currentChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-panels">
+                <div class="messages-panel">
+                    <div class="panel-header">
+                        <h3>协议消息</h3>
+                        <span id="messageCount" style="font-size: 12px; color: #8b949e;">0 条消息</span>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>方向</th>
+                                    <th>类型</th>
+                                    <th>消息内容</th>
+                                </tr>
+                            </thead>
+                            <tbody id="messagesBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="compliance-panel">
+                    <div class="panel-header">
+                        <h3>PPS 合规性分析</h3>
+                    </div>
+                    <div class="compliance-content">
+                        <div class="compliance-status status-warning" id="complianceStatus">
+                            <div class="status-icon">!</div>
+                            <div>
+                                <div style="font-weight: 500;">等待分析</div>
+                                <div style="font-size: 12px; color: #8b949e;">连接设备并开始捕获</div>
+                            </div>
+                        </div>
+
+                        <div class="compliance-item">
+                            <label>电压精度</label>
+                            <div class="value value-warning" id="voltageAccuracy">--</div>
+                        </div>
+                        <div class="compliance-item">
+                            <label>电流精度</label>
+                            <div class="value value-warning" id="currentAccuracy">--</div>
+                        </div>
+                        <div class="compliance-item">
+                            <label>纹波噪声</label>
+                            <div class="value value-warning" id="rippleNoise">--</div>
+                        </div>
+                        <div class="compliance-item">
+                            <label>响应时间</label>
+                            <div class="value value-warning" id="responseTime">--</div>
+                        </div>
+                        <div class="compliance-item">
+                            <label>PPS 支持</label>
+                            <div class="value value-warning" id="ppsSupport">--</div>
+                        </div>
+                        <div class="compliance-item">
+                            <label>CRC 错误</label>
+                            <div class="value value-warning" id="crcErrorCount">0</div>
+                        </div>
+                        <div class="compliance-item">
+                            <label>丢包数量</label>
+                            <div class="value value-warning" id="packetLossCount">0</div>
+                        </div>
+                        <div class="compliance-item">
+                            <label>滤波状态</label>
+                            <div class="value value-warning" id="filterStatus">--</div>
+                        </div>
+                    </div>
+                    <div class="compliance-item" style="border-top: 1px solid #30363d; padding-top: 12px; margin-top: 8px;">
+                        <label>当前端口</label>
+                        <div class="value value-warning" id="currentPortDisplay">--</div>
+                    </div>
+
+                    <div id="testResultsSection" style="display: none; margin-top: 12px;">
+                        <div class="test-summary" id="testSummary">
+                        </div>
+                        <div id="testResultsList" style="max-height: 200px; overflow-y: auto;">
+                        </div>
+                    </div>
+
+                    <div class="export-section">
+                        <label style="font-size: 12px; color: #8b949e; display: block; margin-bottom: 8px;">导出报告</label>
+                        <div class="export-buttons">
+                            <button id="exportPdfBtn" class="btn btn-secondary" disabled>PDF</button>
+                            <button id="exportCsvBtn" class="btn btn-secondary" disabled>CSV</button>
+                        </div>
+                        <button id="exportWaveformBtn" class="btn btn-secondary" disabled style="width: 100%; margin-top: 8px;">导出波形CSV</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <div class="status-indicator">
+                    <div class="status-dot status-disconnected" id="statusDot"></div>
+                    <span id="connectionStatus">未连接</span>
+                </div>
+                <div class="status-indicator">
+                    <span id="captureStatus">未捕获</span>
+                </div>
+                <div class="status-right">
+                    <span id="voltageDisplay">电压: -- V</span>
+                    <span id="currentDisplay">电流: -- A</span>
+                    <span id="powerDisplay">功率: -- W</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

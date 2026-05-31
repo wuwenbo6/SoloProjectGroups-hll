@@ -1,0 +1,106 @@
+[TITLE]
+Example Drainage Network
+
+[OPTIONS]
+FLOW_UNITS           CMS
+INFILTRATION         HORTON
+FLOW_ROUTING         DYNWAVE
+REPORT_STEP          00:05:00
+WET_STEP             00:01:00
+DRY_STEP             01:00:00
+ROUTING_STEP         00:00:30
+START_DATE           01/01/2024
+START_TIME           00:00:00
+REPORT_START_DATE    01/01/2024
+REPORT_START_TIME    00:00:00
+END_DATE             01/01/2024
+END_TIME             06:00:00
+SWMM_VERSION         5.2.0
+
+[SUBCATCHMENTS]
+;;Name          Raingage        Outlet          Area            Width           Slope           CurbLength      SnowPack
+S1              RG1             J1              10.00           500.00          0.010           0.00
+S2              RG1             J2              15.00           600.00          0.015           0.00
+S3              RG1             J3              12.00           550.00          0.012           0.00
+S4              RG1             J4              8.00            400.00          0.008           0.00
+
+[SUBAREAS]
+;;Subcatchment  N-Imperv        N-Perv          S-Imperv        S-Perv          PctZero         RouteTo         PctRouted
+S1              0.010           0.100           0.20            0.20            25.0            OUTLET          100.0
+S2              0.010           0.100           0.20            0.20            25.0            OUTLET          100.0
+S3              0.010           0.100           0.20            0.20            25.0            OUTLET          100.0
+S4              0.010           0.100           0.20            0.20            25.0            OUTLET          100.0
+
+[INFILTRATION]
+;;Subcatchment  MaxRate         MinRate         Decay           DryTime         MaxInfil
+S1              76.2000         3.8100          4.0000          7.0000          0.0000
+S2              76.2000         3.8100          4.0000          7.0000          0.0000
+S3              76.2000         3.8100          4.0000          7.0000          0.0000
+S4              76.2000         3.8100          4.0000          7.0000          0.0000
+
+[JUNCTIONS]
+;;Name          Elevation       MaxDepth        InitDepth       SurDepth        Apond
+J1              100.00          5.00            0.00            0.00            0.00
+J2              98.00           5.00            0.00            0.00            0.00
+J3              96.00           5.00            0.00            0.00            0.00
+J4              94.00           5.00            0.00            0.00            0.00
+J5              92.00           6.00            0.00            0.00            0.00
+J6              90.00           6.00            0.00            0.00            0.00
+
+[OUTFALLS]
+;;Name          Elevation       Type            StageData       TideGate
+OUTFALL1        88.00           FREE
+
+[COORDINATES]
+;;Node          X-Coord         Y-Coord
+J1              116.4039        39.9151
+J2              116.4069        39.9141
+J3              116.4099        39.9131
+J4              116.4059        39.9121
+J5              116.4089        39.9111
+J6              116.4119        39.9101
+OUTFALL1        116.4149        39.9091
+
+[CONDUITS]
+;;Name          FromNode        ToNode          Length          Roughness       InOffset        OutOffset       InitFlow        MaxFlow
+C1              J1              J2              200.00          0.014           0.00            0.00            0.00
+C2              J2              J3              250.00          0.014           0.00            0.00            0.00
+C3              J3              J5              180.00          0.014           0.00            0.00            0.00
+C4              J4              J5              220.00          0.014           0.00            0.00            0.00
+C5              J5              J6              150.00          0.014           0.00            0.00            0.00
+C6              J6              OUTFALL1        300.00          0.014           0.00            0.00            0.00
+
+[XSECTIONS]
+;;Link          Shape           Geom1           Geom2           Geom3           Geom4           Barrels
+C1              CIRCULAR        1.00            0.00            0.00            0.00            1
+C2              CIRCULAR        1.20            0.00            0.00            0.00            1
+C3              CIRCULAR        1.50            0.00            0.00            0.00            1
+C4              CIRCULAR        1.00            0.00            0.00            0.00            1
+C5              CIRCULAR        1.80            0.00            0.00            0.00            1
+C6              CIRCULAR        2.00            0.00            0.00            0.00            1
+
+[RAINGAGES]
+;;Name          Format          Interval        SCF             Source
+RG1             VOLUME          01:00           1.00            TIMESERIES TS1
+
+[TIMESERIES]
+;;Name          Date            Time            Value
+TS1             01/01/2024      00:00:00        0.00
+TS1             01/01/2024      00:30:00        10.50
+TS1             01/01/2024      01:00:00        25.30
+TS1             01/01/2024      01:30:00        45.20
+TS1             01/01/2024      02:00:00        60.80
+TS1             01/01/2024      02:30:00        55.40
+TS1             01/01/2024      03:00:00        40.20
+TS1             01/01/2024      03:30:00        25.60
+TS1             01/01/2024      04:00:00        15.30
+TS1             01/01/2024      04:30:00        8.50
+TS1             01/01/2024      05:00:00        3.20
+TS1             01/01/2024      05:30:00        1.00
+TS1             01/01/2024      06:00:00        0.00
+
+[REPORT]
+Input              Yes
+Subcatchments      Yes
+Nodes              Yes
+Links              Yes

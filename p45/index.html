@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGV RFID 库存盘点模拟器</title>
+    <link rel="stylesheet" href="/src/css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div id="canvas-container"></div>
+        
+        <div id="control-panel">
+            <h2>AGV 控制面板</h2>
+            
+            <div class="section">
+                <h3>移动控制 (WASD/方向键)</h3>
+                <div class="control-buttons">
+                    <div class="row">
+                        <button id="btn-forward">↑</button>
+                    </div>
+                    <div class="row">
+                        <button id="btn-left">←</button>
+                        <button id="btn-stop">■</button>
+                        <button id="btn-right">→</button>
+                    </div>
+                    <div class="row">
+                        <button id="btn-backward">↓</button>
+                    </div>
+                </div>
+                <div class="speed-control">
+                    <label>速度: <span id="speed-value">1.0</span> m/s</label>
+                    <input type="range" id="speed-slider" min="0.1" max="3" step="0.1" value="1">
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>多机器人管理</h3>
+                <div class="robot-controls">
+                    <button id="btn-add-robot">添加机器人</button>
+                    <button id="btn-remove-robot">移除机器人</button>
+                    <button id="btn-start-auto" class="start">自动盘点</button>
+                    <button id="btn-stop-auto" class="stop">停止自动</button>
+                </div>
+                <div id="robot-list" class="robot-list"></div>
+            </div>
+            
+            <div class="section">
+                <h3>航点导航</h3>
+                <div class="waypoint-controls">
+                    <button id="btn-add-waypoint">添加航点</button>
+                    <button id="btn-clear-waypoints">清除航点</button>
+                    <button id="btn-start-navigation">开始导航</button>
+                    <button id="btn-stop-navigation">停止导航</button>
+                </div>
+                <div id="waypoint-list" class="waypoint-list"></div>
+            </div>
+            
+            <div class="section">
+                <h3>布局管理</h3>
+                <div class="layout-controls">
+                    <input type="file" id="layout-file" accept=".json">
+                    <label for="layout-file" class="file-label">导入布局</label>
+                    <button id="btn-export-layout">导出布局</button>
+                    <button id="btn-load-default">默认布局</button>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>盘点控制</h3>
+                <div class="inventory-controls">
+                    <button id="btn-start-inventory" class="start">开始盘点</button>
+                    <button id="btn-stop-inventory" class="stop">停止盘点</button>
+                    <button id="btn-generate-report">生成报告</button>
+                </div>
+                <div class="report-controls">
+                    <button id="btn-export-pdf">导出 PDF</button>
+                    <button id="btn-export-excel">导出 Excel</button>
+                </div>
+                <div class="inventory-stats">
+                    <p>已读取标签: <span id="tag-count">0</span></p>
+                    <p>缺失标签: <span id="missing-count">0</span></p>
+                    <p>总标签: <span id="total-tags">0</span></p>
+                    <p>机器人数量: <span id="robot-count">1</span></p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="status-bar">
+            <div class="status-item">
+                <span class="label">位置:</span>
+                <span id="pos-x">0.00</span>, 
+                <span id="pos-y">0.00</span>, 
+                <span id="pos-z">0.00</span>
+            </div>
+            <div class="status-item">
+                <span class="label">朝向:</span>
+                <span id="rotation">0.00</span>°
+            </div>
+            <div class="status-item">
+                <span class="label">状态:</span>
+                <span id="agv-status" class="status-idle">待机</span>
+            </div>
+            <div class="status-item">
+                <span class="label">连接:</span>
+                <span id="ros-status" class="status-disconnected">未连接</span>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/src/js/main.js" type="module"></script>
+</body>
+</html>

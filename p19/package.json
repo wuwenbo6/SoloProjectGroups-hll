@@ -1,0 +1,21 @@
+{
+  "name": "particle-analyzer",
+  "version": "1.0.0",
+  "description": "颗粒分析应用 - Electron + Python + OpenCV",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": ["particle", "analysis", "opencv", "electron"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "chart.js": "^4.4.0",
+    "better-sqlite3": "^9.2.2",
+    "exceljs": "^4.4.0"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}

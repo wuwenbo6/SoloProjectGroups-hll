@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: pv-timescaledb
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: pv_monitor
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: pv-mqtt
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mqtt_data:/mosquitto/data
+      - mqtt_log:/mosquitto/log
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_pub -h localhost -t test -m 'healthcheck' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pv-monitor:
+    build: .
+    container_name: pv-monitor
+    ports:
+      - "8080:8080"
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      mqtt:
+        condition: service_healthy
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./config.yaml:/app/config.yaml
+    restart: unless-stopped
+
+volumes:
+  timescaledb_data:
+  mqtt_data:
+  mqtt_log:

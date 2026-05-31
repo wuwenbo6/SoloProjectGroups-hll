@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电子负载控制器 - Electronic Load Controller</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <h1>电子负载控制器</h1>
+            <div class="header-right">
+                <div class="channel-selector">
+                    <label>通道:</label>
+                    <select id="channel-select">
+                        <option value="0">通道 1</option>
+                    </select>
+                    <button id="add-channel" class="btn btn-small">+添加</button>
+                </div>
+                <div class="connection-status">
+                    <span id="connection-indicator" class="indicator disconnected"></span>
+                    <span id="connection-text">未连接</span>
+                    <button id="connect-btn" class="btn btn-primary">连接设备</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="control">手动控制</button>
+            <button class="tab-btn" data-tab="battery">电池测试</button>
+            <button class="tab-btn" data-tab="sequence">序列测试</button>
+            <button class="tab-btn" data-tab="channels">多通道</button>
+            <button class="tab-btn" data-tab="report">报告生成</button>
+        </div>
+
+        <div class="main-content">
+            <div class="tab-content active" id="tab-control">
+                <div class="left-panel">
+                    <div class="card">
+                        <h2>实时数据 - <span id="current-channel-name">通道 1</span></h2>
+                        <div class="data-display">
+                            <div class="data-item">
+                                <span class="label">电压 (V)</span>
+                                <span id="voltage-display" class="value">0.0000</span>
+                            </div>
+                            <div class="data-item">
+                                <span class="label">电流 (A)</span>
+                                <span id="current-display" class="value">0.0000</span>
+                            </div>
+                            <div class="data-item">
+                                <span class="label">功率 (W)</span>
+                                <span id="power-display" class="value">0.0000</span>
+                            </div>
+                            <div class="data-item">
+                                <span class="label">模式</span>
+                                <span id="mode-display" class="value">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2>控制模式</h2>
+                        <div class="mode-selector">
+                            <button id="mode-cc" class="btn mode-btn active" data-mode="CC">恒流 (CC)</button>
+                            <button id="mode-cv" class="btn mode-btn" data-mode="CV">恒压 (CV)</button>
+                            <button id="mode-cr" class="btn mode-btn" data-mode="CR">恒阻 (CR)</button>
+                            <button id="mode-cp" class="btn mode-btn" data-mode="CP">恒功率 (CP)</button>
+                        </div>
+
+                        <div class="control-inputs">
+                            <div id="cc-controls" class="control-group">
+                                <label>设定电流 (A)</label>
+                                <input type="number" id="cc-current" step="0.001" min="0" max="30" value="1.0">
+                            </div>
+                            <div id="cv-controls" class="control-group hidden">
+                                <label>设定电压 (V)</label>
+                                <input type="number" id="cv-voltage" step="0.001" min="0" max="500" value="12.0">
+                            </div>
+                            <div id="cr-controls" class="control-group hidden">
+                                <label>设定电阻 (Ω)</label>
+                                <input type="number" id="cr-resistance" step="0.1" min="0" max="10000" value="10.0">
+                            </div>
+                            <div id="cp-controls" class="control-group hidden">
+                                <label>设定功率 (W)</label>
+                                <input type="number" id="cp-power" step="0.1" min="0" max="400" value="50.0">
+                            </div>
+                        </div>
+
+                        <div class="control-actions">
+                            <button id="input-on" class="btn btn-success">开启输入</button>
+                            <button id="input-off" class="btn btn-danger">关闭输入</button>
+                            <button id="apply-setting" class="btn btn-primary">应用设置</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2>采集控制</h2>
+                        <div class="sampling-controls">
+                            <div class="control-group">
+                                <label>采样间隔 (ms)</label>
+                                <select id="sampling-interval">
+                                    <option value="100">100ms</option>
+                                    <option value="200" selected>200ms</option>
+                                    <option value="500">500ms</option>
+                                    <option value="1000">1000ms</option>
+                                </select>
+                            </div>
+                            <div class="control-group">
+                                <label>同步采集</label>
+                                <input type="checkbox" id="sync-sampling">
+                                <span class="checkbox-label">所有通道同步</span>
+                            </div>
+                            <div class="control-actions">
+                                <button id="start-sampling" class="btn btn-success">开始采集</button>
+                                <button id="stop-sampling" class="btn btn-warning">停止采集</button>
+                                <button id="clear-data" class="btn btn-secondary">清空数据</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="center-panel">
+                    <div class="card chart-card">
+                        <h2>伏安特性曲线</h2>
+                        <div class="chart-container">
+                            <canvas id="vi-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card chart-card">
+                        <h2>实时趋势图</h2>
+                        <div class="chart-container">
+                            <canvas id="trend-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right-panel">
+                    <div class="card">
+                        <h2>数据导出</h2>
+                        <div class="export-controls">
+                            <div class="export-stats">
+                                <span>数据点数: <strong id="data-count">0</strong></span>
+                            </div>
+                            <button id="export-csv" class="btn btn-primary btn-block">导出 CSV</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2>日志</h2>
+                        <div id="log-container" class="log-container">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-battery">
+                <div class="battery-panel">
+                    <div class="battery-settings">
+                        <div class="card">
+                            <h2>电池放电测试设置</h2>
+                            <div class="control-group">
+                                <label>电池标称容量 (Ah)</label>
+                                <input type="number" id="battery-nominal-capacity" step="0.1" min="0" value="10.0">
+                            </div>
+                            <div class="control-group">
+                                <label>放电电流 (A)</label>
+                                <input type="number" id="battery-discharge-current" step="0.01" min="0" value="1.0">
+                            </div>
+                            <div class="control-group">
+                                <label>截止电压 (V)</label>
+                                <input type="number" id="battery-cutoff-voltage" step="0.01" min="0" value="3.0">
+                            </div>
+                            <div class="control-group">
+                                <label>记录间隔 (s)</label>
+                                <input type="number" id="battery-record-interval" step="1" min="1" value="10">
+                            </div>
+                            <div class="battery-info">
+                                <div class="info-item">
+                                    <span class="label">预计时间:</span>
+                                    <span id="battery-est-time">--:--:--</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">放电C率:</span>
+                                    <span id="battery-c-rate">0.1C</span>
+                                </div>
+                            </div>
+                            <div class="control-actions">
+                                <button id="start-battery-test" class="btn btn-success btn-block">开始放电测试</button>
+                                <button id="stop-battery-test" class="btn btn-danger btn-block">停止测试</button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h2>实时放电数据</h2>
+                            <div class="battery-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">已放电容量</span>
+                                    <span class="stat-value" id="battery-capacity">0.000 Ah</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">已放电能量</span>
+                                    <span class="stat-value" id="battery-energy">0.000 Wh</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">测试时间</span>
+                                    <span class="stat-value" id="battery-elapsed">00:00:00</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">剩余容量</span>
+                                    <span class="stat-value" id="battery-remaining">100%</span>
+                                </div>
+                            </div>
+                            <div class="battery-progress">
+                                <div class="progress-bar large">
+                                    <div id="battery-progress-fill" class="progress-fill battery"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="battery-charts">
+                        <div class="card chart-card">
+                            <h2>放电曲线 - 电压</h2>
+                            <div class="chart-container">
+                                <canvas id="battery-voltage-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="card chart-card">
+                            <h2>容量曲线</h2>
+                            <div class="chart-container">
+                                <canvas id="battery-capacity-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-sequence">
+                <div class="left-panel">
+                    <div class="card">
+                        <h2>序列测试</h2>
+                        <div class="sequence-controls">
+                            <div class="control-group">
+                                <label>起始值</label>
+                                <input type="number" id="seq-start" step="0.01" value="0.1">
+                            </div>
+                            <div class="control-group">
+                                <label>终止值</label>
+                                <input type="number" id="seq-end" step="0.01" value="5.0">
+                            </div>
+                            <div class="control-group">
+                                <label>步进值</label>
+                                <input type="number" id="seq-step" step="0.01" value="0.5">
+                            </div>
+                            <div class="control-group">
+                                <label>每步停留 (s)</label>
+                                <input type="number" id="seq-dwell" step="1" min="1" value="5">
+                            </div>
+                            <div class="control-group">
+                                <label>测试模式</label>
+                                <select id="seq-mode">
+                                    <option value="CC">恒流步进</option>
+                                    <option value="CV">恒压步进</option>
+                                </select>
+                            </div>
+                            <div class="control-group">
+                                <label>目标通道</label>
+                                <select id="seq-channel">
+                                    <option value="0">通道 1</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="control-actions">
+                            <button id="start-sequence" class="btn btn-success">开始序列</button>
+                            <button id="stop-sequence" class="btn btn-danger">停止序列</button>
+                            <button id="save-sequence" class="btn btn-secondary">保存序列</button>
+                            <button id="load-sequence" class="btn btn-secondary">加载序列</button>
+                        </div>
+                        <div class="sequence-progress">
+                            <div class="progress-bar">
+                                <div id="progress-fill" class="progress-fill"></div>
+                            </div>
+                            <span id="progress-text">0%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="center-panel">
+                    <div class="card chart-card full-height">
+                        <h2>序列测试曲线</h2>
+                        <div class="chart-container">
+                            <canvas id="sequence-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-channels">
+                <div class="channels-panel">
+                    <div class="card channel-config-card">
+                        <h2>通道配置</h2>
+                        <div id="channels-list" class="channels-list">
+                        </div>
+                        <div class="control-actions">
+                            <button id="add-channel-btn" class="btn btn-primary">添加通道</button>
+                            <button id="remove-channel-btn" class="btn btn-danger">删除选中</button>
+                        </div>
+                    </div>
+                    <div class="card sync-control-card">
+                        <h2>同步控制</h2>
+                        <div class="control-group">
+                            <label>同步模式</label>
+                            <select id="sync-mode">
+                                <option value="parallel">并行同步</option>
+                                <option value="sequential">顺序执行</option>
+                            </select>
+                        </div>
+                        <div class="control-actions">
+                            <button id="sync-start" class="btn btn-success btn-block">同步开始采集</button>
+                            <button id="sync-stop" class="btn btn-warning btn-block">同步停止</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h2>多通道对比</h2>
+                        <div class="chart-container large">
+                            <canvas id="multi-channel-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-report">
+                <div class="report-panel">
+                    <div class="card report-settings">
+                        <h2>测试报告设置</h2>
+                        <div class="control-group">
+                            <label>报告标题</label>
+                            <input type="text" id="report-title" value="电子负载测试报告">
+                        </div>
+                        <div class="control-group">
+                            <label>测试人员</label>
+                            <input type="text" id="report-operator" placeholder="输入测试人员姓名">
+                        </div>
+                        <div class="control-group">
+                            <label>被测设备</label>
+                            <input type="text" id="report-device" placeholder="输入被测设备名称">
+                        </div>
+                        <div class="control-group">
+                            <label>备注说明</label>
+                            <textarea id="report-notes" rows="3" placeholder="输入测试备注说明..."></textarea>
+                        </div>
+                        <div class="control-group">
+                            <label>包含内容</label>
+                            <div class="checkbox-group">
+                                <label><input type="checkbox" id="report-include-summary" checked> 测试摘要</label>
+                                <label><input type="checkbox" id="report-include-graph" checked> 测试曲线</label>
+                                <label><input type="checkbox" id="report-include-data" checked> 数据表格</label>
+                                <label><input type="checkbox" id="report-include-stats" checked> 统计信息</label>
+                            </div>
+                        </div>
+                        <div class="control-actions">
+                            <button id="generate-pdf" class="btn btn-primary btn-block">生成 PDF 报告</button>
+                            <button id="preview-report" class="btn btn-secondary btn-block">预览报告</button>
+                        </div>
+                    </div>
+                    <div class="card report-preview">
+                        <h2>报告预览</h2>
+                        <div id="report-preview-content" class="preview-content">
+                            <div class="preview-placeholder">
+                                <p>点击"预览报告"查看报告内容</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="node_modules/chart.js/dist/chart.umd.js"></script>
+    <script src="node_modules/jspdf/dist/jspdf.umd.min.js"></script>
+    <script src="renderer.js"></script>
+</body>
+</html>

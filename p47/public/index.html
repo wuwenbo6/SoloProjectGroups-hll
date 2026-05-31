@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2563eb">
+    <title>NFC 管理器</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>NFC 管理器</h1>
+            <div id="nfcStatus" class="nfc-status">NFC 未检测</div>
+        </header>
+
+        <main class="content">
+            <section id="read-tab" class="tab-content active">
+                <div class="card">
+                    <h2>📖 读取 NFC 标签</h2>
+                    <div class="read-area">
+                        <div class="nfc-icon">📡</div>
+                        <p>点击下方按钮开始扫描 NFC 标签</p>
+                        <button id="startReadBtn" class="btn btn-primary">开始扫描</button>
+                        <button id="stopReadBtn" class="btn btn-secondary" style="display:none;">停止扫描</button>
+                    </div>
+                    <div id="readResult" class="result-area" style="display:none;">
+                        <h3>读取结果</h3>
+                        <div id="tagContent"></div>
+                        <div id="decryptSection" class="decrypt-section" style="display:none; margin-top:15px;">
+                            <div class="form-group">
+                                <label>输入密码解密数据</label>
+                                <input type="password" id="decryptPassword" placeholder="请输入密码">
+                            </div>
+                            <button id="decryptBtn" class="btn btn-primary">解密数据</button>
+                            <div id="decryptResult" style="margin-top:10px;"></div>
+                        </div>
+                        <button id="saveTagBtn" class="btn btn-success">保存到历史</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="write-tab" class="tab-content">
+                <div class="card">
+                    <h2>✏️ 写入 NFC 标签</h2>
+                    <div class="form-group">
+                        <label>选择数据类型</label>
+                        <select id="writeType">
+                            <option value="url">🔗 URL链接</option>
+                            <option value="text">📝 纯文本</option>
+                            <option value="bluetooth">📶 蓝牙MAC</option>
+                            <option value="wifi">📡 WiFi连接</option>
+                            <option value="vcard">👤 电子名片</option>
+                        </select>
+                    </div>
+                    <div id="writeFields"></div>
+                    <div class="form-group" style="margin-top:15px;">
+                        <label style="display:flex;align-items:center;gap:10px;">
+                            <input type="checkbox" id="encryptToggle">
+                            <span>🔐 启用密码保护</span>
+                        </label>
+                    </div>
+                    <div id="encryptFields" style="display:none;">
+                        <div class="form-group">
+                            <label>设置密码</label>
+                            <input type="password" id="encryptPassword" placeholder="请输入加密密码">
+                        </div>
+                    </div>
+                    <button id="startWriteBtn" class="btn btn-primary">准备写入</button>
+                    <button id="cancelWriteBtn" class="btn btn-secondary" style="display:none;">取消写入</button>
+                    <div id="writeStatus" class="status-message"></div>
+                </div>
+            </section>
+
+            <section id="template-tab" class="tab-content">
+                <div class="card">
+                    <h2>📋 模板管理</h2>
+                    <div id="templateList" class="template-list"></div>
+                </div>
+            </section>
+
+            <section id="history-tab" class="tab-content">
+                <div class="card">
+                    <h2>📜 历史记录</h2>
+                    <div style="margin-bottom:15px;display:flex;gap:10px;">
+                        <button id="exportCsvBtn" class="btn btn-primary">📥 导出CSV</button>
+                        <button id="clearHistoryBtn" class="btn btn-danger">清空历史</button>
+                    </div>
+                    <div id="historyList" class="history-list"></div>
+                </div>
+            </section>
+
+            <section id="batch-tab" class="tab-content">
+                <div class="card">
+                    <h2>🏷️ 批量二维码</h2>
+                    <div class="form-group">
+                        <label>批量数据（每行一条）</label>
+                        <textarea id="batchData" rows="8" placeholder="https://example.com&#10;https://google.com&#10;TEL:123456789"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>二维码大小</label>
+                        <select id="qrSize">
+                            <option value="200">小 (200px)</option>
+                            <option value="300" selected>中 (300px)</option>
+                            <option value="400">大 (400px)</option>
+                        </select>
+                    </div>
+                    <button id="generateBatchBtn" class="btn btn-primary">生成二维码</button>
+                    <div id="batchResults" class="batch-results"></div>
+                </div>
+            </section>
+
+            <section id="rules-tab" class="tab-content">
+                <div class="card">
+                    <h2>⚙️ 自动化规则</h2>
+                    <div class="form-group">
+                        <button id="addRuleBtn" class="btn btn-primary">+ 添加规则</button>
+                    </div>
+                    <div id="addRuleForm" style="display:none; margin-bottom:20px; padding:15px; background:#f8f9fa; border-radius:8px;">
+                        <h4>新建规则</h4>
+                        <div class="form-group">
+                            <label>规则名称</label>
+                            <input type="text" id="ruleName" placeholder="例如：打开客厅灯">
+                        </div>
+                        <div class="form-group">
+                            <label>规则类型</label>
+                            <select id="ruleType">
+                                <option value="device">💡 设备控制</option>
+                                <option value="app">📱 应用启动</option>
+                                <option value="communication">💬 通讯</option>
+                                <option value="network">📶 网络</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>操作</label>
+                            <select id="ruleAction">
+                                <option value="light_on">打开灯光</option>
+                                <option value="light_off">关闭灯光</option>
+                                <option value="open_app">打开应用</option>
+                                <option value="send_sms">发送短信</option>
+                                <option value="set_wifi">连接WiFi</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>图标</label>
+                            <select id="ruleIcon">
+                                <option value="💡">💡 灯光</option>
+                                <option value="🌙">🌙 夜间</option>
+                                <option value="📱">📱 手机</option>
+                                <option value="💬">💬 消息</option>
+                                <option value="📶">📶 网络</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>描述</label>
+                            <input type="text" id="ruleDescription" placeholder="规则描述">
+                        </div>
+                        <div style="display:flex;gap:10px;">
+                            <button id="saveRuleBtn" class="btn btn-success">保存规则</button>
+                            <button id="cancelRuleBtn" class="btn btn-secondary">取消</button>
+                        </div>
+                    </div>
+                    <div id="rulesList" class="rules-list"></div>
+                </div>
+            </section>
+        </main>
+
+        <nav class="bottom-nav">
+            <button class="nav-btn active" data-tab="read">
+                <span class="nav-icon">📖</span>
+                <span class="nav-label">读取</span>
+            </button>
+            <button class="nav-btn" data-tab="write">
+                <span class="nav-icon">✏️</span>
+                <span class="nav-label">写入</span>
+            </button>
+            <button class="nav-btn" data-tab="template">
+                <span class="nav-icon">📋</span>
+                <span class="nav-label">模板</span>
+            </button>
+            <button class="nav-btn" data-tab="history">
+                <span class="nav-icon">📜</span>
+                <span class="nav-label">历史</span>
+            </button>
+            <button class="nav-btn" data-tab="batch">
+                <span class="nav-icon">🏷️</span>
+                <span class="nav-label">批量</span>
+            </button>
+            <button class="nav-btn" data-tab="rules">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">规则</span>
+            </button>
+        </nav>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="js/app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log('Service Worker registered'))
+                .catch(err => console.log('Service Worker registration failed:', err));
+        }
+    </script>
+</body>
+</html>

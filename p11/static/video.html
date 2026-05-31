@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频监控 - 车牌识别系统</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="video.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🎥 视频监控系统</h1>
+            <p class="subtitle">RTSP视频流识别 | 车速估算 | 布控报警</p>
+        </header>
+
+        <div class="main-content">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="streams">📹 视频流管理</button>
+                <button class="tab-btn" data-tab="watchlist">⚠️ 布控名单</button>
+                <button class="tab-btn" data-tab="alerts">🔔 报警记录</button>
+                <button class="tab-btn" data-tab="config">⚙️ 速度配置</button>
+            </div>
+
+            <div class="tab-content active" id="streams-tab">
+                <div class="section-header">
+                    <h2>视频流列表</h2>
+                    <button class="btn-primary" id="addStreamBtn">添加视频流</button>
+                </div>
+                
+                <div class="streams-grid" id="streamsGrid">
+                    <div class="no-data">暂无视频流，点击上方按钮添加</div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="watchlist-tab">
+                <div class="section-header">
+                    <h2>布控名单</h2>
+                    <button class="btn-primary" id="addWatchlistBtn">添加车辆</button>
+                </div>
+                
+                <div class="watchlist-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>车牌号</th>
+                                <th>描述</th>
+                                <th>报警类型</th>
+                                <th>状态</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="watchlistBody">
+                            <tr>
+                                <td colspan="6" class="no-data">暂无布控车辆</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-content" id="alerts-tab">
+                <div class="section-header">
+                    <h2>报警记录</h2>
+                    <button class="btn-secondary" id="refreshAlerts">刷新</button>
+                </div>
+                
+                <div class="alerts-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>车牌号</th>
+                                <th>报警类型</th>
+                                <th>车速</th>
+                                <th>置信度</th>
+                                <th>状态</th>
+                                <th>时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alertsBody">
+                            <tr>
+                                <td colspan="7" class="no-data">暂无报警记录</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-content" id="config-tab">
+                <div class="section-header">
+                    <h2>速度检测配置</h2>
+                </div>
+                
+                <div class="config-form">
+                    <div class="form-group">
+                        <label>像素/米比率 (pixels/meter)</label>
+                        <input type="number" id="pixelsPerMeter" value="30" step="1" min="1">
+                        <small>用于将像素距离转换为实际距离，需要根据摄像头高度和角度校准</small>
+                    </div>
+                    <div class="form-group">
+                        <label>校准距离 (米)</label>
+                        <input type="number" id="calibrationDistance" value="10" step="0.1" min="1">
+                        <small>参考距离，用于辅助校准</small>
+                    </div>
+                    <button class="btn-primary" id="saveConfig">保存配置</button>
+                </div>
+
+                <div class="calibration-hint">
+                    <h3>📐 校准说明</h3>
+                    <ul>
+                        <li>在画面中标记一段已知实际距离的线段</li>
+                        <li>测量该线段的像素长度</li>
+                        <li>计算: 像素/米 = 像素长度 / 实际距离(米)</li>
+                        <li>例: 10米距离在画面中为300像素，则比率为 30</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal" id="streamModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>添加视频流</h3>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="streamForm">
+                        <div class="form-group">
+                            <label>流ID *</label>
+                            <input type="text" id="streamId" placeholder="例如: camera_001" required>
+                        </div>
+                        <div class="form-group">
+                            <label>名称 *</label>
+                            <input type="text" id="streamName" placeholder="例如: 前门摄像头" required>
+                        </div>
+                        <div class="form-group">
+                            <label>RTSP地址 *</label>
+                            <input type="text" id="rtspUrl" placeholder="rtsp://username:password@ip:port/stream" required>
+                        </div>
+                        <div class="form-group">
+                            <label>限速 (km/h)</label>
+                            <input type="number" id="speedLimit" value="60" min="1">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary close-modal">取消</button>
+                            <button type="submit" class="btn-primary">添加</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal" id="watchlistModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>添加布控车辆</h3>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="watchlistForm">
+                        <div class="form-group">
+                            <label>车牌号 *</label>
+                            <input type="text" id="plateNumber" placeholder="例如: 京A12345" required>
+                        </div>
+                        <div class="form-group">
+                            <label>描述</label>
+                            <input type="text" id="plateDescription" placeholder="例如: 涉案车辆">
+                        </div>
+                        <div class="form-group">
+                            <label>报警类型</label>
+                            <select id="alertType">
+                                <option value="watchlist">布控报警</option>
+                                <option value="stolen">被盗车辆</option>
+                                <option value="suspicious">可疑车辆</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary close-modal">取消</button>
+                            <button type="submit" class="btn-primary">添加</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="toast" id="toast"></div>
+
+        <footer class="footer">
+            <p><a href="/static/index.html" style="color: white;">← 返回图片识别</a> | 基于 YOLOv5 + OCR + AOD-Net 构建</p>
+        </footer>
+    </div>
+
+    <script src="video.js"></script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "name": "usb-monitor",
+  "version": "1.0.0",
+  "description": "USB Device Monitor with Electron and node-usb",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-rebuild",
+    "install": "electron-rebuild",
+    "rebuild": "node-gyp rebuild --target=30.0.0 --arch=x64 --dist-url=https://electronjs.org/headers"
+  },
+  "keywords": ["usb", "monitor", "electron"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-rebuild": "^3.2.9",
+    "node-gyp": "^10.0.1"
+  },
+  "dependencies": {
+    "usb": "^2.12.1",
+    "pcap-parser": "^0.2.1",
+    "nan": "^2.18.0"
+  }
+}

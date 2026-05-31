@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>车牌识别系统 - License Plate Recognition</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🚗 车牌识别系统</h1>
+            <p class="subtitle">支持蓝牌、黄牌、绿牌识别 | 去雾/去雨图像增强</p>
+        </header>
+
+        <div class="main-content">
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📸</div>
+                    <p class="upload-text">点击或拖拽图片到此处上传</p>
+                    <p class="upload-hint">支持 JPG、PNG、BMP 格式</p>
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                </div>
+                
+                <div class="options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="enhanceCheckbox" checked>
+                        <span>启用图像增强（去雾/去雨）</span>
+                    </label>
+                    <button class="btn-primary" id="recognizeBtn" disabled>开始识别</button>
+                </div>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <h2>识别结果</h2>
+                
+                <div class="result-stats">
+                    <div class="stat-card">
+                        <div class="stat-label">车牌号</div>
+                        <div class="stat-value" id="plateNumber">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">车牌颜色</div>
+                        <div class="stat-value" id="plateColor">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">置信度</div>
+                        <div class="stat-value" id="confidence">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">处理时间</div>
+                        <div class="stat-value" id="processingTime">-</div>
+                    </div>
+                </div>
+
+                <div class="comparison-section">
+                    <h3>图像对比</h3>
+                    <div class="image-comparison">
+                        <div class="image-card">
+                            <div class="image-label">原图</div>
+                            <img id="originalImage" src="" alt="Original">
+                        </div>
+                        <div class="arrow">➡️</div>
+                        <div class="image-card">
+                            <div class="image-label">增强后</div>
+                            <img id="enhancedImage" src="" alt="Enhanced">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="detectionBox" class="detection-box" style="display: none;">
+                    <h3>检测区域</h3>
+                    <canvas id="detectionCanvas"></canvas>
+                </div>
+            </div>
+
+            <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>正在识别中...</p>
+            </div>
+
+            <div class="history-section">
+                <h2>📋 识别历史</h2>
+                <div class="history-filters">
+                    <button class="btn-secondary" id="refreshHistory">刷新</button>
+                    <button class="btn-secondary" id="showStats">统计信息</button>
+                </div>
+                <div class="history-table-container">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>文件名</th>
+                                <th>车牌号</th>
+                                <th>颜色</th>
+                                <th>置信度</th>
+                                <th>时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyBody">
+                            <tr>
+                                <td colspan="7" class="no-data">暂无数据</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal" id="statsModal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>统计信息</h3>
+                        <button class="close-btn" id="closeStats">&times;</button>
+                    </div>
+                    <div class="modal-body" id="statsBody">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>基于 YOLOv5 + OCR + AOD-Net 构建 | Power by FastAPI</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

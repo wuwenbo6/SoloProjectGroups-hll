@@ -1,0 +1,223 @@
+{
+  "version": "1.0",
+  "name": "示例仓库布局",
+  "description": "包含4排6列书架的标准仓库布局",
+  "shelves": [
+    {
+      "id": "shelf_A1",
+      "position": { "x": -12, "z": -10 },
+      "rotation": 0,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_A2",
+      "position": { "x": -12, "z": -8.9 },
+      "rotation": 3.14159,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_B1",
+      "position": { "x": -6, "z": -10 },
+      "rotation": 0,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_B2",
+      "position": { "x": -6, "z": -8.9 },
+      "rotation": 3.14159,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_C1",
+      "position": { "x": 0, "z": -10 },
+      "rotation": 0,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_C2",
+      "position": { "x": 0, "z": -8.9 },
+      "rotation": 3.14159,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_D1",
+      "position": { "x": 6, "z": -10 },
+      "rotation": 0,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_D2",
+      "position": { "x": 6, "z": -8.9 },
+      "rotation": 3.14159,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_E1",
+      "position": { "x": -12, "z": -3 },
+      "rotation": 0,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_E2",
+      "position": { "x": -12, "z": -1.9 },
+      "rotation": 3.14159,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_F1",
+      "position": { "x": -6, "z": -3 },
+      "rotation": 0,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_F2",
+      "position": { "x": -6, "z": -1.9 },
+      "rotation": 3.14159,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_G1",
+      "position": { "x": 0, "z": -3 },
+      "rotation": 0,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_G2",
+      "position": { "x": 0, "z": -1.9 },
+      "rotation": 3.14159,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_H1",
+      "position": { "x": 6, "z": -3 },
+      "rotation": 0,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_H2",
+      "position": { "x": 6, "z": -1.9 },
+      "rotation": 3.14159,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_I1",
+      "position": { "x": -12, "z": 4 },
+      "rotation": 0,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_I2",
+      "position": { "x": -12, "z": 5.1 },
+      "rotation": 3.14159,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_J1",
+      "position": { "x": -6, "z": 4 },
+      "rotation": 0,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_J2",
+      "position": { "x": -6, "z": 5.1 },
+      "rotation": 3.14159,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_K1",
+      "position": { "x": 0, "z": 4 },
+      "rotation": 0,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_K2",
+      "position": { "x": 0, "z": 5.1 },
+      "rotation": 3.14159,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_L1",
+      "position": { "x": 6, "z": 4 },
+      "rotation": 0,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    },
+    {
+      "id": "shelf_L2",
+      "position": { "x": 6, "z": 5.1 },
+      "rotation": 3.14159,
+      "width": 3,
+      "depth": 0.6,
+      "height": 2.5,
+      "levels": 4
+    }
+  ]
+}

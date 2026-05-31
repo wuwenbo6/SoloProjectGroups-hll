@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>排水管网模拟系统</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #f0f2f5;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 15px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+        
+        .sidebar {
+            width: 350px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .main-content {
+            flex: 1;
+            position: relative;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .panel {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2a5298;
+        }
+        
+        .panel h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(42, 82, 152, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .form-group {
+            margin-bottom: 12px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #2a5298;
+        }
+        
+        .timeline {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .timeline input[type="range"] {
+            flex: 1;
+        }
+        
+        .time-display {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #333;
+            background: #e8f4fd;
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        
+        .legend h4 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 12px;
+            margin-right: 8px;
+            border-radius: 2px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-running {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-pending {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+        
+        .sim-list {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .sim-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .sim-item:hover {
+            background: #f0f7ff;
+        }
+        
+        .sim-item.active {
+            background: #e3f2fd;
+            border-left: 3px solid #2a5298;
+        }
+        
+        .info-popup {
+            font-size: 13px;
+        }
+        
+        .info-popup h4 {
+            margin-bottom: 8px;
+            color: #2a5298;
+        }
+        
+        .info-popup p {
+            margin: 4px 0;
+        }
+        
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        
+        .toggle-switch label {
+            margin-right: 10px;
+            font-size: 13px;
+        }
+        
+        .toggle-switch input {
+            width: 40px;
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏗️ 城市排水管网降雨-径流模拟系统</h1>
+    </div>
+    
+    <div class="container">
+        <div class="sidebar">
+            <div class="panel">
+                <h3>🚀 模拟控制</h3>
+                <div class="form-group">
+                    <label>模拟名称</label>
+                    <input type="text" id="simName" placeholder="输入模拟名称" value="暴雨模拟">
+                </div>
+                <button class="btn btn-primary" onclick="runSimulation()">
+                    ▶️ 开始模拟
+                </button>
+                <button class="btn btn-secondary" onclick="loadSimulations()">
+                    🔄 刷新模拟列表
+                </button>
+            </div>
+            
+            <div class="panel">
+                <h3>📊 历史模拟</h3>
+                <div id="simList" class="sim-list">
+                    <p style="color: #999; font-size: 13px;">暂无模拟记录</p>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h3>⚙️ 参数设置</h3>
+                <div class="form-group">
+                    <label>选择汇水区</label>
+                    <select id="subcatchmentSelect">
+                        <option value="">选择汇水区...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>汇水区面积 (ha)</label>
+                    <input type="number" id="subArea" step="0.1" min="0.1" placeholder="面积">
+                </div>
+                <button class="btn btn-secondary" onclick="updateSubcatchmentArea()">
+                    💾 更新汇水区面积
+                </button>
+                
+                <hr style="margin: 15px 0; border: none; border-top: 1px solid #eee;">
+                
+                <div class="form-group">
+                    <label>选择管道</label>
+                    <select id="linkSelect">
+                        <option value="">选择管道...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>曼宁糙率系数</label>
+                    <input type="number" id="roughness" step="0.001" min="0.001" placeholder="糙率">
+                </div>
+                <button class="btn btn-secondary" onclick="updateRoughness()">
+                    💾 更新管道糙率
+                </button>
+            </div>
+            
+            <div class="panel">
+                <h3>🎞️ 动态展示</h3>
+                <div class="toggle-switch">
+                    <label>显示热力图</label>
+                    <input type="checkbox" id="heatmapToggle" onchange="toggleHeatmap()">
+                </div>
+                <div class="toggle-switch">
+                    <label>显示淹没等值面</label>
+                    <input type="checkbox" id="contourToggle" checked onchange="toggleContour()">
+                </div>
+                <div class="timeline">
+                    <input type="range" id="timeSlider" min="0" max="100" value="0" oninput="updateTime()">
+                    <span class="time-display" id="timeDisplay">--:--</span>
+                </div>
+                <button class="btn btn-success" onclick="togglePlay()">
+                    <span id="playBtn">▶️ 播放</span>
+                </button>
+            </div>
+            
+            <div class="panel">
+                <h3>📈 实时数据</h3>
+                <div id="realtimeData">
+                    <p style="color: #999; font-size: 13px;">选择节点查看详细数据</p>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h3>🌿 LID措施对比</h3>
+                <div class="form-group">
+                    <label>汇水区</label>
+                    <select id="lidSubcatchment">
+                        <option value="S1">S1</option>
+                        <option value="S2">S2</option>
+                        <option value="S3">S3</option>
+                        <option value="S4">S4</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>透水铺装比例</label>
+                    <input type="number" id="lidAreaRatio" step="0.1" min="0.1" max="1.0" value="0.3">
+                </div>
+                <div class="form-group">
+                    <label>铺装厚度 (mm)</label>
+                    <input type="number" id="lidThickness" step="10" min="50" value="150">
+                </div>
+                <button class="btn btn-secondary" onclick="runLIDComparison()">
+                    🔍 运行LID效果对比
+                </button>
+                <div id="lidResult" style="margin-top: 10px; font-size: 12px;"></div>
+            </div>
+            
+            <div class="panel">
+                <h3>🎯 参数自动率定</h3>
+                <div class="form-group">
+                    <label>率定名称</label>
+                    <input type="text" id="calibName" value="SCE-UA率定">
+                </div>
+                <div class="form-group">
+                    <label>迭代次数</label>
+                    <input type="number" id="calibIterations" step="10" min="10" value="50">
+                </div>
+                <div class="form-group">
+                    <label>待率定参数</label>
+                    <div style="font-size: 12px; color: #666;">
+                        <input type="checkbox" id="paramArea" checked> 汇水区面积<br>
+                        <input type="checkbox" id="paramRoughness" checked> 管道糙率
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="runCalibration()">
+                    📊 开始SCE-UA率定
+                </button>
+                <div id="calibResult" style="margin-top: 10px; font-size: 12px;"></div>
+            </div>
+            
+            <div class="panel">
+                <h3>🎬 导出动画</h3>
+                <div class="form-group">
+                    <label>格式</label>
+                    <select id="animFormat">
+                        <option value="mp4">MP4</option>
+                        <option value="gif">GIF</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>帧率 (FPS)</label>
+                    <input type="number" id="animFps" step="1" min="1" max="30" value="5">
+                </div>
+                <button class="btn btn-secondary" onclick="exportAnimation()">
+                    💾 导出MP4动画
+                </button>
+                <div id="animResult" style="margin-top: 10px; font-size: 12px;"></div>
+                <button class="btn btn-secondary" onclick="listAnimations()" style="margin-top: 5px;">
+                    📋 查看已导出动画
+                </button>
+                <div id="animList" style="margin-top: 10px; font-size: 12px;"></div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div id="map"></div>
+            <div class="legend" id="legend">
+                <h4>图例</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: blue;"></div>
+                    <span>检查井节点</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #333;"></div>
+                    <span>排水管道</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #87CEEB; opacity: 0.6;"></div>
+                    <span>水深 ≥ 0.1m</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #4169E1; opacity: 0.6;"></div>
+                    <span>水深 ≥ 0.5m</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FFD700; opacity: 0.6;"></div>
+                    <span>水深 ≥ 1.0m</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FF8C00; opacity: 0.6;"></div>
+                    <span>水深 ≥ 2.0m</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

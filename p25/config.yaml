@@ -1,0 +1,37 @@
+server:
+  port: 8080
+
+mqtt:
+  broker: "tcp://localhost:1883"
+  client_id: "pv-monitor"
+  username: ""
+  password: ""
+  topic: "pv/inverter/+/data"
+
+database:
+  host: "localhost"
+  port: 5432
+  user: "postgres"
+  password: "postgres"
+  dbname: "pv_monitor"
+  sslmode: "disable"
+
+inverters:
+  - id: "INV001"
+    name: "逆变器1号"
+    rated_power: 50000
+  - id: "INV002"
+    name: "逆变器2号"
+    rated_power: 50000
+  - id: "INV003"
+    name: "逆变器3号"
+    rated_power: 50000
+
+alarm:
+  power_drop_threshold: 20
+  check_interval: 60
+
+modbus:
+  enabled: true
+  port: 502
+  simulation_interval: 5

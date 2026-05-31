@@ -1,0 +1,23 @@
+{
+  "name": "nfc-manager-pwa",
+  "version": "1.0.0",
+  "description": "Web NFC Manager PWA",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
+    "nedb": "^1.8.0",
+    "qrcode": "^1.5.3"
+  }
+}
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["nfc", "pwa", "webnfc", "qrcode"],
+  "author": "",
+  "license": "MIT"
+}

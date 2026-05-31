@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>颗粒分析系统</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="node_modules/chart.js/dist/chart.umd.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>颗粒分析系统</h1>
+            <div class="header-controls">
+                <button id="historyBtn" class="btn">历史记录</button>
+            </div>
+        </header>
+
+        <main>
+            <div class="sidebar">
+                <div class="control-panel">
+                    <h2>控制面板</h2>
+                    
+                    <div class="control-group">
+                        <label>图像上传</label>
+                        <button id="uploadBtn" class="btn btn-primary">选择图像</button>
+                        <div id="imageName" class="file-name"></div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>最小面积(px): <span id="minAreaValue">50</span></label>
+                        <input type="range" id="minArea" min="10" max="500" value="50">
+                    </div>
+
+                    <div class="control-group">
+                        <label>最大面积(px): <span id="maxAreaValue">5000</span></label>
+                        <input type="range" id="maxArea" min="1000" max="20000" value="5000">
+                    </div>
+
+                    <div class="control-group">
+                        <label>前景阈值: <span id="fgThresholdValue">0.5</span></label>
+                        <input type="range" id="fgThreshold" min="0.1" max="0.9" step="0.05" value="0.5">
+                    </div>
+
+                    <div class="control-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="useAdaptive">
+                            使用自适应阈值
+                        </label>
+                    </div>
+
+                    <div class="control-group">
+                        <label>分割方法:</label>
+                        <div class="mode-buttons">
+                            <button id="methodWatershed" class="btn mode-btn active">分水岭</button>
+                            <button id="methodUNet" class="btn mode-btn">U-Net</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group calibration-group">
+                        <h3>标尺校准</h3>
+                        <button id="calibrateBtn" class="btn">校准标尺</button>
+                        <div class="calibration-info">
+                            <label>1像素 = <span id="scaleValue">1.0</span> nm</label>
+                            <div class="calibration-inputs">
+                                <input type="number" id="calDistance" placeholder="实际距离(nm)" step="1">
+                                <span id="calPixelDistance">px</span>
+                            </div>
+                            <button id="applyCalibration" class="btn btn-small" disabled>应用校准</button>
+                        </div>
+                        <div id="calibrationHint" class="hint-text hidden"></div>
+                    </div>
+
+                    <button id="analyzeBtn" class="btn btn-success" disabled>开始分析</button>
+
+                    <div class="control-group edit-controls">
+                        <h3>手动修正</h3>
+                        <div class="mode-buttons">
+                            <button id="selectMode" class="btn mode-btn active">选择</button>
+                            <button id="deleteMode" class="btn mode-btn">删除</button>
+                            <button id="addMode" class="btn mode-btn">添加</button>
+                        </div>
+                        <button id="undoBtn" class="btn" disabled>撤销删除</button>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button id="saveBtn" class="btn btn-info" disabled>保存结果</button>
+                        <button id="exportBtn" class="btn btn-warning" disabled>导出Excel</button>
+                    </div>
+
+                    <div class="control-group advanced-controls">
+                        <h3>高级功能</h3>
+                        <button id="batchBtn" class="btn">批量处理</button>
+                        <button id="exportImageJBtn" class="btn" disabled>导出ImageJ</button>
+                    </div>
+                </div>
+
+                <div class="statistics-panel">
+                    <h2>统计信息</h2>
+                    <div class="stat-item">
+                        <span class="stat-label">颗粒总数:</span>
+                        <span id="totalCount" class="stat-value">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">平均面积:</span>
+                        <span id="avgArea" class="stat-value">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">平均圆形度:</span>
+                        <span id="avgCircularity" class="stat-value">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="image-viewer">
+                    <h2>标注图像</h2>
+                    <div class="image-container">
+                        <canvas id="imageCanvas"></canvas>
+                        <div id="placeholder" class="placeholder">请上传图像开始分析</div>
+                    </div>
+                </div>
+
+                <div class="charts-panel">
+                    <div class="chart-container">
+                        <h3>尺寸分布直方图</h3>
+                        <canvas id="sizeChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>圆形度分布直方图</h3>
+                        <canvas id="circularityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>历史分析记录</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <table id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>图像名称</th>
+                            <th>颗粒数</th>
+                            <th>平均面积</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <p id="loadingText">分析中...</p>
+    </div>
+
+    <div id="batchModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>批量处理</h2>
+                <span class="close-batch">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="batch-settings">
+                    <div class="control-group">
+                        <label>选择图像文件夹:</label>
+                        <button id="selectFolderBtn" class="btn btn-primary">选择文件夹</button>
+                        <div id="folderPath" class="file-name"></div>
+                    </div>
+                    <div class="control-group">
+                        <label>输出文件夹 (可选):</label>
+                        <button id="selectOutputBtn" class="btn">选择输出</button>
+                        <div id="outputPath" class="file-name"></div>
+                    </div>
+                    <div class="control-group">
+                        <label>最小面积(px): <span id="batchMinArea">50</span></label>
+                        <input type="range" id="batchMinAreaSlider" min="10" max="500" value="50">
+                    </div>
+                    <div class="control-group">
+                        <label>最大面积(px): <span id="batchMaxArea">5000</span></label>
+                        <input type="range" id="batchMaxAreaSlider" min="1000" max="20000" value="5000">
+                    </div>
+                    <div class="control-group">
+                        <label>分割方法:</label>
+                        <div class="mode-buttons">
+                            <button id="batchMethodWatershed" class="btn mode-btn active">分水岭</button>
+                            <button id="batchMethodUNet" class="btn mode-btn">U-Net</button>
+                        </div>
+                    </div>
+                    <div class="batch-progress hidden" id="batchProgress">
+                        <p>处理中... <span id="batchProgressText">0/0</span></p>
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill"></div>
+                        </div>
+                    </div>
+                    <button id="startBatchBtn" class="btn btn-success" disabled>开始批量处理</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="imagejModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>导出ImageJ脚本</h2>
+                <span class="close-imagej">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="control-group">
+                    <label>脚本类型:</label>
+                    <div class="mode-buttons">
+                        <button id="ijMacro" class="btn mode-btn active">Macro (.ijm)</button>
+                        <button id="ijScript" class="btn mode-btn">Script (.groovy)</button>
+                    </div>
+                </div>
+                <button id="confirmExportIJ" class="btn btn-success">导出</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

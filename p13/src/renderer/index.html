@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>USB Monitor</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1e1e1e; color: #d4d4d4; height: 100vh; display: flex; flex-direction: column; }
+    
+    .toolbar { background: #2d2d2d; padding: 10px; border-bottom: 1px solid #3e3e3e; display: flex; gap: 10px; align-items: center; }
+    .toolbar button { padding: 8px 16px; background: #0e639c; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    .toolbar button:hover { background: #1177bb; }
+    .toolbar button:disabled { background: #555; cursor: not-allowed; }
+    .toolbar button.stop { background: #c94c4c; }
+    .toolbar button.stop:hover { background: #d95c5c; }
+    
+    .search-box { flex: 1; padding: 8px; background: #3c3c3c; border: 1px solid #555; border-radius: 4px; color: white; }
+    
+    .main-container { display: flex; flex: 1; overflow: hidden; }
+    
+    .sidebar { width: 350px; background: #252526; border-right: 1px solid #3e3e3e; overflow-y: auto; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 12px; background: #2d2d2d; border-bottom: 1px solid #3e3e3e; font-weight: bold; }
+    .device-list { flex: 1; overflow-y: auto; }
+    .device-item { padding: 10px; border-bottom: 1px solid #3e3e3e; cursor: pointer; }
+    .device-item:hover { background: #2a2d2e; }
+    .device-item.selected { background: #094771; }
+    .device-name { font-weight: 500; }
+    .device-info { font-size: 12px; color: #888; margin-top: 4px; }
+    
+    .device-details { padding: 12px; border-top: 1px solid #3e3e3e; max-height: 400px; overflow-y: auto; }
+    .detail-section { margin-bottom: 16px; }
+    .detail-title { font-weight: bold; margin-bottom: 8px; color: #4ec9b0; }
+    .detail-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; }
+    .detail-label { color: #9cdcfe; }
+    .detail-value { color: #ce9178; }
+    
+    .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    
+    .filters { padding: 10px; background: #2d2d2d; border-bottom: 1px solid #3e3e3e; display: flex; gap: 10px; align-items: center; }
+    .filter-group { display: flex; align-items: center; gap: 6px; }
+    .filter-group label { font-size: 12px; }
+    .filter-group select { padding: 6px; background: #3c3c3c; border: 1px solid #555; border-radius: 4px; color: white; }
+    
+    .packet-list { flex: 1; overflow-y: auto; font-family: 'SF Mono', Menlo, monospace; font-size: 12px; }
+    .packet-header { display: grid; grid-template-columns: 60px 120px 100px 80px 80px 1fr; padding: 8px; background: #2d2d2d; border-bottom: 1px solid #3e3e3e; font-weight: bold; position: sticky; top: 0; }
+    .packet-row { display: grid; grid-template-columns: 60px 120px 100px 80px 80px 1fr; padding: 6px 8px; border-bottom: 1px solid #3e3e3e; cursor: pointer; }
+    .packet-row:hover { background: #2a2d2e; }
+    .packet-row.selected { background: #094771; }
+    .packet-row.error { background: rgba(201, 76, 76, 0.2); }
+    .packet-row.in { color: #b5cea8; }
+    .packet-row.out { color: #9cdcfe; }
+    
+    .packet-detail { height: 250px; background: #252526; border-top: 1px solid #3e3e3e; display: flex; flex-direction: column; overflow: hidden; }
+    .detail-tabs { display: flex; background: #2d2d2d; border-bottom: 1px solid #3e3e3e; }
+    .detail-tab { padding: 8px 16px; cursor: pointer; border-bottom: 2px solid transparent; }
+    .detail-tab:hover { background: #333; }
+    .detail-tab.active { border-bottom-color: #0e639c; color: #4ec9b0; }
+    .detail-content { flex: 1; overflow: auto; display: none; }
+    .detail-content.active { display: block; }
+    .hex-view { padding: 10px; font-family: 'SF Mono', Menlo, monospace; font-size: 11px; }
+    .hex-row { display: flex; margin-bottom: 2px; }
+    .hex-offset { color: #888; width: 80px; }
+    .hex-bytes { color: #d4d4d4; margin-right: 20px; letter-spacing: 2px; }
+    .hex-ascii { color: #9cdcfe; }
+    
+    .request-generator { padding: 15px; }
+    .request-row { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; }
+    .request-label { width: 120px; font-size: 12px; }
+    .request-input { flex: 1; padding: 8px; background: #3c3c3c; border: 1px solid #555; border-radius: 4px; color: white; font-family: monospace; }
+    .request-select { padding: 8px; background: #3c3c3c; border: 1px solid #555; border-radius: 4px; color: white; }
+    .send-btn { padding: 10px 20px; background: #0e639c; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    .send-btn:hover { background: #1177bb; }
+    .response-area { margin-top: 15px; padding: 10px; background: #1e1e1e; border-radius: 4px; font-family: monospace; font-size: 11px; min-height: 60px; }
+    
+    .timeline-view { padding: 15px; }
+    .timeline-controls { margin-bottom: 15px; display: flex; gap: 10px; align-items: center; }
+    .timeline-svg { width: 100%; height: 300px; background: #1e1e1e; border-radius: 4px; }
+    .timeline-host-line { stroke: #4ec9b0; stroke-width: 2; }
+    .timeline-device-line { stroke: #ce9178; stroke-width: 2; }
+    .timeline-arrow { fill: none; stroke-width: 1.5; }
+    .timeline-arrow.in { stroke: #4ec9b0; }
+    .timeline-arrow.out { stroke: #ce9178; }
+    .timeline-label { font-size: 10px; fill: #d4d4d4; }
+    
+    .export-panel { padding: 15px; }
+    .format-option { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .export-btn { padding: 10px 20px; background: #0e639c; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    .export-btn:hover { background: #1177bb; }
+    
+    .sidebar-tabs { display: flex; background: #2d2d2d; border-bottom: 1px solid #3e3e3e; }
+    .sidebar-tab { padding: 8px 12px; cursor: pointer; border-bottom: 2px solid transparent; font-size: 12px; }
+    .sidebar-tab:hover { background: #333; }
+    .sidebar-tab.active { border-bottom-color: #0e639c; color: #4ec9b0; }
+    .sidebar-content { display: none; flex-direction: column; height: 100%; }
+    .sidebar-content.active { display: flex; }
+    
+    .status-bar { background: #007acc; color: white; padding: 4px 12px; font-size: 12px; display: flex; justify-content: space-between; }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button id="refreshBtn">刷新设备</button>
+    <button id="startBtn">开始捕获</button>
+    <button id="stopBtn" class="stop" disabled>停止捕获</button>
+    <button id="saveBtn">保存PCAP</button>
+    <button id="loadBtn">加载PCAP</button>
+    <input type="text" id="searchInput" class="search-box" placeholder="搜索包内容...">
+  </div>
+  
+  <div class="main-container">
+    <div class="sidebar">
+      <div class="sidebar-tabs">
+        <div class="sidebar-tab active" data-tab="devices">设备</div>
+        <div class="sidebar-tab" data-tab="generator">请求生成器</div>
+        <div class="sidebar-tab" data-tab="export">导出</div>
+      </div>
+      <div class="sidebar-content active" id="tab-devices">
+        <div class="sidebar-header">USB 设备</div>
+        <div class="device-list" id="deviceList"></div>
+        <div class="device-details" id="deviceDetails"></div>
+      </div>
+      <div class="sidebar-content" id="tab-generator">
+        <div class="request-generator">
+          <div class="detail-title" style="margin-bottom: 15px;">控制请求生成器</div>
+          <div class="request-row">
+            <label class="request-label">预设请求:</label>
+            <select class="request-select" id="presetRequest">
+              <option value="custom">自定义</option>
+              <option value="get_descriptor">GET_DESCRIPTOR</option>
+              <option value="get_config">GET_CONFIGURATION</option>
+              <option value="set_config">SET_CONFIGURATION</option>
+              <option value="get_status">GET_STATUS</option>
+              <option value="set_address">SET_ADDRESS</option>
+              <option value="clear_feature">CLEAR_FEATURE</option>
+              <option value="set_feature">SET_FEATURE</option>
+            </select>
+          </div>
+          <div class="request-row">
+            <label class="request-label">方向:</label>
+            <select class="request-select" id="reqDirection">
+              <option value="0">OUT (Host→Device)</option>
+              <option value="128">IN (Device→Host)</option>
+            </select>
+          </div>
+          <div class="request-row">
+            <label class="request-label">类型:</label>
+            <select class="request-select" id="reqType">
+              <option value="0">Standard</option>
+              <option value="32">Class</option>
+              <option value="64">Vendor</option>
+            </select>
+          </div>
+          <div class="request-row">
+            <label class="request-label">接收者:</label>
+            <select class="request-select" id="reqRecipient">
+              <option value="0">Device</option>
+              <option value="1">Interface</option>
+              <option value="2">Endpoint</option>
+              <option value="3">Other</option>
+            </select>
+          </div>
+          <div class="request-row">
+            <label class="request-label">bRequest (hex):</label>
+            <input type="text" class="request-input" id="reqBRequest" value="0x06" placeholder="0x06">
+          </div>
+          <div class="request-row">
+            <label class="request-label">wValue (hex):</label>
+            <input type="text" class="request-input" id="reqWValue" value="0x0100" placeholder="0x0100">
+          </div>
+          <div class="request-row">
+            <label class="request-label">wIndex (hex):</label>
+            <input type="text" class="request-input" id="reqWIndex" value="0x0000" placeholder="0x0000">
+          </div>
+          <div class="request-row">
+            <label class="request-label">wLength:</label>
+            <input type="text" class="request-input" id="reqWLength" value="18" placeholder="18">
+          </div>
+          <div class="request-row">
+            <label class="request-label">数据 (hex):</label>
+            <input type="text" class="request-input" id="reqData" placeholder="可选，空格分隔">
+          </div>
+          <div class="request-row">
+            <label class="request-label">目标设备:</label>
+            <select class="request-select" id="targetDevice">
+              <option value="">选择设备</option>
+            </select>
+          </div>
+          <button class="send-btn" id="sendRequestBtn">发送请求</button>
+          <div class="response-area" id="responseArea">响应显示区域...</div>
+        </div>
+      </div>
+      <div class="sidebar-content" id="tab-export">
+        <div class="export-panel">
+          <div class="detail-title" style="margin-bottom: 15px;">导出选项</div>
+          <div class="format-option">
+            <input type="radio" id="fmtPcap" name="exportFormat" value="pcap" checked>
+            <label for="fmtPcap">PCAP (传统格式)</label>
+          </div>
+          <div class="format-option">
+            <input type="radio" id="fmtPcapng" name="exportFormat" value="pcapng">
+            <label for="fmtPcapng">PCAPNG (Wireshark 推荐)</label>
+          </div>
+          <div class="format-option">
+            <input type="radio" id="fmtUsbPcap" name="exportFormat" value="usbpcap">
+            <label for="fmtUsbPcap">USBPcap (Windows)</label>
+          </div>
+          <div class="format-option">
+            <input type="radio" id="fmtJson" name="exportFormat" value="json">
+            <label for="fmtJson">JSON (文本格式)</label>
+          </div>
+          <div class="format-option">
+            <input type="checkbox" id="includeSetup">
+            <label for="includeSetup">包含 Setup 包解析</label>
+          </div>
+          <button class="export-btn" id="exportBtn">导出文件</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="content">
+      <div class="filters">
+        <div class="filter-group">
+          <label>方向:</label>
+          <select id="dirFilter">
+            <option value="all">全部</option>
+            <option value="in">IN</option>
+            <option value="out">OUT</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>类型:</label>
+          <select id="typeFilter">
+            <option value="all">全部</option>
+            <option value="URB_SUBMIT">SUBMIT</option>
+            <option value="URB_COMPLETE">COMPLETE</option>
+            <option value="URB_ERROR">ERROR</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>端点:</label>
+          <select id="epFilter">
+            <option value="all">全部</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="packet-list">
+        <div class="packet-header">
+          <div>#</div>
+          <div>时间</div>
+          <div>类型</div>
+          <div>方向</div>
+          <div>端点</div>
+          <div>长度</div>
+        </div>
+        <div id="packetList"></div>
+      </div>
+      
+      <div class="packet-detail">
+        <div class="detail-tabs">
+          <div class="detail-tab active" data-detail="hex">十六进制</div>
+          <div class="detail-tab" data-detail="timeline">时序图</div>
+        </div>
+        <div class="detail-content active" id="detail-hex">
+          <div class="hex-view" id="hexView">选择一个数据包查看详情</div>
+        </div>
+        <div class="detail-content" id="detail-timeline">
+          <div class="timeline-view">
+            <div class="timeline-controls">
+              <label>显示数量:</label>
+              <select class="request-select" id="timelineCount">
+                <option value="20">最近 20 个</option>
+                <option value="50">最近 50 个</option>
+                <option value="100" selected>最近 100 个</option>
+                <option value="200">最近 200 个</option>
+              </select>
+              <button class="send-btn" style="padding: 6px 12px; font-size: 12px;" id="refreshTimeline">刷新</button>
+            </div>
+            <svg class="timeline-svg" id="timelineSvg"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="status-bar">
+    <span id="statusText">就绪</span>
+    <span id="packetCount">0 个数据包</span>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

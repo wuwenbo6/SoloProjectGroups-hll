@@ -1,0 +1,37 @@
+[
+    {
+        "name": "produceCollection",
+        "policy": "OR('Org1MSP.member', 'Org2MSP.member')",
+        "requiredPeerCount": 0,
+        "maxPeerCount": 3,
+        "blockToLive": 1000000,
+        "memberOnlyRead": true
+    },
+    {
+        "name": "priceCollection",
+        "policy": "OR('Org1MSP.member', 'Org2MSP.member')",
+        "requiredPeerCount": 1,
+        "maxPeerCount": 2,
+        "blockToLive": 1000000,
+        "memberOnlyRead": true,
+        "memberOnlyWrite": true
+    },
+    {
+        "name": "org1PriceCollection",
+        "policy": "OR('Org1MSP.member')",
+        "requiredPeerCount": 1,
+        "maxPeerCount": 1,
+        "blockToLive": 1000000,
+        "memberOnlyRead": true,
+        "memberOnlyWrite": true
+    },
+    {
+        "name": "org2PriceCollection",
+        "policy": "OR('Org2MSP.member')",
+        "requiredPeerCount": 1,
+        "maxPeerCount": 1,
+        "blockToLive": 1000000,
+        "memberOnlyRead": true,
+        "memberOnlyWrite": true
+    }
+]
