@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>鸟类叫声识别系统</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🐦 鸟类叫声识别系统</h1>
+            <p class="subtitle">上传录音，自动识别50种鸟类</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="single">单文件识别</button>
+            <button class="tab-btn" data-tab="batch">批量识别</button>
+            <button class="tab-btn" data-tab="history">识别记录</button>
+            <button class="tab-btn" data-tab="migration">迁徙时间线</button>
+            <button class="tab-btn" data-tab="stats">统计数据</button>
+        </div>
+
+        <div id="single" class="tab-content active">
+            <div class="upload-section">
+                <div class="drop-zone" id="dropZone">
+                    <div class="drop-zone-content">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p>拖拽音频文件到这里</p>
+                        <p class="hint">或点击选择文件 (WAV, MP3, FLAC, OGG, M4A)</p>
+                        <input type="file" id="fileInput" accept=".wav,.mp3,.flac,.ogg,.m4a" hidden>
+                    </div>
+                </div>
+                <button id="predictBtn" class="primary-btn" disabled>开始识别</button>
+            </div>
+
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+                <p>正在分析音频...</p>
+            </div>
+
+            <div id="result" class="result-section hidden">
+                <h2>识别结果</h2>
+                <div class="result-card">
+                    <div class="top-prediction">
+                        <div class="species-name" id="topSpecies"></div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="confidenceFill"></div>
+                            <span class="confidence-text" id="confidenceText"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="processing-stats" id="processingStats">
+                    <h3>音频处理统计</h3>
+                    <div class="stats-grid" id="statsGrid"></div>
+                </div>
+
+                <div class="spectrogram-section">
+                    <h3>频谱图</h3>
+                    <img id="spectrogram" alt="Spectrogram" class="spectrogram-img">
+                </div>
+
+                <div class="similar-species">
+                    <h3>相似物种</h3>
+                    <div id="similarSpecies" class="species-list"></div>
+                </div>
+
+                <div class="acoustic-indices">
+                    <h3>声学指数 & 生物多样性</h3>
+                    <div class="biodiversity-score" id="biodiversityScore"></div>
+                    <div class="indices-grid" id="acousticIndicesGrid"></div>
+                </div>
+
+                <div class="migration-analysis">
+                    <h3>迁徙热点分析</h3>
+                    <div id="migrationAnalysis"></div>
+                </div>
+
+                <div class="export-section">
+                    <h3>导出数据</h3>
+                    <button class="secondary-btn" id="exportEbirdCsv">导出 eBird CSV</button>
+                    <button class="secondary-btn" id="exportEbirdXml">导出 eBird XML</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="migration" class="tab-content">
+            <h2>迁徙时间线</h2>
+            <div class="migration-controls">
+                <select id="seasonFilter">
+                    <option value="all">全部季节</option>
+                    <option value="spring">春季</option>
+                    <option value="summer">夏季</option>
+                    <option value="fall">秋季</option>
+                    <option value="winter">冬季</option>
+                </select>
+                <button class="primary-btn" id="refreshTimeline">刷新</button>
+            </div>
+            <div id="timelineContainer" class="timeline-container"></div>
+        </div>
+
+        <div id="batch" class="tab-content">
+            <div class="upload-section">
+                <div class="drop-zone" id="batchDropZone">
+                    <div class="drop-zone-content">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p>拖拽多个音频文件到这里</p>
+                        <p class="hint">支持批量上传识别</p>
+                        <input type="file" id="batchFileInput" accept=".wav,.mp3,.flac,.ogg,.m4a" multiple hidden>
+                    </div>
+                </div>
+                <div id="fileList" class="file-list"></div>
+                <button id="batchPredictBtn" class="primary-btn" disabled>批量识别</button>
+            </div>
+
+            <div id="batchLoading" class="loading hidden">
+                <div class="spinner"></div>
+                <p>正在批量处理...</p>
+                <p id="batchProgress"></p>
+            </div>
+
+            <div id="batchResult" class="batch-result hidden">
+                <h2>批量识别结果</h2>
+                <div id="batchResultsList" class="batch-results-list"></div>
+            </div>
+        </div>
+
+        <div id="history" class="tab-content">
+            <h2>识别记录</h2>
+            <div id="historyList" class="history-list"></div>
+            <div id="pagination" class="pagination"></div>
+        </div>
+
+        <div id="stats" class="tab-content">
+            <h2>统计数据</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalRecordings">0</div>
+                    <div class="stat-label">总录音数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalPredictions">0</div>
+                    <div class="stat-label">总预测数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">50</div>
+                    <div class="stat-label">支持物种</div>
+                </div>
+            </div>
+            <div class="species-stats">
+                <h3>物种分布</h3>
+                <div id="speciesDistribution" class="species-distribution"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

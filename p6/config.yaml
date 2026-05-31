@@ -1,0 +1,18 @@
+server:
+  http_port: 8080
+  modbus_port: 502
+
+database:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: postgres
+  dbname: leakage_monitor
+  sslmode: disable
+
+pollution:
+  level1_threshold: 1.0
+  level2_threshold: 3.0
+  level3_threshold: 5.0
+  level4_threshold: 8.0
+  frequency_window_minutes: 60

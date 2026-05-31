@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测向定位系统 - 高级版</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 420px;
+            background: #16213e;
+            padding: 15px;
+            overflow-y: auto;
+            border-right: 2px solid #0f3460;
+        }
+        .sidebar h1 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #e94560;
+            text-align: center;
+        }
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .tab {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            background: #0f3460;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            background: #e94560;
+            color: #fff;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .section {
+            background: #0f3460;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        .section h2 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #00d9ff;
+            border-bottom: 1px solid #1a1a2e;
+            padding-bottom: 6px;
+        }
+        .station {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+        .station-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .station-name {
+            font-weight: bold;
+            color: #4ade80;
+            font-size: 13px;
+        }
+        .station-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .btn-small {
+            padding: 3px 6px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .btn-edit {
+            background: #fbbf24;
+            color: #000;
+        }
+        .btn-delete {
+            background: #ef4444;
+            color: #fff;
+        }
+        label {
+            display: block;
+            margin: 6px 0 3px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        input[type="number"], input[type="text"], select {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 13px;
+        }
+        .btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin-top: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #e94560, #ff6b6b);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(233, 69, 96, 0.4);
+        }
+        .btn-secondary {
+            background: #00d9ff;
+            color: #000;
+        }
+        .btn-success {
+            background: #4ade80;
+            color: #000;
+        }
+        .btn-warning {
+            background: #fbbf24;
+            color: #000;
+        }
+        .result-info {
+            font-size: 12px;
+            line-height: 1.7;
+        }
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #1a1a2e;
+        }
+        .result-value {
+            color: #4ade80;
+            font-weight: bold;
+        }
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        .history-item {
+            background: #1a1a2e;
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .history-item:hover {
+            background: #2d3748;
+        }
+        .history-time {
+            font-size: 11px;
+            color: #94a3b8;
+        }
+        .history-coords {
+            font-size: 12px;
+            color: #4ade80;
+        }
+        .probability-high { color: #4ade80; }
+        .probability-medium { color: #fbbf24; }
+        .probability-low { color: #ef4444; }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .slider-container input[type="range"] {
+            flex: 1;
+        }
+        .slider-value {
+            min-width: 50px;
+            text-align: right;
+            color: #00d9ff;
+            font-weight: bold;
+        }
+        .source-card {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid #e94560;
+        }
+        .source-title {
+            color: #e94560;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+        .question-box {
+            background: linear-gradient(135deg, #1a1a2e, #0f3460);
+            border: 2px solid #fbbf24;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 12px;
+        }
+        .question-text {
+            color: #fbbf24;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .hint-text {
+            color: #94a3b8;
+            font-size: 12px;
+            font-style: italic;
+        }
+        .score-display {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+        .score-correct {
+            background: rgba(74, 222, 128, 0.2);
+            border: 2px solid #4ade80;
+        }
+        .score-wrong {
+            background: rgba(239, 68, 68, 0.2);
+            border: 2px solid #ef4444;
+        }
+        .path-controls {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+        }
+        .path-controls .btn {
+            flex: 1;
+            padding: 6px;
+            margin: 0;
+        }
+        .mode-badge {
+            position: absolute;
+            top: 10px;
+            left: 50px;
+            z-index: 1000;
+            background: #e94560;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h1>📡 测向定位系统</h1>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('basic')">基础定位</button>
+            <button class="tab" onclick="switchTab('moving')">移动源</button>
+            <button class="tab" onclick="switchTab('multisource')">多源定位</button>
+            <button class="tab" onclick="switchTab('training')">训练题</button>
+        </div>
+
+        <div id="tab-basic" class="tab-content active">
+            <div class="section">
+                <h2>⚙️ 参数设置</h2>
+                <label>发射功率 (dBm):</label>
+                <input type="number" id="power" value="50" min="0" max="100">
+                
+                <label>地形遮挡因子 (0-3):</label>
+                <input type="number" id="terrainFactor" value="0" min="0" max="3" step="0.1">
+            </div>
+
+            <div class="section">
+                <h2>📍 测向站 <button class="btn-small btn-success" onclick="addStation()" style="float: right;">+ 添加</button></h2>
+                <div id="stationsList"></div>
+            </div>
+
+            <button class="btn btn-primary" onclick="calculatePosition()">🔍 计算发射源位置</button>
+
+            <div class="section" id="resultSection" style="display: none;">
+                <h2>📊 定位结果</h2>
+                <div class="result-info" id="resultInfo"></div>
+                <button class="btn btn-secondary" onclick="exportKML()" id="exportBtn" style="display: none;">📥 导出 KML</button>
+            </div>
+
+            <div class="section">
+                <h2>📜 历史记录</h2>
+                <div id="historyList"></div>
+            </div>
+        </div>
+
+        <div id="tab-moving" class="tab-content">
+            <div class="section">
+                <h2>🚀 移动发射源设置</h2>
+                <label>初始纬度:</label>
+                <input type="number" id="moveStartLat" value="35.0" step="0.0001">
+                
+                <label>初始经度:</label>
+                <input type="number" id="moveStartLng" value="115.0" step="0.0001">
+                
+                <label>速度 (km/h):</label>
+                <div class="slider-container">
+                    <input type="range" id="moveSpeed" min="10" max="500" value="60" oninput="updateSliderValue('moveSpeed', 'speedValue')">
+                    <span class="slider-value" id="speedValue">60</span>
+                </div>
+                
+                <label>移动方向 (°):</label>
+                <input type="number" id="moveDirection" value="90" min="0" max="360">
+                
+                <label>持续时间 (秒):</label>
+                <input type="number" id="moveDuration" value="120" min="10" max="600">
+                
+                <label>采样间隔 (秒):</label>
+                <input type="number" id="moveInterval" value="5" min="1" max="30">
+            </div>
+
+            <div class="section">
+                <h2>📡 测向站配置</h2>
+                <label>测量误差 (°):</label>
+                <input type="number" id="moveError" value="3" min="0" max="15" step="0.5">
+            </div>
+
+            <button class="btn btn-primary" onclick="simulateMovingEmitter()">▶️ 开始模拟</button>
+            
+            <div class="path-controls">
+                <button class="btn btn-secondary" onclick="playPath()">▶️ 播放</button>
+                <button class="btn btn-warning" onclick="pausePath()">⏸️ 暂停</button>
+                <button class="btn btn-danger" onclick="stopPath()" style="background: #ef4444; color: white;">⏹️ 停止</button>
+            </div>
+
+            <div class="section" id="movingResultSection" style="display: none;">
+                <h2>📊 轨迹信息</h2>
+                <div class="result-info" id="movingResultInfo"></div>
+            </div>
+        </div>
+
+        <div id="tab-multisource" class="tab-content">
+            <div class="section">
+                <h2>🔢 多源定位设置</h2>
+                <label>发射源数量:</label>
+                <select id="numSources">
+                    <option value="2">2 个</option>
+                    <option value="3">3 个</option>
+                    <option value="4">4 个</option>
+                </select>
+            </div>
+
+            <div class="section">
+                <h2>📍 测向站数据 <button class="btn-small btn-success" onclick="addMultiSourceStation()" style="float: right;">+ 添加</button></h2>
+                <div id="multiSourceStationsList"></div>
+            </div>
+
+            <button class="btn btn-primary" onclick="calculateMultiSource()">🔍 盲源分离定位</button>
+
+            <div class="section" id="multiSourceResultSection" style="display: none;">
+                <h2>📊 分离结果</h2>
+                <div id="multiSourceResults"></div>
+            </div>
+        </div>
+
+        <div id="tab-training" class="tab-content">
+            <div class="section">
+                <h2>📚 训练模式</h2>
+                <label>难度等级:</label>
+                <select id="difficulty">
+                    <option value="easy">简单 (3测站, 1源)</option>
+                    <option value="medium">中等 (4测站, 1源)</option>
+                    <option value="hard">困难 (5测站, 2源)</option>
+                    <option value="expert">专家 (6测站, 2源+遮挡)</option>
+                </select>
+            </div>
+
+            <button class="btn btn-primary" onclick="generateQuestion()">🎲 生成新题目</button>
+
+            <div class="section" id="questionSection" style="display: none;">
+                <div class="question-box">
+                    <div class="question-text" id="questionText"></div>
+                    <div class="hint-text" id="hintText"></div>
+                </div>
+                
+                <h2>📍 测向站数据</h2>
+                <div id="questionStationsList"></div>
+            </div>
+
+            <div class="section" id="answerSection" style="display: none;">
+                <h2>✍️ 作答区域</h2>
+                <div id="answerInputs"></div>
+                <button class="btn btn-success" onclick="submitAnswer()">✅ 提交答案</button>
+            </div>
+
+            <div class="section" id="scoreSection" style="display: none;">
+                <div class="score-display" id="scoreDisplay"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="map-container">
+        <div id="map"></div>
+        <div class="mode-badge" id="modeBadge">基础定位模式</div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map;
+        let stations = [];
+        let multiSourceStations = [];
+        let stationMarkers = [];
+        let bearingLines = [];
+        let emitterMarker = null;
+        let ellipsePolygons = [];
+        let currentResultId = null;
+        let movingPath = [];
+        let pathMarkers = [];
+        let pathPolyline = null;
+        let playbackInterval = null;
+        let currentPlaybackIndex = 0;
+        let currentQuestion = null;
+        let currentAnswerKey = null;
+
+        const defaultStations = [
+            { id: 'A', lat: 39.9042, lng: 116.4074, azimuth: 180, error: 2 },
+            { id: 'B', lat: 31.2304, lng: 121.4737, azimuth: 270, error: 2 },
+            { id: 'C', lat: 34.3416, lng: 108.9398, azimuth: 90, error: 3 }
+        ];
+
+        function initMap() {
+            map = L.map('map').setView([35, 115], 5);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            stations = [...defaultStations];
+            multiSourceStations = [...defaultStations];
+            renderStations();
+            renderMultiSourceStations();
+            updateMap();
+            loadHistory();
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            
+            const modeNames = {
+                'basic': '基础定位模式',
+                'moving': '移动发射源模式',
+                'multisource': '多源定位模式',
+                'training': '训练题模式'
+            };
+            document.getElementById('modeBadge').textContent = modeNames[tabName];
+            
+            clearMapLayers();
+            
+            if (tabName === 'basic') {
+                renderStations();
+                updateMap();
+            } else if (tabName === 'multisource') {
+                renderMultiSourceStations();
+                updateMultiSourceMap();
+            } else if (tabName === 'moving') {
+                renderStations();
+                updateMap();
+            }
+        }
+
+        function clearMapLayers() {
+            stationMarkers.forEach(m => map.removeLayer(m));
+            bearingLines.forEach(l => map.removeLayer(l));
+            if (emitterMarker) map.removeLayer(emitterMarker);
+            ellipsePolygons.forEach(e => map.removeLayer(e));
+            pathMarkers.forEach(m => map.removeLayer(m));
+            if (pathPolyline) map.removeLayer(pathPolyline);
+            stationMarkers = [];
+            bearingLines = [];
+            ellipsePolygons = [];
+            pathMarkers = [];
+        }
+
+        function renderStations() {
+            const container = document.getElementById('stationsList');
+            container.innerHTML = '';
+            
+            stations.forEach((station, index) => {
+                const div = document.createElement('div');
+                div.className = 'station';
+                div.innerHTML = `
+                    <div class="station-header">
+                        <span class="station-name">测向站 ${station.id}</span>
+                        <div class="station-actions">
+                            <button class="btn-small btn-delete" onclick="removeStation(${index})">🗑️</button>
+                        </div>
+                    </div>
+                    <label>纬度:</label>
+                    <input type="number" step="0.0001" value="${station.lat}" 
+                           onchange="updateStation(${index}, 'lat', this.value)">
+                    <label>经度:</label>
+                    <input type="number" step="0.0001" value="${station.lng}"
+                           onchange="updateStation(${index}, 'lng', this.value)">
+                    <label>方位角 (°):</label>
+                    <input type="number" step="0.1" value="${station.azimuth}"
+                           onchange="updateStation(${index}, 'azimuth', this.value)">
+                    <label>误差 (°):</label>
+                    <input type="number" step="0.1" value="${station.error}"
+                           onchange="updateStation(${index}, 'error', this.value)">
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function addStation() {
+            const center = map.getCenter();
+            stations.push({
+                id: String.fromCharCode(65 + stations.length),
+                lat: center.lat + (Math.random() - 0.5) * 5,
+                lng: center.lng + (Math.random() - 0.5) * 5,
+                azimuth: Math.random() * 360,
+                error: 2
+            });
+            renderStations();
+            updateMap();
+        }
+
+        function removeStation(index) {
+            if (stations.length <= 2) {
+                alert('至少需要2个测向站');
+                return;
+            }
+            stations.splice(index, 1);
+            renderStations();
+            updateMap();
+        }
+
+        function updateStation(index, field, value) {
+            stations[index][field] = parseFloat(value);
+            updateMap();
+        }
+
+        function updateMap() {
+            clearMapLayers();
+
+            stations.forEach(station => {
+                const marker = L.marker([station.lat, station.lng], {
+                    icon: L.divIcon({
+                        className: 'custom-marker',
+                        html: `<div style="background: #4ade80; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">${station.id}</div>`,
+                        iconSize: [28, 28],
+                        iconAnchor: [14, 14]
+                    })
+                }).addTo(map);
+                marker.bindPopup(`<b>测向站 ${station.id}</b><br>方位角: ${station.azimuth}°<br>误差: ±${station.error}°`);
+                stationMarkers.push(marker);
+
+                const lineEnd = destinationPointLocal(station.lat, station.lng, station.azimuth, 500000);
+                const line = L.polyline([
+                    [station.lat, station.lng], [lineEnd.lat, lineEnd.lng]], {
+                    color: '#4ade80',
+                    weight: 2,
+                    dashArray: '8, 8',
+                    opacity: 0.8
+                }).addTo(map);
+                bearingLines.push(line);
+            });
+        }
+
+        function destinationPointLocal(lat, lng, azimuth, distance) {
+            const R = 6371000;
+            const rad = d => d * Math.PI / 180;
+            const deg = r => r * 180 / Math.PI;
+            
+            const φ1 = rad(lat);
+            const λ1 = rad(lng);
+            const θ = rad(azimuth);
+            const δ = distance / R;
+
+            const φ2 = Math.asin(Math.sin(φ1) * Math.cos(δ) +
+                Math.cos(φ1) * Math.sin(δ) * Math.cos(θ));
+            const λ2 = λ1 + Math.atan2(Math.sin(θ) * Math.sin(δ) * Math.cos(φ1),
+                Math.cos(δ) - Math.sin(φ1) * Math.sin(φ2));
+
+            return { lat: deg(φ2), lng: deg(λ2) };
+        }
+
+        function isSignalReachableLocal(stationLat, stationLng, emitterLat, emitterLng, terrainFactor) {
+            const dist = Math.sqrt(
+                Math.pow((stationLat - emitterLat) * 111320, 2) +
+                Math.pow((stationLng - emitterLng) * 111320 * Math.cos(stationLat * Math.PI / 180), 2)
+            );
+            const baseRange = 1000000;
+            const maxRange = baseRange * Math.exp(-terrainFactor * 0.25) - terrainFactor * 50000;
+            return dist <= Math.max(maxRange, 100000);
+        }
+
+        async function calculatePosition() {
+            const power = parseFloat(document.getElementById('power').value);
+            const terrainFactor = parseFloat(document.getElementById('terrainFactor').value);
+
+            const response = await fetch('/api/triangulate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stations, power, terrainFactor })
+            });
+
+            const result = await response.json();
+            displayResult(result);
+            displayResultOnMap(result);
+            loadHistory();
+        }
+
+        function displayResult(result) {
+            currentResultId = result.id;
+            document.getElementById('resultSection').style.display = 'block';
+            document.getElementById('exportBtn').style.display = 'block';
+
+            const probClass = result.probability > 70 ? 'probability-high' : 
+                              result.probability > 40 ? 'probability-medium' : 'probability-low';
+
+            const terrainFactor = parseFloat(document.getElementById('terrainFactor').value);
+
+            document.getElementById('resultInfo').innerHTML = `
+                <div class="result-item">
+                    <span>发射源纬度:</span>
+                    <span class="result-value">${result.emitterLat.toFixed(6)}°</span>
+                </div>
+                <div class="result-item">
+                    <span>发射源经度:</span>
+                    <span class="result-value">${result.emitterLng.toFixed(6)}°</span>
+                </div>
+                <div class="result-item">
+                    <span>定位概率:</span>
+                    <span class="result-value ${probClass}">${result.probability.toFixed(1)}%</span>
+                </div>
+                <div class="result-item">
+                    <span>椭圆长轴:</span>
+                    <span class="result-value">${(result.ellipseMajor / 1000).toFixed(2)} km</span>
+                </div>
+                <div class="result-item">
+                    <span>椭圆短轴:</span>
+                    <span class="result-value">${(result.ellipseMinor / 1000).toFixed(2)} km</span>
+                </div>
+                <div class="result-item">
+                    <span>椭圆方向:</span>
+                    <span class="result-value">${result.ellipseOrientation.toFixed(1)}°</span>
+                </div>
+            `;
+
+            result.stations.forEach((station, i) => {
+                const reachable = isSignalReachableLocal(station.lat, station.lng, result.emitterLat, result.emitterLng, terrainFactor);
+                const reachableColor = reachable ? '#4ade80' : '#ef4444';
+                const reachableText = reachable ? '✓ 可达' : '✗ 遮挡';
+                
+                document.getElementById('resultInfo').innerHTML += `
+                    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #0f3460;">
+                        <strong style="color: #00d9ff;">测向站 ${station.id}</strong>
+                        <span style="color: ${reachableColor}; float: right; font-size: 11px;">${reachableText}</span>
+                        <div class="result-item">
+                            <span>距离:</span>
+                            <span class="result-value">${(station.distance / 1000).toFixed(2)} km</span>
+                        </div>
+                        <div class="result-item">
+                            <span>接收功率:</span>
+                            <span class="result-value">${station.receivedPower.toFixed(2)} dBm</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function displayResultOnMap(result) {
+            if (emitterMarker) map.removeLayer(emitterMarker);
+            ellipsePolygons.forEach(e => map.removeLayer(e));
+            ellipsePolygons = [];
+
+            emitterMarker = L.marker([result.emitterLat, result.emitterLng], {
+                icon: L.divIcon({
+                    className: 'emitter-marker',
+                    html: `<div style="background: #e94560; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 0 15px rgba(233, 69, 96, 0.8);">📡</div>`,
+                    iconSize: [36, 36],
+                    iconAnchor: [18, 18]
+                })
+            }).addTo(map);
+            emitterMarker.bindPopup(`<b>发射源</b><br>概率: ${result.probability.toFixed(1)}%`);
+
+            const ellipsePolygon = L.polygon(result.ellipsePoints, {
+                color: '#e94560',
+                fillColor: '#e94560',
+                fillOpacity: 0.2,
+                weight: 2
+            }).addTo(map);
+            ellipsePolygons.push(ellipsePolygon);
+
+            map.fitBounds(ellipsePolygon.getBounds().pad(0.5));
+        }
+
+        async function loadHistory() {
+            const response = await fetch('/api/history?limit=20');
+            const history = await response.json();
+            
+            const container = document.getElementById('historyList');
+            container.innerHTML = '';
+
+            history.forEach(record => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.onclick = () => loadHistoryRecord(record.id);
+                
+                const time = new Date(record.timestamp).toLocaleString('zh-CN');
+                const probClass = record.probability > 70 ? 'probability-high' : 
+                                  record.probability > 40 ? 'probability-medium' : 'probability-low';
+                
+                div.innerHTML = `
+                    <div class="history-time">#${record.id} - ${time}</div>
+                    <div class="history-coords">${record.emitter_lat.toFixed(4)}, ${record.emitter_lng.toFixed(4)}</div>
+                    <div class="${probClass}" style="font-size: 11px;">概率: ${record.probability.toFixed(1)}%</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function loadHistoryRecord(id) {
+            const response = await fetch(`/api/history/${id}`);
+            const record = await response.json();
+            
+            stations = record.stations.map(s => ({
+                id: s.station_id,
+                lat: s.station_lat,
+                lng: s.station_lng,
+                azimuth: s.azimuth,
+                error: s.error
+            }));
+            
+            renderStations();
+            updateMap();
+            
+            const result = {
+                ...record,
+                emitterLat: record.emitter_lat,
+                emitterLng: record.emitter_lng,
+                ellipseMajor: record.ellipse_major,
+                ellipseMinor: record.ellipse_minor,
+                ellipseOrientation: record.ellipse_orientation
+            };
+            
+            const ellipsePoints = [];
+            for (let i = 0; i < 36; i++) {
+                const angle = (i / 36) * 2 * Math.PI;
+                const x = result.ellipseMajor * Math.cos(angle);
+                const y = result.ellipseMinor * Math.sin(angle);
+                
+                const radOrientation = result.ellipseOrientation * Math.PI / 180;
+                const rotX = x * Math.cos(radOrientation) - y * Math.sin(radOrientation);
+                const rotY = x * Math.sin(radOrientation) + y * Math.cos(radOrientation);
+
+                const dist = Math.sqrt(rotX * rotX + rotY * rotY);
+                const bearing = (Math.atan2(rotX, rotY) * 180 / Math.PI + 360) % 360;
+
+                const point = destinationPointLocal(result.emitterLat, result.emitterLng, bearing, dist);
+                ellipsePoints.push([point.lat, point.lng]);
+            }
+            result.ellipsePoints = ellipsePoints;
+            
+            displayResult(result);
+            displayResultOnMap(result);
+        }
+
+        function exportKML() {
+            if (currentResultId) {
+                window.open(`/api/kml/${currentResultId}`);
+            }
+        }
+
+        function updateSliderValue(sliderId, valueId) {
+            document.getElementById(valueId).textContent = document.getElementById(sliderId).value;
+        }
+
+        async function simulateMovingEmitter() {
+            const startLat = parseFloat(document.getElementById('moveStartLat').value);
+            const startLng = parseFloat(document.getElementById('moveStartLng').value);
+            const speed = parseFloat(document.getElementById('moveSpeed').value);
+            const direction = parseFloat(document.getElementById('moveDirection').value);
+            const duration = parseFloat(document.getElementById('moveDuration').value);
+            const interval = parseFloat(document.getElementById('moveInterval').value);
+            const measurementError = parseFloat(document.getElementById('moveError').value);
+
+            const response = await fetch('/api/moving-emitter', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    startLat, startLng, speed, direction, duration, interval,
+                    stations, measurementError
+                })
+            });
+
+            const result = await response.json();
+            movingPath = result.path;
+            displayMovingPath(result);
+        }
+
+        function displayMovingPath(result) {
+            clearMapLayers();
+            updateMap();
+            
+            const pathCoords = result.path.map(p => [p.lat, p.lng]);
+            pathPolyline = L.polyline(pathCoords, {
+                color: '#fbbf24',
+                weight: 3,
+                opacity: 0.8
+            }).addTo(map);
+
+            const startMarker = L.marker(pathCoords[0], {
+                icon: L.divIcon({
+                    html: `<div style="background: #4ade80; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white;">起</div>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                })
+            }).addTo(map);
+            
+            const endMarker = L.marker(pathCoords[pathCoords.length - 1], {
+                icon: L.divIcon({
+                    html: `<div style="background: #ef4444; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white;">终</div>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                })
+            }).addTo(map);
+
+            pathMarkers.push(startMarker, endMarker);
+
+            map.fitBounds(pathPolyline.getBounds().pad(0.3));
+
+            document.getElementById('movingResultSection').style.display = 'block';
+            document.getElementById('movingResultInfo').innerHTML = `
+                <div class="result-item">
+                    <span>轨迹点数:</span>
+                    <span class="result-value">${result.path.length}</span>
+                </div>
+                <div class="result-item">
+                    <span>总时长:</span>
+                    <span class="result-value">${result.duration} 秒</span>
+                </div>
+                <div class="result-item">
+                    <span>移动速度:</span>
+                    <span class="result-value">${result.speed} km/h</span>
+                </div>
+                <div class="result-item">
+                    <span>总距离:</span>
+                    <span class="result-value">${(result.speed * result.duration / 3600).toFixed(2)} km</span>
+                </div>
+            `;
+        }
+
+        function playPath() {
+            if (movingPath.length === 0) return;
+            
+            stopPath();
+            currentPlaybackIndex = 0;
+            
+            playbackInterval = setInterval(() => {
+                if (currentPlaybackIndex >= movingPath.length) {
+                    stopPath();
+                    return;
+                }
+                
+                const point = movingPath[currentPlaybackIndex];
+                
+                if (emitterMarker) map.removeLayer(emitterMarker);
+                emitterMarker = L.marker([point.lat, point.lng], {
+                    icon: L.divIcon({
+                        html: `<div style="background: #e94560; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(233, 69, 96, 0.8);">🚀</div>`,
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 15]
+                    })
+                }).addTo(map);
+                
+                currentPlaybackIndex++;
+            }, 500);
+        }
+
+        function pausePath() {
+            if (playbackInterval) {
+                clearInterval(playbackInterval);
+                playbackInterval = null;
+            }
+        }
+
+        function stopPath() {
+            if (playbackInterval) {
+                clearInterval(playbackInterval);
+                playbackInterval = null;
+            }
+            currentPlaybackIndex = 0;
+            if (emitterMarker) {
+                map.removeLayer(emitterMarker);
+                emitterMarker = null;
+            }
+        }
+
+        function renderMultiSourceStations() {
+            const container = document.getElementById('multiSourceStationsList');
+            container.innerHTML = '';
+            
+            multiSourceStations.forEach((station, index) => {
+                const div = document.createElement('div');
+                div.className = 'station';
+                div.innerHTML = `
+                    <div class="station-header">
+                        <span class="station-name">测向站 ${station.id}</span>
+                    </div>
+                    <label>方位角 (°):</label>
+                    <input type="number" step="0.1" value="${station.azimuth}"
+                           onchange="updateMultiSourceStation(${index}, 'azimuth', this.value)">
+                    <label>误差 (°):</label>
+                    <input type="number" step="0.1" value="${station.error}"
+                           onchange="updateMultiSourceStation(${index}, 'error', this.value)">
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function addMultiSourceStation() {
+            multiSourceStations.push({
+                id: String.fromCharCode(65 + multiSourceStations.length),
+                lat: 30 + Math.random() * 10,
+                lng: 110 + Math.random() * 10,
+                azimuth: Math.random() * 360,
+                error: 3
+            });
+            renderMultiSourceStations();
+            updateMultiSourceMap();
+        }
+
+        function updateMultiSourceStation(index, field, value) {
+            multiSourceStations[index][field] = parseFloat(value);
+            updateMultiSourceMap();
+        }
+
+        function updateMultiSourceMap() {
+            clearMapLayers();
+
+            multiSourceStations.forEach(station => {
+                const marker = L.marker([station.lat, station.lng], {
+                    icon: L.divIcon({
+                        html: `<div style="background: #4ade80; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; border: 3px solid white;">${station.id}</div>`,
+                        iconSize: [28, 28],
+                        iconAnchor: [14, 14]
+                    })
+                }).addTo(map);
+                stationMarkers.push(marker);
+
+                const lineEnd = destinationPointLocal(station.lat, station.lng, station.azimuth, 500000);
+                const line = L.polyline([
+                    [station.lat, station.lng], [lineEnd.lat, lineEnd.lng]], {
+                    color: '#4ade80',
+                    weight: 2,
+                    dashArray: '8, 8',
+                    opacity: 0.6
+                }).addTo(map);
+                bearingLines.push(line);
+            });
+        }
+
+        async function calculateMultiSource() {
+            const numSources = parseInt(document.getElementById('numSources').value);
+            
+            const response = await fetch('/api/multi-source', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stations: multiSourceStations, numSources })
+            });
+
+            const result = await response.json();
+            displayMultiSourceResults(result);
+        }
+
+        function displayMultiSourceResults(result) {
+            ellipsePolygons.forEach(e => map.removeLayer(e));
+            ellipsePolygons = [];
+
+            const container = document.getElementById('multiSourceResults');
+            container.innerHTML = '';
+
+            const colors = ['#e94560', '#fbbf24', '#00d9ff', '#a855f7'];
+
+            result.sources.forEach((source, index) => {
+                const color = colors[index % colors.length];
+                const probClass = source.probability > 70 ? 'probability-high' : 
+                                  source.probability > 40 ? 'probability-medium' : 'probability-low';
+
+                const div = document.createElement('div');
+                div.className = 'source-card';
+                div.style.borderLeftColor = color;
+                div.innerHTML = `
+                    <div class="source-title" style="color: ${color};">发射源 #${source.sourceId}</div>
+                    <div class="result-item">
+                        <span>纬度:</span>
+                        <span class="result-value">${source.lat.toFixed(6)}°</span>
+                    </div>
+                    <div class="result-item">
+                        <span>经度:</span>
+                        <span class="result-value">${source.lng.toFixed(6)}°</span>
+                    </div>
+                    <div class="result-item">
+                        <span>概率:</span>
+                        <span class="result-value ${probClass}">${source.probability.toFixed(1)}%</span>
+                    </div>
+                `;
+                container.appendChild(div);
+
+                const sourceMarker = L.marker([source.lat, source.lng], {
+                    icon: L.divIcon({
+                        html: `<div style="background: ${color}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 0 10px ${color};">${source.sourceId}</div>`,
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16]
+                    })
+                }).addTo(map);
+
+                const ellipsePolygon = L.polygon(source.ellipsePoints, {
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.15,
+                    weight: 2
+                }).addTo(map);
+                ellipsePolygons.push(ellipsePolygon);
+            });
+
+            document.getElementById('multiSourceResultSection').style.display = 'block';
+            
+            if (ellipsePolygons.length > 0) {
+                const group = L.featureGroup(ellipsePolygons);
+                map.fitBounds(group.getBounds().pad(0.3));
+            }
+        }
+
+        async function generateQuestion() {
+            const difficulty = document.getElementById('difficulty').value;
+            
+            const response = await fetch('/api/generate-question', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ difficulty })
+            });
+
+            const result = await response.json();
+            currentQuestion = result.question;
+            currentAnswerKey = result.answerKey;
+
+            displayQuestion(result.question);
+        }
+
+        function displayQuestion(question) {
+            document.getElementById('questionSection').style.display = 'block';
+            document.getElementById('answerSection').style.display = 'block';
+            document.getElementById('scoreSection').style.display = 'none';
+            
+            document.getElementById('questionText').textContent = question.question;
+            document.getElementById('hintText').textContent = question.hint;
+
+            multiSourceStations = question.stations.map(s => ({
+                ...s,
+                lat: s.lat,
+                lng: s.lng
+            }));
+
+            const container = document.getElementById('questionStationsList');
+            container.innerHTML = '';
+            
+            question.stations.forEach(station => {
+                const div = document.createElement('div');
+                div.className = 'station';
+                div.innerHTML = `
+                    <span class="station-name">测向站 ${station.id}</span>
+                    <div class="result-item">
+                        <span>方位角:</span>
+                        <span class="result-value">${station.azimuth.toFixed(1)}° ± ${station.error.toFixed(1)}°</span>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            const answerContainer = document.getElementById('answerInputs');
+            answerContainer.innerHTML = '';
+            
+            const numSources = question.difficulty === 'easy' || question.difficulty === 'medium' ? 1 : 2;
+            
+            for (let i = 0; i < numSources; i++) {
+                const div = document.createElement('div');
+                div.className = 'station';
+                div.innerHTML = `
+                    <span class="station-name">发射源 #${i + 1}</span>
+                    <label>纬度:</label>
+                    <input type="number" step="0.0001" id="answerLat${i}" placeholder="例如: 35.0">
+                    <label>经度:</label>
+                    <input type="number" step="0.0001" id="answerLng${i}" placeholder="例如: 115.0">
+                `;
+                answerContainer.appendChild(div);
+            }
+
+            clearMapLayers();
+            question.stations.forEach(station => {
+                const marker = L.marker([station.lat, station.lng], {
+                    icon: L.divIcon({
+                        html: `<div style="background: #4ade80; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; border: 3px solid white;">${station.id}</div>`,
+                        iconSize: [28, 28],
+                        iconAnchor: [14, 14]
+                    })
+                }).addTo(map);
+                stationMarkers.push(marker);
+
+                const lineEnd = destinationPointLocal(station.lat, station.lng, station.azimuth, 500000);
+                const line = L.polyline([
+                    [station.lat, station.lng], [lineEnd.lat, lineEnd.lng]], {
+                    color: '#4ade80',
+                    weight: 2,
+                    dashArray: '8, 8',
+                    opacity: 0.6
+                }).addTo(map);
+                bearingLines.push(line);
+            });
+
+            map.setView([35, 115], 5);
+        }
+
+        async function submitAnswer() {
+            const numSources = currentQuestion.difficulty === 'easy' || currentQuestion.difficulty === 'medium' ? 1 : 2;
+            const userAnswers = [];
+            
+            for (let i = 0; i < numSources; i++) {
+                const lat = parseFloat(document.getElementById(`answerLat${i}`).value);
+                const lng = parseFloat(document.getElementById(`answerLng${i}`).value);
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    userAnswers.push({ lat, lng });
+                }
+            }
+
+            if (userAnswers.length !== numSources) {
+                alert('请填写所有发射源的坐标！');
+                return;
+            }
+
+            const fullQuestion = {
+                ...currentQuestion,
+                trueSources: currentAnswerKey
+            };
+
+            const response = await fetch('/api/check-answer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: fullQuestion, userAnswers })
+            });
+
+            const result = await response.json();
+            displayScore(result);
+        }
+
+        function displayScore(result) {
+            document.getElementById('scoreSection').style.display = 'block';
+            const scoreDisplay = document.getElementById('scoreDisplay');
+            scoreDisplay.className = 'score-display ' + (result.allCorrect ? 'score-correct' : 'score-wrong');
+            
+            let html = `<h3 style="margin-bottom: 10px;">${result.allCorrect ? '🎉 答对了！' : '😅 继续加油！'}</h3>`;
+            html += `<p>总得分: <strong>${result.totalScore.toFixed(1)}</strong> 分</p>`;
+            
+            result.results.forEach((r, i) => {
+                const color = r.correct ? '#4ade80' : '#ef4444';
+                html += `<p style="color: ${color}; font-size: 12px; margin-top: 5px;">
+                    发射源#${r.sourceId}: 误差${r.errorKm.toFixed(1)}km 
+                    ${r.correct ? '✓' : '✗'} (正确: ${r.truePosition.lat.toFixed(4)}, ${r.truePosition.lng.toFixed(4)})
+                </p>`;
+                
+                const trueMarker = L.marker([r.truePosition.lat, r.truePosition.lng], {
+                    icon: L.divIcon({
+                        html: `<div style="background: #4ade80; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white;">✓</div>`,
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    })
+                }).addTo(map);
+                stationMarkers.push(trueMarker);
+            });
+            
+            scoreDisplay.innerHTML = html;
+        }
+
+        initMap();
+    </script>
+</body>
+</html>

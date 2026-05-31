@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>梯形图 ST 代码转换器</title>
+    <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>梯形图 ST 代码转换器</h1>
+            <div class="header-actions">
+                <button id="newProjectBtn" class="btn btn-primary">新建项目</button>
+                <button id="saveProjectBtn" class="btn btn-success">保存项目</button>
+                <button id="projectsBtn" class="btn btn-info">项目列表</button>
+                <button id="historyBtn" class="btn btn-warning">转换历史</button>
+            </div>
+        </header>
+
+        <div class="project-info-bar" id="projectInfoBar" style="display: none;">
+            <span>当前项目: <strong id="currentProjectName">未命名</strong></span>
+            <button id="closeProjectBtn" class="btn btn-sm btn-danger">关闭</button>
+        </div>
+
+        <div class="main-content">
+            <div class="editor-section">
+                <div class="section-header">
+                    <h2>梯形图编辑器</h2>
+                    <div class="section-actions">
+                        <button id="clearWorkspaceBtn" class="btn btn-sm btn-danger">清空</button>
+                        <button id="convertBtn" class="btn btn-sm btn-primary">转换为 ST</button>
+                    </div>
+                </div>
+                <div id="blocklyDiv"></div>
+                <xml id="toolbox" style="display: none">
+                    <category name="梯形图" colour="#5b80a5">
+                        <block type="logic_rung"></block>
+                    </category>
+                    <category name="触点/线圈" colour="#5ba55b">
+                        <block type="contact_normal"></block>
+                        <block type="contact_negate"></block>
+                        <block type="coil_normal"></block>
+                        <block type="coil_negate"></block>
+                    </category>
+                    <category name="定时器" colour="#a55ba5">
+                        <block type="timer_ton">
+                            <value name="PT">
+                                <shadow type="math_number">
+                                    <field name="NUM">1000</field>
+                                </shadow>
+                            </value>
+                        </block>
+                        <block type="timer_tof">
+                            <value name="PT">
+                                <shadow type="math_number">
+                                    <field name="NUM">1000</field>
+                                </shadow>
+                            </value>
+                        </block>
+                        <block type="timer_tp">
+                            <value name="PT">
+                                <shadow type="math_number">
+                                    <field name="NUM">1000</field>
+                                </shadow>
+                            </value>
+                        </block>
+                    </category>
+                    <category name="计数器" colour="#a55b80">
+                        <block type="counter_ctu">
+                            <value name="PV">
+                                <shadow type="math_number">
+                                    <field name="NUM">10</field>
+                                </shadow>
+                            </value>
+                        </block>
+                        <block type="counter_ctd">
+                            <value name="PV">
+                                <shadow type="math_number">
+                                    <field name="NUM">10</field>
+                                </shadow>
+                            </value>
+                        </block>
+                        <block type="counter_ctud">
+                            <value name="PV">
+                                <shadow type="math_number">
+                                    <field name="NUM">10</field>
+                                </shadow>
+                            </value>
+                        </block>
+                    </category>
+                    <category name="逻辑" colour="#5b80a5">
+                        <block type="logic_compare"></block>
+                        <block type="logic_operation"></block>
+                        <block type="logic_negate"></block>
+                        <block type="logic_boolean"></block>
+                    </category>
+                    <category name="数学" colour="#5b9aa5">
+                        <block type="math_number"></block>
+                        <block type="math_arithmetic"></block>
+                    </category>
+                    <category name="变量" colour="#a59a5b">
+                        <block type="variables_get"></block>
+                        <block type="variables_set"></block>
+                    </category>
+                </xml>
+            </div>
+
+            <div class="code-section">
+                <div class="section-header">
+                    <h2>IEC 61131-3 ST 代码</h2>
+                    <div class="section-actions">
+                        <button id="editStBtn" class="btn btn-sm btn-info">编辑</button>
+                        <button id="importStBtn" class="btn btn-sm btn-warning">导入 ST</button>
+                        <button id="downloadBtn" class="btn btn-sm btn-success">下载 .st</button>
+                        <button id="exportPlcOpenBtn" class="btn btn-sm btn-primary">PLCopen</button>
+                    </div>
+                </div>
+                <div class="code-container">
+                    <pre><code id="stCode" class="language-structured-text"></code></pre>
+                </div>
+                <div class="st-editor-container" id="stEditorContainer" style="display: none;">
+                    <textarea id="stEditor" class="st-editor"></textarea>
+                    <div class="editor-actions">
+                        <button id="applyStBtn" class="btn btn-sm btn-success">应用</button>
+                        <button id="cancelEditBtn" class="btn btn-sm btn-danger">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="projectsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>项目列表</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="projectsList" class="projects-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="newProjectModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>新建项目</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>项目名称:</label>
+                    <input type="text" id="newProjectName" placeholder="输入项目名称">
+                </div>
+                <div class="form-group">
+                    <label>描述:</label>
+                    <textarea id="newProjectDesc" rows="3" placeholder="项目描述（可选）"></textarea>
+                </div>
+                <button id="createProjectBtn" class="btn btn-primary">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>转换历史</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="historyList" class="history-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="importStModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>导入 ST 代码</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>粘贴 ST 代码:</label>
+                    <textarea id="importStCode" rows="15" placeholder="PROGRAM Main&#10;VAR&#10;    input1: BOOL;&#10;END_VAR&#10;&#10;IF input1 THEN&#10;    output1 := TRUE;&#10;END_IF;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>或上传文件:</label>
+                    <input type="file" id="stFileInput" accept=".st,.txt,.plc">
+                </div>
+                <button id="doImportStBtn" class="btn btn-primary">转换为梯形图</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="functionBlockModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>函数块实例化</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>函数块类型:</label>
+                    <select id="fbTypeSelect" class="form-control"></select>
+                </div>
+                <div class="form-group">
+                    <label>实例名称:</label>
+                    <input type="text" id="fbInstanceName" placeholder="例如: MyTimer">
+                </div>
+                <div id="fbInputs" class="form-group"></div>
+                <button id="addFbBtn" class="btn btn-primary">添加实例</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="{{ url_for('static', filename='js/blocks.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

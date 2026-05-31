@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lennard-Jones 流体模拟</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #app {
+            display: flex;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #rdf-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 400px;
+            height: 200px;
+            background: rgba(22, 33, 62, 0.95);
+            border: 2px solid #4a69bd;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        #rdf-panel h3 {
+            font-size: 0.9rem;
+            color: #00d4ff;
+            margin-bottom: 5px;
+        }
+
+        #rdf-chart {
+            width: 100%;
+            height: 150px;
+        }
+
+        #controls {
+            width: 360px;
+            background: rgba(22, 33, 62, 0.95);
+            padding: 15px;
+            overflow-y: auto;
+            border-left: 2px solid #4a69bd;
+            box-shadow: -5px 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #00d4ff;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        h2 {
+            font-size: 0.95rem;
+            margin: 15px 0 8px;
+            color: #a8dadc;
+            border-bottom: 1px solid #4a69bd;
+            padding-bottom: 5px;
+        }
+
+        .control-group {
+            margin-bottom: 10px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.8rem;
+            color: #c7d4e2;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 5px;
+            -webkit-appearance: none;
+            background: #2d3a4f;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #00d4ff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+            transition: transform 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        input[type="number"] {
+            width: 60px;
+            padding: 4px;
+            background: #2d3a4f;
+            border: 1px solid #4a69bd;
+            border-radius: 4px;
+            color: #fff;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 6px;
+            background: #2d3a4f;
+            border: 1px solid #4a69bd;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+
+        button {
+            width: 100%;
+            padding: 8px 12px;
+            margin: 4px 0;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            color: #1a1a2e;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4ecdc4 0%, #26a69a 100%);
+            color: #1a1a2e;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(78, 205, 196, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffa726 0%, #ff9800 100%);
+            color: #1a1a2e;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(255, 167, 38, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(108, 117, 125, 0.4);
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            width: auto;
+        }
+
+        .stats {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px;
+            border-radius: 5px;
+            margin: 8px 0;
+            font-size: 0.8rem;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 3px 0;
+        }
+
+        .stat-label {
+            color: #a8dadc;
+        }
+
+        .stat-value {
+            color: #00d4ff;
+            font-weight: 600;
+        }
+
+        .config-list {
+            max-height: 150px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            margin-top: 8px;
+        }
+
+        .config-item {
+            padding: 6px 8px;
+            border-bottom: 1px solid #2d3a4f;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.75rem;
+        }
+
+        .config-item:hover {
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .config-item:last-child {
+            border-bottom: none;
+        }
+
+        .config-name {
+            color: #00d4ff;
+            font-weight: 600;
+        }
+
+        .config-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .config-actions button {
+            flex: 1;
+            padding: 3px 6px;
+            font-size: 0.65rem;
+            margin: 0;
+        }
+
+        #status {
+            text-align: center;
+            padding: 6px;
+            border-radius: 5px;
+            margin: 8px 0;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .status-stopped {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+        }
+
+        .status-running {
+            background: rgba(78, 205, 196, 0.2);
+            color: #4ecdc4;
+        }
+
+        .status-recording {
+            background: rgba(255, 167, 38, 0.3);
+            color: #ffa726;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .info-box {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 0.7rem;
+            color: #a8dadc;
+            line-height: 1.4;
+        }
+
+        .species-card {
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 3px solid #00d4ff;
+        }
+
+        .species-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .species-name {
+            font-weight: 600;
+            color: #00d4ff;
+        }
+
+        .species-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+        }
+
+        .species-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .species-control {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .species-control label {
+            font-size: 0.7rem;
+        }
+
+        .species-control input {
+            padding: 4px;
+            font-size: 0.75rem;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 5px;
+        }
+
+        .button-row button {
+            flex: 1;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 6px;
+            font-size: 0.75rem;
+            background: #2d3a4f;
+            color: #a8dadc;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .tab-btn.active {
+            background: #00d4ff;
+            color: #1a1a2e;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .trajectory-list {
+            max-height: 120px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+        }
+
+        .trajectory-item {
+            padding: 6px 8px;
+            border-bottom: 1px solid #2d3a4f;
+            font-size: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .trajectory-item:last-child {
+            border-bottom: none;
+        }
+
+        .trajectory-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .trajectory-actions button {
+            padding: 2px 6px;
+            font-size: 0.65rem;
+            margin: 0;
+            width: auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="canvas-container">
+            <canvas id="canvas"></canvas>
+            <div id="rdf-panel">
+                <h3>📊 径向分布函数 g(r)</h3>
+                <canvas id="rdf-chart"></canvas>
+            </div>
+        </div>
+        <div id="controls">
+            <h1>🔬 Lennard-Jones 流体模拟</h1>
+            
+            <div id="status" class="status-stopped">状态: 已停止</div>
+
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchTab('basic')">基础</button>
+                <button class="tab-btn" onclick="switchTab('species')">多物种</button>
+                <button class="tab-btn" onclick="switchTab('export')">导出</button>
+            </div>
+
+            <div id="tab-basic" class="tab-content active">
+                <h2>⚡ 模拟控制</h2>
+                <button class="btn-primary" onclick="initSimulation()">初始化模拟</button>
+                <div class="button-row">
+                    <button class="btn-success" onclick="startSimulation()">开始</button>
+                    <button class="btn-danger" onclick="stopSimulation()">停止</button>
+                </div>
+                <button class="btn-secondary" onclick="resetSimulation()">重置模拟</button>
+
+                <h2>🌡️ 热力学参数</h2>
+                <div class="control-group">
+                    <label>温度 (K)</label>
+                    <div class="slider-container">
+                        <input type="range" id="temperature" min="50" max="1000" value="300" step="10" oninput="updateParameterDisplay('temperature')">
+                        <input type="number" id="temperature-value" value="300" onchange="updateParameterFromInput('temperature')">
+                    </div>
+                </div>
+
+                <h2>📊 实时统计</h2>
+                <div class="stats">
+                    <div class="stat-row">
+                        <span class="stat-label">渲染帧率 (FPS):</span>
+                        <span class="stat-value" id="fps">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">模拟步数:</span>
+                        <span class="stat-value" id="step-count">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">势能 (kJ/mol):</span>
+                        <span class="stat-value" id="potential-energy">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">动能 (kJ/mol):</span>
+                        <span class="stat-value" id="kinetic-energy">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">总能量 (kJ/mol):</span>
+                        <span class="stat-value" id="total-energy">0</span>
+                    </div>
+                </div>
+
+                <h2>💾 配置管理</h2>
+                <input type="text" id="config-name" placeholder="配置名称...">
+                <button class="btn-primary" onclick="saveConfig()">保存当前配置</button>
+                <div class="config-list" id="config-list"></div>
+            </div>
+
+            <div id="tab-species" class="tab-content">
+                <h2>⚛️ 物种配置</h2>
+                <div id="species-list"></div>
+                <button class="btn-primary" onclick="addSpecies()">+ 添加物种</button>
+                <button class="btn-secondary" onclick="applySpeciesConfig()">应用配置</button>
+
+                <h2>🔧 力场参数</h2>
+                <div id="species-params"></div>
+            </div>
+
+            <div id="tab-export" class="tab-content">
+                <h2>🎥 轨迹录制</h2>
+                <div class="button-row">
+                    <button class="btn-warning" onclick="startRecording()">开始录制</button>
+                    <button class="btn-danger" onclick="stopRecording()">停止录制</button>
+                </div>
+
+                <h2>📁 轨迹文件</h2>
+                <div class="trajectory-list" id="trajectory-list"></div>
+                <button class="btn-secondary" onclick="refreshTrajectories()">刷新列表</button>
+
+                <h2>📊 RDF 分析</h2>
+                <button class="btn-secondary" onclick="resetRDF()">重置 RDF 统计</button>
+
+                <h2>ℹ️ 关于</h2>
+                <div class="info-box">
+                    <p>基于 OpenMM 的分子动力学模拟平台</p>
+                    <p>• 多物种混合流体</p>
+                    <p>• 径向分布函数实时计算</p>
+                    <p>• XTC 格式轨迹导出</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

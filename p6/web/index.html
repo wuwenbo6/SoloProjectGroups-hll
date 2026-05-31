@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>泄漏电流监测系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            font-size: 28px;
+        }
+        .sensor-selector {
+            margin-bottom: 20px;
+        }
+        .sensor-selector select {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: 2px solid #2a5298;
+            border-radius: 5px;
+            background: white;
+            cursor: pointer;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .card h3 {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1e3c72;
+        }
+        .card .unit {
+            font-size: 14px;
+            color: #999;
+        }
+        .level-normal { color: #28a745 !important; }
+        .level-slight { color: #ffc107 !important; }
+        .level-moderate { color: #fd7e14 !important; }
+        .level-severe { color: #dc3545 !important; }
+        .level-critical { 
+            color: #dc3545 !important; 
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            50% { opacity: 0.5; }
+        }
+        .charts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .chart-container h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .alerts-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .alerts-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .alert-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        .alert-item.level-2 {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+        .alert-item.level-3 {
+            background: #ffe5d0;
+            border-color: #fd7e14;
+        }
+        .alert-item.level-4 {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+        .report-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .report-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .report-buttons {
+            margin-bottom: 15px;
+        }
+        .report-buttons button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            background: #2a5298;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .report-buttons button:hover {
+            background: #1e3c72;
+        }
+        .report-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .report-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .report-item label {
+            display: block;
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        .report-item span {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        .connection-status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .connected {
+            background: #28a745;
+            color: white;
+        }
+        .disconnected {
+            background: #dc3545;
+            color: white;
+        }
+        .env-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .env-card h3 {
+            color: rgba(255,255,255,0.9);
+        }
+        .env-card .value {
+            color: white;
+        }
+        .env-card .unit {
+            color: rgba(255,255,255,0.8);
+        }
+        .correction-info {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .correction-info h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .correction-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        .correction-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .correction-item label {
+            display: block;
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        .correction-item span {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+        .correction-item .rain-icon {
+            font-size: 24px;
+        }
+        .threshold-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .threshold-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .threshold-bar {
+            height: 30px;
+            background: linear-gradient(90deg, 
+                #28a745 0%, #28a745 20%,
+                #ffc107 20%, #ffc107 40%,
+                #fd7e14 40%, #fd7e14 60%,
+                #dc3545 60%, #dc3545 80%,
+                #721c24 80%, #721c24 100%
+            );
+            border-radius: 5px;
+            position: relative;
+            margin-bottom: 10px;
+        }
+        .threshold-marker {
+            position: absolute;
+            top: -5px;
+            width: 4px;
+            height: 40px;
+            background: #000;
+            transform: translateX(-50%);
+        }
+        .threshold-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #666;
+        }
+        @media (max-width: 768px) {
+            .charts {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⚡ 泄漏电流监测系统 <span id="connectionStatus" class="connection-status disconnected">未连接</span></h1>
+        <p style="margin-top: 10px; opacity: 0.9;">实时监测 · 污秽等级评估 · 预警通知</p>
+    </div>
+
+    <div class="sensor-selector">
+        <select id="sensorSelect" onchange="loadSensorData()">
+            <option value="">选择传感器</option>
+        </select>
+    </div>
+
+    <div class="dashboard">
+        <div class="card">
+            <h3>峰值电流</h3>
+            <div class="value" id="peakCurrent">0</div>
+            <div class="unit">mA</div>
+            <div style="font-size: 11px; color: #999; margin-top: 5px;">
+                原始: <span id="originalPeakCurrent">0</span> mA
+            </div>
+        </div>
+        <div class="card">
+            <h3>脉冲计数</h3>
+            <div class="value" id="pulseCount">0</div>
+            <div class="unit">次</div>
+            <div style="font-size: 11px; color: #999; margin-top: 5px;">
+                原始: <span id="originalPulseCount">0</span> 次
+            </div>
+        </div>
+        <div class="card">
+            <h3>污秽等级</h3>
+            <div class="value" id="pollutionLevel">正常</div>
+            <div class="unit" id="pollutionDesc">Level 0</div>
+        </div>
+        <div class="card env-card">
+            <h3>环境状态</h3>
+            <div class="value" id="envStatus"><span class="rain-icon">☀️</span></div>
+            <div class="unit" id="humidity">湿度: --%</div>
+        </div>
+    </div>
+
+    <div class="correction-info">
+        <h3>🔧 信号处理信息</h3>
+        <div class="correction-grid">
+            <div class="correction-item">
+                <label>雨天修正系数</label>
+                <span id="rainFactor">1.00</span>
+            </div>
+            <div class="correction-item">
+                <label>季节修正系数</label>
+                <span id="seasonalFactor">1.00</span>
+            </div>
+            <div class="correction-item">
+                <label>降噪处理</label>
+                <span id="noiseFilter">✓ 已启用</span>
+            </div>
+            <div class="correction-item">
+                <label>自适应阈值</label>
+                <span id="adaptiveStatus">✓ 已启用</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="threshold-section">
+        <h3>📏 自适应阈值</h3>
+        <div class="threshold-bar" id="thresholdBar">
+            <div class="threshold-marker" id="currentMarker" style="left: 0%;"></div>
+        </div>
+        <div class="threshold-label" id="thresholdLabels">
+            <span>正常</span>
+            <span>轻微</span>
+            <span>中度</span>
+            <span>严重</span>
+            <span>危急</span>
+        </div>
+        <div style="margin-top: 10px; font-size: 12px; color: #666;" id="thresholdValues">
+            当前阈值: 加载中...
+        </div>
+    </div>
+
+    <div class="charts">
+        <div class="chart-container">
+            <h3>电流趋势图</h3>
+            <canvas id="currentChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>波形图</h3>
+            <canvas id="waveformChart"></canvas>
+        </div>
+    </div>
+
+    <div class="alerts-section">
+        <h3>🚨 预警信息</h3>
+        <div id="alertsList">
+            <p style="color: #999;">暂无预警信息</p>
+        </div>
+    </div>
+
+    <div class="report-section">
+        <h3>📊 周期报告</h3>
+        <div class="report-buttons">
+            <button onclick="loadReport('weekly')">周报告</button>
+            <button onclick="loadReport('monthly')">月报告</button>
+        </div>
+        <div id="reportContent" class="report-content">
+            <p style="color: #999; grid-column: 1/-1;">请选择报告类型</p>
+        </div>
+    </div>
+
+    <script>
+        let currentSensorId = null;
+        let currentChart = null;
+        let waveformChart = null;
+        let ws = null;
+        let currentData = [];
+        const maxDataPoints = 50;
+
+        const levelClasses = [
+            'level-normal', 'level-slight', 'level-moderate', 'level-severe', 'level-critical'
+        ];
+        const levelNames = ['正常', '轻微', '中度', '严重', '危急'];
+
+        window.onload = function() {
+            loadSensors();
+            initCharts();
+            connectWebSocket();
+        };
+
+        function loadSensors() {
+            fetch('/api/sensors')
+                .then(r => r.json())
+                .then(sensors => {
+                    const select = document.getElementById('sensorSelect');
+                    select.innerHTML = '<option value="">选择传感器</option>';
+                    sensors.forEach(s => {
+                        select.innerHTML += `<option value="${s.id}">${s.name} - ${s.location}</option>`;
+                    });
+                    if (sensors.length > 0) {
+                        select.value = sensors[0].id;
+                        loadSensorData();
+                    }
+                });
+        }
+
+        function loadSensorData() {
+            const select = document.getElementById('sensorSelect');
+            currentSensorId = select.value;
+            if (!currentSensorId) return;
+
+            fetch(`/api/data/${currentSensorId}?limit=${maxDataPoints}`)
+                .then(r => r.json())
+                .then(data => {
+                    currentData = data.reverse();
+                    updateCharts();
+                    if (data.length > 0) {
+                        updateDashboard(data[data.length - 1]);
+                    }
+                });
+
+            loadAlerts();
+            loadThresholds();
+        }
+
+        function loadThresholds() {
+            if (!currentSensorId) return;
+            fetch(`/api/thresholds/${currentSensorId}`)
+                .then(r => r.json())
+                .then(data => {
+                    updateThresholdDisplay(data);
+                });
+        }
+
+        function updateThresholdDisplay(data) {
+            const thresholds = data.adaptive_thresholds || data.base_thresholds;
+            const maxThreshold = 10;
+            if (thresholds && thresholds.length > 0) {
+                const values = thresholds.map(t => t.toFixed(2)).join('mA, ');
+                document.getElementById('thresholdValues').textContent = 
+                    `自适应阈值: ${values}mA`;
+            }
+        }
+
+        function updateCorrectionInfo(info) {
+            document.getElementById('rainFactor').textContent = 
+                info.rain_factor ? info.rain_factor.toFixed(2) : '1.00';
+            document.getElementById('seasonalFactor').textContent = 
+                info.seasonal_factor ? info.seasonal_factor.toFixed(2) : '1.00';
+            
+            if (info.is_raining) {
+                document.getElementById('envStatus').innerHTML = '<span class="rain-icon">🌧️</span>';
+            } else {
+                document.getElementById('envStatus').innerHTML = '<span class="rain-icon">☀️</span>';
+            }
+            
+            if (info.estimated_humidity) {
+                document.getElementById('humidity').textContent = 
+                    `湿度: ${info.estimated_humidity.toFixed(0)}%`;
+            }
+
+            if (info.original_peak_current !== undefined) {
+                document.getElementById('originalPeakCurrent').textContent = 
+                    info.original_peak_current.toFixed(2);
+            }
+            if (info.original_pulse_count !== undefined) {
+                document.getElementById('originalPulseCount').textContent = 
+                    info.original_pulse_count;
+            }
+
+            if (info.corrected_peak_current !== undefined) {
+                const marker = document.getElementById('currentMarker');
+                const percent = Math.min(info.corrected_peak_current / 10 * 100, 100);
+                marker.style.left = percent + '%';
+            }
+        }
+
+        function initCharts() {
+            const currentCtx = document.getElementById('currentChart').getContext('2d');
+            currentChart = new Chart(currentCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '峰值电流 (mA)',
+                        data: [],
+                        borderColor: '#2a5298',
+                        backgroundColor: 'rgba(42, 82, 152, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            const waveformCtx = document.getElementById('waveformChart').getContext('2d');
+            waveformChart = new Chart(waveformCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '波形数据',
+                        data: [],
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        fill: true,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+        }
+
+        function updateCharts() {
+            currentChart.data.labels = currentData.map(d => 
+                new Date(d.timestamp).toLocaleTimeString()
+            );
+            currentChart.data.datasets[0].data = currentData.map(d => d.peak_current);
+            currentChart.update();
+
+            if (currentData.length > 0 && currentData[currentData.length - 1].waveform_data) {
+                const waveform = currentData[currentData.length - 1].waveform_data;
+                waveformChart.data.labels = waveform.map((_, i) => i);
+                waveformChart.data.datasets[0].data = waveform;
+                waveformChart.update();
+            }
+        }
+
+        function updateDashboard(data) {
+            document.getElementById('peakCurrent').textContent = data.peak_current.toFixed(2);
+            document.getElementById('pulseCount').textContent = data.pulse_count;
+            
+            const level = data.pollution_level || 0;
+            const levelEl = document.getElementById('pollutionLevel');
+            levelEl.textContent = levelNames[level] || '未知';
+            levelEl.className = 'value ' + levelClasses[level];
+            document.getElementById('pollutionDesc').textContent = 'Level ' + level;
+            
+            document.getElementById('lastUpdate').textContent = 
+                new Date(data.timestamp).toLocaleString();
+
+            updateCorrectionInfo({
+                corrected_peak_current: data.peak_current,
+            });
+        }
+
+        function loadAlerts() {
+            if (!currentSensorId) return;
+            fetch(`/api/alerts/${currentSensorId}?limit=10`)
+                .then(r => r.json())
+                .then(alerts => {
+                    const list = document.getElementById('alertsList');
+                    if (alerts.length === 0) {
+                        list.innerHTML = '<p style="color: #999;">暂无预警信息</p>';
+                        return;
+                    }
+                    list.innerHTML = alerts.map(a => `
+                        <div class="alert-item level-${a.level}">
+                            <strong>${new Date(a.timestamp).toLocaleString()}</strong>
+                            <br>${a.message}
+                        </div>
+                    `).join('');
+                });
+        }
+
+        function loadReport(type) {
+            if (!currentSensorId) return;
+            fetch(`/api/report/${currentSensorId}/${type}`)
+                .then(r => r.json())
+                .then(report => {
+                    const container = document.getElementById('reportContent');
+                    const period = type === 'weekly' ? '本周' : '本月';
+                    container.innerHTML = `
+                        <div class="report-item">
+                            <label>报告周期</label>
+                            <span>${period}</span>
+                        </div>
+                        <div class="report-item">
+                            <label>平均电流 (mA)</label>
+                            <span>${report.avg_current.toFixed(2)}</span>
+                        </div>
+                        <div class="report-item">
+                            <label>最大电流 (mA)</label>
+                            <span>${report.max_current.toFixed(2)}</span>
+                        </div>
+                        <div class="report-item">
+                            <label>总脉冲数</label>
+                            <span>${report.total_pulses}</span>
+                        </div>
+                        <div class="report-item">
+                            <label>预警次数</label>
+                            <span>${report.alert_count}</span>
+                        </div>
+                        <div class="report-item">
+                            <label>数据统计</label>
+                            <span style="font-size: 12px;">${Object.entries(report.pollution_levels).map(([k,v]) => `Level${k}: ${v}次`).join(', ')}</span>
+                        </div>
+                    `;
+                });
+        }
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+
+            ws.onopen = function() {
+                document.getElementById('connectionStatus').textContent = '已连接';
+                document.getElementById('connectionStatus').className = 'connection-status connected';
+            };
+
+            ws.onmessage = function(event) {
+                const msg = JSON.parse(event.data);
+                if (msg.type === 'data' && msg.data.sensor_id === currentSensorId) {
+                    currentData.push(msg.data);
+                    if (currentData.length > maxDataPoints) currentData.shift();
+                    updateCharts();
+                    updateDashboard(msg.data);
+                } else if (msg.type === 'alert') {
+                    loadAlerts();
+                }
+            };
+
+            ws.onclose = function() {
+                document.getElementById('connectionStatus').textContent = '未连接';
+                document.getElementById('connectionStatus').className = 'connection-status disconnected';
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+    </script>
+</body>
+</html>

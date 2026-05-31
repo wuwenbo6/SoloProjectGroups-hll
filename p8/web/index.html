@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>室内定位系统 - 3D管理端</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: #1a1a2e;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        .sidebar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 320px;
+            height: 100%;
+            background: rgba(26, 26, 46, 0.95);
+            color: #fff;
+            padding: 20px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .sidebar h1 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #00d4ff;
+            border-bottom: 2px solid #00d4ff;
+            padding-bottom: 10px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section h2 {
+            font-size: 1.1em;
+            margin-bottom: 12px;
+            color: #7b8794;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .floor-selector {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .floor-btn {
+            padding: 8px 16px;
+            background: #16213e;
+            border: 2px solid #0f3460;
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .floor-btn:hover {
+            border-color: #00d4ff;
+        }
+
+        .floor-btn.active {
+            background: #00d4ff;
+            color: #1a1a2e;
+            border-color: #00d4ff;
+        }
+
+        .floor-btn.all {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+
+        .floor-btn.all.active {
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.5);
+        }
+
+        .info-card {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .info-card .label {
+            font-size: 0.85em;
+            color: #7b8794;
+            margin-bottom: 5px;
+        }
+
+        .info-card .value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .ap-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .ap-item {
+            background: #16213e;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ap-item .ap-name {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .ap-item .ap-pos {
+            color: #7b8794;
+            font-size: 0.85em;
+        }
+
+        .ap-item .ap-bssid {
+            color: #00d4ff;
+            font-family: monospace;
+            font-size: 0.8em;
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+        }
+
+        .toggle-switch label {
+            color: #fff;
+        }
+
+        .toggle {
+            width: 50px;
+            height: 26px;
+            background: #16213e;
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle.active {
+            background: #00d4ff;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: #fff;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+
+        .toggle.active::after {
+            transform: translateX(24px);
+        }
+
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+
+        .legend-text {
+            color: #7b8794;
+            font-size: 0.9em;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            border: none;
+            color: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-dot.connected {
+            background: #00ff88;
+            box-shadow: 0 0 10px #00ff88;
+        }
+
+        .status-dot.disconnected {
+            background: #ff4444;
+            box-shadow: 0 0 10px #ff4444;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #16213e;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .connection-status span {
+            color: #fff;
+        }
+
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(26, 26, 46, 0.9);
+            color: #7b8794;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            z-index: 100;
+        }
+
+        .controls-hint h3 {
+            color: #00d4ff;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .controls-hint p {
+            margin: 4px 0;
+        }
+
+        .trail-list {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .trail-item {
+            background: #16213e;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 0.85em;
+        }
+
+        .trail-item .device-id {
+            color: #00d4ff;
+            font-weight: 500;
+        }
+
+        .trail-item .device-pos {
+            color: #7b8794;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="canvas-container"></div>
+        
+        <div class="sidebar">
+            <h1>🏢 室内定位系统</h1>
+            
+            <div class="connection-status">
+                <span class="status-dot" id="status-dot"></span>
+                <span id="connection-text">连接中...</span>
+            </div>
+
+            <div class="section">
+                <h2>楼层选择</h2>
+                <div class="floor-selector" id="floor-selector">
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>显示选项</h2>
+                <div class="toggle-switch">
+                    <label>显示轨迹</label>
+                    <div class="toggle active" id="toggle-trails"></div>
+                </div>
+                <div class="toggle-switch">
+                    <label>显示AP范围</label>
+                    <div class="toggle active" id="toggle-ap-ranges"></div>
+                </div>
+                <div class="toggle-switch">
+                    <label>显示热力图</label>
+                    <div class="toggle" id="toggle-heatmap"></div>
+                </div>
+                <div class="toggle-switch">
+                    <label>显示标签</label>
+                    <div class="toggle active" id="toggle-labels"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>热力图设置</h2>
+                <div class="toggle-switch">
+                    <label>时间范围</label>
+                    <select id="heatmap-hours" style="background: #16213e; color: #fff; border: 1px solid #0f3460; padding: 5px; border-radius: 4px;">
+                        <option value="1">最近1小时</option>
+                        <option value="6">最近6小时</option>
+                        <option value="24" selected>最近24小时</option>
+                        <option value="168">最近7天</option>
+                    </select>
+                </div>
+                <button class="btn" id="refresh-heatmap-btn" style="margin-top: 10px; padding: 8px; font-size: 0.9em;">
+                    刷新热力图
+                </button>
+            </div>
+
+            <div class="section">
+                <h2>数据导出</h2>
+                <div class="toggle-switch">
+                    <label>选择设备</label>
+                    <select id="export-device" style="background: #16213e; color: #fff; border: 1px solid #0f3460; padding: 5px; border-radius: 4px; flex: 1;">
+                        <option value="">全部设备</option>
+                    </select>
+                </div>
+                <button class="btn" id="export-gpx-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin-top: 10px;">
+                    📥 导出 GPX 轨迹
+                </button>
+            </div>
+
+            <div class="section">
+                <h2>统计信息</h2>
+                <div class="info-card">
+                    <div class="label">在线设备</div>
+                    <div class="value" id="device-count">0</div>
+                </div>
+                <div class="info-card">
+                    <div class="label">AP数量</div>
+                    <div class="value" id="ap-count">0</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>接入点列表</h2>
+                <div class="ap-list" id="ap-list">
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>最近位置</h2>
+                <div class="trail-list" id="trail-list">
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>图例</h2>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #00ff88;"></div>
+                        <span class="legend-text">设备位置</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff6b6b;"></div>
+                        <span class="legend-text">接入点 (AP)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #4ecdc4;"></div>
+                        <span class="legend-text">移动轨迹</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn" id="init-demo-btn">初始化演示数据</button>
+        </div>
+
+        <div class="controls-hint">
+            <h3>🎮 操作提示</h3>
+            <p>鼠标左键 - 旋转视角</p>
+            <p>鼠标右键 - 平移</p>
+            <p>滚轮 - 缩放</p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

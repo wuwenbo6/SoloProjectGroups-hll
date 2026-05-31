@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "timestamp": "2026-05-23T09:56:41.552Z",
+    "emitter_lat": 31.20338841119984,
+    "emitter_lng": 114.83590000000001,
+    "probability": 10,
+    "ellipse_major": 331781.2040084821,
+    "ellipse_minor": 199068.72240508927,
+    "ellipse_orientation": 153.0726752205012,
+    "power": 50,
+    "terrain_factor": 1,
+    "stations": [
+      {
+        "station_id": "A",
+        "station_lat": 39.9042,
+        "station_lng": 116.4074,
+        "azimuth": 180,
+        "error": 2
+      },
+      {
+        "station_id": "B",
+        "station_lat": 31.2304,
+        "station_lng": 121.4737,
+        "azimuth": 270,
+        "error": 2
+      },
+      {
+        "station_id": "C",
+        "station_lat": 23.1291,
+        "station_lng": 113.2644,
+        "azimuth": 0,
+        "error": 3
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "timestamp": "2026-05-23T10:07:52.599Z",
+    "emitter_lat": 31.61040419211882,
+    "emitter_lng": 117.47848785381655,
+    "probability": 5,
+    "ellipse_major": 500000,
+    "ellipse_minor": 300000,
+    "ellipse_orientation": 153.0726752205012,
+    "power": 50,
+    "terrain_factor": 1,
+    "stations": [
+      {
+        "station_id": "A",
+        "station_lat": 39.9042,
+        "station_lng": 116.4074,
+        "azimuth": 180,
+        "error": 5
+      },
+      {
+        "station_id": "B",
+        "station_lat": 31.2304,
+        "station_lng": 121.4737,
+        "azimuth": 270,
+        "error": 5
+      },
+      {
+        "station_id": "C",
+        "station_lat": 34.3416,
+        "station_lng": 108.9398,
+        "azimuth": 90,
+        "error": 5
+      }
+    ]
+  }
+]
