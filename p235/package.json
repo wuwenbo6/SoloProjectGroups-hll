@@ -1,0 +1,22 @@
+{
+  "name": "pickit2-programmer",
+  "version": "1.0.0",
+  "description": "PICkit2 Programmer - Electron应用，通过WebUSB连接PICkit2编程PIC单片机",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": [
+    "electron",
+    "pickit2",
+    "pic",
+    "webusb",
+    "programmer"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}

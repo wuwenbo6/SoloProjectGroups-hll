@@ -1,0 +1,16 @@
+{
+  "name": "ripv2-simulator",
+  "version": "1.0.0",
+  "description": "RIPv2 Router Simulator with Split Horizon and Poison Reverse",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2"
+  },
+  "keywords": ["ripv2", "router", "simulator", "network"],
+  "author": "",
+  "license": "MIT"
+}

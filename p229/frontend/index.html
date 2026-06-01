@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IB 子网管理器 - 拓扑监控</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header .status {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 280px 280px 280px;
+            gap: 12px;
+            padding: 12px;
+            height: calc(100vh - 70px);
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 11px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-small:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .panel-body {
+            padding: 15px;
+            overflow: auto;
+            height: calc(100% - 50px);
+        }
+
+        #topology {
+            height: 100%;
+            width: 100%;
+        }
+
+        .node-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .node-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .node-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .node-card.selected {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .node-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .node-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .node-type {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .type-hca {
+            background: #3b82f6;
+        }
+
+        .type-switch {
+            background: #8b5cf6;
+        }
+
+        .type-router {
+            background: #f59e0b;
+        }
+
+        .node-info {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .port-list {
+            margin-top: 15px;
+        }
+
+        .port-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .port-number {
+            width: 30px;
+            font-weight: 600;
+        }
+
+        .port-state {
+            width: 60px;
+            text-align: center;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        .state-active {
+            background: #4ade80;
+            color: #000;
+        }
+
+        .state-down {
+            background: #ef4444;
+        }
+
+        .state-init {
+            background: #f59e0b;
+        }
+
+        .state-armed {
+            background: #3b82f6;
+        }
+
+        .port-neighbor {
+            flex: 1;
+            margin-left: 10px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .port-counters {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-left: auto;
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot-hca {
+            background: #3b82f6;
+        }
+
+        .dot-switch {
+            background: #8b5cf6;
+        }
+
+        .dot-router {
+            background: #f59e0b;
+        }
+
+        .refresh-btn {
+            background: #3b82f6;
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: #2563eb;
+        }
+
+        .detail-panel {
+            position: fixed;
+            right: 440px;
+            top: 90px;
+            width: 350px;
+            max-height: 600px;
+            background: rgba(30, 41, 59, 0.95);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: none;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .detail-panel.show {
+            display: block;
+        }
+
+        .detail-header {
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .detail-body {
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+
+        .close-btn:hover {
+            opacity: 1;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+        }
+
+        .detail-label {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .detail-value {
+            font-weight: 500;
+            font-family: monospace;
+        }
+
+        .route-table {
+            width: 100%;
+            font-size: 11px;
+            margin-top: 10px;
+            border-collapse: collapse;
+        }
+
+        .route-table th,
+        .route-table td {
+            padding: 4px 6px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .route-table th {
+            background: rgba(0, 0, 0, 0.2);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #4ade80;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔷 IB 子网管理器</h1>
+        <div class="status">
+            <div class="status-item">
+                <div class="status-dot"></div>
+                <span>SM 运行中</span>
+            </div>
+            <div class="status-item">
+                <span id="nodeCount">节点: 0</span>
+            </div>
+            <div class="status-item">
+                <span id="linkCount">链路: 0</span>
+            </div>
+            <div class="status-item">
+                <span id="updateTime">更新时间: --</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="panel">
+            <div class="panel-header">
+                <h2>🔗 子网拓扑</h2>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-dot dot-hca"></div>
+                        <span>HCA</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot dot-switch"></div>
+                        <span>Switch</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot dot-router"></div>
+                        <span>Router</span>
+                    </div>
+                    <button class="refresh-btn" onclick="refreshData()">🔄 刷新</button>
+                </div>
+            </div>
+            <div class="panel-body" style="padding: 0;">
+                <div id="topology"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <h2>📋 节点列表</h2>
+            </div>
+            <div class="panel-body">
+                <div id="nodeList" class="node-list"></div>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="panel-header">
+                <h2>⚙️ 系统控制</h2>
+            </div>
+            <div class="panel-body">
+                <div style="margin-bottom: 15px;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 13px;">Adaptive Routing</h4>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 5px;">
+                            <input type="checkbox" id="arEnabled" onchange="toggleAdaptiveRouting()">
+                            <span>启用拥塞感知路由</span>
+                        </label>
+                        <button class="btn-small" onclick="rebalanceRoutes()">🔄 重新均衡</button>
+                    </div>
+                </div>
+                <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-bottom: 15px;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 13px;">OpenSM 配置导出</h4>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="btn-small" onclick="exportOpenSMConfig()">📄 opensm.conf</button>
+                        <button class="btn-small" onclick="exportTopologyDot()">📍 topology.dot</button>
+                        <button class="btn-small" onclick="exportNodeNameMap()">🏷️ node-name-map</button>
+                    </div>
+                </div>
+                <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 13px;">拥塞状态概览</h4>
+                    <div id="congestionSummary" style="font-size: 11px;">
+                        <i>加载中...</i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="panel-header">
+                <h2>📋 SMP 事件日志</h2>
+                <button class="refresh-btn" onclick="refreshEvents()">🔄 刷新</button>
+            </div>
+            <div class="panel-body" style="max-height: 300px; overflow-y: auto;">
+                <div id="eventLog" style="font-size: 11px; font-family: monospace;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="detailPanel" class="detail-panel">
+        <div class="detail-header">
+            <h3 id="detailTitle">节点详情</h3>
+            <button class="close-btn" onclick="closeDetail()">&times;</button>
+        </div>
+        <div class="detail-body" id="detailBody"></div>
+    </div>
+
+    <script>
+        let network = null;
+        let nodesData = {};
+        let selectedNode = null;
+        let topology = null;
+
+        function guidToString(guid) {
+            if (!guid) return 'N/A';
+            const hex = guid.toString(16).padStart(16, '0');
+            return hex.match(/.{2}/g).join(':');
+        }
+
+        function initNetwork() {
+            const container = document.getElementById('topology');
+            const data = {
+                nodes: new vis.DataSet([]),
+                edges: new vis.DataSet([])
+            };
+            const options = {
+                nodes: {
+                    shape: 'dot',
+                    size: 25,
+                    font: {
+                        size: 12,
+                        color: '#fff'
+                    },
+                    borderWidth: 2,
+                    shadow: true
+                },
+                edges: {
+                    width: 2,
+                    color: {
+                        color: '#4ade80',
+                        highlight: '#fbbf24'
+                    },
+                    smooth: {
+                        type: 'continuous'
+                    },
+                    shadow: true
+                },
+                physics: {
+                    enabled: true,
+                    barnesHut: {
+                        gravitationalConstant: -3000,
+                        centralGravity: 0.3,
+                        springLength: 150,
+                        springConstant: 0.04
+                    }
+                },
+                interaction: {
+                    hover: true,
+                    tooltipDelay: 200
+                }
+            };
+            network = new vis.Network(container, data, options);
+            network.on('selectNode', function(params) {
+                if (params.nodes.length > 0) {
+                    showNodeDetail(params.nodes[0]);
+                }
+            });
+        }
+
+        function updateTopology(topo) {
+            if (!topo || !topo.nodes) return;
+            topology = topo;
+
+            const nodes = [];
+            const edges = [];
+            const guidToLID = {};
+
+            for (const [guid, node] of Object.entries(topo.nodes)) {
+                guidToLID[guid] = node.lid;
+                let color = '#3b82f6';
+                let shape = 'dot';
+                
+                if (node.node_type === 'Switch') {
+                    color = '#8b5cf6';
+                    shape = 'square';
+                } else if (node.node_type === 'Router') {
+                    color = '#f59e0b';
+                    shape = 'triangle';
+                }
+
+                nodes.push({
+                    id: guid,
+                    label: node.name,
+                    title: `${node.name}\nGUID: ${guidToString(node.guid)}\nLID: ${node.lid}\n类型: ${node.node_type}`,
+                    color: color,
+                    shape: shape,
+                    size: node.node_type === 'Switch' ? 35 : 25
+                });
+            }
+
+            if (topo.links) {
+                topo.links.forEach((link, index) => {
+                    edges.push({
+                        id: index,
+                        from: link.from_guid,
+                        to: link.to_guid,
+                        title: `端口 ${link.from_port} <-> ${link.to_port}\n带宽: ${link.bandwidth} Gbps`,
+                        width: link.active ? 3 : 1,
+                        color: link.active ? '#4ade80' : '#ef4444'
+                    });
+                });
+            }
+
+            network.setData({
+                nodes: new vis.DataSet(nodes),
+                edges: new vis.DataSet(edges)
+            });
+
+            document.getElementById('nodeCount').textContent = `节点: ${nodes.length}`;
+            document.getElementById('linkCount').textContent = `链路: ${edges.length}`;
+            document.getElementById('updateTime').textContent = `更新时间: ${new Date().toLocaleTimeString()}`;
+
+            updateNodeList(topo.nodes);
+        }
+
+        function updateNodeList(nodes) {
+            const nodeList = document.getElementById('nodeList');
+            nodeList.innerHTML = '';
+
+            const sortedNodes = Object.values(nodes).sort((a, b) => {
+                if (a.node_type !== b.node_type) {
+                    return a.node_type === 'Switch' ? -1 : 1;
+                }
+                return a.name.localeCompare(b.name);
+            });
+
+            sortedNodes.forEach(node => {
+                const card = document.createElement('div');
+                card.className = `node-card ${selectedNode === node.guid ? 'selected' : ''}`;
+                card.onclick = () => showNodeDetail(node.guid);
+
+                const activePorts = Object.values(node.ports || {}).filter(p => p.state === 'Active').length;
+                const totalPorts = node.num_ports;
+
+                card.innerHTML = `
+                    <div class="node-header">
+                        <span class="node-name">${node.name}</span>
+                        <span class="node-type type-${node.node_type.toLowerCase()}">${node.node_type}</span>
+                    </div>
+                    <div class="node-info">
+                        <span>LID: ${node.lid}</span>
+                        <span>端口: ${activePorts}/${totalPorts}</span>
+                    </div>
+                `;
+                nodeList.appendChild(card);
+            });
+        }
+
+        function showNodeDetail(guid) {
+            selectedNode = guid;
+            const node = topology.nodes[guid];
+            if (!node) return;
+
+            const panel = document.getElementById('detailPanel');
+            const body = document.getElementById('detailBody');
+            const title = document.getElementById('detailTitle');
+
+            title.textContent = node.name;
+
+            let html = `
+                <div class="detail-row">
+                    <span class="detail-label">类型</span>
+                    <span class="detail-value">${node.node_type}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">GUID</span>
+                    <span class="detail-value">${guidToString(node.guid)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">LID</span>
+                    <span class="detail-value">${node.lid}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">端口数</span>
+                    <span class="detail-value">${node.num_ports}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">厂商ID</span>
+                    <span class="detail-value">0x${node.vendor_id.toString(16)}</span>
+                </div>
+            `;
+
+            html += '<h4 style="margin: 15px 0 10px 0; font-size: 14px;">端口状态</h4>';
+            html += '<div class="port-list">';
+
+            const sortedPorts = Object.entries(node.ports || {}).sort((a, b) => a[0] - b[0]);
+            sortedPorts.forEach(([portNum, port]) => {
+                const stateClass = `state-${port.state.toLowerCase()}`;
+                const neighborName = port.neighbor_guid && topology.nodes[port.neighbor_guid] 
+                    ? topology.nodes[port.neighbor_guid].name 
+                    : '未连接';
+
+                const xmtGB = (port.counters.xmt_data / 1e9).toFixed(2);
+                const rcvGB = (port.counters.rcv_data / 1e9).toFixed(2);
+                const trainingState = port.training_state || 'Idle';
+                const trainingProgress = port.training_progress || 0;
+                const congestion = port.congestion || {};
+                const congestionLevel = (congestion.congestion_level || 0) * 100;
+                const utilization = (congestion.utilization || 0) * 100;
+
+                const congestionColor = congestionLevel > 70 ? '#ef4444' : congestionLevel > 40 ? '#f59e0b' : '#4ade80';
+
+                html += `
+                    <div class="port-item" style="flex-wrap: wrap;">
+                        <span class="port-number">${portNum}</span>
+                        <span class="port-state ${stateClass}">${port.state}</span>
+                        <span class="port-neighbor">${neighborName}:${port.neighbor_port || '-'}</span>
+                        <span class="port-counters">↑${xmtGB}GB ↓${rcvGB}GB</span>
+                        <div style="width: 100%; margin-top: 5px; font-size: 11px;">
+                            <span style="color: rgba(255,255,255,0.6);">训练: ${trainingState}</span>
+                            <div style="display: inline-block; width: 60px; height: 6px; background: rgba(255,255,255,0.2); border-radius: 3px; margin: 0 8px 0 4px; vertical-align: middle;">
+                                <div style="width: ${trainingProgress}%; height: 100%; background: #4ade80; border-radius: 3px;"></div>
+                            </div>
+                            <span style="color: rgba(255,255,255,0.6);">| 拥塞:</span>
+                            <div style="display: inline-block; width: 60px; height: 6px; background: rgba(255,255,255,0.2); border-radius: 3px; margin: 0 8px 0 4px; vertical-align: middle;">
+                                <div style="width: ${congestionLevel}%; height: 100%; background: ${congestionColor}; border-radius: 3px;"></div>
+                            </div>
+                            <span style="color: rgba(255,255,255,0.6);">${congestionLevel.toFixed(0)}% / ${utilization.toFixed(0)}%</span>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            if (node.node_type === 'Switch') {
+                html += '<h4 style="margin: 15px 0 10px 0; font-size: 14px;">路由表 (LFT)</h4>';
+                html += '<div id="routeTableContainer"><i>加载中...</i></div>';
+            }
+
+            body.innerHTML = html;
+            panel.classList.add('show');
+            updateNodeList(topology.nodes);
+
+            if (node.node_type === 'Switch') {
+                loadRouteTable(guid);
+            }
+        }
+
+        async function loadRouteTable(guid) {
+            try {
+                const response = await fetch(`/api/routes/${guid}`);
+                if (response.ok) {
+                    const rt = await response.json();
+                    if (rt && rt.entries) {
+                        let html = '<table class="route-table">';
+                        html += '<tr><th>DLID</th><th>出端口</th><th>跳数</th></tr>';
+                        const sortedEntries = Object.entries(rt.entries).sort((a, b) => a[0] - b[0]).slice(0, 10);
+                        sortedEntries.forEach(([dlid, entry]) => {
+                            html += `<tr><td>${dlid}</td><td>${entry.out_port}</td><td>${entry.hop_count}</td></tr>`;
+                        });
+                        html += '</table>';
+                        html += `<p style="margin-top: 8px; font-size: 11px; color: rgba(255,255,255,0.5);">共 ${Object.keys(rt.entries).length} 条路由</p>`;
+                        const container = document.getElementById('routeTableContainer');
+                        if (container) {
+                            container.innerHTML = html;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to fetch route table:', e);
+            }
+        }
+
+        function closeDetail() {
+            document.getElementById('detailPanel').classList.remove('show');
+            selectedNode = null;
+            if (topology) {
+                updateNodeList(topology.nodes);
+            }
+        }
+
+        async function refreshData() {
+            try {
+                const response = await fetch('/api/topology');
+                if (response.ok) {
+                    const topo = await response.json();
+                    updateTopology(topo);
+                }
+            } catch (error) {
+                console.error('Failed to refresh data:', error);
+            }
+        }
+
+        async function refreshEvents() {
+            try {
+                const response = await fetch('/api/smp/events');
+                if (response.ok) {
+                    const events = await response.json();
+                    updateEventLog(events);
+                }
+            } catch (error) {
+                console.error('Failed to refresh events:', error);
+            }
+        }
+
+        function updateEventLog(events) {
+            const container = document.getElementById('eventLog');
+            if (!container) return;
+
+            let html = '';
+            const recentEvents = events.slice(-20).reverse();
+            recentEvents.forEach(event => {
+                const time = new Date(event.timestamp).toLocaleTimeString();
+                const typeColor = event.type.includes('Set') ? '#f59e0b' : '#3b82f6';
+                html += `<div style="padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <span style="color: rgba(255,255,255,0.5);">[${time}]</span>
+                    <span style="color: ${typeColor};">[${event.type}]</span>
+                    <span>${event.message}</span>
+                </div>`;
+            });
+            container.innerHTML = html || '<div style="color: rgba(255,255,255,0.5);">暂无事件</div>';
+        }
+
+        async function loadAdaptiveRouting() {
+            try {
+                const response = await fetch('/api/routing/adaptive');
+                if (response.ok) {
+                    const config = await response.json();
+                    document.getElementById('arEnabled').checked = config.enabled;
+                }
+            } catch (e) {
+                console.error('Failed to load adaptive routing config:', e);
+            }
+        }
+
+        async function toggleAdaptiveRouting() {
+            const enabled = document.getElementById('arEnabled').checked;
+            try {
+                await fetch('/api/routing/adaptive', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+            } catch (e) {
+                console.error('Failed to toggle adaptive routing:', e);
+            }
+        }
+
+        async function rebalanceRoutes() {
+            try {
+                const response = await fetch('/api/routing/rebalance', { method: 'POST' });
+                const result = await response.json();
+                alert(`路由重新均衡完成，变更了 ${result.changes} 条路径`);
+            } catch (e) {
+                console.error('Failed to rebalance routes:', e);
+            }
+        }
+
+        function exportOpenSMConfig() {
+            window.location.href = '/api/config/opensm';
+        }
+
+        function exportTopologyDot() {
+            window.location.href = '/api/config/topology.dot';
+        }
+
+        function exportNodeNameMap() {
+            window.location.href = '/api/config/node-name-map';
+        }
+
+        async function refreshCongestionStats() {
+            try {
+                const response = await fetch('/api/congestion');
+                if (response.ok) {
+                    const stats = await response.json();
+                    updateCongestionSummary(stats);
+                }
+            } catch (e) {
+                console.error('Failed to refresh congestion stats:', e);
+            }
+        }
+
+        function updateCongestionSummary(stats) {
+            const container = document.getElementById('congestionSummary');
+            if (!container) return;
+
+            let html = '';
+            const nodeOrder = Object.keys(stats).sort();
+
+            nodeOrder.forEach(guid => {
+                const nodeStats = stats[guid];
+                const totalPorts = Object.keys(nodeStats).length;
+                const congestedPorts = Object.values(nodeStats).filter(p => p.congestion_level > 0.7).length;
+
+                const avgCongestion = totalPorts > 0
+                    ? (Object.values(nodeStats).reduce((sum, p) => sum + p.congestion_level, 0) / totalPorts * 100).toFixed(1)
+                    : 0;
+
+                const color = avgCongestion > 70 ? '#ef4444' : avgCongestion > 40 ? '#f59e0b' : '#4ade80';
+
+                html += `<div style="padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <span style="color: ${color};">■</span>
+                    <span style="margin-left: 4px;">${guid.slice(-6)}: ${avgCongestion}%</span>
+                    <span style="float: right; color: rgba(255,255,255,0.5);">${congestedPorts}/${totalPorts}</span>
+                </div>`;
+            });
+
+            container.innerHTML = html || '<div style="color: rgba(255,255,255,0.5);">暂无数据</div>';
+        }
+
+        async function init() {
+            initNetwork();
+            await refreshData();
+            await refreshEvents();
+            await loadAdaptiveRouting();
+            await refreshCongestionStats();
+            setInterval(refreshData, 3000);
+            setInterval(refreshEvents, 5000);
+            setInterval(refreshCongestionStats, 5000);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

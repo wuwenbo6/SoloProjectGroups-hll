@@ -1,0 +1,6 @@
+ryu>=4.34
+eventlet>=0.31.0
+routes>=2.5.1
+webob>=1.8.7
+requests>=2.25.1
+psutil>=5.8.0

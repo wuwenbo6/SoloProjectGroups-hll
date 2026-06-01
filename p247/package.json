@@ -1,0 +1,21 @@
+{
+  "name": "rtp-mos-analyzer",
+  "version": "1.0.0",
+  "description": "RTP语音质量分析系统 - 丢包率、抖动、自适应Jitter Buffer、MOS分估算",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node test/runTests.js"
+  },
+  "keywords": ["RTP", "MOS", "PCAP", "Jitter", "VoIP"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "multer": "^2.1.1",
+    "pcap-parser": "^0.2.1"
+  }
+}

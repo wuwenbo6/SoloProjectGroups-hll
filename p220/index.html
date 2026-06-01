@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IPMI 风扇控制</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="node_modules/chart.js/dist/chart.umd.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>IPMI 服务器风扇监控与控制</h1>
+      <div class="status-bar">
+        <span id="vendor-badge" class="vendor-badge detecting">探测中...</span>
+        <span id="session-status" class="status disconnected">Session: 未连接</span>
+        <span id="last-update">上次更新: --</span>
+      </div>
+    </header>
+
+    <div class="vendor-info-card" id="vendor-info-card" style="display:none;">
+      <div class="vendor-info-content">
+        <div class="vendor-detail">
+          <span class="vendor-detail-label">检测厂商:</span>
+          <span id="vendor-name" class="vendor-detail-value">--</span>
+        </div>
+        <div class="vendor-detail">
+          <span class="vendor-detail-label">手动模式寄存器:</span>
+          <code id="register-manual" class="register-code">--</code>
+        </div>
+        <div class="vendor-detail">
+          <span class="vendor-detail-label">自动模式寄存器:</span>
+          <code id="register-auto" class="register-code">--</code>
+        </div>
+        <div class="vendor-detail">
+          <span class="vendor-detail-label">PWM 设置寄存器:</span>
+          <code id="register-pwm" class="register-code">--</code>
+        </div>
+        <div class="vendor-actions">
+          <label class="vendor-select-label">手动选择厂商:</label>
+          <select id="vendor-select">
+            <option value="auto">自动探测</option>
+            <option value="dell">Dell (iDRAC)</option>
+            <option value="hp">HP (iLO)</option>
+            <option value="lenovo">Lenovo (XCC)</option>
+            <option value="generic">通用 IPMI</option>
+          </select>
+          <button id="btn-redetect" class="redetect-btn">重新探测</button>
+          <button id="btn-reconnect" class="reconnect-btn">重连 Session</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="left-panel">
+        <div class="card">
+          <h2>风扇转速</h2>
+          <div id="fan-list" class="sensor-list">
+            <div class="loading">加载中...</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>温度传感器</h2>
+          <div id="temp-list" class="sensor-list">
+            <div class="loading">加载中...</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>风扇控制模式</h2>
+          <div class="control-mode">
+            <button id="btn-auto" class="mode-btn active">自动模式</button>
+            <button id="btn-manual" class="mode-btn">手动模式</button>
+            <button id="btn-pid" class="mode-btn">PID 闭环</button>
+          </div>
+          <div id="current-mode-info" class="mode-info">当前: 自动模式</div>
+        </div>
+
+        <div class="card" id="pid-control-card">
+          <h2>PID 闭环控制</h2>
+          <div class="pid-control">
+            <div class="pid-param-group">
+              <div class="pid-param">
+                <label>目标温度 (°C)</label>
+                <input type="number" id="pid-target-temp" value="55" min="20" max="90" step="1">
+              </div>
+              <div class="pid-param">
+                <label>温度传感器</label>
+                <select id="pid-temp-sensor">
+                  <option value="">-- 请先采集数据 --</option>
+                </select>
+              </div>
+            </div>
+            <div class="pid-param-group">
+              <div class="pid-param">
+                <label>Kp (比例)</label>
+                <input type="number" id="pid-kp" value="2.0" min="0" max="20" step="0.1">
+              </div>
+              <div class="pid-param">
+                <label>Ki (积分)</label>
+                <input type="number" id="pid-ki" value="0.1" min="0" max="5" step="0.01">
+              </div>
+              <div class="pid-param">
+                <label>Kd (微分)</label>
+                <input type="number" id="pid-kd" value="0.5" min="0" max="10" step="0.1">
+              </div>
+            </div>
+            <div class="pid-param-group">
+              <div class="pid-param">
+                <label>PWM 区域</label>
+                <select id="pid-zone">
+                  <option value="00">Zone 0</option>
+                  <option value="01">Zone 1</option>
+                </select>
+              </div>
+              <div class="pid-param">
+                <label>PWM 下限 (%)</label>
+                <input type="number" id="pid-min-pwm" value="20" min="0" max="100" step="1">
+              </div>
+              <div class="pid-param">
+                <label>PWM 上限 (%)</label>
+                <input type="number" id="pid-max-pwm" value="100" min="0" max="100" step="1">
+              </div>
+            </div>
+            <div id="pid-status" class="pid-status" style="display:none;">
+              <div class="pid-status-item">
+                <span class="pid-status-label">误差:</span>
+                <span id="pid-error" class="pid-status-value">--</span>
+              </div>
+              <div class="pid-status-item">
+                <span class="pid-status-label">输出:</span>
+                <span id="pid-output" class="pid-status-value">--</span>
+              </div>
+              <div class="pid-status-item">
+                <span class="pid-status-label">当前 PWM:</span>
+                <span id="pid-current-pwm" class="pid-status-value">--</span>
+              </div>
+              <div class="pid-status-item">
+                <span class="pid-status-label">当前温度:</span>
+                <span id="pid-current-temp" class="pid-status-value">--</span>
+              </div>
+            </div>
+            <div class="pid-actions">
+              <button id="btn-pid-start" class="pid-start-btn">启动 PID</button>
+              <button id="btn-pid-stop" class="pid-stop-btn" disabled>停止 PID</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>PWM 占空比设置</h2>
+          <div class="pwm-control">
+            <div class="pwm-slider-container">
+              <input type="range" id="pwm-slider" min="0" max="100" value="50" disabled>
+              <div class="pwm-value-display">
+                <span id="pwm-value">50</span>%
+              </div>
+            </div>
+            <div class="pwm-presets">
+              <button class="preset-btn" data-value="20" disabled>20%</button>
+              <button class="preset-btn" data-value="40" disabled>40%</button>
+              <button class="preset-btn" data-value="60" disabled>60%</button>
+              <button class="preset-btn" data-value="80" disabled>80%</button>
+              <button class="preset-btn" data-value="100" disabled>100%</button>
+            </div>
+            <div class="zone-select">
+              <label>风扇区域:</label>
+              <select id="zone-select" disabled>
+                <option value="00">Zone 0</option>
+                <option value="01">Zone 1</option>
+              </select>
+            </div>
+            <div id="pwm-register-preview" class="register-preview" style="display:none;">
+              <span class="preview-label">将执行:</span>
+              <code id="pwm-command-preview" class="register-code">--</code>
+            </div>
+            <button id="btn-apply-pwm" class="apply-btn" disabled>应用设置</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="right-panel">
+        <div class="card chart-card">
+          <div class="chart-header">
+            <h2>转速-温度曲线</h2>
+            <div class="chart-controls">
+              <label>
+                <input type="checkbox" id="show-fans" checked> 显示风扇
+              </label>
+              <label>
+                <input type="checkbox" id="show-temp" checked> 显示温度
+              </label>
+              <button id="btn-clear-data">清除数据</button>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="fanTempChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card chart-card">
+          <h2>实时监控</h2>
+          <div class="chart-container">
+            <canvas id="realtimeChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>采样设置</h2>
+          <div class="refresh-settings">
+            <label>采样间隔:</label>
+            <select id="refresh-interval">
+              <option value="1000">1 秒</option>
+              <option value="2000">2 秒</option>
+              <option value="5000" selected>5 秒</option>
+              <option value="10000">10 秒</option>
+            </select>
+            <button id="btn-refresh-now">立即刷新</button>
+            <button id="btn-export-csv" class="export-csv-btn">导出 CSV</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="message-container"></div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

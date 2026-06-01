@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G.729 编解码 + PLC 丢包补偿对比演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9em;
+        }
+
+        .control-group input[type="range"] {
+            width: 200px;
+        }
+
+        .control-group input[type="number"] {
+            width: 100px;
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .control-group select {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .value-display {
+            font-size: 0.9em;
+            color: #666;
+            min-width: 60px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-play {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-play:hover {
+            background: #059669;
+        }
+
+        .btn-stop {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-stop:hover {
+            background: #dc2626;
+        }
+
+        .btn-compare {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-compare:hover {
+            background: #d97706;
+        }
+
+        .stats {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 8px;
+        }
+
+        .stat-card .label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .stat-card.alert .value {
+            color: #ef4444;
+        }
+
+        .stat-card.good .value {
+            color: #10b981;
+        }
+
+        .stat-card.mos-excellent .value { color: #059669; }
+        .stat-card.mos-good .value { color: #10b981; }
+        .stat-card.mos-fair .value { color: #f59e0b; }
+        .stat-card.mos-poor .value { color: #ef4444; }
+        .stat-card.mos-bad .value { color: #991b1b; }
+
+        .mos-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        .mos-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .waveform-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .waveform-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .waveform-section h3 .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-original {
+            background: #e0e7ff;
+            color: #4338ca;
+        }
+
+        .badge-no-plc {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .badge-with-plc {
+            background: #d1fae5;
+            color: #047857;
+        }
+
+        canvas {
+            width: 100%;
+            height: 120px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .playback-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .packet-loss-indicator {
+            margin-top: 10px;
+            display: flex;
+            gap: 2px;
+            flex-wrap: wrap;
+        }
+
+        .packet-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            background: #10b981;
+        }
+
+        .packet-indicator.lost {
+            background: #ef4444;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: white;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .main-content {
+            display: none;
+        }
+
+        .main-content.active {
+            display: block;
+        }
+
+        .info-box {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: #78350f;
+        }
+
+        .time-indicator {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .playback-position {
+            position: relative;
+            height: 120px;
+        }
+
+        .playback-position::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2px;
+            height: 100%;
+            background: #ef4444;
+            z-index: 10;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loading" class="loading active">
+            <div class="spinner"></div>
+            <p>正在加载 WASM 模块...</p>
+        </div>
+
+        <div id="main-content" class="main-content">
+            <header>
+                <h1>G.729 编解码 + PLC 丢包补偿对比演示</h1>
+                <p>固定码本编码 · 多模式丢包模拟 · 周期性波形PLC · MOS质量评估</p>
+            </header>
+
+            <div class="controls">
+                <div class="control-row">
+                    <div class="control-group">
+                        <label for="lossRate">丢包率</label>
+                        <input type="range" id="lossRate" min="0" max="50" value="5" step="1">
+                        <span class="value-display"><span id="lossRateValue">5</span>%</span>
+                    </div>
+                    <div class="control-group">
+                        <label for="lossPattern">丢包模式</label>
+                        <select id="lossPattern">
+                            <option value="0">随机丢包 (Random)</option>
+                            <option value="1">突发丢包 (Gilbert)</option>
+                            <option value="2">周期丢包 (Periodic)</option>
+                            <option value="3">渐增丢包 (Gradual)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="duration">信号时长 (ms)</label>
+                        <input type="number" id="duration" min="500" max="10000" value="3000" step="500">
+                    </div>
+                    <button id="generateBtn" class="btn btn-primary">生成并处理信号</button>
+                </div>
+                <div class="info-box">
+                    <strong>说明：</strong>本演示模拟了G.729语音编解码器的核心流程。信号经过LPC分析、固定码本量化后进行传输，
+                    模拟网络丢包，然后分别使用无补偿和PLC（丢包补偿，周期性波形重复）两种方式解码，
+                    对比收听效果差异。MOS分为1-5分（5=优秀，4=良好，3=一般，2=差，1=很差）。
+                    <br><br>
+                    <strong>丢包模式说明：</strong>
+                    <br>• <strong>随机丢包</strong>：每帧独立以设定概率丢包
+                    <br>• <strong>突发丢包 (Gilbert)</strong>：Gilbert-Elliott模型，模拟网络拥塞导致的连续丢包
+                    <br>• <strong>周期丢包</strong>：每隔固定间隔丢一包，模拟Jitter Buffer溢出
+                    <br>• <strong>渐增丢包</strong>：丢包率从0逐渐增加到设定值的2倍，模拟网络恶化
+                    <br><br>
+                    <strong>当前运行模式：</strong><span id="modeIndicator" style="font-weight: bold; color: #78350f;">检测中...</span>
+                </div>
+            </div>
+
+            <div id="stats" class="stats" style="display: none;">
+                <div class="stat-card">
+                    <div class="label">总帧数</div>
+                    <div class="value" id="totalFrames">-</div>
+                </div>
+                <div class="stat-card alert">
+                    <div class="label">丢失帧数</div>
+                    <div class="value" id="lostFrames">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">实际丢包率</div>
+                    <div class="value" id="actualLossRate">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">最大突发长度</div>
+                    <div class="value" id="maxBurstLength">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">MOS (无PLC)</div>
+                    <div class="value" id="mosNoPlc">-</div>
+                    <div class="mos-bar"><div class="mos-bar-fill" id="mosBarNoPlc" style="width:0%;background:#ef4444;"></div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">MOS (有PLC)</div>
+                    <div class="value" id="mosWithPlc">-</div>
+                    <div class="mos-bar"><div class="mos-bar-fill" id="mosBarWithPlc" style="width:0%;background:#10b981;"></div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">SegSNR (无/有)</div>
+                    <div class="value" id="segSnr">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">PESQ-like (无/有)</div>
+                    <div class="value" id="pesqLike">-</div>
+                </div>
+                <div class="stat-card good">
+                    <div class="label">MOS提升</div>
+                    <div class="value" id="mosImprovement">-</div>
+                </div>
+            </div>
+
+            <div id="waveforms" style="display: none;">
+                <div class="waveform-section">
+                    <h3><span class="badge badge-original">原始信号</span> Original</h3>
+                    <div class="playback-position" id="pos0">
+                        <canvas id="canvas0"></canvas>
+                    </div>
+                    <div class="time-indicator">
+                        <span>0:00</span>
+                        <span id="time0">0:00</span>
+                    </div>
+                    <div class="playback-controls">
+                        <button class="btn btn-play" onclick="playAudio(0)">▶ 播放原始</button>
+                    </div>
+                </div>
+
+                <div class="waveform-section">
+                    <h3><span class="badge badge-no-plc">无 PLC</span> 丢包时填充静音</h3>
+                    <div class="playback-position" id="pos1">
+                        <canvas id="canvas1"></canvas>
+                    </div>
+                    <div class="time-indicator">
+                        <span>0:00</span>
+                        <span id="time1">0:00</span>
+                    </div>
+                    <div class="playback-controls">
+                        <button class="btn btn-play" onclick="playAudio(1)">▶ 播放无PLC</button>
+                    </div>
+                </div>
+
+                <div class="waveform-section">
+                    <h3><span class="badge badge-with-plc">有 PLC</span> 丢包时重复前一帧</h3>
+                    <div class="playback-position" id="pos2">
+                        <canvas id="canvas2"></canvas>
+                    </div>
+                    <div class="time-indicator">
+                        <span>0:00</span>
+                        <span id="time2">0:00</span>
+                    </div>
+                    <div class="playback-controls">
+                        <button class="btn btn-play" onclick="playAudio(2)">▶ 播放有PLC</button>
+                        <button class="btn btn-compare" onclick="compareAudio()">🔀 A/B对比</button>
+                        <button class="btn btn-stop" onclick="stopAllAudio()">⏹ 全部停止</button>
+                    </div>
+                </div>
+
+                <div class="waveform-section">
+                    <h3>丢包位置指示</h3>
+                    <div id="packetIndicator" class="packet-loss-indicator"></div>
+                    <p style="margin-top: 10px; font-size: 0.85em; color: #666;">
+                        <span style="display:inline-block;width:12px;height:12px;background:#10b981;margin-right:5px;"></span> 正常接收
+                        <span style="display:inline-block;width:12px;height:12px;background:#ef4444;margin-left:20px;margin-right:5px;"></span> 丢包
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/g729_sim.js"></script>
+    <script src="build/g729_sim.js" onerror="this.dataset.failed='true'"></script>
+    <script>
+        let codec = null;
+        let useWasm = false;
+        let audioContext = null;
+        let audioBuffers = [null, null, null];
+        let sourceNodes = [null, null, null];
+        let startTime = [0, 0, 0];
+        let isPlaying = [false, false, false];
+        let rafId = null;
+        let currentData = null;
+
+        function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        }
+
+        function drawWaveform(canvas, samples, color) {
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+            const height = canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            ctx.fillStyle = '#f8f9fa';
+            ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.offsetHeight / 2);
+            ctx.lineTo(canvas.offsetWidth, canvas.offsetHeight / 2);
+            ctx.stroke();
+
+            if (!samples || samples.length === 0) return;
+
+            const step = Math.max(1, Math.floor(samples.length / canvas.offsetWidth));
+            const centerY = canvas.offsetHeight / 2;
+            const maxAmplitude = 32768;
+
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+
+            for (let x = 0; x < canvas.offsetWidth; x++) {
+                let min = maxAmplitude;
+                let max = -maxAmplitude;
+
+                const start = x * step;
+                const end = Math.min(start + step, samples.length);
+
+                for (let i = start; i < end; i++) {
+                    const val = samples[i] || 0;
+                    if (val < min) min = val;
+                    if (val > max) max = val;
+                }
+
+                const y1 = centerY - (min / maxAmplitude) * (centerY - 10);
+                const y2 = centerY - (max / maxAmplitude) * (centerY - 10);
+
+                ctx.moveTo(x, y1);
+                ctx.lineTo(x, y2);
+            }
+
+            ctx.stroke();
+        }
+
+        function drawPacketIndicator(frames) {
+            const container = document.getElementById('packetIndicator');
+            container.innerHTML = '';
+
+            const maxDisplay = 300;
+            const step = Math.ceil(frames.length / maxDisplay);
+
+            for (let i = 0; i < frames.length; i += step) {
+                const div = document.createElement('div');
+                div.className = 'packet-indicator';
+                let hasLoss = false;
+                for (let j = i; j < Math.min(i + step, frames.length); j++) {
+                    if (frames[j].lost) {
+                        hasLoss = true;
+                        break;
+                    }
+                }
+                if (hasLoss) div.classList.add('lost');
+                div.title = `帧 ${i}-${Math.min(i + step - 1, frames.length - 1)}: ${hasLoss ? '丢包' : '正常'}`;
+                container.appendChild(div);
+            }
+        }
+
+        function samplesToAudioBuffer(samples, sampleRate) {
+            const buffer = audioContext.createBuffer(1, samples.length, sampleRate);
+            const channelData = buffer.getChannelData(0);
+
+            for (let i = 0; i < samples.length; i++) {
+                channelData[i] = (samples[i] || 0) / 32768.0;
+            }
+
+            return buffer;
+        }
+
+        function playAudio(index) {
+            if (!audioBuffers[index]) return;
+
+            initAudioContext();
+            stopAudio(index);
+
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffers[index];
+            source.connect(audioContext.destination);
+
+            source.onended = () => {
+                isPlaying[index] = false;
+                updatePlaybackPosition();
+            };
+
+            sourceNodes[index] = source;
+            startTime[index] = audioContext.currentTime;
+            isPlaying[index] = true;
+            source.start(0);
+
+            updatePlaybackPosition();
+        }
+
+        function stopAudio(index) {
+            if (sourceNodes[index]) {
+                try {
+                    sourceNodes[index].stop();
+                } catch (e) {}
+                sourceNodes[index] = null;
+            }
+            isPlaying[index] = false;
+        }
+
+        function stopAllAudio() {
+            for (let i = 0; i < 3; i++) {
+                stopAudio(i);
+            }
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+            document.querySelectorAll('.playback-position').forEach(el => {
+                el.style.setProperty('--playback-pos', '0%');
+                el.style.backgroundImage = 'none';
+            });
+        }
+
+        let compareState = -1;
+        let compareTimeout = null;
+
+        function compareAudio() {
+            stopAllAudio();
+            compareState = 1;
+            playCompareSegment();
+        }
+
+        function playCompareSegment() {
+            if (compareState < 0) return;
+
+            const duration = 2;
+            playAudio(compareState);
+
+            compareTimeout = setTimeout(() => {
+                stopAudio(compareState);
+                compareState = compareState === 1 ? 2 : 1;
+                playCompareSegment();
+            }, duration * 1000);
+        }
+
+        function updatePlaybackPosition() {
+            let anyPlaying = false;
+
+            for (let i = 0; i < 3; i++) {
+                if (isPlaying[i] && audioBuffers[i]) {
+                    anyPlaying = true;
+                    const elapsed = audioContext.currentTime - startTime[i];
+                    const duration = audioBuffers[i].duration;
+                    const percent = Math.min(100, (elapsed / duration) * 100);
+
+                    const posEl = document.getElementById(`pos${i}`);
+                    posEl.style.setProperty('--playback-pos', `${percent}%`);
+                    posEl.style.backgroundImage = `linear-gradient(to right, transparent 0%, transparent ${percent}%, rgba(239,68,68,0.1) ${percent}%, rgba(239,68,68,0.1) 100%)`;
+
+                    const mins = Math.floor(elapsed / 60);
+                    const secs = Math.floor(elapsed % 60);
+                    document.getElementById(`time${i}`).textContent =
+                        `${mins}:${secs.toString().padStart(2, '0')}`;
+                }
+
+                if (!isPlaying[i]) {
+                    document.getElementById(`time${i}`).textContent = '0:00';
+                }
+            }
+
+            if (anyPlaying) {
+                rafId = requestAnimationFrame(updatePlaybackPosition);
+            } else {
+                document.querySelectorAll('.playback-position').forEach(el => {
+                    el.style.setProperty('--playback-pos', '0%');
+                    el.style.backgroundImage = 'none';
+                });
+            }
+        }
+
+        function getMosClass(mos) {
+            if (mos >= 4.0) return 'mos-excellent';
+            if (mos >= 3.5) return 'mos-good';
+            if (mos >= 2.5) return 'mos-fair';
+            if (mos >= 1.5) return 'mos-poor';
+            return 'mos-bad';
+        }
+
+        function getMosColor(mos) {
+            if (mos >= 4.0) return '#059669';
+            if (mos >= 3.5) return '#10b981';
+            if (mos >= 2.5) return '#f59e0b';
+            if (mos >= 1.5) return '#ef4444';
+            return '#991b1b';
+        }
+
+        function getMosLabel(mos) {
+            if (mos >= 4.0) return '优秀';
+            if (mos >= 3.5) return '良好';
+            if (mos >= 2.5) return '一般';
+            if (mos >= 1.5) return '差';
+            return '很差';
+        }
+
+        function calculateMetrics(original, processed) {
+            let mse = 0;
+            let maxDiff = 0;
+            const len = Math.min(original.length, processed.length);
+
+            for (let i = 0; i < len; i++) {
+                const diff = (original[i] || 0) - (processed[i] || 0);
+                mse += diff * diff;
+                maxDiff = Math.max(maxDiff, Math.abs(diff));
+            }
+            mse /= len;
+
+            const snr = 10 * Math.log10((32768 * 32768) / mse);
+            return { mse, snr, maxDiff };
+        }
+
+        async function generateAndProcess() {
+            if (!codec) return;
+
+            stopAllAudio();
+
+            const duration = parseInt(document.getElementById('duration').value);
+            const lossRate = parseInt(document.getElementById('lossRate').value) / 100;
+            const lossPattern = parseInt(document.getElementById('lossPattern').value);
+
+            codec.setLossRate(lossRate);
+            if (typeof codec.setLossPattern === 'function') {
+                codec.setLossPattern(lossPattern);
+            }
+
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            btn.textContent = '处理中...';
+
+            try {
+                await new Promise(resolve => setTimeout(resolve, 50));
+
+                currentData = codec.processFullPipeline(duration);
+
+                document.getElementById('totalFrames').textContent = currentData.total_frames;
+                document.getElementById('lostFrames').textContent = currentData.lost_count;
+                const actualRate = (currentData.lost_count / currentData.total_frames * 100).toFixed(1);
+                document.getElementById('actualLossRate').textContent = actualRate + '%';
+                document.getElementById('maxBurstLength').textContent = currentData.max_burst_length || '-';
+
+                if (currentData.mos_no_plc !== undefined) {
+                    const mosNoPlc = currentData.mos_no_plc;
+                    const mosWithPlc = currentData.mos_with_plc;
+                    
+                    const mosNoPlcEl = document.getElementById('mosNoPlc');
+                    mosNoPlcEl.textContent = mosNoPlc.toFixed(2) + ' (' + getMosLabel(mosNoPlc) + ')';
+                    mosNoPlcEl.parentElement.className = 'stat-card ' + getMosClass(mosNoPlc);
+                    document.getElementById('mosBarNoPlc').style.width = (mosNoPlc / 5.0 * 100) + '%';
+                    document.getElementById('mosBarNoPlc').style.background = getMosColor(mosNoPlc);
+                    
+                    const mosWithPlcEl = document.getElementById('mosWithPlc');
+                    mosWithPlcEl.textContent = mosWithPlc.toFixed(2) + ' (' + getMosLabel(mosWithPlc) + ')';
+                    mosWithPlcEl.parentElement.className = 'stat-card ' + getMosClass(mosWithPlc);
+                    document.getElementById('mosBarWithPlc').style.width = (mosWithPlc / 5.0 * 100) + '%';
+                    document.getElementById('mosBarWithPlc').style.background = getMosColor(mosWithPlc);
+                    
+                    document.getElementById('segSnr').textContent =
+                        currentData.seg_snr_no_plc.toFixed(1) + ' / ' + currentData.seg_snr_with_plc.toFixed(1) + ' dB';
+                    document.getElementById('pesqLike').textContent =
+                        currentData.pesq_like_no_plc.toFixed(2) + ' / ' + currentData.pesq_like_with_plc.toFixed(2);
+                    
+                    const mosImprovement = mosWithPlc - mosNoPlc;
+                    const impEl = document.getElementById('mosImprovement');
+                    impEl.textContent = (mosImprovement >= 0 ? '+' : '') + mosImprovement.toFixed(2);
+                    impEl.parentElement.className = 'stat-card ' + (mosImprovement >= 0 ? 'good' : 'alert');
+                }
+
+                document.getElementById('stats').style.display = 'grid';
+                document.getElementById('waveforms').style.display = 'block';
+
+                const sampleRate = codec.getSampleRate();
+
+                audioBuffers[0] = samplesToAudioBuffer(currentData.original, sampleRate);
+                audioBuffers[1] = samplesToAudioBuffer(currentData.no_plc, sampleRate);
+                audioBuffers[2] = samplesToAudioBuffer(currentData.with_plc, sampleRate);
+
+                drawWaveform(document.getElementById('canvas0'), currentData.original, '#4338ca');
+                drawWaveform(document.getElementById('canvas1'), currentData.no_plc, '#b91c1c');
+                drawWaveform(document.getElementById('canvas2'), currentData.with_plc, '#047857');
+
+                drawPacketIndicator(currentData.frames_with_loss);
+
+            } catch (e) {
+                console.error('处理失败:', e);
+                alert('处理失败: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '生成并处理信号';
+            }
+        }
+
+        document.getElementById('lossRate').addEventListener('input', function() {
+            document.getElementById('lossRateValue').textContent = this.value;
+        });
+
+        document.getElementById('generateBtn').addEventListener('click', generateAndProcess);
+
+        window.addEventListener('resize', () => {
+            if (currentData) {
+                drawWaveform(document.getElementById('canvas0'), currentData.original, '#4338ca');
+                drawWaveform(document.getElementById('canvas1'), currentData.no_plc, '#b91c1c');
+                drawWaveform(document.getElementById('canvas2'), currentData.with_plc, '#047857');
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (compareState >= 0) {
+                    compareState = -1;
+                    if (compareTimeout) clearTimeout(compareTimeout);
+                    stopAllAudio();
+                }
+            }
+            if (e.key === '1') playAudio(0);
+            if (e.key === '2') playAudio(1);
+            if (e.key === '3') playAudio(2);
+            if (e.key === '4') compareAudio();
+            if (e.key === '0' || e.key === 'Escape') stopAllAudio();
+        });
+
+        var Module = {
+            onRuntimeInitialized: function() {
+                codec = new Module.G729Codec();
+                useWasm = true;
+                console.log('WASM 模块加载成功，采样率:', codec.getSampleRate(), 'Hz');
+                document.getElementById('modeIndicator').textContent = 'WebAssembly (C++ 编译)';
+                document.getElementById('modeIndicator').style.color = '#047857';
+
+                document.getElementById('loading').classList.remove('active');
+                document.getElementById('main-content').classList.add('active');
+
+                setTimeout(generateAndProcess, 200);
+            }
+        };
+
+        window.G729Module = window.G729Module || {};
+        Object.assign(window.G729Module, Module);
+
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (!codec && window.G729CodecJS) {
+                    codec = new window.G729CodecJS();
+                    useWasm = false;
+                    console.log('使用 JavaScript 版本，采样率:', codec.getSampleRate(), 'Hz');
+                    document.getElementById('modeIndicator').textContent = 'JavaScript (纯前端)';
+                    document.getElementById('modeIndicator').style.color = '#d97706';
+
+                    document.getElementById('loading').classList.remove('active');
+                    document.getElementById('main-content').classList.add('active');
+
+                    setTimeout(generateAndProcess, 200);
+                }
+            }, 3000);
+        });
+    </script>
+</body>
+</html>

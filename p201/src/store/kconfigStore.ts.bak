@@ -1,0 +1,253 @@
+import { create } from 'zustand';
+import type { KconfigNode, KconfigSymbol, KconfigParseResult, ConfigValue } from '../../shared/types';
+import { resolveToggle } from './depEngine';
+
+interface FlatItem {
+  nodeId: string;
+  level: number;
+  node: KconfigNode;
+}
+
+interface KconfigState {
+  tree: KconfigNode[];
+  symbols: Record<string, KconfigSymbol>;
+  values: ConfigValue;
+  nodeSelects: Record<string, string[]>;
+  selectedNodeId: string | null;
+  expandedNodes: Set<string>;
+  searchQuery: string;
+  loaded: boolean;
+  lastAutoEnabled: string[];
+  lastAutoDisabled: string[];
+  lastAutoSelected: string[];
+
+  loadKconfig: (result: KconfigParseResult) => void;
+  toggleValue: (name: string) => void;
+  setTristateValue: (name: string, value: string) => void;
+  setStringValue: (name: string, value: string) => void;
+  setNumericValue: (name: string, value: number) => void;
+  setChoiceValue: (name: string) => void;
+  setValues: (values: ConfigValue) => void;
+  selectNode: (nodeId: string | null) => void;
+  toggleExpand: (nodeId: string) => void;
+  expandAll: () => void;
+  collapseAll: () => void;
+  setSearchQuery: (query: string) => void;
+  reset: () => void;
+  getFlatItems: () => FlatItem[];
+}
+
+const collectAllNodeIds = (nodes: KconfigNode[]): string[] => {
+  const ids: string[] = [];
+  for (const node of nodes) {
+    ids.push(node.id);
+    if (node.children) ids.push(...collectAllNodeIds(node.children));
+    if (node.choiceOptions) ids.push(...collectAllNodeIds(node.choiceOptions));
+  }
+  return ids;
+};
+
+function buildNodeSelects(tree: KconfigNode[]): Record<string, string[]> {
+  const selects: Record<string, string[]> = {};
+  function walk(nodes: KconfigNode[]) {
+    for (const node of nodes) {
+      if (node.name && node.select && node.select.length > 0) {
+        selects[node.name] = [...node.select];
+      }
+      if (node.children) walk(node.children);
+      if (node.choiceOptions) walk(node.choiceOptions);
+    }
+  }
+  walk(tree);
+  return selects;
+}
+
+function initDefaultValues(symbols: Record<string, KconfigSymbol>): ConfigValue {
+  const vals: ConfigValue = {};
+  for (const [name, sym] of Object.entries(symbols)) {
+    if (sym.defaultValue !== undefined && sym.defaultValue !== null) {
+      if (sym.defaultValue === 'y') vals[name] = true;
+      else if (sym.defaultValue === 'n') vals[name] = false;
+      else vals[name] = sym.defaultValue;
+    } else {
+      vals[name] = sym.type === 'bool' ? false : '';
+    }
+  }
+  return vals;
+}
+
+export const useKconfigStore = create<KconfigState>((set, get) => ({
+  tree: [],
+  symbols: {},
+  values: {},
+  nodeSelects: {},
+  selectedNodeId: null,
+  expandedNodes: new Set<string>(),
+  searchQuery: '',
+  loaded: false,
+  lastAutoEnabled: [],
+  lastAutoDisabled: [],
+  lastAutoSelected: [],
+
+  loadKconfig: (result: KconfigParseResult) => {
+    const nodeSelects = buildNodeSelects(result.tree);
+    const defaultValues = initDefaultValues(result.symbols);
+    const allNodeIds = collectAllNodeIds(result.tree);
+    set({
+      tree: result.tree,
+      symbols: result.symbols,
+      values: defaultValues,
+      nodeSelects,
+      loaded: true,
+      expandedNodes: new Set(allNodeIds),
+      selectedNodeId: null,
+      searchQuery: '',
+      lastAutoEnabled: [],
+      lastAutoDisabled: [],
+      lastAutoSelected: [],
+    });
+  },
+
+  toggleValue: (name: string) => {
+    const { values, symbols, nodeSelects } = get();
+    const current = values[name];
+    const newValue = !(current === true || current === 'y');
+    const result = resolveToggle(name, newValue, values, symbols, nodeSelects);
+    set({
+      values: result.values,
+      lastAutoEnabled: result.autoEnabled,
+      lastAutoDisabled: result.autoDisabled,
+      lastAutoSelected: result.autoSelected,
+    });
+  },
+
+  setTristateValue: (name: string, value: string) => {
+    const { values, symbols, nodeSelects } = get();
+    const result = resolveToggle(name, value, values, symbols, nodeSelects);
+    set({
+      values: result.values,
+      lastAutoEnabled: result.autoEnabled,
+      lastAutoDisabled: result.autoDisabled,
+      lastAutoSelected: result.autoSelected,
+    });
+  },
+
+  setStringValue: (name: string, value: string) => {
+    set((state) => ({ values: { ...state.values, [name]: value } }));
+  },
+
+  setNumericValue: (name: string, value: number) => {
+    set((state) => ({ values: { ...state.values, [name]: value } }));
+  },
+
+  setChoiceValue: (name: string) => {
+    const { values, symbols, nodeSelects } = get();
+    const result = resolveToggle(name, 'y', values, symbols, nodeSelects);
+    set({
+      values: result.values,
+      lastAutoEnabled: result.autoEnabled,
+      lastAutoDisabled: result.autoDisabled,
+      lastAutoSelected: result.autoSelected,
+    });
+  },
+
+  setValues: (values: ConfigValue) => {
+    set({ values });
+  },
+
+  selectNode: (nodeId: string | null) => {
+    set({ selectedNodeId: nodeId });
+  },
+
+  toggleExpand: (nodeId: string) => {
+    set((state) => {
+      const expanded = new Set(state.expandedNodes);
+      if (expanded.has(nodeId)) expanded.delete(nodeId);
+      else expanded.add(nodeId);
+      return { expandedNodes: expanded };
+    });
+  },
+
+  expandAll: () => {
+    const allNodeIds = collectAllNodeIds(get().tree);
+    set({ expandedNodes: new Set(allNodeIds) });
+  },
+
+  collapseAll: () => {
+    set({ expandedNodes: new Set() });
+  },
+
+  setSearchQuery: (query: string) => {
+    set({ searchQuery: query });
+  },
+
+  reset: () => {
+    const { symbols, tree } = get();
+    const defaultValues = initDefaultValues(symbols);
+    const allNodeIds = collectAllNodeIds(tree);
+    set({
+      values: defaultValues,
+      expandedNodes: new Set(allNodeIds),
+      selectedNodeId: null,
+      searchQuery: '',
+      lastAutoEnabled: [],
+      lastAutoDisabled: [],
+      lastAutoSelected: [],
+    });
+  },
+
+  getFlatItems: () => {
+    const { tree, expandedNodes, searchQuery, symbols, values } = get();
+    const items: FlatItem[] = [];
+    const query = searchQuery.toLowerCase();
+
+    function matchesNode(node: KconfigNode): boolean {
+      if (!query) return true;
+      if (node.name?.toLowerCase().includes(query)) return true;
+      if (node.prompt?.toLowerCase().includes(query)) return true;
+      return false;
+    }
+
+    function hasMatchingDescendant(node: KconfigNode): boolean {
+      if (!query) return true;
+      const children = node.children || node.choiceOptions || [];
+      for (const child of children) {
+        if (matchesNode(child)) return true;
+        if (hasMatchingDescendant(child)) return true;
+      }
+      return false;
+    }
+
+    function walk(nodes: KconfigNode[], level: number, parentVisible: boolean) {
+      for (const node of nodes) {
+        const children = node.children || node.choiceOptions || [];
+        const hasChildren = children.length > 0;
+
+        let isVisible = parentVisible;
+        if (query && parentVisible) {
+          isVisible = matchesNode(node) || hasMatchingDescendant(node);
+        }
+
+        const isDisabled = node.name
+          ? symbols[node.name]?.dependencies?.some((dep: string) => {
+              const v = values[dep];
+              return v !== true && v !== 'y' && v !== 'm';
+            })
+          : false;
+
+        if (isVisible) {
+          items.push({ nodeId: node.id, level, node });
+        }
+
+        if (hasChildren && expandedNodes.has(node.id) && isVisible) {
+          walk(children, level + 1, true);
+        }
+      }
+    }
+
+    walk(tree, 0, true);
+    return items;
+  },
+}));
+
+export { collectAllNodeIds };

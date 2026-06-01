@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCIe 设备内存映射读写工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 16px;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        .device-list {
+            display: grid;
+            gap: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .device-item {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .device-item:hover {
+            border-color: #667eea;
+            background: #f5f7ff;
+        }
+
+        .device-item.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+        }
+
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .device-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .device-id {
+            font-family: 'Courier New', monospace;
+            background: #f0f0f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: #666;
+        }
+
+        .device-info {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .bar-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .bar-item {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .bar-item:hover {
+            background: #f0f0f0;
+        }
+
+        .bar-item.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .bar-item.invalid {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .bar-index {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .bar-details {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            align-items: flex-end;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'Courier New', monospace;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 100px;
+        }
+
+        .btn-read {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-read:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-write {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-write:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn-refresh {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn-refresh:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .result-box {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 16px;
+        }
+
+        .result-label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .result-value {
+            font-family: 'Courier New', monospace;
+            font-size: 1.8rem;
+            color: #00f2fe;
+            font-weight: bold;
+            word-break: break-all;
+        }
+
+        .result-value.success {
+            color: #00ff88;
+        }
+
+        .result-value.error {
+            color: #ff4444;
+        }
+
+        .result-details {
+            margin-top: 12px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .result-detail-item {
+            background: rgba(255,255,255,0.1);
+            padding: 8px 12px;
+            border-radius: 4px;
+        }
+
+        .result-detail-label {
+            color: #888;
+            font-size: 0.8rem;
+        }
+
+        .result-detail-value {
+            color: #fff;
+            font-size: 0.95rem;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 16px;
+            background: #f5f7ff;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .status-value {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .status-value.active {
+            color: #00aa00;
+        }
+
+        .status-value.inactive {
+            color: #999;
+        }
+
+        .mode-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .mode-simulation {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .mode-real {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .history {
+            margin-top: 20px;
+        }
+
+        .history h3 {
+            color: #333;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+
+        .history-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .history-item {
+            padding: 10px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-item.read {
+            background: #f0f7ff;
+        }
+
+        .history-item.write {
+            background: #fff0f3;
+        }
+
+        .history-op {
+            font-weight: bold;
+            min-width: 60px;
+        }
+
+        .history-op.read {
+            color: #667eea;
+        }
+
+        .history-op.write {
+            color: #f5576c;
+        }
+
+        .history-addr {
+            color: #333;
+        }
+
+        .history-value {
+            color: #00aa00;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .barmap-table {
+                font-size: 0.75rem;
+            }
+        }
+
+        .barmap-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+
+        .barmap-table th {
+            background: #667eea;
+            color: white;
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .barmap-table td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            white-space: nowrap;
+        }
+
+        .barmap-table tr:hover td {
+            background: #f5f7ff;
+        }
+
+        .barmap-table .type-mmio {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .barmap-table .type-io {
+            color: #f5576c;
+            font-weight: 600;
+        }
+
+        .barmap-table .width-64 {
+            color: #00aa00;
+            font-weight: 600;
+        }
+
+        .barmap-summary {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f5f7ff;
+            border-radius: 8px;
+            color: #555;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PCIe 设备内存映射读写工具</h1>
+
+        <div class="card">
+            <h2>设备状态</h2>
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-label">当前模式:</span>
+                    <span class="mode-badge mode-simulation" id="modeBadge">模拟模式</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">选中设备:</span>
+                    <span class="status-value inactive" id="selectedDevice">未选择</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">选中BAR:</span>
+                    <span class="status-value inactive" id="selectedBar">未选择</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">基地址:</span>
+                    <span class="status-value inactive" id="baseAddr" style="font-size:0.8rem">-</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">大小:</span>
+                    <span class="status-value inactive" id="barSize">-</span>
+                </div>
+            </div>
+            <button class="btn-refresh" onclick="loadDevices()">
+                刷新设备列表
+            </button>
+        </div>
+
+        <div class="card">
+            <h2>PCIe 设备列表</h2>
+            <div class="device-list" id="deviceList">
+                <div style="text-align: center; color: #999; padding: 40px;">
+                    正在加载设备列表...
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>内存读写操作</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="offsetInput">偏移量 (Offset)</label>
+                    <input type="text" id="offsetInput" placeholder="如: 0x00, 0x10, 256" value="0x00">
+                </div>
+                <div class="form-group">
+                    <label for="valueInput">写入值 (可选)</label>
+                    <input type="text" id="valueInput" placeholder="如: 0x12345678">
+                </div>
+            </div>
+            <div class="form-row">
+                <button class="btn-read" id="readBtn" onclick="doRead()">
+                    读取 DWORD
+                </button>
+                <button class="btn-write" id="writeBtn" onclick="doWrite()">
+                    写入 DWORD
+                </button>
+            </div>
+
+            <div class="error-message" id="errorMsg"></div>
+
+            <div class="result-box" id="resultBox" style="display: none;">
+                <div class="result-label">读取结果</div>
+                <div class="result-value" id="resultValue">-</div>
+                <div class="result-details" id="resultDetails"></div>
+            </div>
+
+            <div class="history">
+                <h3>操作历史</h3>
+                <div class="history-list" id="historyList">
+                    <div style="text-align: center; color: #999; padding: 20px;">
+                        暂无操作记录
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>BAR 映射表</h2>
+            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                <button class="btn-refresh" onclick="loadBarmap()">
+                    加载映射表
+                </button>
+                <button class="btn-read" onclick="exportBarmap()">
+                    导出 JSON
+                </button>
+            </div>
+            <div id="barmapContainer">
+                <div style="text-align: center; color: #999; padding: 20px;">
+                    点击"加载映射表"查看所有BAR映射
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let devices = [];
+        let currentDevice = -1;
+        let currentBar = -1;
+        let history = [];
+
+        async function apiCall(endpoint, params = {}) {
+            const url = new URL(endpoint, window.location.origin);
+            Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+            
+            const response = await fetch(url.toString());
+            const data = await response.json();
+            return data;
+        }
+
+        function showError(message) {
+            const errorBox = document.getElementById('errorMsg');
+            errorBox.textContent = message;
+            errorBox.classList.add('show');
+            setTimeout(() => errorBox.classList.remove('show'), 5000);
+        }
+
+        function formatSize(bytes) {
+            bytes = Number(bytes);
+            if (bytes >= 1024 * 1024 * 1024) {
+                return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+            } else if (bytes >= 1024 * 1024) {
+                return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+            } else if (bytes >= 1024) {
+                return (bytes / 1024).toFixed(2) + ' KB';
+            }
+            return bytes + ' B';
+        }
+
+        async function loadDevices() {
+            const deviceList = document.getElementById('deviceList');
+            deviceList.innerHTML = '<div style="text-align: center; color: #999; padding: 40px;"><span class="loading"></span>正在加载设备列表...</div>';
+
+            try {
+                devices = await apiCall(API_BASE + '/devices');
+                renderDevices();
+                updateStatus();
+            } catch (e) {
+                deviceList.innerHTML = '<div style="text-align: center; color: #c62828; padding: 40px;">加载设备失败: ' + e.message + '</div>';
+            }
+        }
+
+        function renderDevices() {
+            const deviceList = document.getElementById('deviceList');
+            
+            if (devices.length === 0) {
+                deviceList.innerHTML = '<div style="text-align: center; color: #999; padding: 40px;">未找到PCI设备，请检查系统配置</div>';
+                return;
+            }
+
+            let html = '';
+            devices.forEach((dev, idx) => {
+                const isSelected = idx === currentDevice;
+                html += `
+                    <div class="device-item ${isSelected ? 'selected' : ''}" onclick="selectDevice(${idx})">
+                        <div class="device-header">
+                            <span class="device-name">设备 #${idx}</span>
+                            <span class="device-id">${dev.vendor_id}:${dev.device_id}</span>
+                        </div>
+                        <div class="device-info">
+                            总线: ${dev.bus}, 设备: ${dev.dev}, 功能: ${dev.func}
+                        </div>
+                        <div class="bar-list">
+                `;
+                
+                dev.bars.forEach(bar => {
+                    const barActive = isSelected && bar.index === currentBar;
+                    const barInvalid = !bar.valid;
+                    html += `
+                        <div class="bar-item ${barActive ? 'active' : ''} ${barInvalid ? 'invalid' : ''}" 
+                             onclick="event.stopPropagation(); ${barInvalid ? '' : `selectBar(${idx}, ${bar.index})`}">
+                            <div class="bar-index">BAR ${bar.index} ${!bar.valid ? '(无效)' : ''}</div>
+                            <div class="bar-details">
+                                ${bar.valid ? `
+                                    地址: ${bar.base_addr}<br>
+                                    大小: ${formatSize(bar.size_bytes)}<br>
+                                    类型: ${bar.type} ${bar.is_64bit === 'true' ? '(64-bit)' : '(32-bit)'} ${bar.prefetchable === 'true' ? '预取' : ''}
+                                ` : '未使用'}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `</div></div>`;
+            });
+            
+            deviceList.innerHTML = html;
+        }
+
+        function selectDevice(idx) {
+            currentDevice = idx;
+            currentBar = -1;
+            renderDevices();
+            updateStatus();
+        }
+
+        async function selectBar(devIdx, barIdx) {
+            try {
+                const result = await apiCall(API_BASE + '/select', {
+                    device: devIdx,
+                    bar: barIdx
+                });
+
+                if (result.error) {
+                    showError(result.error);
+                    return;
+                }
+
+                currentDevice = devIdx;
+                currentBar = barIdx;
+                renderDevices();
+                updateStatus();
+
+                if (result.simulation === "true") {
+                    document.getElementById('modeBadge').textContent = '模拟模式';
+                    document.getElementById('modeBadge').className = 'mode-badge mode-simulation';
+                } else {
+                    document.getElementById('modeBadge').textContent = '真实硬件';
+                    document.getElementById('modeBadge').className = 'mode-badge mode-real';
+                }
+            } catch (e) {
+                showError('选择BAR失败: ' + e.message);
+            }
+        }
+
+        function updateStatus() {
+            const devEl = document.getElementById('selectedDevice');
+            const barEl = document.getElementById('selectedBar');
+            const addrEl = document.getElementById('baseAddr');
+            const sizeEl = document.getElementById('barSize');
+
+            if (currentDevice >= 0 && currentBar >= 0) {
+                const dev = devices[currentDevice];
+                const bar = dev.bars[currentBar];
+                
+                devEl.textContent = `${dev.vendor_id}:${dev.device_id}`;
+                devEl.className = 'status-value active';
+                
+                barEl.textContent = `BAR ${currentBar}`;
+                barEl.className = 'status-value active';
+                
+                addrEl.textContent = bar.base_addr;
+                addrEl.className = 'status-value active';
+                
+                sizeEl.textContent = formatSize(bar.size_bytes);
+                sizeEl.className = 'status-value active';
+            } else {
+                devEl.textContent = '未选择';
+                devEl.className = 'status-value inactive';
+                
+                barEl.textContent = '未选择';
+                barEl.className = 'status-value inactive';
+                
+                addrEl.textContent = '-';
+                addrEl.className = 'status-value inactive';
+                
+                sizeEl.textContent = '-';
+                sizeEl.className = 'status-value inactive';
+            }
+
+            document.getElementById('readBtn').disabled = currentDevice < 0 || currentBar < 0;
+            document.getElementById('writeBtn').disabled = currentDevice < 0 || currentBar < 0;
+        }
+
+        function parseOffset(input) {
+            input = input.trim();
+            if (input.startsWith('0x') || input.startsWith('0X')) {
+                return parseInt(input, 16);
+            }
+            return parseInt(input, 10);
+        }
+
+        function parseValue(input) {
+            input = input.trim();
+            if (input.startsWith('0x') || input.startsWith('0X')) {
+                return parseInt(input, 16);
+            }
+            return parseInt(input, 10);
+        }
+
+        function addHistory(op, offset, value) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            
+            history.unshift({
+                time: timeStr,
+                op,
+                offset: '0x' + offset.toString(16).padStart(8, '0'),
+                value: '0x' + value.toString(16).padStart(8, '0')
+            });
+
+            if (history.length > 20) history.pop();
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">暂无操作记录</div>';
+                return;
+            }
+
+            let html = '';
+            history.forEach(item => {
+                html += `
+                    <div class="history-item ${item.op.toLowerCase()}">
+                        <span class="history-op ${item.op.toLowerCase()}">[${item.time}] ${item.op}</span>
+                        <span class="history-addr">偏移: ${item.offset}</span>
+                        <span class="history-value">值: ${item.value}</span>
+                    </div>
+                `;
+            });
+            
+            list.innerHTML = html;
+        }
+
+        async function doRead() {
+            if (currentDevice < 0 || currentBar < 0) {
+                showError('请先选择设备和BAR');
+                return;
+            }
+
+            const offsetStr = document.getElementById('offsetInput').value;
+            let offset;
+            
+            try {
+                offset = parseOffset(offsetStr);
+                if (isNaN(offset)) throw new Error('无效的偏移量');
+            } catch (e) {
+                showError('请输入有效的偏移量 (如 0x00, 0x10, 256)');
+                return;
+            }
+
+            const readBtn = document.getElementById('readBtn');
+            const originalText = readBtn.textContent;
+            readBtn.innerHTML = '<span class="loading"></span>读取中...';
+            readBtn.disabled = true;
+
+            try {
+                const result = await apiCall(API_BASE + '/read', { offset });
+                
+                if (result.error) {
+                    showError(result.error);
+                    return;
+                }
+
+                const value = parseInt(result.value, 16);
+                showResult(result.offset, value, result);
+                addHistory('READ', offset, value);
+            } catch (e) {
+                showError('读取失败: ' + e.message);
+            } finally {
+                readBtn.textContent = originalText;
+                readBtn.disabled = false;
+            }
+        }
+
+        async function doWrite() {
+            if (currentDevice < 0 || currentBar < 0) {
+                showError('请先选择设备和BAR');
+                return;
+            }
+
+            const offsetStr = document.getElementById('offsetInput').value;
+            const valueStr = document.getElementById('valueInput').value;
+            
+            let offset, value;
+            
+            try {
+                offset = parseOffset(offsetStr);
+                if (isNaN(offset)) throw new Error('无效的偏移量');
+            } catch (e) {
+                showError('请输入有效的偏移量 (如 0x00, 0x10, 256)');
+                return;
+            }
+
+            try {
+                value = parseValue(valueStr);
+                if (isNaN(value)) throw new Error('无效的写入值');
+            } catch (e) {
+                showError('请输入有效的写入值 (如 0x12345678)');
+                return;
+            }
+
+            const writeBtn = document.getElementById('writeBtn');
+            const originalText = writeBtn.textContent;
+            writeBtn.innerHTML = '<span class="loading"></span>写入中...';
+            writeBtn.disabled = true;
+
+            try {
+                const result = await apiCall(API_BASE + '/write', { offset, value });
+                
+                if (result.error) {
+                    showError(result.error);
+                    return;
+                }
+
+                showResult(result.offset, value, result, true);
+                addHistory('WRITE', offset, value);
+            } catch (e) {
+                showError('写入失败: ' + e.message);
+            } finally {
+                writeBtn.textContent = originalText;
+                writeBtn.disabled = false;
+            }
+        }
+
+        function showResult(offset, value, data, isWrite = false) {
+            const resultBox = document.getElementById('resultBox');
+            const resultValue = document.getElementById('resultValue');
+            const resultDetails = document.getElementById('resultDetails');
+
+            resultBox.style.display = 'block';
+            resultValue.textContent = data.value;
+            resultValue.className = 'result-value success';
+
+            if (isWrite) {
+                document.querySelector('.result-label').textContent = '写入结果';
+                resultDetails.innerHTML = '';
+            } else {
+                document.querySelector('.result-label').textContent = '读取结果';
+                resultDetails.innerHTML = `
+                    <div class="result-detail-item">
+                        <div class="result-detail-label">无符号十进制</div>
+                        <div class="result-detail-value">${data.value_unsigned}</div>
+                    </div>
+                    <div class="result-detail-item">
+                        <div class="result-detail-label">有符号十进制</div>
+                        <div class="result-detail-value">${data.value_signed}</div>
+                    </div>
+                    <div class="result-detail-item">
+                        <div class="result-detail-label">十六进制</div>
+                        <div class="result-detail-value">${data.value}</div>
+                    </div>
+                    <div class="result-detail-item">
+                        <div class="result-detail-label">二进制</div>
+                        <div class="result-detail-value">0b${value.toString(2).padStart(32, '0')}</div>
+                    </div>
+                `;
+            }
+        }
+
+        let barmapData = null;
+
+        async function loadBarmap() {
+            const container = document.getElementById('barmapContainer');
+            container.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;"><span class="loading"></span>加载中...</div>';
+
+            try {
+                barmapData = await apiCall(API_BASE + '/barmap');
+                renderBarmap(barmapData);
+            } catch (e) {
+                container.innerHTML = '<div style="text-align: center; color: #c62828; padding: 20px;">加载失败: ' + e.message + '</div>';
+            }
+        }
+
+        function renderBarmap(data) {
+            const container = document.getElementById('barmapContainer');
+
+            if (!data.entries || data.entries.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">无有效BAR映射</div>';
+                return;
+            }
+
+            let html = '<div style="overflow-x: auto;"><table class="barmap-table">';
+            html += '<thead><tr>';
+            html += '<th>BDF</th>';
+            html += '<th>Vendor:Device</th>';
+            html += '<th>BAR</th>';
+            html += '<th>基地址</th>';
+            html += '<th>大小</th>';
+            html += '<th>类型</th>';
+            html += '<th>位宽</th>';
+            html += '<th>预取</th>';
+            html += '<th>映射</th>';
+            html += '</tr></thead><tbody>';
+
+            data.entries.forEach(entry => {
+                const typeClass = entry.type === 'MMIO' ? 'type-mmio' : 'type-io';
+                const widthClass = entry.width === '64-bit' ? 'width-64' : '';
+                html += `<tr>`;
+                html += `<td>${entry.bdf}</td>`;
+                html += `<td>${entry.vendor_device}</td>`;
+                html += `<td>BAR${entry.bar_index}</td>`;
+                html += `<td>${entry.base_addr}</td>`;
+                html += `<td>${formatSize(entry.size_bytes)}</td>`;
+                html += `<td class="${typeClass}">${entry.type}</td>`;
+                html += `<td class="${widthClass}">${entry.width}</td>`;
+                html += `<td>${entry.prefetchable ? '✓' : '✗'}</td>`;
+                html += `<td>${entry.mapped ? '✓' : '✗'}</td>`;
+                html += `</tr>`;
+            });
+
+            html += '</tbody></table></div>';
+
+            html += `<div class="barmap-summary">`;
+            html += `共 <strong>${data.total_devices}</strong> 个设备，<strong>${data.total_bars}</strong> 个有效 BAR`;
+            html += ` | 模式: ${data.simulation ? '模拟' : '真实硬件'}`;
+            html += `</div>`;
+
+            container.innerHTML = html;
+        }
+
+        function exportBarmap() {
+            if (!barmapData) {
+                loadBarmap().then(() => {
+                    if (barmapData) exportBarmap();
+                });
+                return;
+            }
+
+            const jsonStr = JSON.stringify(barmapData, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pcie_barmap.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDevices();
+            updateStatus();
+
+            document.getElementById('offsetInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') doRead();
+            });
+
+            document.getElementById('valueInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') doWrite();
+            });
+        });
+    </script>
+</body>
+</html>

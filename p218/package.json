@@ -1,0 +1,13 @@
+{
+  "name": "vxi-scpi-controller",
+  "version": "1.0.0",
+  "description": "Electron application for VXI-11 instrument control with SCPI commands",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^28.0.0"
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenVPN tls-auth HMAC 分析器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e4e4e7;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 20px;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #4f46e5, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #334155;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 1rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.3s ease;
+        }
+
+        .tab:hover {
+            color: #e4e4e7;
+        }
+
+        .tab.active {
+            color: #4f46e5;
+            border-bottom-color: #4f46e5;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid #334155;
+            backdrop-filter: blur(10px);
+        }
+
+        .card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #f1f5f9;
+        }
+
+        .card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #cbd5e1;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #cbd5e1;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            color: #e4e4e7;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+
+        textarea.form-control {
+            min-height: 150px;
+            resize: vertical;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn-secondary {
+            background: #334155;
+            color: #e4e4e7;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .key-info {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .key-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .info-item .label {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        .info-item .value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        .hex-display {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.8rem;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+            color: #10b981;
+        }
+
+        .handshake-container {
+            position: relative;
+            padding: 20px 0;
+        }
+
+        .handshake-step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .step-number {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            z-index: 2;
+        }
+
+        .step-content {
+            flex: 1;
+            margin-left: 20px;
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #334155;
+        }
+
+        .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .step-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        .step-direction {
+            padding: 4px 12px;
+            background: #4f46e5;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .step-description {
+            color: #94a3b8;
+            margin-bottom: 15px;
+        }
+
+        .step-details {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .detail-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        .detail-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-label {
+            min-width: 120px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .detail-value {
+            flex: 1;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            color: #10b981;
+            word-break: break-all;
+        }
+
+        .hmac-highlight {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .status-warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .divider {
+            height: 1px;
+            background: #334155;
+            margin: 20px 0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #4f46e5;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .select-control {
+            width: 100%;
+            padding: 12px 16px;
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            color: #e4e4e7;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .select-control:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+
+        .result-box {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .result-box h4 {
+            margin-bottom: 15px;
+            color: #cbd5e1;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            .step-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        .file-drop-zone {
+            border: 2px dashed #475569;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-drop-zone:hover,
+        .file-drop-zone.dragover {
+            border-color: #4f46e5;
+            background: rgba(79, 70, 229, 0.1);
+        }
+
+        .file-drop-zone-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .file-drop-zone-text {
+            color: #94a3b8;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid #3b82f6;
+            color: #93c5fd;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid #10b981;
+            color: #6ee7b7;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            color: #fca5a5;
+        }
+
+        .timeline-connector {
+            position: absolute;
+            left: 24px;
+            top: 50px;
+            bottom: -30px;
+            width: 2px;
+            background: linear-gradient(to bottom, #4f46e5, transparent);
+            z-index: 1;
+        }
+
+        .handshake-step:last-child .timeline-connector {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔐 OpenVPN tls-auth HMAC 分析器</h1>
+            <p>分析 tls-auth 密钥文件，验证 HMAC 签名，展示密钥协商中的安全保护机制</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="key">密钥解析</button>
+            <button class="tab" data-tab="handshake">握手过程</button>
+            <button class="tab" data-tab="hmac">HMAC 验证</button>
+            <button class="tab" data-tab="attack">注入测试</button>
+            <button class="tab" data-tab="health">健康报告</button>
+        </div>
+
+        <div id="key" class="tab-content active">
+            <div class="card">
+                <h2>📄 OpenVPN 静态密钥解析</h2>
+                <p style="color: #94a3b8; margin-bottom: 20px;">
+                    上传或粘贴 OpenVPN tls-auth 密钥文件（ta.key）进行分析
+                </p>
+
+                <div class="form-group">
+                    <div id="fileDropZone" class="file-drop-zone">
+                        <div class="file-drop-zone-icon">📁</div>
+                        <div class="file-drop-zone-text">
+                            拖拽密钥文件到这里，或点击选择文件
+                        </div>
+                        <input type="file" id="keyFile" accept=".key,.txt" style="display: none;">
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin: 20px 0; color: #64748b;">或</div>
+
+                <div class="form-group">
+                    <label for="keyContent">粘贴密钥内容</label>
+                    <textarea id="keyContent" class="form-control" placeholder="-----BEGIN OpenVPN Static key V1-----\n...\n-----END OpenVPN Static key V1-----"></textarea>
+                </div>
+
+                <div class="btn-group">
+                    <button id="parseKeyBtn" class="btn btn-primary">解析密钥</button>
+                    <button id="generateSampleBtn" class="btn btn-secondary">生成示例密钥</button>
+                    <button id="clearKeyBtn" class="btn btn-secondary">清空</button>
+                </div>
+            </div>
+
+            <div id="keyResult" class="card hidden">
+                <h2>📊 密钥分析结果</h2>
+                <div id="keyInfoContent"></div>
+            </div>
+        </div>
+
+        <div id="handshake" class="tab-content">
+            <div class="card">
+                <h2>🔄 TLS 握手过程 HMAC 保护演示</h2>
+                <p style="color: #94a3b8; margin-bottom: 20px;">
+                    模拟展示 OpenVPN tls-auth 如何通过 HMAC 签名保护 TLS 密钥协商过程
+                </p>
+
+                <div class="two-column">
+                    <div class="form-group">
+                        <label for="handshakeKey">HMAC 密钥 (Hex 格式)</label>
+                        <textarea id="handshakeKey" class="form-control" placeholder="输入密钥的十六进制表示..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="digestAlgorithm">摘要算法</label>
+                        <select id="digestAlgorithm" class="select-control">
+                            <option value="sha256">SHA-256 (推荐)</option>
+                            <option value="sha512">SHA-512 (高安全性)</option>
+                            <option value="sha1">SHA-1 (弱)</option>
+                            <option value="md5">MD5 (不安全)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button id="simulateHandshakeBtn" class="btn btn-primary">开始模拟握手</button>
+                    <button id="useCurrentKeyBtn" class="btn btn-secondary">使用已解析的密钥</button>
+                </div>
+
+                <div id="hmacInfo" class="hidden" style="margin-top: 20px;">
+                    <div class="alert alert-info" id="hmacSecurityAlert"></div>
+                </div>
+            </div>
+
+            <div id="handshakeResult" class="card hidden">
+                <h2>📋 HMAC 保护的握手步骤</h2>
+                <div id="handshakeSteps" class="handshake-container"></div>
+            </div>
+        </div>
+
+        <div id="hmac" class="tab-content">
+            <div class="card">
+                <h2>✅ HMAC 签名计算与验证</h2>
+                <p style="color: #94a3b8; margin-bottom: 20px;">
+                    使用 HMAC 密钥对消息进行签名或验证签名的有效性
+                </p>
+
+                <div class="form-group">
+                    <label for="hmacKey">HMAC 密钥 (Hex 格式)</label>
+                    <textarea id="hmacKey" class="form-control" placeholder="输入密钥的十六进制表示..."></textarea>
+                </div>
+
+                <div class="two-column">
+                    <div class="form-group">
+                        <label for="hmacMessage">消息内容</label>
+                        <textarea id="hmacMessage" class="form-control" placeholder="输入要签名的消息..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="hmacDigest">摘要算法</label>
+                        <select id="hmacDigest" class="select-control">
+                            <option value="sha256">SHA-256 (推荐)</option>
+                            <option value="sha512">SHA-512</option>
+                            <option value="sha1">SHA-1</option>
+                            <option value="md5">MD5</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button id="computeHmacBtn" class="btn btn-primary">计算 HMAC</button>
+                    <button id="verifyHmacBtn" class="btn btn-success">验证 HMAC</button>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px;">
+                    <label for="hmacSignature">HMAC 签名 (用于验证，Hex 格式)</label>
+                    <textarea id="hmacSignature" class="form-control" placeholder="输入要验证的 HMAC 签名..."></textarea>
+                </div>
+            </div>
+
+            <div id="hmacResult" class="card hidden">
+                <h2>📝 结果</h2>
+                <div id="hmacResultContent"></div>
+            </div>
+        </div>
+
+        <div id="attack" class="tab-content">
+            <div class="card">
+                <h2>⚠️ 数据包注入攻击测试</h2>
+                <p style="color: #94a3b8; margin-bottom: 20px;">
+                    模拟多种数据篡改攻击，测试 HMAC 是否能够检测到数据被篡改
+                </p>
+
+                <div class="form-group">
+                    <label for="attackKey">HMAC 密钥 (Hex 格式)</label>
+                    <textarea id="attackKey" class="form-control" placeholder="输入密钥的十六进制表示..."></textarea>
+                </div>
+
+                <div class="two-column">
+                    <div class="form-group">
+                        <label for="attackMessage">原始消息</label>
+                        <textarea id="attackMessage" class="form-control" placeholder="输入原始消息内容...">ClientHello: TLS handshake initiation with sensitive data</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="attackDigest">摘要算法</label>
+                        <select id="attackDigest" class="select-control">
+                            <option value="sha256">SHA-256 (推荐)</option>
+                            <option value="sha512">SHA-512</option>
+                            <option value="sha1">SHA-1</option>
+                            <option value="md5">MD5</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button id="startAttackBtn" class="btn btn-primary">开始注入测试</button>
+                    <button id="useAttackCurrentKeyBtn" class="btn btn-secondary">使用已解析的密钥</button>
+                </div>
+            </div>
+
+            <div id="attackResult" class="card hidden">
+                <h2>🎯 攻击测试结果</h2>
+                <div id="attackResultContent"></div>
+            </div>
+        </div>
+
+        <div id="health" class="tab-content">
+            <div class="card">
+                <h2>🏥 密钥健康报告</h2>
+                <p style="color: #94a3b8; margin-bottom: 20px;">
+                    分析密钥的熵值、随机性、安全性，生成详细的健康评估报告
+                </p>
+
+                <div class="form-group">
+                    <label for="healthKeyContent">粘贴密钥内容</label>
+                    <textarea id="healthKeyContent" class="form-control" placeholder="-----BEGIN OpenVPN Static key V1-----\n...\n-----END OpenVPN Static key V1-----"></textarea>
+                </div>
+
+                <div class="btn-group">
+                    <button id="generateHealthReportBtn" class="btn btn-primary">生成健康报告</button>
+                    <button id="exportHealthReportBtn" class="btn btn-success">导出 Markdown 报告</button>
+                    <button id="useHealthCurrentKeyBtn" class="btn btn-secondary">使用已解析的密钥</button>
+                </div>
+            </div>
+
+            <div id="healthResult" class="card hidden">
+                <h2>📋 健康报告</h2>
+                <div id="healthResultContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        let currentKeyInfo = null;
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        const fileDropZone = document.getElementById('fileDropZone');
+        const keyFile = document.getElementById('keyFile');
+
+        fileDropZone.addEventListener('click', () => keyFile.click());
+
+        fileDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileDropZone.classList.add('dragover');
+        });
+
+        fileDropZone.addEventListener('dragleave', () => {
+            fileDropZone.classList.remove('dragover');
+        });
+
+        fileDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileDropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+
+        keyFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('keyContent').value = e.target.result;
+            };
+            reader.readAsText(file);
+        }
+
+        document.getElementById('parseKeyBtn').addEventListener('click', parseKey);
+        document.getElementById('generateSampleBtn').addEventListener('click', generateSampleKey);
+        document.getElementById('clearKeyBtn').addEventListener('click', clearKey);
+        document.getElementById('simulateHandshakeBtn').addEventListener('click', simulateHandshake);
+        document.getElementById('useCurrentKeyBtn').addEventListener('click', useCurrentKey);
+        document.getElementById('computeHmacBtn').addEventListener('click', computeHmac);
+        document.getElementById('verifyHmacBtn').addEventListener('click', verifyHmac);
+
+        async function parseKey() {
+            const keyContent = document.getElementById('keyContent').value.trim();
+            if (!keyContent) {
+                showAlert('请输入或上传密钥内容', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('parseKeyBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span>解析中...';
+            btn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('key_content', keyContent);
+
+                const response = await fetch(`${API_BASE}/api/key/parse-text`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentKeyInfo = data.key_info;
+                    displayKeyInfo(data.key_info);
+                    showAlert('密钥解析成功！', 'success');
+                } else {
+                    showAlert('解析失败: ' + (data.detail || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showAlert('请求失败: ' + error.message, 'error');
+            }
+
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+
+        async function generateSampleKey() {
+            const btn = document.getElementById('generateSampleBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span>生成中...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/key/sample`);
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('keyContent').value = data.sample_key;
+                    currentKeyInfo = data.key_info;
+                    displayKeyInfo(data.key_info);
+                    showAlert('示例密钥生成成功！', 'success');
+                }
+            } catch (error) {
+                showAlert('生成失败: ' + error.message, 'error');
+            }
+
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+
+        function clearKey() {
+            document.getElementById('keyContent').value = '';
+            document.getElementById('keyResult').classList.add('hidden');
+            currentKeyInfo = null;
+        }
+
+        function displayKeyInfo(keyInfo) {
+            const resultDiv = document.getElementById('keyResult');
+            const contentDiv = document.getElementById('keyInfoContent');
+
+            const analysis = keyInfo.key_analysis;
+
+            contentDiv.innerHTML = `
+                <div class="key-info">
+                    <div class="key-info-grid">
+                        <div class="info-item">
+                            <div class="label">密钥格式</div>
+                            <div class="value">${keyInfo.key_format}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="label">密钥大小</div>
+                            <div class="value">${keyInfo.key_size_bits} 位 (${keyInfo.key_size_bytes} 字节)</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="label">HMAC 密钥</div>
+                            <div class="value">${analysis.has_hmac_key ? '✓ 存在' : '✗ 不存在'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="label">加密密钥</div>
+                            <div class="value">${analysis.has_cipher_key ? '✓ 存在' : '✗ 不存在'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="label">使用方向</div>
+                            <div class="value">${analysis.direction || '未知'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="label">HMAC 密钥大小</div>
+                            <div class="value">${analysis.hmac_key_size_bits} 位</div>
+                        </div>
+                    </div>
+
+                    ${analysis.hmac_key_hex ? `
+                    <div class="divider"></div>
+                    <h3>HMAC 密钥 (Hex)</h3>
+                    <div class="hex-display">${formatHex(analysis.hmac_key_hex)}</div>
+                    ` : ''}
+
+                    ${analysis.cipher_key_hex ? `
+                    <div class="divider"></div>
+                    <h3>加密密钥 (Hex)</h3>
+                    <div class="hex-display">${formatHex(analysis.cipher_key_hex)}</div>
+                    ` : ''}
+
+                    <div class="divider"></div>
+                    <h3>完整密钥 (Hex)</h3>
+                    <div class="hex-display">${formatHex(keyInfo.key_hex)}</div>
+                </div>
+            `;
+
+            resultDiv.classList.remove('hidden');
+        }
+
+        function formatHex(hex) {
+            if (!hex) return '';
+            let result = '';
+            for (let i = 0; i < hex.length; i += 32) {
+                result += hex.substring(i, i + 32) + '\n';
+            }
+            return result.trim();
+        }
+
+        function useCurrentKey() {
+            if (currentKeyInfo && currentKeyInfo.key_analysis && currentKeyInfo.key_analysis.hmac_key_hex) {
+                document.getElementById('handshakeKey').value = currentKeyInfo.key_analysis.hmac_key_hex;
+                document.getElementById('hmacKey').value = currentKeyInfo.key_analysis.hmac_key_hex;
+                showAlert('已加载当前密钥的 HMAC 密钥！', 'success');
+            } else {
+                showAlert('请先解析一个有效的密钥文件', 'error');
+            }
+        }
+
+        async function simulateHandshake() {
+            const key = document.getElementById('handshakeKey').value.trim();
+            const algorithm = document.getElementById('digestAlgorithm').value;
+
+            if (!key) {
+                showAlert('请输入 HMAC 密钥', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('simulateHandshakeBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span>模拟中...';
+            btn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('key_hex', key);
+                formData.append('digest_algorithm', algorithm);
+
+                const response = await fetch(`${API_BASE}/api/handshake/simulate`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayHmacInfo(data.hmac_info);
+                    displayHandshakeSteps(data.handshake_steps);
+                    showAlert('握手模拟完成！', 'success');
+                } else {
+                    showAlert('模拟失败: ' + (data.detail || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showAlert('请求失败: ' + error.message, 'error');
+            }
+
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+
+        function displayHmacInfo(hmacInfo) {
+            const infoDiv = document.getElementById('hmacInfo');
+            const alertDiv = document.getElementById('hmacSecurityAlert');
+
+            const securityClass = hmacInfo.security_level.includes('Secure') || hmacInfo.security_level.includes('High')
+                ? 'alert-success'
+                : hmacInfo.security_level.includes('Weak')
+                ? 'alert-warning'
+                : 'alert-error';
+
+            alertDiv.className = `alert ${securityClass}`;
+            alertDiv.innerHTML = `
+                <strong>${hmacInfo.algorithm.toUpperCase()}</strong> | 
+                摘要大小: ${hmacInfo.digest_size_bits} 位 | 
+                块大小: ${hmacInfo.block_size} 字节 | 
+                安全级别: ${hmacInfo.security_level}
+            `;
+
+            infoDiv.classList.remove('hidden');
+        }
+
+        function displayHandshakeSteps(steps) {
+            const resultDiv = document.getElementById('handshakeResult');
+            const stepsDiv = document.getElementById('handshakeSteps');
+
+            stepsDiv.innerHTML = steps.map(step => `
+                <div class="handshake-step">
+                    <div class="timeline-connector"></div>
+                    <div class="step-number">${step.step}</div>
+                    <div class="step-content">
+                        <div class="step-header">
+                            <div class="step-name">${step.name}</div>
+                            <span class="step-direction">${step.direction}</span>
+                        </div>
+                        <div class="step-description">${step.description}</div>
+                        <div class="step-details">
+                            <div class="detail-row">
+                                <span class="detail-label">消息:</span>
+                                <span class="detail-value">${escapeHtml(step.message)}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">消息 (Hex):</span>
+                                <span class="detail-value">${step.message_hex}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">HMAC 签名:</span>
+                                <span class="detail-value hmac-highlight">${step.hmac_hex}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">签名大小:</span>
+                                <span class="detail-value">${step.hmac_size_bytes} 字节</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            resultDiv.classList.remove('hidden');
+        }
+
+        async function computeHmac() {
+            const key = document.getElementById('hmacKey').value.trim();
+            const message = document.getElementById('hmacMessage').value.trim();
+            const algorithm = document.getElementById('hmacDigest').value;
+
+            if (!key || !message) {
+                showAlert('请输入密钥和消息内容', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('computeHmacBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span>计算中...';
+            btn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('key_hex', key);
+                formData.append('message', message);
+                formData.append('digest_algorithm', algorithm);
+
+                const response = await fetch(`${API_BASE}/api/hmac/compute`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayHmacResult(data, 'compute');
+                    document.getElementById('hmacSignature').value = data.hmac_hex;
+                } else {
+                    showAlert('计算失败: ' + (data.detail || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showAlert('请求失败: ' + error.message, 'error');
+            }
+
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+
+        async function verifyHmac() {
+            const key = document.getElementById('hmacKey').value.trim();
+            const message = document.getElementById('hmacMessage').value.trim();
+            const signature = document.getElementById('hmacSignature').value.trim();
+            const algorithm = document.getElementById('hmacDigest').value;
+
+            if (!key || !message || !signature) {
+                showAlert('请输入密钥、消息内容和 HMAC 签名', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('verifyHmacBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span>验证中...';
+            btn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('key_hex', key);
+                formData.append('message', message);
+                formData.append('hmac_signature', signature);
+                formData.append('digest_algorithm', algorithm);
+
+                const response = await fetch(`${API_BASE}/api/hmac/verify`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayHmacResult(data.verification, 'verify');
+                } else {
+                    showAlert('验证失败: ' + (data.detail || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showAlert('请求失败: ' + error.message, 'error');
+            }
+
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+
+        function displayHmacResult(data, type) {
+            const resultDiv = document.getElementById('hmacResult');
+            const contentDiv = document.getElementById('hmacResultContent');
+
+            if (type === 'compute') {
+                contentDiv.innerHTML = `
+                    <div class="result-box">
+                        <h4>HMAC 计算结果</h4>
+                        <div class="status-badge status-success">✓ 计算成功</div>
+                        <div class="divider"></div>
+                        <div class="detail-row">
+                            <span class="detail-label">算法:</span>
+                            <span class="detail-value">${data.digest_algorithm.toUpperCase()}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">签名大小:</span>
+                            <span class="detail-value">${data.hmac_size_bytes} 字节</span>
+                        </div>
+                        <div class="detail-row" style="margin-top: 15px;">
+                            <span class="detail-label">HMAC 签名:</span>
+                        </div>
+                        <div class="hex-display" style="margin-top: 10px;">${data.hmac_hex}</div>
+                    </div>
+                `;
+            } else {
+                const statusClass = data.valid ? 'status-success' : 'status-error';
+                const statusText = data.valid ? '✓ 签名有效' : '✗ 签名无效';
+
+                contentDiv.innerHTML = `
+                    <div class="result-box">
+                        <h4>HMAC 验证结果</h4>
+                        <div class="status-badge ${statusClass}">${statusText}</div>
+                        <div class="divider"></div>
+                        <div class="detail-row">
+                            <span class="detail-label">算法:</span>
+                            <span class="detail-value">${data.digest_algorithm.toUpperCase()}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">计算的 HMAC:</span>
+                            <span class="detail-value">${data.computed_hmac_hex}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">收到的 HMAC:</span>
+                            <span class="detail-value">${data.received_hmac_hex}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">是否匹配:</span>
+                            <span class="detail-value ${data.match ? 'hmac-highlight' : ''}">${data.match ? '是' : '否'}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            resultDiv.classList.remove('hidden');
+        }
+
+        function showAlert(message, type = 'info') {
+            const existingAlert = document.querySelector('.alert-floating');
+            if (existingAlert) existingAlert.remove();
+
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-floating`;
+            alertDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 1000;
+                min-width: 300px;
+                animation: slideIn 0.3s ease;
+            `;
+            alertDiv.textContent = message;
+
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => alertDiv.remove(), 300);
+            }, 3000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.getElementById('startAttackBtn').addEventListener('click', startInjectionAttack);
+        document.getElementById('useAttackCurrentKeyBtn').addEventListener('click', useAttackCurrentKey);
+        document.getElementById('generateHealthReportBtn').addEventListener('click', generateHealthReport);
+        document.getElementById('exportHealthReportBtn').addEventListener('click', exportHealthReport);
+        document.getElementById('useHealthCurrentKeyBtn').addEventListener('click', useHealthCurrentKey);
+
+        function useAttackCurrentKey() {
+            if (currentKeyInfo && currentKeyInfo.key_analysis && currentKeyInfo.key_analysis.hmac_key_hex) {
+                document.getElementById('attackKey').value = currentKeyInfo.key_analysis.hmac_key_hex;
+                showAlert('已加载当前密钥的 HMAC 密钥！', 'success');
+            } else {
+                showAlert('请先解析一个有效的密钥文件', 'error');
+            }
+        }
+
+        async function startInjectionAttack() {
+            const key = document.getElementById('attackKey').value.trim();
+            const message = document.getElementById('attackMessage').value.trim();
+            const algorithm = document.getElementById('attackDigest').value;
+
+            if (!key || !message) {
+                showAlert('请输入密钥和消息内容', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('startAttackBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span>测试中...';
+            btn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('key_hex', key);
+                formData.append('message', message);
+                formData.append('digest_algorithm', algorithm);
+
+                const response = await fetch(`${API_BASE}/api/attack/injection`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayAttackResults(data.attack_result);
+                    showAlert('注入测试完成！', 'success');
+                } else {
+                    showAlert('测试失败: ' + (data.detail || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showAlert('请求失败: ' + error.message, 'error');
+            }
+
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+
+        function displayAttackResults(result) {
+            const resultDiv = document.getElementById('attackResult');
+            const contentDiv = document.getElementById('attackResultContent');
+
+            const allDetectedClass = result.all_attacks_detected ? 'status-success' : 'status-error';
+            const allDetectedText = result.all_attacks_detected ? '✓ 全部攻击被检测到' : '✗ 存在未检测到的攻击';
+
+            contentDiv.innerHTML = `
+                <div class="result-box">
+                    <h4>攻击测试概览</h4>
+                    <div class="status-badge ${allDetectedClass}">${allDetectedText}</div>
+                    <div class="divider"></div>
+                    <div class="detail-row">
+                        <span class="detail-label">原始消息:</span>
+                        <span class="detail-value">${escapeHtml(result.original_message)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">原始 HMAC:</span>
+                        <span class="detail-value hmac-highlight">${result.original_hmac}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">检测率:</span>
+                        <span class="detail-value">${(result.detection_rate * 100).toFixed(1)}%</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">算法:</span>
+                        <span class="detail-value">${result.digest_algorithm.toUpperCase()}</span>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 20px; margin-bottom: 15px;">攻击详情</h3>
+                ${result.attack_results.map((attack, index) => {
+                    const detectedClass = attack.detected ? 'status-success' : 'status-error';
+                    const detectedText = attack.detected ? '✓ 检测到篡改' : '✗ 未检测到';
+                    
+                    return `
+                        <div class="result-box" style="margin-bottom: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                                <h4 style="margin: 0;">${index + 1}. ${attack.attack_name}</h4>
+                                <span class="status-badge ${detectedClass}">${detectedText}</span>
+                            </div>
+                            <p style="color: #94a3b8; margin-bottom: 15px;">${attack.description}</p>
+                            <div class="detail-row">
+                                <span class="detail-label">原始 HMAC:</span>
+                                <span class="detail-value">${attack.original_hmac.substring(0, 32)}...</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">篡改后 HMAC:</span>
+                                <span class="detail-value hmac-highlight">${attack.modified_hmac.substring(0, 32)}...</span>
+                            </div>
+                            <div class="detail-row" style="margin-top: 10px;">
+                                <span class="detail-label">原始消息 (Hex):</span>
+                            </div>
+                            <div class="hex-display" style="margin-top: 5px; font-size: 0.7rem; max-height: 60px;">${attack.original_message_hex}</div>
+                            <div class="detail-row" style="margin-top: 10px;">
+                                <span class="detail-label">篡改后消息 (Hex):</span>
+                            </div>
+                            <div class="hex-display" style="margin-top: 5px; font-size: 0.7rem; max-height: 60px; color: #ef4444;">${attack.modified_message_hex}</div>
+                        </div>
+                    `;
+                }).join('')}
+            `;
+
+            resultDiv.classList.remove('hidden');
+        }
+
+        function useHealthCurrentKey() {
+            const keyContent = document.getElementById('keyContent').value.trim();
+            if (keyContent) {
+                document.getElementById('healthKeyContent').value = keyContent;
+                showAlert('已加载当前密钥内容！', 'success');
+            } else {
+                showAlert('请先解析一个有效的密钥文件', 'error');
+            }
+        }
+
+        async function generateHealthReport() {
+            const keyContent = document.getElementById('healthKeyContent').value.trim();
+
+            if (!keyContent) {
+                showAlert('请输入密钥内容', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('generateHealthReportBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span>生成中...';
+            btn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('key_content', keyContent);
+
+                const response = await fetch(`${API_BASE}/api/key/health-report`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayHealthReport(data.health_report);
+                    showAlert('健康报告生成完成！', 'success');
+                } else {
+                    showAlert('生成失败: ' + (data.detail || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showAlert('请求失败: ' + error.message, 'error');
+            }
+
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+
+        async function exportHealthReport() {
+            const keyContent = document.getElementById('healthKeyContent').value.trim();
+
+            if (!keyContent) {
+                showAlert('请输入密钥内容', 'error');
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('key_content', keyContent);
+
+                const response = await fetch(`${API_BASE}/api/key/health-report/export`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'key-health-report.md';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                showAlert('报告已导出！', 'success');
+            } catch (error) {
+                showAlert('导出失败: ' + error.message, 'error');
+            }
+        }
+
+        function displayHealthReport(report) {
+            const resultDiv = document.getElementById('healthResult');
+            const contentDiv = document.getElementById('healthResultContent');
+
+            const healthEmoji = {
+                'healthy': '✅',
+                'warning': '⚠️',
+                'critical': '❌'
+            };
+
+            const healthColorClass = {
+                'healthy': 'status-success',
+                'warning': 'status-warning',
+                'critical': 'status-error'
+            };
+
+            const healthText = {
+                'healthy': '健康',
+                'warning': '存在警告',
+                'critical': '存在严重问题'
+            };
+
+            const scoreColor = report.health_score >= 80 ? '#10b981' : report.health_score >= 60 ? '#f59e0b' : '#ef4444';
+
+            contentDiv.innerHTML = `
+                <div class="result-box">
+                    <h4>整体健康评估</h4>
+                    <div style="text-align: center; margin: 20px 0;">
+                        <div style="font-size: 4rem; margin-bottom: 10px;">${healthEmoji[report.overall_health] || 'ℹ️'}</div>
+                        <div class="status-badge ${healthColorClass[report.overall_health]}" style="font-size: 1.2rem; padding: 10px 20px;">
+                            ${healthText[report.overall_health] || report.overall_health}
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 5px;">健康评分</div>
+                            <div style="font-size: 3rem; font-weight: bold; color: ${scoreColor};">${report.health_score}<span style="font-size: 1.5rem;">/100</span></div>
+                        </div>
+                    </div>
+                    <div class="divider"></div>
+                    <div class="detail-row">
+                        <span class="detail-label">摘要:</span>
+                        <span class="detail-value">${report.summary}</span>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 20px; margin-bottom: 15px;">📊 熵值分析</h3>
+                <div class="result-box" style="margin-bottom: 15px;">
+                    <div class="detail-row">
+                        <span class="detail-label">熵值分数:</span>
+                        <span class="detail-value">${report.entropy.score.toFixed(4)} / ${report.entropy.max_score}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">评估:</span>
+                        <span class="detail-value">${report.entropy.assessment}</span>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <div style="background: #1e293b; border-radius: 8px; height: 12px; overflow: hidden;">
+                            <div style="width: ${(report.entropy.score / 8) * 100}%; height: 100%; background: linear-gradient(90deg, #10b981, #4f46e5); transition: width 0.5s ease;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 20px; margin-bottom: 15px;">🎲 随机性测试</h3>
+                <div class="result-box" style="margin-bottom: 15px;">
+                    <div class="detail-row">
+                        <span class="detail-label">单比特频率测试:</span>
+                        <span class="detail-value">${report.randomness_tests.frequency_test_passed ? '✅ 通过' : '❌ 失败'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">游程测试:</span>
+                        <span class="detail-value">${report.randomness_tests.runs_test_passed ? '✅ 通过' : '⚠️ 未通过'}</span>
+                    </div>
+                    ${report.randomness_tests.note ? `
+                    <div class="detail-row">
+                        <span class="detail-label">备注:</span>
+                        <span class="detail-value">${report.randomness_tests.note}</span>
+                    </div>
+                    ` : ''}
+                </div>
+
+                <h3 style="margin-top: 20px; margin-bottom: 15px;">📏 密钥大小评估</h3>
+                <div class="result-box" style="margin-bottom: 15px;">
+                    <div class="detail-row">
+                        <span class="detail-label">总密钥大小:</span>
+                        <span class="detail-value">${report.key_size_assessment.key_size_bits} 位</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">HMAC 密钥大小:</span>
+                        <span class="detail-value">${report.key_size_assessment.hmac_key_size_bits} 位</span>
+                    </div>
+                    <div class="divider"></div>
+                    ${report.key_size_assessment.assessments.map(a => `<div style="margin-bottom: 5px;">• ${a}</div>`).join('')}
+                </div>
+
+                ${report.issues.length > 0 ? `
+                <h3 style="margin-top: 20px; margin-bottom: 15px;">❌ 发现的问题</h3>
+                <div class="alert alert-error" style="margin-bottom: 15px;">
+                    ${report.issues.map(issue => `<div style="margin-bottom: 5px;">• ${issue}</div>`).join('')}
+                </div>
+                ` : ''}
+
+                ${report.warnings.length > 0 ? `
+                <h3 style="margin-top: 20px; margin-bottom: 15px;">⚠️ 警告</h3>
+                <div class="alert alert-warning" style="margin-bottom: 15px;">
+                    ${report.warnings.map(warning => `<div style="margin-bottom: 5px;">• ${warning}</div>`).join('')}
+                </div>
+                ` : ''}
+
+                <h3 style="margin-top: 20px; margin-bottom: 15px;">💡 安全建议</h3>
+                <div class="alert alert-info" style="margin-bottom: 15px;">
+                    ${report.recommendations.map(rec => `<div style="margin-bottom: 5px;">• ${rec}</div>`).join('')}
+                </div>
+
+                <h3 style="margin-top: 20px; margin-bottom: 15px;">📈 字节分布统计</h3>
+                <div class="result-box">
+                    <div class="detail-row">
+                        <span class="detail-label">唯一字节数:</span>
+                        <span class="detail-value">${report.byte_distribution.unique_bytes} / 256</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">覆盖率:</span>
+                        <span class="detail-value">${report.byte_distribution.coverage_percent.toFixed(2)}%</span>
+                    </div>
+                </div>
+            `;
+
+            resultDiv.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

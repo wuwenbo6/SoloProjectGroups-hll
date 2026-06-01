@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #0D1117;
+  color: #C9D1D9;
+  min-height: 100vh;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #161B22;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #30363D;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #484F58;
+}
+
+@layer utilities {
+  .text-shadow-glow {
+    text-shadow: 0 0 10px currentColor;
+  }
+
+  .bg-grid-pattern {
+    background-image: 
+      linear-gradient(rgba(22, 93, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(22, 93, 255, 0.05) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  .bg-gradient-radial {
+    background: radial-gradient(ellipse at top, rgba(22, 93, 255, 0.1) 0%, transparent 50%);
+  }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes blinkFast {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+@keyframes glowRed {
+  0%, 100% { box-shadow: 0 0 4px #f85149, 0 0 8px rgba(248, 81, 73, 0.5); }
+  50% { box-shadow: 0 0 6px #f85149, 0 0 12px rgba(248, 81, 73, 0.7); }
+}
+
+@keyframes glowGreen {
+  0%, 100% { box-shadow: 0 0 4px #3fb950, 0 0 8px rgba(63, 185, 80, 0.5); }
+  50% { box-shadow: 0 0 6px #3fb950, 0 0 12px rgba(63, 185, 80, 0.7); }
+}
+
+@keyframes glowOrange {
+  0%, 100% { box-shadow: 0 0 4px #d29922, 0 0 8px rgba(210, 153, 34, 0.5); }
+  50% { box-shadow: 0 0 6px #d29922, 0 0 12px rgba(210, 153, 34, 0.7); }
+}
+
+.animate-blink {
+  animation: blink 1s ease-in-out infinite;
+}
+
+.animate-blink-fast {
+  animation: blinkFast 0.5s ease-in-out infinite;
+}
+
+.animate-glow-red {
+  animation: glowRed 2s ease-in-out infinite;
+}
+
+.animate-glow-green {
+  animation: glowGreen 2s ease-in-out infinite;
+}
+
+.animate-glow-orange {
+  animation: glowOrange 2s ease-in-out infinite;
+}

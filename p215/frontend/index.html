@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SS7 MTP2 层状态机模拟器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SS7 MTP2 层状态机模拟器</h1>
+            <p class="subtitle">模拟 MTP2 层状态变迁 (空闲-建立-流量-恢复) 与信号单元 (FISU/LSSU/MSU) 传输</p>
+        </header>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="card">
+                    <h2>状态机</h2>
+                    <div class="state-machine">
+                        <svg id="state-diagram" viewBox="0 0 400 300">
+                            <circle id="state-IDLE" cx="200" cy="50" r="35" class="state-node idle" />
+                            <text x="200" y="55" text-anchor="middle" class="state-text">IDLE</text>
+                            <text x="200" y="70" text-anchor="middle" class="state-subtext">空闲</text>
+
+                            <circle id="state-ESTABLISH" cx="80" cy="150" r="35" class="state-node establish" />
+                            <text x="80" y="155" text-anchor="middle" class="state-text">ESTABLISH</text>
+                            <text x="80" y="170" text-anchor="middle" class="state-subtext">建立</text>
+
+                            <circle id="state-TRAFFIC" cx="200" cy="250" r="35" class="state-node traffic" />
+                            <text x="200" y="255" text-anchor="middle" class="state-text">TRAFFIC</text>
+                            <text x="200" y="270" text-anchor="middle" class="state-subtext">流量</text>
+
+                            <circle id="state-RESTORE" cx="320" cy="150" r="35" class="state-node restore" />
+                            <text x="320" y="155" text-anchor="middle" class="state-text">RESTORE</text>
+                            <text x="320" y="170" text-anchor="middle" class="state-subtext">恢复</text>
+
+                            <line x1="170" y1="75" x2="100" y2="125" class="transition-line" marker-end="url(#arrowhead)" />
+                            <line x1="110" y1="175" x2="170" y2="225" class="transition-line" marker-end="url(#arrowhead)" />
+                            <line x1="230" y1="225" x2="290" y2="175" class="transition-line" marker-end="url(#arrowhead)" />
+                            <line x1="290" y1="125" x2="230" y2="75" class="transition-line" marker-end="url(#arrowhead)" />
+                            <line x1="200" y1="215" x2="200" y2="85" class="transition-line" marker-end="url(#arrowhead)" />
+                            <line x1="115" y1="150" x2="165" y2="150" class="transition-line" marker-end="url(#arrowhead)" />
+                            <line x1="285" y1="150" x2="235" y2="150" class="transition-line" marker-end="url(#arrowhead)" />
+                            <line x1="110" y1="135" x2="170" y2="75" class="transition-line restore-line" marker-end="url(#arrowhead)" />
+                            <line x1="290" y1="135" x2="230" y2="75" class="transition-line restore-line" marker-end="url(#arrowhead)" />
+
+                            <defs>
+                                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                    <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+                                </marker>
+                            </defs>
+                        </svg>
+                    </div>
+                    <div class="current-state">
+                        <span>当前状态: </span>
+                        <span id="current-state" class="state-badge idle">IDLE</span>
+                    </div>
+                    <div class="sync-status-bar">
+                        <span>同步: </span>
+                        <span id="sync-status" class="sync-badge in-sync">IN_SYNC</span>
+                        <span class="fsn-display">期望FSN: <span id="expected-fsn">0</span></span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>定时器状态</h2>
+                    <div class="timer-panels">
+                        <div class="timer-panel" id="t1-panel">
+                            <div class="timer-header">
+                                <span class="timer-name">T1</span>
+                                <span class="timer-desc">SIO 重传定时器</span>
+                            </div>
+                            <div class="timer-body">
+                                <span id="t1-status" class="timer-status inactive">未激活</span>
+                                <span class="timer-retry">重试: <span id="t1-retries">0</span>/<span id="t1-max">5</span></span>
+                            </div>
+                            <div class="timer-progress">
+                                <div id="t1-progress" class="timer-progress-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="timer-panel" id="t3-panel">
+                            <div class="timer-header">
+                                <span class="timer-name">T3</span>
+                                <span class="timer-desc">失步恢复定时器</span>
+                            </div>
+                            <div class="timer-body">
+                                <span id="t3-status" class="timer-status inactive">未激活</span>
+                                <span class="timer-retry">重试: <span id="t3-retries">0</span>/<span id="t3-max">3</span></span>
+                            </div>
+                            <div class="timer-progress">
+                                <div id="t3-progress" class="timer-progress-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>控制面板</h2>
+                    <div class="controls">
+                        <button id="btn-start" class="btn btn-primary">开始模拟</button>
+                        <button id="btn-stop" class="btn btn-secondary">停止</button>
+                        <button id="btn-reset" class="btn btn-warning">重置</button>
+                    </div>
+                    <div class="manual-controls">
+                        <h3>手动状态切换</h3>
+                        <div class="state-buttons">
+                            <button class="btn-state" data-state="IDLE">IDLE</button>
+                            <button class="btn-state" data-state="ESTABLISH">ESTABLISH</button>
+                            <button class="btn-state" data-state="TRAFFIC">TRAFFIC</button>
+                            <button class="btn-state" data-state="RESTORE">RESTORE</button>
+                        </div>
+                    </div>
+                    <div class="settings">
+                        <h3>设置</h3>
+                        <div class="setting-item">
+                            <label>状态持续时间 (秒):</label>
+                            <input type="number" id="duration" value="5" min="1" max="60" />
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="auto-advance" checked />
+                                自动状态切换
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="simulate-errors" />
+                                模拟错误 (含FSN失步)
+                            </label>
+                        </div>
+                    </div>
+                    <div class="manual-message">
+                        <h3>手动发送消息</h3>
+                        <div class="msg-controls">
+                            <select id="msg-type">
+                                <option value="FISU">FISU</option>
+                                <option value="LSSU">LSSU</option>
+                                <option value="MSU">MSU</option>
+                            </select>
+                            <select id="lssu-status" style="display: none;">
+                                <option value="OUT_OF_SERVICE">SIO (OUT_OF_SERVICE)</option>
+                                <option value="IN_SERVICE">SIN (IN_SERVICE)</option>
+                                <option value="NORMAL">SIN (NORMAL)</option>
+                                <option value="EMERGENCY">SIE (EMERGENCY)</option>
+                                <option value="BUSY">SIB (BUSY)</option>
+                            </select>
+                            <select id="msu-si" style="display: none;">
+                                <option value="SCCP">SCCP</option>
+                                <option value="ISUP">ISUP</option>
+                                <option value="TUP">TUP</option>
+                                <option value="MTP-TEST">MTP-TEST</option>
+                            </select>
+                            <button id="btn-send-msg" class="btn btn-success">发送</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>统计信息</h2>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span class="stat-label">FISU:</span>
+                            <span id="fisu-count" class="stat-value fisu">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">LSSU:</span>
+                            <span id="lssu-count" class="stat-value lssu">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">MSU:</span>
+                            <span id="msu-count" class="stat-value msu">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">总计:</span>
+                            <span id="total-count" class="stat-value">0</span>
+                        </div>
+                    </div>
+                    <div class="link-stats">
+                        <h3>链路质量</h3>
+                        <div class="link-stats-grid">
+                            <div class="link-stat-card">
+                                <div class="link-stat-label">丢帧数</div>
+                                <div id="lost-frames" class="link-stat-value lost">0</div>
+                            </div>
+                            <div class="link-stat-card">
+                                <div class="link-stat-label">丢帧率</div>
+                                <div id="frame-loss-rate" class="link-stat-value lost">0.00%</div>
+                            </div>
+                            <div class="link-stat-card">
+                                <div class="link-stat-label">重传数</div>
+                                <div id="retransmitted" class="link-stat-value retrans">0</div>
+                            </div>
+                            <div class="link-stat-card">
+                                <div class="link-stat-label">重传率</div>
+                                <div id="retransmit-rate" class="link-stat-value retrans">0.00%</div>
+                            </div>
+                            <div class="link-stat-card">
+                                <div class="link-stat-label">T1重传</div>
+                                <div id="t1-retransmissions" class="link-stat-value t1stat">0</div>
+                            </div>
+                            <div class="link-stat-card">
+                                <div class="link-stat-label">T3重传</div>
+                                <div id="t3-retransmissions" class="link-stat-value t3stat">0</div>
+                            </div>
+                        </div>
+                        <div class="link-quality-bar">
+                            <div class="quality-label">链路质量</div>
+                            <div class="quality-bar">
+                                <div id="quality-fill" class="quality-fill" style="width: 100%"></div>
+                            </div>
+                            <div id="quality-percent" class="quality-percent">100%</div>
+                        </div>
+                    </div>
+                    <div class="pcap-section">
+                        <div class="pcap-header">
+                            <h3>PCAP 抓包</h3>
+                            <span class="pcap-count">已捕获: <span id="pcap-count">0</span> 帧</span>
+                        </div>
+                        <button id="btn-export-pcap" class="btn btn-pcap">📥 导出 PCAP (Wireshark)</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>消息序列</h2>
+                        <div class="legend">
+                            <span class="legend-item"><span class="legend-dot fisu"></span>FISU</span>
+                            <span class="legend-item"><span class="legend-dot lssu"></span>LSSU</span>
+                            <span class="legend-item"><span class="legend-dot msu"></span>MSU</span>
+                            <span class="legend-item"><span class="legend-dot sib"></span>SIB</span>
+                        </div>
+                    </div>
+                    <div id="message-list" class="message-list">
+                        <div class="empty-state">
+                            <p>等待消息...</p>
+                            <p class="hint">点击 "开始模拟" 按钮开始</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>协议事件日志</h2>
+                        <div class="legend">
+                            <span class="legend-item"><span class="legend-dot timer"></span>定时器</span>
+                            <span class="legend-item"><span class="legend-dot fsn"></span>FSN校验</span>
+                            <span class="legend-item"><span class="legend-dot sync"></span>同步</span>
+                        </div>
+                    </div>
+                    <div id="event-list" class="event-list">
+                        <div class="empty-state">
+                            <p>等待协议事件...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>状态变迁历史</h2>
+                    <div id="transition-list" class="transition-list">
+                        <div class="empty-state">
+                            <p>等待状态变迁...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="message-detail" class="card message-detail" style="display: none;">
+                    <h2>消息详情</h2>
+                    <div id="detail-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="connection-status">
+            <span id="connection-indicator" class="indicator disconnected"></span>
+            <span id="connection-text">未连接</span>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

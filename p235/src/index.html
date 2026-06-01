@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PICkit2 Programmer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>
+        <h1>PICkit2 Programmer</h1>
+      </div>
+      <div class="connection-status" id="connectionStatus">
+        <span class="status-dot disconnected"></span>
+        <span class="status-text">未连接</span>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <section class="card">
+        <h2>设备连接</h2>
+        <div class="device-info" id="deviceInfo">
+          <p class="text-muted">点击连接按钮连接PICkit2编程器</p>
+        </div>
+        <button class="btn btn-primary" id="connectBtn">连接设备</button>
+      </section>
+
+      <section class="card">
+        <h2>目标设备</h2>
+        <div class="form-group">
+          <label for="deviceSelect">选择PIC单片机型号:</label>
+          <select id="deviceSelect" disabled>
+            <option value="">请先连接设备...</option>
+          </select>
+        </div>
+        <div class="device-details" id="deviceDetails">
+          <p class="text-muted">选择设备后显示详细信息</p>
+        </div>
+        <div class="chip-id-section">
+          <button class="btn btn-secondary btn-small" id="readChipIDBtn" disabled>读取芯片ID</button>
+          <button class="btn btn-info btn-small" id="verifyChipIDBtn" disabled>验证芯片ID</button>
+          <div class="chip-id-info" id="chipIDInfo">
+            <p class="text-muted">未读取芯片ID</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>HEX文件</h2>
+        <div class="file-drop-zone" id="fileDropZone">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <p>拖拽HEX文件到此处</p>
+          <p class="text-muted small">或点击选择文件</p>
+        </div>
+        <input type="file" id="fileInput" accept=".hex" style="display: none;">
+        <div class="hex-info" id="hexInfo">
+          <p class="text-muted">未加载文件</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>编程操作</h2>
+        <div class="progress-container">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <p class="progress-text" id="progressText">准备就绪</p>
+        </div>
+        <div class="action-buttons">
+          <button class="btn btn-warning" id="eraseBtn" disabled>擦除</button>
+          <button class="btn btn-success" id="programBtn" disabled>烧录</button>
+          <button class="btn btn-info" id="verifyBtn" disabled>校验</button>
+          <button class="btn btn-secondary" id="readBtn" disabled>读取</button>
+        </div>
+        <div class="quick-actions">
+          <button class="btn btn-primary" id="autoBtn" disabled>自动 (擦除+烧录+校验)</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>脱机编程</h2>
+        <div class="offline-status" id="offlineStatus">
+          <p class="text-muted">编程器存储状态: 空</p>
+        </div>
+        <div class="offline-buttons">
+          <button class="btn btn-warning btn-small" id="offlineEraseBtn" disabled>擦除存储</button>
+          <button class="btn btn-success btn-small" id="offlineWriteBtn" disabled>写入编程器</button>
+          <button class="btn btn-info btn-small" id="offlineReadBtn" disabled>读取编程器</button>
+          <button class="btn btn-secondary btn-small" id="offlineStatusBtn" disabled>查询状态</button>
+        </div>
+        <div class="offline-actions">
+          <button class="btn btn-primary" id="offlineStartBtn" disabled>开始脱机编程</button>
+          <button class="btn btn-secondary btn-small" id="offlineVerifyBtn" disabled>脱机校验</button>
+        </div>
+      </section>
+
+      <section class="card log-section">
+        <h2>操作日志</h2>
+        <div class="log-container" id="logContainer">
+          <div class="log-entry">
+            <span class="log-time">[系统]</span>
+            <span class="log-message">应用已启动，等待连接设备...</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>PICkit2 Programmer v1.0.0 | 支持PIC16/PIC18系列单片机</p>
+    </footer>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

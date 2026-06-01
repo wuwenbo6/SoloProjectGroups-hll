@@ -1,0 +1,73 @@
+@app.route("/api/devices", methods=["GET"])
+def get_devices():
+    return jsonify(all_devices())
+
+@app.route("/api/devices", methods=["POST"])
+def create_device():
+    data = request.json
+    ae = data.get("ae_title")
+    host = data.get("host")
+    port = data.get("port")
+    if not ae or not host or not port:
+        return jsonify({"error": "ae_title, host, port required"}), 400
+    did = add_device(ae, host, port, data.get("modality"), data.get("station_name"), data.get("description"))
+    return jsonify({"id": did, "message": "Device added"}), 201
+
+@app.route("/api/devices/<did>", methods=["DELETE"])
+def delete_device(did):
+    if del_device(did):
+        return jsonify({"message": "Device deleted"})
+    return jsonify({"error": "Device not found"}), 404
+
+@app.route("/api/devices/<did>", methods=["GET"])
+def get_one_device(did):
+    dev = get_device(did)
+    if dev:
+        return jsonify(dev)
+    return jsonify({"error": "Device not found"}), 404
+
+@app.route("/api/push/<item_id>/<device_id>", methods=["POST"])
+def push_item_to_device(item_id, device_id):
+    item = get_worklist_by_id(item_id)
+    if not item:
+        return jsonify({"error": "Worklist item not found"}), 404
+    result = push_one(item, device_id)
+    return jsonify(result)
+
+@app.route("/api/push/<item_id>/all", methods=["POST"])
+def push_item_to_all(item_id):
+    item = get_worklist_by_id(item_id)
+    if not item:
+        return jsonify({"error": "Worklist item not found"}), 404
+    results = push_all(item)
+    return jsonify({"results": results, "total": len(results)})
+
+@app.route("/api/push/history", methods=["GET"])
+def get_push_history():
+    wid = request.args.get("worklist_item_id")
+    did = request.args.get("device_id")
+    return jsonify(push_history(wid, did))
+
+@app.route("/api/hl7/parse", methods=["POST"])
+def parse_hl7():
+    data = request.json
+    message = data.get("message")
+    if not message:
+        return jsonify({"error": "message required"}), 400
+    result = parse_hl7_message(message)
+    return jsonify(result)
+
+@app.route("/api/hl7/import", methods=["POST"])
+def import_hl7():
+    data = request.json
+    message = data.get("message")
+    if not message:
+        return jsonify({"error": "message required"}), 400
+    parsed = parse_hl7_message(message)
+    if not parsed.get("success"):
+        return jsonify(parsed), 400
+    item_id = create_worklist_from_hl7(parsed["data"])
+    if item_id:
+        return jsonify({"success": True, "worklist_item_id": item_id, "message": "Imported successfully"})
+    return jsonify({"success": False, "message": "Import failed"}), 500
+

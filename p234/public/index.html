@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XMPP 消息归档测试客户端</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px 32px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            min-height: 600px;
+        }
+
+        .sidebar {
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            padding: 20px;
+        }
+
+        .main {
+            padding: 20px;
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            color: #6c757d;
+            margin-bottom: 6px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+
+        .collections-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .collection-item {
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .collection-item:hover {
+            border-color: #667eea;
+            transform: translateX(4px);
+        }
+
+        .collection-item.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .collection-with {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .collection-meta {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .messages-area {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 16px;
+            min-height: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.from {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.to {
+            background: white;
+            color: #333;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .message-body {
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 4px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        .status {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .search-results {
+            margin-top: 20px;
+        }
+
+        .search-result-item {
+            padding: 12px;
+            background: #fff3cd;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 8px 16px;
+            background: #e9ecef;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .date-range {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .highlight {
+            background: #ffeb3b;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💬 XMPP 消息归档测试客户端</h1>
+            <p>XEP-0136 消息归档管理 - 按日期/关键词查询历史消息</p>
+        </div>
+
+        <div class="content">
+            <div class="sidebar">
+                <div class="section">
+                    <div class="section-title">连接状态</div>
+                    <div id="connectionStatus" class="status disconnected">
+                        ⚠️ WebSocket 未连接
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">用户设置</div>
+                    <div class="form-group">
+                        <label>当前用户 JID</label>
+                        <input type="text" id="currentUser" value="alice@localhost" placeholder="user@domain">
+                    </div>
+                    <button class="btn btn-primary" style="width:100%" onclick="connect()">
+                        连接并加载会话
+                    </button>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">会话列表</div>
+                    <div class="form-group">
+                        <label>聊天类型</label>
+                        <select id="filterChatType">
+                            <option value="">全部</option>
+                            <option value="chat">单聊</option>
+                            <option value="groupchat">群聊</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>筛选</label>
+                        <input type="text" id="filterWith" placeholder="按联系人筛选">
+                    </div>
+                    <button class="btn btn-secondary" style="width:100%" onclick="loadCollections()">
+                        刷新会话列表
+                    </button>
+                    <div id="collectionsList" class="collections-list" style="margin-top:12px">
+                        <div style="color:#999;text-align:center;padding:20px">
+                            暂无会话数据
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="main">
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('messages')">消息记录</button>
+                    <button class="tab" onclick="switchTab('search')">关键词搜索</button>
+                    <button class="tab" onclick="switchTab('send')">发送单聊</button>
+                    <button class="tab" onclick="switchTab('muc')">群聊消息</button>
+                </div>
+
+                <div id="messagesTab" class="tab-content active">
+                    <div class="section">
+                        <div class="section-title">查询选项</div>
+                        <div class="form-group">
+                            <label>按月份筛选</label>
+                            <input type="month" id="filterMonth">
+                        </div>
+                        <div class="date-range">
+                            <div class="form-group">
+                                <label>开始日期</label>
+                                <input type="datetime-local" id="startDate">
+                            </div>
+                            <div class="form-group">
+                                <label>结束日期</label>
+                                <input type="datetime-local" id="endDate">
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:8px;margin-top:12px">
+                            <button class="btn btn-secondary" onclick="loadMessages()">
+                                筛选消息
+                            </button>
+                            <button class="btn btn-primary" onclick="exportMessages()">
+                                📥 导出为 HTML
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">消息记录</div>
+                        <div id="messagesArea" class="messages-area">
+                            <div style="color:#999;text-align:center;padding:40px">
+                                选择左侧会话查看消息记录
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="searchTab" class="tab-content">
+                    <div class="section">
+                        <div class="section-title">关键词搜索</div>
+                        <div class="form-group">
+                            <label>搜索关键词</label>
+                            <input type="text" id="searchKeyword" placeholder="输入要搜索的内容...">
+                        </div>
+                        <div class="form-group">
+                            <label>按月份筛选 (可选)</label>
+                            <input type="month" id="searchMonth">
+                        </div>
+                        <div class="date-range">
+                            <div class="form-group">
+                                <label>开始日期 (可选)</label>
+                                <input type="datetime-local" id="searchStartDate">
+                            </div>
+                            <div class="form-group">
+                                <label>结束日期 (可选)</label>
+                                <input type="datetime-local" id="searchEndDate">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>限定联系人 (可选)</label>
+                            <input type="text" id="searchWith" placeholder="user@domain">
+                        </div>
+                        <button class="btn btn-primary" onclick="searchMessages()">
+                            🔍 搜索消息
+                        </button>
+                    </div>
+
+                    <div id="searchResults" class="search-results">
+                    </div>
+                </div>
+
+                <div id="sendTab" class="tab-content">
+                    <div class="section">
+                        <div class="section-title">发送并归档消息</div>
+                        <div class="form-group">
+                            <label>发送方</label>
+                            <input type="text" id="msgFrom" value="alice@localhost">
+                        </div>
+                        <div class="form-group">
+                            <label>接收方</label>
+                            <input type="text" id="msgTo" value="bob@localhost">
+                        </div>
+                        <div class="form-group">
+                            <label>消息内容</label>
+                            <textarea id="msgBody" rows="4" placeholder="输入消息内容..."></textarea>
+                        </div>
+                        <button class="btn btn-primary" onclick="sendMessage()">
+                            ✉️ 发送并归档消息
+                        </button>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">批量测试数据</div>
+                        <button class="btn btn-secondary" onclick="generateTestData()">
+                            📝 生成测试消息
+                        </button>
+                        <p style="font-size:12px;color:#666;margin-top:8px">
+                            生成一些示例消息用于测试归档和搜索功能
+                        </p>
+                    </div>
+                </div>
+
+                <div id="mucTab" class="tab-content">
+                    <div class="section">
+                        <div class="section-title">发送群聊消息</div>
+                        <div class="form-group">
+                            <label>当前用户</label>
+                            <input type="text" id="mucOwner" value="alice@localhost">
+                        </div>
+                        <div class="form-group">
+                            <label>群组 JID</label>
+                            <input type="text" id="mucRoom" value="room@conference.localhost" placeholder="room@conference.domain">
+                        </div>
+                        <div class="form-group">
+                            <label>发送者昵称</label>
+                            <input type="text" id="mucNick" value="Alice" placeholder="群聊中显示的昵称">
+                        </div>
+                        <div class="form-group">
+                            <label>发送者 JID (可选)</label>
+                            <input type="text" id="mucFromJid" placeholder="user@domain">
+                        </div>
+                        <div class="form-group">
+                            <label>消息内容</label>
+                            <textarea id="mucBody" rows="4" placeholder="输入群聊消息内容..."></textarea>
+                        </div>
+                        <button class="btn btn-primary" onclick="sendMucMessage()">
+                            👥 发送群聊消息
+                        </button>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">生成群聊测试数据</div>
+                        <button class="btn btn-secondary" onclick="generateMucTestData()">
+                            👥 生成群聊测试消息
+                        </button>
+                        <p style="font-size:12px;color:#666;margin-top:8px">
+                            生成一些群聊示例消息用于测试
+                        </p>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">导出选项</div>
+                        <div class="form-group">
+                            <label>导出类型</label>
+                            <select id="exportType">
+                                <option value="all">导出全部消息</option>
+                                <option value="chat">仅单聊</option>
+                                <option value="groupchat">仅群聊</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>导出月份 (可选)</label>
+                            <input type="month" id="exportMonth">
+                        </div>
+                        <div class="form-group">
+                            <label>导出标题 (可选)</label>
+                            <input type="text" id="exportTitle" placeholder="消息记录导出">
+                        </div>
+                        <button class="btn btn-primary" onclick="exportAllMessages()">
+                            📥 导出全部为 HTML
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let currentCollection = null;
+        let currentKeyword = '';
+
+        function connect() {
+            if (ws) {
+                ws.close();
+            }
+
+            ws = new WebSocket('ws://' + window.location.host);
+
+            ws.onopen = () => {
+                document.getElementById('connectionStatus').className = 'status connected';
+                document.getElementById('connectionStatus').textContent = '✅ WebSocket 已连接';
+                loadCollections();
+            };
+
+            ws.onclose = () => {
+                document.getElementById('connectionStatus').className = 'status disconnected';
+                document.getElementById('connectionStatus').textContent = '⚠️ WebSocket 已断开';
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        function handleMessage(data) {
+            switch (data.type) {
+                case 'collections':
+                    renderCollections(data.data);
+                    break;
+                case 'messages':
+                    renderMessages(data.data);
+                    break;
+                case 'searchResults':
+                    renderSearchResults(data.data);
+                    break;
+                case 'archived':
+                    loadCollections();
+                    break;
+                case 'message':
+                    if (currentCollection) {
+                        loadMessages();
+                    }
+                    break;
+            }
+        }
+
+        function loadCollections() {
+            const owner = document.getElementById('currentUser').value;
+            const withFilter = document.getElementById('filterWith').value;
+            const chatType = document.getElementById('filterChatType').value;
+
+            const options = {};
+            if (withFilter) options.with = withFilter;
+            if (chatType) options.chatType = chatType;
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'listCollections',
+                    data: {
+                        owner: owner,
+                        options: options
+                    }
+                }));
+            } else {
+                let url = `/api/collections/${encodeURIComponent(owner)}`;
+                const params = [];
+                if (withFilter) params.push('with=' + encodeURIComponent(withFilter));
+                if (chatType) params.push('chatType=' + encodeURIComponent(chatType));
+                if (params.length > 0) url += '?' + params.join('&');
+                
+                fetch(url)
+                    .then(res => res.json())
+                    .then(data => renderCollections(data));
+            }
+        }
+
+        function renderCollections(collections) {
+            const container = document.getElementById('collectionsList');
+            
+            if (!collections || collections.length === 0) {
+                container.innerHTML = '<div style="color:#999;text-align:center;padding:20px">暂无会话数据</div>';
+                return;
+            }
+
+            const grouped = {};
+            collections.forEach(c => {
+                const month = c.month || '未知月份';
+                if (!grouped[month]) {
+                    grouped[month] = [];
+                }
+                grouped[month].push(c);
+            });
+
+            let html = '';
+            for (const [month, monthCollections] of Object.entries(grouped).sort().reverse()) {
+                html += `<div style="font-size:11px;color:#666;margin:12px 0 8px 0;font-weight:600">📅 ${month}</div>`;
+                monthCollections.forEach(c => {
+                    const withJid = `${c.with_user}@${c.with_server}`;
+                    const isActive = currentCollection === withJid;
+                    const lastDate = c.last_activity ? new Date(c.last_activity).toLocaleString('zh-CN') : '-';
+                    const isGroupChat = c.chat_type === 'groupchat';
+                    const icon = isGroupChat ? '👥' : '👤';
+                    const typeLabel = isGroupChat ? '群聊' : '单聊';
+                    const displayName = isGroupChat && c.room_name ? c.room_name : withJid;
+                    
+                    html += `
+                        <div class="collection-item ${isActive ? 'active' : ''}" onclick="selectCollection('${withJid}', '${c.chat_type || 'chat'}')">
+                            <div class="collection-with">${icon} ${displayName}</div>
+                            <div class="collection-meta">
+                                ${typeLabel} · ${c.message_count || 0} 条消息 · 最后: ${lastDate}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            container.innerHTML = html;
+        }
+
+        let currentChatType = 'chat';
+
+        function selectCollection(withJid, chatType = 'chat') {
+            currentCollection = withJid;
+            currentChatType = chatType;
+            loadCollections();
+            loadMessages();
+        }
+
+        function loadMessages() {
+            if (!currentCollection) return;
+
+            const owner = document.getElementById('currentUser').value;
+            const month = document.getElementById('filterMonth').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            const options = {};
+            if (month) options.month = month;
+            if (startDate) options.start = new Date(startDate).getTime();
+            if (endDate) options.end = new Date(endDate).getTime();
+            if (currentChatType) options.chatType = currentChatType;
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'retrieveCollection',
+                    data: {
+                        owner: owner,
+                        with: currentCollection,
+                        options: options
+                    }
+                }));
+            } else {
+                let url = `/api/messages/${encodeURIComponent(owner)}?with=${encodeURIComponent(currentCollection)}`;
+                if (month) url += '&month=' + encodeURIComponent(month);
+                if (startDate) url += '&start=' + new Date(startDate).getTime();
+                if (endDate) url += '&end=' + new Date(endDate).getTime();
+                if (currentChatType) url += '&chatType=' + encodeURIComponent(currentChatType);
+                
+                fetch(url)
+                    .then(res => res.json())
+                    .then(data => renderMessages(data));
+            }
+        }
+
+        function renderMessages(messages) {
+            const container = document.getElementById('messagesArea');
+            
+            if (!messages || messages.length === 0) {
+                container.innerHTML = '<div style="color:#999;text-align:center;padding:40px">暂无消息</div>';
+                return;
+            }
+
+            const isGroupChat = currentChatType === 'groupchat';
+
+            container.innerHTML = messages.map(m => {
+                const date = new Date(m.utc_time).toLocaleString('zh-CN');
+                const isFromOwner = m.direction === 'to';
+                
+                let displayName;
+                let bodyPrefix = '';
+                
+                if (isGroupChat) {
+                    displayName = isFromOwner ? '我' : (m.muc_nick || m.name || '未知用户');
+                    if (!isFromOwner) {
+                        bodyPrefix = `<strong style="opacity:0.9">${escapeHtml(displayName)}:</strong> `;
+                    }
+                } else {
+                    displayName = isFromOwner ? '我' : (m.name || m.with_user);
+                }
+                
+                return `
+                    <div class="message ${m.direction}">
+                        <div class="message-body">${bodyPrefix}${escapeHtml(m.body)}</div>
+                        <div class="message-time">${displayName} · ${date}</div>
+                    </div>
+                `;
+            }).join('');
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function searchMessages() {
+            const keyword = document.getElementById('searchKeyword').value;
+            if (!keyword) {
+                alert('请输入搜索关键词');
+                return;
+            }
+
+            currentKeyword = keyword;
+            const owner = document.getElementById('currentUser').value;
+            const month = document.getElementById('searchMonth').value;
+            const startDate = document.getElementById('searchStartDate').value;
+            const endDate = document.getElementById('searchEndDate').value;
+            const withJid = document.getElementById('searchWith').value;
+
+            const options = {};
+            if (month) options.month = month;
+            if (startDate) options.start = new Date(startDate).getTime();
+            if (endDate) options.end = new Date(endDate).getTime();
+            if (withJid) options.with = withJid;
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'search',
+                    data: {
+                        owner: owner,
+                        keyword: keyword,
+                        options: options
+                    }
+                }));
+            } else {
+                let url = `/api/search/${encodeURIComponent(owner)}?keyword=${encodeURIComponent(keyword)}`;
+                if (month) url += '&month=' + encodeURIComponent(month);
+                if (startDate) url += '&start=' + new Date(startDate).getTime();
+                if (endDate) url += '&end=' + new Date(endDate).getTime();
+                if (withJid) url += '&with=' + encodeURIComponent(withJid);
+                
+                fetch(url)
+                    .then(res => res.json())
+                    .then(data => renderSearchResults(data));
+            }
+        }
+
+        function renderSearchResults(results) {
+            const container = document.getElementById('searchResults');
+            
+            if (!results || results.length === 0) {
+                container.innerHTML = '<div style="color:#999;text-align:center;padding:20px">未找到匹配的消息</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div style="margin-bottom:12px;font-weight:600">找到 ${results.length} 条匹配消息</div>
+                ${results.map(m => {
+                    const date = new Date(m.utc_time).toLocaleString('zh-CN');
+                    const withJid = `${m.with_user}@${m.with_server}`;
+                    const highlightedBody = highlightKeyword(m.body, currentKeyword);
+                    
+                    return `
+                        <div class="search-result-item">
+                            <div style="font-size:12px;color:#666;margin-bottom:4px">
+                                <strong>${withJid}</strong> · ${date}
+                            </div>
+                            <div style="font-size:14px">${highlightedBody}</div>
+                        </div>
+                    `;
+                }).join('')}
+            `;
+        }
+
+        function sendMessage() {
+            const from = document.getElementById('msgFrom').value;
+            const to = document.getElementById('msgTo').value;
+            const body = document.getElementById('msgBody').value;
+
+            if (!from || !to || !body) {
+                alert('请填写完整信息');
+                return;
+            }
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'archive',
+                    data: { from, to, body, type: 'chat' }
+                }));
+            } else {
+                fetch('/api/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ from, to, body, type: 'chat' })
+                }).then(() => {
+                    document.getElementById('msgBody').value = '';
+                    loadCollections();
+                });
+            }
+
+            document.getElementById('msgBody').value = '';
+        }
+
+        function generateTestData() {
+            const now = Date.now();
+            const dayMs = 24 * 60 * 60 * 1000;
+            
+            const testMessages = [
+                { from: 'alice@localhost', to: 'bob@localhost', body: '你好，Bob！最近怎么样？', offset: 0 },
+                { from: 'bob@localhost', to: 'alice@localhost', body: '嗨 Alice！我很好，谢谢关心。', offset: 1 },
+                { from: 'alice@localhost', to: 'bob@localhost', body: '周末一起去喝咖啡吗？', offset: 2 },
+                { from: 'bob@localhost', to: 'alice@localhost', body: '好啊，周六下午怎么样？', offset: 3 },
+                { from: 'alice@localhost', to: 'bob@localhost', body: '可以，我们去那家新开的咖啡店吧', offset: 4 },
+                { from: 'bob@localhost', to: 'alice@localhost', body: '没问题，听说那里的拿铁很不错', offset: 5 },
+                { from: 'alice@localhost', to: 'bob@localhost', body: '上个月的会议纪要你收到了吗？', offset: -40 * dayMs },
+                { from: 'bob@localhost', to: 'alice@localhost', body: '收到了，我已经整理好了', offset: -39 * dayMs },
+                { from: 'alice@localhost', to: 'bob@localhost', body: '太好了，谢谢你的帮助', offset: -38 * dayMs },
+                { from: 'alice@localhost', to: 'charlie@localhost', body: 'Charlie，项目进度怎么样了？', offset: -10 },
+                { from: 'charlie@localhost', to: 'alice@localhost', body: '项目已经完成80%了，预计下周一可以交付', offset: -9 },
+                { from: 'alice@localhost', to: 'charlie@localhost', body: '太好了，记得写好文档', offset: -8 },
+                { from: 'charlie@localhost', to: 'alice@localhost', body: '好的，我会在提交前完成所有文档', offset: -7 },
+                { from: 'alice@localhost', to: 'charlie@localhost', body: '上上个月的项目总结写了吗？', offset: -70 * dayMs },
+                { from: 'charlie@localhost', to: 'alice@localhost', body: '已经写好了，稍后发给你', offset: -69 * dayMs },
+                { from: 'alice@localhost', to: 'david@localhost', body: 'David，好久不见！', offset: -1 },
+                { from: 'david@localhost/resource1', to: 'alice@localhost/mobile', body: '是啊 Alice，最近忙什么呢？', offset: 0 }
+            ];
+
+            let index = 0;
+            const sendNext = () => {
+                if (index >= testMessages.length) {
+                    alert('测试数据生成完成！已生成跨月份的消息用于测试分组功能。');
+                    loadCollections();
+                    return;
+                }
+
+                const msg = testMessages[index];
+                fetch('/api/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        from: msg.from,
+                        to: msg.to,
+                        body: msg.body,
+                        type: 'chat',
+                        timestamp: now + msg.offset
+                    })
+                }).then(() => {
+                    index++;
+                    setTimeout(sendNext, 100);
+                });
+            };
+
+            sendNext();
+        }
+
+        function sendMucMessage() {
+            const owner = document.getElementById('mucOwner').value;
+            const room = document.getElementById('mucRoom').value;
+            const fromNick = document.getElementById('mucNick').value;
+            const fromJid = document.getElementById('mucFromJid').value;
+            const body = document.getElementById('mucBody').value;
+
+            if (!owner || !room || !fromNick || !body) {
+                alert('请填写完整信息');
+                return;
+            }
+
+            fetch('/api/muc/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    owner,
+                    room,
+                    fromNick,
+                    fromJid,
+                    body,
+                    type: 'groupchat'
+                })
+            }).then(() => {
+                document.getElementById('mucBody').value = '';
+                loadCollections();
+            });
+        }
+
+        function generateMucTestData() {
+            const now = Date.now();
+            const dayMs = 24 * 60 * 60 * 1000;
+            
+            const testMessages = [
+                { room: 'room@conference.localhost', fromNick: 'Alice', fromJid: 'alice@localhost', body: '大家好，我是新来的！', offset: 0 },
+                { room: 'room@conference.localhost', fromNick: 'Bob', fromJid: 'bob@localhost', body: '欢迎 Alice 加入群聊！', offset: -60000 },
+                { room: 'room@conference.localhost', fromNick: 'Charlie', fromJid: 'charlie@localhost', body: '很高兴认识你 Alice', offset: -120000 },
+                { room: 'room@conference.localhost', fromNick: 'Alice', fromJid: 'alice@localhost', body: '谢谢大家，以后请多关照', offset: -180000 },
+                { room: 'room@conference.localhost', fromNick: 'Bob', fromJid: 'bob@localhost', body: '有人知道今天的会议几点开始吗？', offset: -240000 },
+                { room: 'room@conference.localhost', fromNick: 'Charlie', fromJid: 'charlie@localhost', body: '下午3点开始，别忘了准备材料', offset: -300000 },
+                { room: 'room@conference.localhost', fromNick: 'David', fromJid: 'david@localhost', body: '我已经把会议纪要发到邮箱了', offset: -40 * dayMs },
+                { room: 'room@conference.localhost', fromNick: 'Alice', fromJid: 'alice@localhost', body: '收到，我会看一下的', offset: -40 * dayMs + 60000 },
+                { room: 'tech@conference.localhost', fromNick: 'TechLeader', fromJid: 'tech@localhost', body: '今天讨论一下新功能的开发计划', offset: -10 },
+                { room: 'tech@conference.localhost', fromNick: 'Developer1', fromJid: 'dev1@localhost', body: '我建议先做需求分析', offset: -20 },
+                { room: 'tech@conference.localhost', fromNick: 'Developer2', fromJid: 'dev2@localhost', body: '同意，技术方案也要提前准备', offset: -30 }
+            ];
+
+            let index = 0;
+            const sendNext = () => {
+                if (index >= testMessages.length) {
+                    alert('群聊测试数据生成完成！');
+                    loadCollections();
+                    return;
+                }
+
+                const msg = testMessages[index];
+                fetch('/api/muc/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        owner: 'alice@localhost',
+                        room: msg.room,
+                        fromNick: msg.fromNick,
+                        fromJid: msg.fromJid,
+                        body: msg.body,
+                        type: 'groupchat',
+                        timestamp: now + msg.offset
+                    })
+                }).then(() => {
+                    index++;
+                    setTimeout(sendNext, 100);
+                });
+            };
+
+            sendNext();
+        }
+
+        function exportMessages() {
+            const owner = document.getElementById('currentUser').value;
+            const month = document.getElementById('filterMonth').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            if (!currentCollection) {
+                alert('请先选择一个会话');
+                return;
+            }
+
+            let url = `/api/export/${encodeURIComponent(owner)}?with=${encodeURIComponent(currentCollection)}`;
+            if (month) url += '&month=' + encodeURIComponent(month);
+            if (startDate) url += '&start=' + new Date(startDate).getTime();
+            if (endDate) url += '&end=' + new Date(endDate).getTime();
+            if (currentChatType) url += '&chatType=' + encodeURIComponent(currentChatType);
+            url += '&title=' + encodeURIComponent(`${currentCollection} 消息记录`);
+
+            window.location.href = url;
+        }
+
+        function exportAllMessages() {
+            const owner = document.getElementById('currentUser').value;
+            const exportType = document.getElementById('exportType').value;
+            const month = document.getElementById('exportMonth').value;
+            const title = document.getElementById('exportTitle').value;
+
+            let url = `/api/export/${encodeURIComponent(owner)}?`;
+            const params = [];
+            
+            if (exportType !== 'all') {
+                params.push('chatType=' + encodeURIComponent(exportType));
+            }
+            if (month) {
+                params.push('month=' + encodeURIComponent(month));
+            }
+            if (title) {
+                params.push('title=' + encodeURIComponent(title));
+            }
+            
+            url += params.join('&');
+
+            window.location.href = url;
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab + 'Tab').classList.add('active');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function highlightKeyword(text, keyword) {
+            if (!keyword) return escapeHtml(text);
+            const regex = new RegExp(`(${keyword})`, 'gi');
+            return escapeHtml(text).replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        window.onload = () => {
+            connect();
+        };
+    </script>
+</body>
+</html>

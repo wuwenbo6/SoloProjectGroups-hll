@@ -1,0 +1,5 @@
+flask==3.1.1
+flask-cors==5.0.1
+python-swiftclient==4.6.0
+python-keystoneclient==5.5.0
+gunicorn==23.0.0

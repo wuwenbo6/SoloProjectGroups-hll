@@ -1,0 +1,1 @@
+const fs = require("fs"); const content = "test"; fs.writeFileSync("src/store/index.ts", content); console.log("done");

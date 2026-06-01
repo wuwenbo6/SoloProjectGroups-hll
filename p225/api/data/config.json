@@ -1,0 +1,7 @@
+{
+  "targetIp": "255.255.255.255",
+  "targetPort": 6454,
+  "net": 0,
+  "switch_": 0,
+  "universe": 0
+}

@@ -1,0 +1,26 @@
+{
+  "name": "xmpp-archive-server",
+  "version": "1.0.0",
+  "description": "XMPP Server Component with Message Archiving (XEP-0136)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "node tests/test-client.js"
+  },
+  "keywords": ["xmpp", "xep-0136", "message-archiving"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@xmpp/component": "^0.13.1",
+    "@xmpp/xml": "^0.13.1",
+    "@xmpp/jid": "^0.13.1",
+    "better-sqlite3": "^9.4.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

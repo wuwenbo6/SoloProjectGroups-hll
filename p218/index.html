@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VXI-11 SCPI 控制器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <h1>VXI-11 SCPI 控制器</h1>
+      <div class="connection-status">
+        <span class="status-indicator" id="statusIndicator"></span>
+        <span id="statusText">未连接</span>
+      </div>
+    </header>
+
+    <section class="connection-panel">
+      <h2>连接配置</h2>
+      <div class="connection-form">
+        <div class="form-group">
+          <label for="hostInput">仪器IP地址</label>
+          <input type="text" id="hostInput" placeholder="192.168.1.100" value="192.168.1.100">
+        </div>
+        <div class="form-group">
+          <label for="deviceInput">设备名称</label>
+          <input type="text" id="deviceInput" placeholder="inst0" value="inst0">
+        </div>
+        <div class="button-group">
+          <button id="connectBtn" class="btn btn-primary">连接</button>
+          <button id="disconnectBtn" class="btn btn-danger" disabled>断开</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="discovery-panel">
+      <div class="panel-header">
+        <h2>设备发现</h2>
+        <button id="discoverBtn" class="btn btn-secondary">扫描网络</button>
+      </div>
+      <div class="device-list" id="deviceList">
+        <div class="empty-devices">点击"扫描网络"查找局域网内的VXI-11设备</div>
+      </div>
+    </section>
+
+    <section class="snapshot-panel">
+      <div class="panel-header">
+        <h2>状态快照</h2>
+        <div class="button-group">
+          <button id="takeSnapshotBtn" class="btn btn-primary" disabled>保存快照</button>
+          <button id="loadSnapshotBtn" class="btn btn-secondary">加载快照</button>
+          <button id="listSnapshotsBtn" class="btn btn-small">列表</button>
+        </div>
+      </div>
+      <div class="snapshot-content" id="snapshotContent">
+        <div class="empty-snapshot">连接设备后可保存当前状态快照</div>
+      </div>
+      <div class="snapshot-list" id="snapshotList" style="display: none;">
+        <div class="panel-header">
+          <h3>已保存快照</h3>
+          <button id="closeSnapshotListBtn" class="btn btn-small">关闭</button>
+        </div>
+        <div class="snapshot-list-content" id="snapshotListContent"></div>
+      </div>
+    </section>
+
+    <section class="command-panel">
+      <h2>发送命令</h2>
+      <div class="command-form">
+        <div class="form-group">
+          <label for="commandInput">SCPI 命令</label>
+          <div class="command-input-wrapper">
+            <input type="text" id="commandInput" placeholder="*IDN?" disabled>
+            <button id="sendBtn" class="btn btn-primary" disabled>发送</button>
+            <button id="queryBtn" class="btn btn-secondary" disabled>查询</button>
+          </div>
+        </div>
+        <div class="quick-commands">
+          <span class="quick-label">常用命令:</span>
+          <button class="quick-btn" data-cmd="*IDN?" disabled>*IDN?</button>
+          <button class="quick-btn" data-cmd="*RST" disabled>*RST</button>
+          <button class="quick-btn" data-cmd="SYST:ERR?" disabled>SYST:ERR?</button>
+          <button class="quick-btn" data-cmd="*OPC?" disabled>*OPC?</button>
+          <button class="quick-btn" data-cmd="FREQ:CENT?" disabled>FREQ:CENT?</button>
+          <button class="quick-btn" data-cmd="*CLS" disabled>*CLS</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="history-panel">
+      <div class="panel-header">
+        <h2>命令历史</h2>
+        <button id="clearHistoryBtn" class="btn btn-small">清空历史</button>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="empty-history">暂无命令记录</div>
+      </div>
+    </section>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "matter-commissioner",
+  "version": "1.0.0",
+  "description": "Matter设备配网工具 - 扫描QR码并完成PAI证书认证",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  },
+  "dependencies": {
+    "jsqr": "^1.4.0",
+    "node-forge": "^1.3.1"
+  }
+}

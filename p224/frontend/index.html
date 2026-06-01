@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIPI CSI-2 摄像头模拟器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 1.1em;
+        }
+
+        .status-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .status-title {
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #666;
+            transition: all 0.3s;
+        }
+
+        .status-dot.active {
+            background: #00ff88;
+            box-shadow: 0 0 10px #00ff88;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .status-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .status-label {
+            font-size: 0.85em;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .status-value {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #00d4ff;
+        }
+
+        .status-value.warning {
+            color: #ff6b6b;
+        }
+
+        .stats-panel {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+        }
+
+        .stats-title {
+            font-size: 1em;
+            font-weight: 600;
+            color: #00d4ff;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .stats-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stats-label {
+            font-size: 0.8em;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .stats-value {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #7b2cbf;
+        }
+
+        .stats-value.danger {
+            color: #ff6b6b;
+        }
+
+        .stats-value.success {
+            color: #00ff88;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            transition: width 0.3s;
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, #ff6b6b, #ee5a24);
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+            color: #aaa;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .input-group {
+            flex: 1;
+        }
+
+        input[type="number"],
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        input[type="number"]:focus,
+        input[type="text"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #00d4ff;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 10px #00d4ff;
+        }
+
+        .slider-value {
+            text-align: center;
+            margin-top: 8px;
+            font-size: 1.1em;
+            color: #00d4ff;
+            font-weight: 600;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .preset-btn {
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .preset-btn:hover {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .pattern-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .pattern-btn {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #e0e0e0;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .pattern-btn:hover {
+            border-color: #00d4ff;
+        }
+
+        .pattern-btn.active {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+
+        .pattern-icon {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .info-box {
+            background: rgba(0, 212, 255, 0.1);
+            border-left: 4px solid #00d4ff;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .info-box h4 {
+            color: #00d4ff;
+            margin-bottom: 8px;
+        }
+
+        .info-box code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MIPI CSI-2 摄像头模拟器</h1>
+            <p class="subtitle">虚拟图像数据生成器 · V4L2 Loopback</p>
+        </header>
+
+        <div class="status-panel">
+            <div class="status-header">
+                <div class="status-title">运行状态</div>
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">未启动</span>
+                </div>
+            </div>
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-label">分辨率</div>
+                    <div class="status-value" id="statusResolution">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">目标帧率</div>
+                    <div class="status-value" id="statusFps">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">实际输出 FPS</div>
+                    <div class="status-value" id="statusOutputFps">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Buffer 数量</div>
+                    <div class="status-value" id="statusBuffers">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">像素格式</div>
+                    <div class="status-value" id="statusPixelFormat">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">图像模式</div>
+                    <div class="status-value" id="statusPattern">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">坏像素注入</div>
+                    <div class="status-value" id="statusBadPixels">-</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">丢帧率</div>
+                    <div class="status-value" id="statusDropRate">-</div>
+                </div>
+            </div>
+
+            <div class="stats-panel">
+                <div class="stats-title">
+                    <span>📊</span>
+                    <span>性能统计</span>
+                </div>
+                <div class="stats-grid">
+                    <div class="stats-item">
+                        <div class="stats-label">总帧数</div>
+                        <div class="stats-value" id="statTotalFrames">0</div>
+                    </div>
+                    <div class="stats-item">
+                        <div class="stats-label">已发送</div>
+                        <div class="stats-value success" id="statSentFrames">0</div>
+                    </div>
+                    <div class="stats-item">
+                        <div class="stats-label">已丢弃</div>
+                        <div class="stats-value danger" id="statDroppedFrames">0</div>
+                    </div>
+                    <div class="stats-item">
+                        <div class="stats-label">帧序列号</div>
+                        <div class="stats-value" id="statSequence">0</div>
+                    </div>
+                    <div class="stats-item">
+                        <div class="stats-label">平均生成时间</div>
+                        <div class="stats-value" id="statGenTime">0 ms</div>
+                    </div>
+                    <div class="stats-item">
+                        <div class="stats-label">平均写入时间</div>
+                        <div class="stats-value" id="statWriteTime">0 ms</div>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="bufferUsageBar" style="width: 0%"></div>
+                </div>
+                <div class="stats-label" style="margin-top: 8px; text-align: center;">
+                    Buffer 使用: <span id="bufferUsageText">0 / 0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="control-title">
+                <span>🎛️ 设备配置</span>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">V4L2 Loopback 设备路径</label>
+                <input type="text" id="devicePath" value="/dev/video10" placeholder="/dev/video10">
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">分辨率</label>
+                <div class="input-row">
+                    <div class="input-group">
+                        <input type="number" id="width" value="640" min="160" max="3840" step="1">
+                    </div>
+                    <span>×</span>
+                    <div class="input-group">
+                        <input type="number" id="height" value="480" min="120" max="2160" step="1">
+                    </div>
+                </div>
+                <div class="preset-grid">
+                    <button class="preset-btn" onclick="setResolution(160, 120)">160×120</button>
+                    <button class="preset-btn" onclick="setResolution(320, 240)">320×240</button>
+                    <button class="preset-btn" onclick="setResolution(640, 480)">640×480</button>
+                    <button class="preset-btn" onclick="setResolution(1280, 720)">1280×720</button>
+                    <button class="preset-btn" onclick="setResolution(1920, 1080)">1920×1080</button>
+                    <button class="preset-btn" onclick="setResolution(3840, 2160)">3840×2160</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">帧率 (FPS)</label>
+                <input type="range" id="fpsSlider" min="1" max="60" value="30">
+                <div class="slider-value" id="fpsValue">30 FPS</div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">Loopback Buffer 数量</label>
+                <input type="range" id="bufferSlider" min="1" max="32" value="8">
+                <div class="slider-value" id="bufferValue">8 Buffers</div>
+                <div class="preset-grid">
+                    <button class="preset-btn" onclick="setBuffers(2)">2</button>
+                    <button class="preset-btn" onclick="setBuffers(4)">4</button>
+                    <button class="preset-btn" onclick="setBuffers(8)">8</button>
+                    <button class="preset-btn" onclick="setBuffers(16)">16</button>
+                    <button class="preset-btn" onclick="setBuffers(24)">24</button>
+                    <button class="preset-btn" onclick="setBuffers(32)">32</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">像素格式</label>
+                <div class="pattern-grid">
+                    <div class="pattern-btn active" data-format="RGB24" onclick="setPixelFormat('RGB24')">
+                        <div class="pattern-icon">🎨</div>
+                        <div>RGB24</div>
+                    </div>
+                    <div class="pattern-btn" data-format="RAW10" onclick="setPixelFormat('RAW10')">
+                        <div class="pattern-icon">📷</div>
+                        <div>RAW10</div>
+                    </div>
+                    <div class="pattern-btn" data-format="RAW12" onclick="setPixelFormat('RAW12')">
+                        <div class="pattern-icon">📸</div>
+                        <div>RAW12</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">图像模式</label>
+                <div class="pattern-grid">
+                    <div class="pattern-btn active" data-pattern="gradient" onclick="setPattern('gradient')">
+                        <div class="pattern-icon">🌈</div>
+                        <div>渐变色</div>
+                    </div>
+                    <div class="pattern-btn" data-pattern="checkerboard" onclick="setPattern('checkerboard')">
+                        <div class="pattern-icon">⬛</div>
+                        <div>棋盘格</div>
+                    </div>
+                    <div class="pattern-btn" data-pattern="colorbars" onclick="setPattern('colorbars')">
+                        <div class="pattern-icon">📊</div>
+                        <div>彩条测试</div>
+                    </div>
+                    <div class="pattern-btn" data-pattern="moving" onclick="setPattern('moving')">
+                        <div class="pattern-icon">🔵</div>
+                        <div>动态目标</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">
+                    <input type="checkbox" id="badPixelEnabled" onchange="toggleBadPixels()"> 
+                    坏像素注入 (ISP测试)
+                </label>
+                <div id="badPixelControls" style="display: none; margin-top: 15px;">
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label class="control-label">坏像素数量</label>
+                            <input type="number" id="badPixelCount" value="100" min="0" max="10000" onchange="updateBadPixels()">
+                        </div>
+                        <div class="input-group">
+                            <label class="control-label">坏像素类型</label>
+                            <select id="badPixelType" onchange="updateBadPixels()">
+                                <option value="fixed">固定值</option>
+                                <option value="random">随机值</option>
+                                <option value="hot">热像素 (亮)</option>
+                                <option value="dark">暗像素</option>
+                                <option value="cluster">簇状坏点</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label class="control-label">固定值 (R,G,B)</label>
+                            <input type="text" id="badPixelValue" value="255,0,0" placeholder="255,0,0" onchange="updateBadPixels()">
+                        </div>
+                    </div>
+                    <div class="input-row" style="margin-top: 10px;">
+                        <div class="input-group">
+                            <label class="control-label">随机种子</label>
+                            <input type="number" id="badPixelSeed" value="42" min="0" onchange="updateBadPixels()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-row">
+                <button class="btn btn-primary" id="startBtn" onclick="startSimulator()">
+                    ▶️ 启动模拟器
+                </button>
+                <button class="btn btn-danger" id="stopBtn" onclick="stopSimulator()" disabled>
+                    ⏹️ 停止模拟器
+                </button>
+                <button class="btn btn-secondary" onclick="refreshStatus()">
+                    🔄 刷新状态
+                </button>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <h4>💡 使用说明</h4>
+            <p>1. 确保已安装 V4L2 Loopback 内核模块：<code>sudo modprobe v4l2loopback devices=1</code></p>
+            <p>2. 检查设备是否存在：<code>ls /dev/video*</code></p>
+            <p>3. 启动后可使用以下命令测试视频流：</p>
+            <p style="margin-left: 20px;">• <code>ffplay /dev/video10</code></p>
+            <p style="margin-left: 20px;">• <code>guvcview -d /dev/video10</code></p>
+            <p style="margin-left: 20px;">• <code>v4l2-ctl --device=/dev/video10 --all</code></p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let currentPattern = 'gradient';
+        let currentBuffers = 8;
+        let currentPixelFormat = 'RGB24';
+        let badPixelsEnabled = false;
+        let isRunning = false;
+
+        document.getElementById('fpsSlider').addEventListener('input', function(e) {
+            document.getElementById('fpsValue').textContent = e.target.value + ' FPS';
+            if (isRunning) {
+                updateFps(parseInt(e.target.value));
+            }
+        });
+
+        document.getElementById('bufferSlider').addEventListener('input', function(e) {
+            document.getElementById('bufferValue').textContent = e.target.value + ' Buffers';
+            currentBuffers = parseInt(e.target.value);
+            if (isRunning) {
+                updateBuffers(currentBuffers);
+            }
+        });
+
+        document.querySelectorAll('[data-pattern]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-pattern]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentPattern = this.dataset.pattern;
+                if (isRunning) {
+                    updatePattern(currentPattern);
+                }
+            });
+        });
+
+        document.querySelectorAll('[data-format]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-format]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentPixelFormat = this.dataset.format;
+                if (isRunning) {
+                    updatePixelFormat(currentPixelFormat);
+                }
+            });
+        });
+
+        document.getElementById('width').addEventListener('change', function() {
+            if (isRunning) updateResolution();
+        });
+
+        document.getElementById('height').addEventListener('change', function() {
+            if (isRunning) updateResolution();
+        });
+
+        async function startSimulator() {
+            const badPixelEnabled = document.getElementById('badPixelEnabled').checked;
+            const badPixelValue = document.getElementById('badPixelValue').value.split(',').map(v => parseInt(v.trim()));
+            
+            const config = {
+                device: document.getElementById('devicePath').value,
+                width: parseInt(document.getElementById('width').value),
+                height: parseInt(document.getElementById('height').value),
+                fps: parseInt(document.getElementById('fpsSlider').value),
+                pattern: currentPattern,
+                num_buffers: currentBuffers,
+                pixel_format: currentPixelFormat
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                if (response.ok) {
+                    isRunning = true;
+                    updateUIState(true);
+                    
+                    if (badPixelEnabled) {
+                        await updateBadPixels();
+                    }
+                    
+                    refreshStatus();
+                } else {
+                    const data = await response.json();
+                    alert('启动失败: ' + (data.error || '未知错误'));
+                }
+            } catch (error) {
+                alert('连接服务器失败: ' + error.message);
+            }
+        }
+
+        async function stopSimulator() {
+            try {
+                const response = await fetch(`${API_BASE}/stop`, { method: 'POST' });
+                if (response.ok) {
+                    isRunning = false;
+                    updateUIState(false);
+                    refreshStatus();
+                }
+            } catch (error) {
+                alert('停止失败: ' + error.message);
+            }
+        }
+
+        async function updateResolution() {
+            const width = parseInt(document.getElementById('width').value);
+            const height = parseInt(document.getElementById('height').value);
+            
+            try {
+                await fetch(`${API_BASE}/resolution`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ width, height })
+                });
+                refreshStatus();
+            } catch (error) {
+                console.error('更新分辨率失败:', error);
+            }
+        }
+
+        async function updateFps(fps) {
+            try {
+                await fetch(`${API_BASE}/fps`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fps })
+                });
+                refreshStatus();
+            } catch (error) {
+                console.error('更新帧率失败:', error);
+            }
+        }
+
+        async function updatePattern(pattern) {
+            try {
+                await fetch(`${API_BASE}/pattern`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pattern })
+                });
+                refreshStatus();
+            } catch (error) {
+                console.error('更新图像模式失败:', error);
+            }
+        }
+
+        async function updateBuffers(num_buffers) {
+            try {
+                await fetch(`${API_BASE}/buffers`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ num_buffers })
+                });
+                refreshStatus();
+            } catch (error) {
+                console.error('更新Buffer数量失败:', error);
+            }
+        }
+
+        function setBuffers(num) {
+            document.getElementById('bufferSlider').value = num;
+            document.getElementById('bufferValue').textContent = num + ' Buffers';
+            currentBuffers = num;
+            if (isRunning) {
+                updateBuffers(num);
+            }
+        }
+
+        async function updatePixelFormat(pixel_format) {
+            try {
+                await fetch(`${API_BASE}/format`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pixel_format })
+                });
+                refreshStatus();
+            } catch (error) {
+                console.error('更新像素格式失败:', error);
+            }
+        }
+
+        function setPixelFormat(format) {
+            document.querySelectorAll('[data-format]').forEach(b => b.classList.remove('active'));
+            document.querySelector(`[data-format="${format}"]`).classList.add('active');
+            currentPixelFormat = format;
+            if (isRunning) {
+                updatePixelFormat(format);
+            }
+        }
+
+        function toggleBadPixels() {
+            const enabled = document.getElementById('badPixelEnabled').checked;
+            const controls = document.getElementById('badPixelControls');
+            controls.style.display = enabled ? 'block' : 'none';
+            badPixelsEnabled = enabled;
+            
+            if (isRunning) {
+                updateBadPixels();
+            }
+        }
+
+        async function updateBadPixels() {
+            const enabled = document.getElementById('badPixelEnabled').checked;
+            const count = parseInt(document.getElementById('badPixelCount').value) || 0;
+            const type = document.getElementById('badPixelType').value;
+            const valueStr = document.getElementById('badPixelValue').value;
+            const seed = parseInt(document.getElementById('badPixelSeed').value) || 42;
+            
+            let value = [0, 0, 0];
+            try {
+                value = valueStr.split(',').map(v => parseInt(v.trim()));
+                if (value.length !== 3) value = [0, 0, 0];
+            } catch {
+                value = [0, 0, 0];
+            }
+            
+            try {
+                await fetch(`${API_BASE}/bad_pixels`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        enabled,
+                        count,
+                        type,
+                        value,
+                        seed
+                    })
+                });
+                refreshStatus();
+            } catch (error) {
+                console.error('更新坏像素配置失败:', error);
+            }
+        }
+
+        async function refreshStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/status`);
+                const data = await response.json();
+                
+                isRunning = data.running;
+                updateUIState(data.running);
+                
+                document.getElementById('statusResolution').textContent = 
+                    `${data.width} × ${data.height}`;
+                document.getElementById('statusFps').textContent = `${data.fps} FPS`;
+                document.getElementById('statusPattern').textContent = 
+                    getPatternName(data.pattern);
+                document.getElementById('statusDevice').textContent = data.device;
+                document.getElementById('statusBuffers').textContent = data.num_buffers;
+                
+                document.querySelectorAll('[data-format]').forEach(b => b.classList.remove('active'));
+                const formatBtn = document.querySelector(`[data-format="${data.pixel_format}"]`);
+                if (formatBtn) formatBtn.classList.add('active');
+                currentPixelFormat = data.pixel_format;
+                
+                const bp = data.bad_pixels;
+                document.getElementById('badPixelEnabled').checked = bp.enabled;
+                document.getElementById('badPixelControls').style.display = bp.enabled ? 'block' : 'none';
+                badPixelsEnabled = bp.enabled;
+                
+                document.getElementById('statusPixelFormat').textContent = data.pixel_format;
+                const bpStatus = bp.enabled ? `✓ ${bp.count}个` : '✗ 关闭';
+                document.getElementById('statusBadPixels').textContent = bpStatus;
+                
+                const stats = data.stats;
+                const dropRate = stats.drop_rate_percent;
+                
+                document.getElementById('statusOutputFps').textContent = 
+                    `${stats.current_output_fps} FPS`;
+                
+                const dropRateEl = document.getElementById('statusDropRate');
+                dropRateEl.textContent = `${dropRate}%`;
+                dropRateEl.className = 'status-value' + (dropRate > 5 ? ' warning' : '');
+                
+                document.getElementById('statTotalFrames').textContent = stats.total_frames;
+                document.getElementById('statSentFrames').textContent = stats.sent_frames;
+                document.getElementById('statDroppedFrames').textContent = stats.dropped_frames;
+                document.getElementById('statSequence').textContent = stats.frame_sequence;
+                document.getElementById('statGenTime').textContent = `${stats.avg_generate_time_ms} ms`;
+                document.getElementById('statWriteTime').textContent = `${stats.avg_write_time_ms} ms`;
+                
+                const buffer = data.buffer;
+                const bufferUsage = ((buffer.current_index + 1) / buffer.total) * 100;
+                const usageBar = document.getElementById('bufferUsageBar');
+                usageBar.style.width = `${bufferUsage}%`;
+                usageBar.className = 'progress-fill' + (dropRate > 10 ? ' danger' : '');
+                document.getElementById('bufferUsageText').textContent = 
+                    `${buffer.current_index + 1} / ${buffer.total}`;
+            } catch (error) {
+                console.error('获取状态失败:', error);
+            }
+        }
+
+        function updateUIState(running) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+
+            if (running) {
+                statusDot.classList.add('active');
+                statusText.textContent = '运行中';
+                statusText.style.color = '#00ff88';
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+            } else {
+                statusDot.classList.remove('active');
+                statusText.textContent = '未启动';
+                statusText.style.color = '#888';
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        }
+
+        function setResolution(width, height) {
+            document.getElementById('width').value = width;
+            document.getElementById('height').value = height;
+            if (isRunning) {
+                updateResolution();
+            }
+        }
+
+        function setPattern(pattern) {
+            document.querySelectorAll('.pattern-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`[data-pattern="${pattern}"]`).classList.add('active');
+            currentPattern = pattern;
+            if (isRunning) {
+                updatePattern(pattern);
+            }
+        }
+
+        function getPatternName(pattern) {
+            const names = {
+                'gradient': '渐变色',
+                'checkerboard': '棋盘格',
+                'colorbars': '彩条测试',
+                'moving': '动态目标'
+            };
+            return names[pattern] || pattern;
+        }
+
+        refreshStatus();
+        setInterval(() => {
+            if (isRunning) refreshStatus();
+        }, 5000);
+    </script>
+</body>
+</html>

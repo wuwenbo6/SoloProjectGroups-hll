@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIPv2 路由器模拟器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>RIPv2 路由器模拟器</h1>
+        <div class="status">
+            <span id="connectionStatus" class="status-disconnected">未连接</span>
+            <span class="status-label">水平分割 + 毒性反转</span>
+        </div>
+    </header>
+
+    <main>
+        <section class="section">
+            <h2>网络拓扑</h2>
+            <div class="topology">
+                <div class="topo-graph">
+                    <div class="router-node router-a">
+                        <span class="router-label">Router-A</span>
+                        <span class="router-nets">192.168.1.0/24<br>10.0.0.0/24</span>
+                    </div>
+                    <div class="router-node router-b">
+                        <span class="router-label">Router-B</span>
+                        <span class="router-nets">192.168.2.0/24<br>172.16.0.0/24</span>
+                    </div>
+                    <div class="router-node router-c">
+                        <span class="router-label">Router-C</span>
+                        <span class="router-nets">192.168.3.0/24<br>10.1.0.0/24</span>
+                    </div>
+                    <div class="router-node router-d">
+                        <span class="router-label">Router-D</span>
+                        <span class="router-nets">192.168.4.0/24<br>172.17.0.0/24</span>
+                    </div>
+                    <svg class="connections" viewBox="0 0 400 200">
+                        <line x1="80" y1="60" x2="180" y2="60" class="conn-line"/>
+                        <line x1="80" y1="70" x2="80" y2="140" class="conn-line"/>
+                        <line x1="220" y1="70" x2="220" y2="140" class="conn-line"/>
+                        <line x1="320" y1="60" x2="220" y2="60" class="conn-line"/>
+                        <line x1="80" y1="150" x2="320" y2="150" class="conn-line"/>
+                    </svg>
+                </div>
+            </div>
+        </section>
+
+        <div class="content-grid">
+            <section class="section routing-section">
+                <h2>路由表与接口控制</h2>
+                <div id="routingTables" class="router-tables"></div>
+            </section>
+
+            <section class="section logs-section">
+                <h2>更新报文日志</h2>
+                <div class="log-controls">
+                    <button id="clearLogs" class="btn">清空日志</button>
+                    <select id="filterRouter" class="filter-select">
+                        <option value="all">所有路由器</option>
+                    </select>
+                </div>
+                <div id="updateLogs" class="logs-container"></div>
+            </section>
+        </div>
+
+        <section class="section">
+            <h2>接口状态变化日志</h2>
+            <div class="log-controls">
+                <button id="clearInterfaceLogs" class="btn">清空接口日志</button>
+            </div>
+            <div id="interfaceLogs" class="logs-container"></div>
+        </section>
+
+        <div class="content-grid">
+            <section class="section">
+                <h2>MD5 认证状态</h2>
+                <div id="authStatus" class="auth-status-container"></div>
+                <div class="log-controls" style="margin-top:1rem;">
+                    <button id="clearAuthLogs" class="btn">清空认证日志</button>
+                </div>
+                <div id="authLogs" class="logs-container"></div>
+            </section>
+
+            <section class="section">
+                <h2>Zebra 配置导出</h2>
+                <div class="zebra-export-container">
+                    <p class="zebra-desc">导出当前路由器配置为 Zebra/Quagga 格式配置文件，可直接用于 Quagga 或 FRR 路由守护进程。</p>
+                    <div id="zebraExport" class="zebra-export-buttons"></div>
+                    <div id="zebraPreview" class="zebra-preview" style="display:none;">
+                        <div class="zebra-preview-header">
+                            <span id="zebraPreviewTitle"></span>
+                            <div class="zebra-preview-actions">
+                                <button id="zebraCopyBtn" class="btn btn-small">复制</button>
+                                <button id="zebraDownloadBtn" class="btn btn-small">下载</button>
+                                <button id="zebraCloseBtn" class="btn btn-small btn-secondary">关闭</button>
+                            </div>
+                        </div>
+                        <pre id="zebraPreviewContent" class="zebra-preview-content"></pre>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <section class="section">
+            <h2>算法说明</h2>
+            <div class="algorithm-info">
+                <div class="info-card">
+                    <h3>水平分割 (Split Horizon)</h3>
+                    <p>防止从某个接口学到的路由信息再从该接口发回给邻居路由器，避免路由环路。</p>
+                </div>
+                <div class="info-card">
+                    <h3>毒性反转 (Poison Reverse)</h3>
+                    <p>当路由失效时，将该路由的度量值设为16（不可达），并发送给所有邻居，加速收敛。</p>
+                </div>
+                <div class="info-card">
+                    <h3>RIPv2 特性</h3>
+                    <ul>
+                        <li>UDP 520端口（模拟使用5001-5004）</li>
+                        <li>更新间隔：30秒（模拟使用10秒）</li>
+                        <li>度量值：跳数，最大15跳</li>
+                        <li>支持VLSM（可变长子网掩码）</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

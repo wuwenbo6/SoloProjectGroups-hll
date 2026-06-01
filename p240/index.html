@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matter 设备配网工具</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="header-content">
+        <div class="logo">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 2L4 8V24L16 30L28 24V8L16 2Z" stroke="#6366f1" stroke-width="2" fill="none"/>
+            <path d="M16 8V24" stroke="#6366f1" stroke-width="2"/>
+            <path d="M8 12L24 12" stroke="#6366f1" stroke-width="2"/>
+            <path d="M8 20L24 20" stroke="#6366f1" stroke-width="2"/>
+          </svg>
+          <h1>Matter 设备配网工具</h1>
+        </div>
+        <div class="header-actions">
+          <button id="exportDeviceInfoBtn" class="btn btn-secondary" disabled>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 2L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M5 7L8 10L11 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M3 13L13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            导出设备信息
+          </button>
+          <button id="resetBtn" class="btn btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 13.333C5.053 13.333 2.667 10.947 2.667 8C2.667 5.053 5.053 2.667 8 2.667C9.52 2.667 10.92 3.307 12 4.347" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M12 2.667V4.347" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M10.667 4.347H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            重置
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div class="left-panel">
+        <div class="input-section">
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="qr">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                <rect x="11" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                <rect x="2" y="11" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M11 11H16" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M11 14H16" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M14 11V16" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M11 16H12.5" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+              扫描QR码
+            </button>
+            <button class="tab-btn" data-tab="manual">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <rect x="3" y="2" width="12" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M6 7H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M6 10H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M6 13H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              手动输入
+            </button>
+          </div>
+
+          <div class="tab-content" id="qr-tab">
+            <div class="qr-scanner">
+              <div class="video-container">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="canvas" hidden></canvas>
+                <div id="scanOverlay" class="scan-overlay">
+                  <div class="scan-frame">
+                    <div class="corner corner-tl"></div>
+                    <div class="corner corner-tr"></div>
+                    <div class="corner corner-bl"></div>
+                    <div class="corner corner-br"></div>
+                    <div class="scan-line"></div>
+                  </div>
+                </div>
+                <div id="scannerStatus" class="scanner-status">
+                  <span class="status-indicator"></span>
+                  <span id="scannerStatusText">准备扫描</span>
+                </div>
+              </div>
+              <div class="scanner-controls">
+                <button id="startCameraBtn" class="btn btn-primary">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 2C4.686 2 2 4.686 2 8C2 11.314 4.686 14 8 14C11.314 14 14 11.314 14 8" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M8 4V8L11 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                  启动摄像头
+                </button>
+                <button id="stopCameraBtn" class="btn btn-secondary" disabled>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <rect x="4" y="4" width="8" height="8" rx="1" fill="currentColor"/>
+                  </svg>
+                  停止扫描
+                </button>
+              </div>
+            </div>
+
+            <div class="divider">
+              <span>或</span>
+            </div>
+
+            <div class="manual-qr-input">
+              <label for="qrDataInput">粘贴QR码内容</label>
+              <div class="input-group">
+                <input 
+                  type="text" 
+                  id="qrDataInput" 
+                  placeholder="MT:..." 
+                  class="form-input"
+                />
+                <button id="parseQrBtn" class="btn btn-primary">
+                  解析
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-content" id="manual-tab" style="display: none;">
+            <div class="manual-input-section">
+              <div class="form-group">
+                <label for="discriminator">鉴别码 (Discriminator)</label>
+                <input 
+                  type="number" 
+                  id="discriminator" 
+                  class="form-input" 
+                  placeholder="例如: 3840"
+                  min="0"
+                  max="4095"
+                />
+                <small class="form-hint">0-4095 之间的数字</small>
+              </div>
+              <div class="form-group">
+                <label for="passcode">配对码 (Setup Passcode)</label>
+                <input 
+                  type="number" 
+                  id="passcode" 
+                  class="form-input" 
+                  placeholder="例如: 12345678"
+                  min="1"
+                  max="99999998"
+                />
+                <small class="form-hint">8位数字，1-99999998</small>
+              </div>
+              <div class="form-group">
+                <label for="vendorId">厂商ID (可选)</label>
+                <input 
+                  type="number" 
+                  id="vendorId" 
+                  class="form-input" 
+                  placeholder="例如: 65521 (0xFFF1)"
+                />
+              </div>
+              <div class="form-group">
+                <label for="productId">产品ID (可选)</label>
+                <input 
+                  type="number" 
+                  id="productId" 
+                  class="form-input" 
+                  placeholder="例如: 32768 (0x8000)"
+                />
+              </div>
+              <button id="parseManualBtn" class="btn btn-primary btn-block">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 2V14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M2 8H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                解析手动配对码
+              </button>
+            </div>
+
+            <div class="divider">
+              <span>或</span>
+            </div>
+
+            <div class="manual-short-input">
+              <label for="manualCode">11位或21位手动配对码</label>
+              <div class="input-group">
+                <input 
+                  type="text" 
+                  id="manualCode" 
+                  class="form-input" 
+                  placeholder="例如: 34970112332"
+                  maxlength="21"
+                />
+                <button id="parseShortManualBtn" class="btn btn-primary">
+                  解析
+                </button>
+              </div>
+              <small class="form-hint">直接输入设备上的数字配对码</small>
+            </div>
+          </div>
+        </div>
+
+        <div id="deviceInfoSection" class="device-info-section" style="display: none;">
+          <div class="section-header">
+            <h3>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <rect x="3" y="5" width="12" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M7 2H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M9 2V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M7 15H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              设备信息
+            </h3>
+            <span id="deviceSourceBadge" class="badge badge-info">QR码</span>
+          </div>
+          <div id="deviceInfoContent" class="device-info-grid"></div>
+          <button id="startCommissioningBtn" class="btn btn-success btn-block btn-lg">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M8.99999 2.84028L2.59999 6.53694V13.9303C2.59999 14.5273 2.83712 15.0986 3.26269 15.5242C3.68826 15.9497 4.25958 16.1869 4.85661 16.1869H13.1434C13.7404 16.1869 14.3117 15.9497 14.7373 15.5242C15.1629 15.0986 15.4 14.5273 15.4 13.9303V6.53694L8.99999 2.84028Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M6.6 11.6667L8.2 13.2667L11.8 9.66669" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            开始配网
+          </button>
+        </div>
+
+        <div id="certificateSection" class="certificate-section" style="display: none;">
+          <div class="section-header">
+            <h3>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M9 1L3 4V12C3 14.209 4.791 16 7 16H9" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M9 1L15 4V12C15 14.209 13.209 16 11 16H9" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M9 1V16" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M12.5 10.5L14 12L17 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              证书信息
+            </h3>
+          </div>
+          <div id="certificateContent" class="certificate-content"></div>
+        </div>
+      </div>
+
+      <div class="right-panel">
+        <div class="steps-section">
+          <div class="section-header">
+            <h3>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M2 9H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M8 3L2 9L8 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              配网步骤
+            </h3>
+            <div id="progressText" class="progress-text">0/7</div>
+          </div>
+          <div class="progress-bar">
+            <div id="progressFill" class="progress-fill"></div>
+          </div>
+          <div id="stepsList" class="steps-list"></div>
+        </div>
+
+        <div class="logs-section">
+          <div class="section-header">
+            <h3>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M4 3H14C14.552 3 15 3.448 15 4V14C15 14.552 14.552 15 14 15H4C3.448 15 3 14.552 3 14V4C3 3.448 3.448 3 4 3Z" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M6 7H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M6 10H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M6 13H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              运行日志
+            </h3>
+            <div class="log-controls">
+              <button id="clearLogsBtn" class="btn-icon" title="清除日志">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 4H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M6 4V3C6 2.448 6.448 2 7 2H9C9.552 2 10 2.448 10 3V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M5 4V13C5 13.552 5.448 14 6 14H10C10.552 14 11 13.552 11 13V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M7 7V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M9 7V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <select id="logLevelFilter" class="form-input small">
+                <option value="all">全部</option>
+                <option value="info">信息</option>
+                <option value="success">成功</option>
+                <option value="error">错误</option>
+              </select>
+            </div>
+          </div>
+          <div id="logsContainer" class="logs-container"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

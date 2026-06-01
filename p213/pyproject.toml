@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nfs4-client"
+version = "0.1.0"
+description = "NFSv4 Client Toolkit - Mount and access NFSv4 shares with CLI and HTTP API"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [{ name = "NFS4 Client Team" }]
+license = { text = "MIT" }
+keywords = ["nfs", "nfs4", "client", "fileshare", "rest-api"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Topic :: Communications :: File Sharing",
+    "Topic :: System :: Filesystems",
+    "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "flask>=3.0.0",
+    "flask-cors>=4.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+[project.scripts]
+nfs4-client = "nfs4_client.cli:main"
+
+[tool.setuptools.packages.find]
+exclude = ["tests*"]

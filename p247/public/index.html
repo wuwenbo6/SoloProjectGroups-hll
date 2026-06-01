@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RTP 语音质量分析系统 - MOS估算</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📡 RTP 语音质量分析系统</h1>
+            <p class="subtitle">丢包率 · 抖动 · 自适应Jitter Buffer · MOS分估算</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="upload-section">
+            <div class="card">
+                <h2>📁 数据源</h2>
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="upload">上传PCAP文件</button>
+                    <button class="tab-btn" data-tab="mock">模拟数据</button>
+                    <button class="tab-btn" data-tab="avsync">音视频同步</button>
+                </div>
+
+                <div class="tab-content active" id="upload">
+                    <div class="upload-area" id="dropZone">
+                        <input type="file" id="fileInput" accept=".pcap,.pcapng" hidden>
+                        <div class="upload-icon">📤</div>
+                        <p>拖拽PCAP文件到此处，或</p>
+                        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                            选择文件
+                        </button>
+                        <p class="file-info" id="fileInfo">已选择: 无</p>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="mock">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>数据包数量</label>
+                            <input type="number" id="packetCount" value="1000" min="100" max="10000">
+                        </div>
+                        <div class="form-group">
+                            <label>丢包率 (%)</label>
+                            <input type="number" id="lossRate" value="1" min="0" max="50" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>乱序率 (%)</label>
+                            <input type="number" id="reorderRate" value="0" min="0" max="20" step="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label>抖动均值 (ms)</label>
+                            <input type="number" id="jitterMean" value="15" min="0" max="200" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label>抖动标准差 (ms)</label>
+                            <input type="number" id="jitterStd" value="5" min="0" max="50" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label>持续时间 (秒)</label>
+                            <input type="number" id="duration" value="60" min="10" max="600">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="avsync">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>音频包数量</label>
+                            <input type="number" id="audioPacketCount" value="1000" min="100" max="10000">
+                        </div>
+                        <div class="form-group">
+                            <label>视频包数量</label>
+                            <input type="number" id="videoPacketCount" value="300" min="50" max="5000">
+                        </div>
+                        <div class="form-group">
+                            <label>同步偏移 (ms)</label>
+                            <input type="number" id="syncOffsetMs" value="30" min="-500" max="500" step="5">
+                        </div>
+                        <div class="form-group">
+                            <label>音频时钟漂移 (ppm)</label>
+                            <input type="number" id="audioDriftPpm" value="0" min="-100" max="100" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label>视频时钟漂移 (ppm)</label>
+                            <input type="number" id="videoDriftPpm" value="10" min="-100" max="100" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label>持续时间 (秒)</label>
+                            <input type="number" id="avDuration" value="60" min="10" max="600">
+                        </div>
+                        <div class="form-group">
+                            <label>丢包率 (%)</label>
+                            <input type="number" id="avLossRate" value="1" min="0" max="50" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>抖动均值 (ms)</label>
+                            <input type="number" id="avJitterMean" value="15" min="0" max="200" step="1">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="advanced-options">
+                    <h3>⚙️ 高级参数</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>初始Buffer延迟 (ms)</label>
+                            <input type="number" id="initialDelay" value="60" min="10" max="500">
+                        </div>
+                        <div class="form-group">
+                            <label>最小Buffer延迟 (ms)</label>
+                            <input type="number" id="minDelay" value="20" min="5" max="200">
+                        </div>
+                        <div class="form-group">
+                            <label>最大Buffer延迟 (ms)</label>
+                            <input type="number" id="maxDelay" value="200" min="50" max="1000">
+                        </div>
+                        <div class="form-group">
+                            <label>单向网络延迟 (ms)</label>
+                            <input type="number" id="oneWayDelay" value="100" min="10" max="1000">
+                        </div>
+                        <div class="form-group">
+                            <label>乱序窗口大小 (包)</label>
+                            <input type="number" id="reorderWindowSize" value="16" min="1" max="64">
+                        </div>
+                        <div class="form-group">
+                            <label>乱序超时 (ms)</label>
+                            <input type="number" id="reorderTimeoutMs" value="100" min="10" max="1000">
+                        </div>
+                        <div class="form-group">
+                            <label>包含RTCP SR</label>
+                            <select id="includeRTCP">
+                                <option value="true">是</option>
+                                <option value="false">否</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>时钟漂移 (ppm)</label>
+                            <input type="number" id="driftPpm" value="0" min="-100" max="100" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label>语音编码</label>
+                            <select id="codec">
+                                <option value="">自动检测</option>
+                                <option value="PCMU">PCMU (G.711 u-law)</option>
+                                <option value="PCMA">PCMA (G.711 a-law)</option>
+                                <option value="G729">G.729</option>
+                                <option value="G723.1">G.723.1</option>
+                                <option value="G722">G.722</option>
+                                <option value="OPUS">Opus</option>
+                                <option value="AMR">AMR</option>
+                                <option value="AMR-WB">AMR-WB</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-analyze" id="analyzeBtn" onclick="startAnalysis()">
+                    🔍 开始分析
+                </button>
+            </div>
+        </section>
+
+        <section class="loading-section" id="loadingSection" style="display: none;">
+            <div class="card loading-card">
+                <div class="loader"></div>
+                <p>正在分析RTP数据流...</p>
+            </div>
+        </section>
+
+        <section class="results-section" id="resultsSection" style="display: none;">
+            <div class="mos-card">
+                <div class="mos-value" id="mosValue">--</div>
+                <div class="mos-label">MOS 分数</div>
+                <div class="mos-quality" id="mosQuality">--</div>
+                <div class="mos-recommendation" id="mosRecommendation">--</div>
+            </div>
+
+            <div class="export-bar">
+                <button class="btn btn-export-all" onclick="exportAllCharts()">
+                    📊 导出所有图表为PNG
+                </button>
+                <button class="btn btn-export-json" onclick="exportJSON()">
+                    📄 导出数据为JSON
+                </button>
+            </div>
+
+            <div class="avsync-section" id="avsyncSection" style="display: none;">
+                <div class="card">
+                    <h3>🔗 音视频同步分析</h3>
+                    <div class="avsync-stats">
+                        <div class="avsync-stat">
+                            <div class="stat-label">平均同步偏移</div>
+                            <div class="stat-value" id="avgSyncOffset">--</div>
+                        </div>
+                        <div class="avsync-stat">
+                            <div class="stat-label">中值偏移</div>
+                            <div class="stat-value" id="medianSyncOffset">--</div>
+                        </div>
+                        <div class="avsync-stat">
+                            <div class="stat-label">最大偏移</div>
+                            <div class="stat-value" id="maxSyncOffset">--</div>
+                        </div>
+                        <div class="avsync-stat">
+                            <div class="stat-label">同步质量</div>
+                            <div class="stat-value" id="syncQuality">--</div>
+                        </div>
+                    </div>
+                    <div class="chart-container" style="height: 250px; margin-top: 20px;">
+                        <canvas id="syncOffsetChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rtcp-section" id="rtcpSection" style="display: none;">
+                <div class="card">
+                    <h3>⏰ RTCP SR 时钟分析</h3>
+                    <div class="rtcp-stats">
+                        <div class="rtcp-stat">
+                            <div class="stat-label">SR包数量</div>
+                            <div class="stat-value" id="srCount">--</div>
+                        </div>
+                        <div class="rtcp-stat">
+                            <div class="stat-label">预估时钟频率</div>
+                            <div class="stat-value" id="estimatedClockRate">--</div>
+                        </div>
+                        <div class="rtcp-stat">
+                            <div class="stat-label">时钟漂移</div>
+                            <div class="stat-value" id="clockDrift">--</div>
+                        </div>
+                    </div>
+                    <div class="chart-container" style="height: 250px; margin-top: 20px;">
+                        <canvas id="clockOffsetChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">R值</div>
+                    <div class="stat-value" id="rValue">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">丢包率</div>
+                    <div class="stat-value" id="lossRateValue">--</div>
+                    <div class="stat-sub" id="lostPackets">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">抖动 (RFC 3550)</div>
+                    <div class="stat-value" id="jitterValue">--</div>
+                    <div class="stat-sub" id="jitterMax">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">当前Buffer延迟</div>
+                    <div class="stat-value" id="bufferDelay">--</div>
+                    <div class="stat-sub" id="bufferAdjustments">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">乱序包</div>
+                    <div class="stat-value" id="reorderedValue">--</div>
+                    <div class="stat-sub" id="reorderInfo">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">编码类型</div>
+                    <div class="stat-value" id="codecInfo">--</div>
+                    <div class="stat-sub" id="ssrcInfo">--</div>
+                </div>
+            </div>
+
+            <div class="charts-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📈 MOS分影响因素分析</h3>
+                        <button class="btn btn-export" onclick="exportChart('mosComponentsChart')">📥 导出PNG</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="mosComponentsChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📊 丢包率时间线</h3>
+                        <button class="btn btn-export" onclick="exportChart('lossTimelineChart')">📥 导出PNG</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="lossTimelineChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📉 抖动 (RFC 3550 Jitter) 时间线</h3>
+                        <button class="btn btn-export" onclick="exportChart('jitterTimelineChart')">📥 导出PNG</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="jitterTimelineChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>📐 RFC 3550 D(i) 差值</h3>
+                        <button class="btn btn-export" onclick="exportChart('diChart')">📥 导出PNG</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="diChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🔄 Jitter Buffer 自适应调整</h3>
+                        <button class="btn btn-export" onclick="exportChart('bufferDelayChart')">📥 导出PNG</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="bufferDelayChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="details-section">
+                <div class="card">
+                    <h3>🎯 质量等级参考</h3>
+                    <div class="quality-scale" id="qualityScale"></div>
+                </div>
+
+                <div class="card">
+                    <h3>💡 改进建议</h3>
+                    <div class="suggestions-list" id="suggestionsList"></div>
+                </div>
+
+                <div class="card">
+                    <h3>📋 详细指标</h3>
+                    <div class="metrics-grid" id="detailedMetrics"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="error-section" id="errorSection" style="display: none;">
+            <div class="card error-card">
+                <div class="error-icon">❌</div>
+                <h3>分析失败</h3>
+                <p id="errorMessage">发生错误</p>
+                <button class="btn btn-primary" onclick="hideError()">返回</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>RTP 语音质量分析系统 | 基于 E-Model (ITU-T G.107) 的 MOS 估算</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

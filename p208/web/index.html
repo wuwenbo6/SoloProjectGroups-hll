@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S1AP 信令交互模拟器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        .container { max-width: 1500px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 30px 0; border-bottom: 1px solid #333; margin-bottom: 30px; }
+        header h1 { font-size: 2.5em; color: #00d4ff; text-shadow: 0 0 20px rgba(0,212,255,0.5); margin-bottom: 10px; }
+        header p { color: #888; font-size: 1.1em; }
+        .control-panel { display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; }
+        .btn { padding: 12px 30px; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; font-weight: 600; }
+        .btn-primary { background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%); color: #1a1a2e; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,212,255,0.4); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-secondary { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%); color: white; }
+        .btn-secondary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255,107,107,0.4); }
+        .btn-x2 { background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; }
+        .btn-x2:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(168,85,247,0.4); }
+        .flow-indicator { padding: 8px 16px; border-radius: 20px; font-size: 14px; background: rgba(0,212,255,0.15); border: 1px solid #00d4ff; color: #00d4ff; }
+        .main-content { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .panel { background: rgba(255,255,255,0.05); border-radius: 15px; padding: 25px; border: 1px solid rgba(255,255,255,0.1); }
+        .panel h2 { color: #00d4ff; margin-bottom: 20px; font-size: 1.5em; display: flex; align-items: center; gap: 10px; }
+        .panel h2::before { content: ''; width: 4px; height: 24px; background: #00d4ff; border-radius: 2px; }
+        .network-diagram { display: flex; flex-direction: column; align-items: center; min-height: 350px; }
+        .network-node { width: 110px; padding: 12px; text-align: center; border-radius: 10px; font-weight: bold; margin: 10px 0; transition: all 0.3s ease; font-size: 14px; }
+        .ue-node { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
+        .enb-node { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); box-shadow: 0 4px 15px rgba(245,87,108,0.4); }
+        .target-enb-node { background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); box-shadow: 0 4px 15px rgba(168,85,247,0.4); }
+        .mme-node { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: #1a1a2e; box-shadow: 0 4px 15px rgba(79,172,254,0.4); }
+        .node-active { transform: scale(1.1); box-shadow: 0 0 30px rgba(255,255,255,0.5); }
+        .signal-arrow { display: flex; align-items: center; justify-content: center; width: 100%; padding: 5px; position: relative; }
+        .arrow-line { width: 60%; height: 3px; background: linear-gradient(90deg, transparent, #00d4ff, transparent); position: relative; }
+        .arrow-line::after { content: '→'; position: absolute; right: 0; top: 50%; transform: translateY(-50%); color: #00d4ff; font-size: 20px; }
+        .arrow-label { position: absolute; background: rgba(0,212,255,0.2); padding: 3px 12px; border-radius: 15px; font-size: 11px; white-space: nowrap; border: 1px solid #00d4ff; }
+        .message-list { max-height: 500px; overflow-y: auto; padding-right: 10px; }
+        .message-item { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px; margin-bottom: 12px; border-left: 4px solid #00d4ff; cursor: pointer; transition: all 0.3s ease; }
+        .message-item:hover { background: rgba(255,255,255,0.1); transform: translateX(5px); }
+        .message-item.selected { background: rgba(0,212,255,0.15); border-left-color: #00ff88; }
+        .message-item.x2-msg { border-left-color: #a855f7; }
+        .message-item.x2-msg.selected { border-left-color: #00ff88; }
+        .message-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .message-type { font-weight: bold; color: #00d4ff; font-size: 0.95em; }
+        .message-direction { font-size: 0.8em; padding: 2px 8px; border-radius: 10px; background: rgba(0,212,255,0.2); }
+        .message-time { font-size: 0.75em; color: #888; margin-top: 3px; }
+        .field-row { display: flex; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .field-row:last-child { border-bottom: none; }
+        .field-name { color: #888; width: 200px; flex-shrink: 0; font-size: 0.9em; }
+        .field-value { color: #00ff88; word-break: break-all; font-size: 0.9em; }
+        .nested { margin-left: 20px; border-left: 2px solid #333; padding-left: 15px; }
+        .nas-section { margin-top: 15px; padding-top: 15px; border-top: 1px solid #333; }
+        .nas-section h3 { color: #ff6b6b; margin-bottom: 10px; font-size: 1em; }
+        .status-indicator { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 20px; font-size: 14px; margin-bottom: 20px; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; animation: pulse 2s infinite; }
+        .status-connected { background: rgba(0,255,136,0.2); border: 1px solid #00ff88; }
+        .status-connected .status-dot { background: #00ff88; }
+        .status-disconnected { background: rgba(255,107,107,0.2); border: 1px solid #ff6b6b; }
+        .status-disconnected .status-dot { background: #ff6b6b; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #00d4ff; border-radius: 4px; }
+        @media (max-width: 968px) { .main-content { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>S1AP 信令交互模拟器</h1>
+            <p>模拟 LTE 网络中 eNB 与 MME 之间的 S1AP/X2 接口信令流程</p>
+        </header>
+
+        <div class="control-panel">
+            <span id="flowIndicator" class="flow-indicator">当前流程: S1 附着</span>
+            <button id="startBtn" class="btn btn-primary" onclick="startSignaling('attach')">S1 附着流程</button>
+            <button id="x2Btn" class="btn btn-x2" onclick="startSignaling('x2-handover')">X2 切换流程</button>
+            <button id="resetBtn" class="btn btn-secondary" onclick="resetSignaling()">重置</button>
+        </div>
+
+        <div class="main-content">
+            <div class="panel">
+                <h2>网络拓扑图</h2>
+                <div id="statusIndicator" class="status-indicator status-disconnected">
+                    <div class="status-dot"></div>
+                    <span id="statusText">WebSocket 未连接</span>
+                </div>
+                <div class="network-diagram" id="networkDiagram">
+                    <div class="network-node ue-node" id="ueNode">UE<div style="font-size:11px;font-weight:normal;margin-top:3px;">用户设备</div></div>
+                    <div class="signal-arrow"><div class="arrow-line"></div></div>
+                    <div class="network-node enb-node" id="enbNode">eNB-001<div style="font-size:11px;font-weight:normal;margin-top:3px;">源基站</div></div>
+                    <div class="signal-arrow"><div class="arrow-line"></div></div>
+                    <div class="network-node target-enb-node" id="targetEnbNode">eNB-002<div style="font-size:11px;font-weight:normal;margin-top:3px;">目标基站</div></div>
+                    <div class="signal-arrow"><div class="arrow-line"></div></div>
+                    <div class="network-node mme-node" id="mmeNode">MME<div style="font-size:11px;font-weight:normal;margin-top:3px;">移动管理实体</div></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>信令消息列表</h2>
+                <div class="message-list" id="messageList">
+                    <div style="text-align:center;color:#888;padding:50px 0;">选择信令流程并点击开始按钮</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" style="margin-top:30px;">
+            <h2>消息详情</h2>
+            <div id="messageDetails" style="color:#888;padding:20px;text-align:center;">选择一条消息查看详细字段</div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let messages = [];
+        let selectedMessageId = null;
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+            ws.onopen = function() {
+                document.getElementById('statusIndicator').className = 'status-indicator status-connected';
+                document.getElementById('statusText').textContent = 'WebSocket 已连接';
+            };
+            ws.onclose = function() {
+                document.getElementById('statusIndicator').className = 'status-indicator status-disconnected';
+                document.getElementById('statusText').textContent = 'WebSocket 已断开，正在重连...';
+                setTimeout(connectWebSocket, 3000);
+            };
+            ws.onerror = function(error) { console.error('WebSocket error:', error); };
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                messages.push(data);
+                renderMessageList();
+                highlightNode(data);
+            };
+        }
+
+        function highlightNode(data) {
+            const src = data.source.toLowerCase();
+            const dst = data.destination.toLowerCase();
+            if (src.includes('enb-001') || src === 'enb') highlightNodeById('enbNode');
+            if (src.includes('enb-002')) highlightNodeById('targetEnbNode');
+            if (src === 'mme' || src.includes('mme')) highlightNodeById('mmeNode');
+            if (dst.includes('enb-001') || dst === 'enb') highlightNodeById('enbNode');
+            if (dst.includes('enb-002')) highlightNodeById('targetEnbNode');
+            if (dst === 'mme' || dst.includes('mme')) highlightNodeById('mmeNode');
+        }
+
+        function highlightNodeById(nodeId) {
+            const node = document.getElementById(nodeId);
+            if (!node) return;
+            node.classList.add('node-active');
+            setTimeout(() => node.classList.remove('node-active'), 1000);
+        }
+
+        function isX2Message(msg) {
+            return ['X2HandoverRequest','X2HandoverRequestAck','X2SNStatusTransfer'].includes(msg.messageType);
+        }
+
+        function renderMessageList() {
+            const list = document.getElementById('messageList');
+            if (messages.length === 0) {
+                list.innerHTML = '<div style="text-align:center;color:#888;padding:50px 0;">选择信令流程并点击开始按钮</div>';
+                return;
+            }
+            list.innerHTML = messages.map(msg => {
+                const isX2 = isX2Message(msg);
+                return `<div class="message-item ${isX2 ? 'x2-msg' : ''} ${selectedMessageId === msg.id ? 'selected' : ''}" onclick="selectMessage(${msg.id})">
+                    <div class="message-header">
+                        <span class="message-type">${msg.id}. ${msg.messageType}</span>
+                        <span class="message-direction">${msg.source} → ${msg.destination}</span>
+                    </div>
+                    <div class="message-time">${formatTime(msg.timestamp)}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function selectMessage(id) {
+            selectedMessageId = id;
+            const msg = messages.find(m => m.id === id);
+            renderMessageDetails(msg);
+            renderMessageList();
+        }
+
+        function renderMessageDetails(msg) {
+            const details = document.getElementById('messageDetails');
+            const renderer = {
+                'InitialUEMessage': renderInitialUEMessage,
+                'InitialContextSetupRequest': renderInitialContextSetupRequest,
+                'InitialContextSetupResponse': renderInitialContextSetupResponse,
+                'UEContextReleaseCommand': renderUEContextReleaseCommand,
+                'UEContextReleaseComplete': renderUEContextReleaseComplete,
+                'X2HandoverRequest': renderX2HandoverRequest,
+                'X2HandoverRequestAck': renderX2HandoverRequestAck,
+                'X2SNStatusTransfer': renderSNStatusTransfer,
+                'PathSwitchRequest': renderPathSwitchRequest,
+                'PathSwitchRequestAck': renderPathSwitchRequestAck,
+            }[msg.messageType];
+
+            const fieldsHtml = renderer ? renderer(msg.message) : '<div style="color:#888;">未知消息类型</div>';
+            details.innerHTML = `<div style="margin-bottom:15px;padding-bottom:15px;border-bottom:1px solid #333;">
+                <strong style="color:#00d4ff;font-size:1.2em;">${msg.messageType}</strong>
+                <span style="margin-left:15px;color:#888;">${msg.source} → ${msg.destination}</span>
+            </div>${fieldsHtml}`;
+        }
+
+        function fr(name, value, valueStyle) {
+            return `<div class="field-row"><span class="field-name">${name}</span><span class="field-value" ${valueStyle||''}>${value}</span></div>`;
+        }
+
+        function renderInitialUEMessage(msg) {
+            let nasHtml = '';
+            if (msg.attachRequest) {
+                const a = msg.attachRequest;
+                nasHtml = `<div class="nas-section"><h3>NAS PDU 解码 — Attach Request</h3>
+                    <div class="nested">
+                        ${fr('EPS Attach Type', a.epsAttachType)}
+                        ${fr('IMSI', a.imsi)}
+                        ${fr('EPS Bearer Identity', a.epsBearerIdentity)}
+                        ${fr('Access Point Name', a.accessPointName)}
+                        ${fr('PDN Address', a.pdnAddress)}
+                        ${fr('Authentication', a.authentication)}
+                        ${fr('NAS Message (Hex)', `<code style="font-size:0.8em;">${a.nasMessageHex}</code>`)}
+                    </div>
+                </div>`;
+            }
+            return fr('消息类型',msg.messageType)+fr('方向',msg.direction)+fr('eNB UE ID',msg.enbUeId)+
+                fr('TAC',`${msg.tac} (0x${msg.tac.toString(16).toUpperCase()})`)+fr('PLMN Identity',msg.plmnIdentity)+
+                fr('RRC 建立原因',msg.rrcEstCause)+fr('Global eNB ID',msg.globalEnbId)+nasHtml;
+        }
+
+        function renderInitialContextSetupRequest(msg) {
+            const erabList = msg.eRabToBeSetupList.map(erab => `<div class="nested" style="margin-top:10px;">
+                ${fr('E-RAB ID',erab.eRabId)}${fr('QCI',erab.qci)}${fr('DL GTP-TEID','0x'+erab.dlGtpTeid)}${fr('传输层地址',erab.transportLayerAddress)}
+            </div>`).join('');
+            let nasHtml = '';
+            if (msg.attachAccept) {
+                const a = msg.attachAccept;
+                nasHtml = `<div class="nas-section"><h3>NAS PDU 解码 — Attach Accept</h3>
+                    <div class="nested">
+                        ${fr('EPS Attach Result',a.epsAttachResult)}
+                        ${fr('T3412 Value',a.t3412Value)}
+                        ${fr('GUTI',a.guti)}
+                        ${fr('TAI List',a.taiList)}
+                        ${fr('ESM Message',a.esmMessage)}
+                        ${fr('NAS Message (Hex)',`<code style="font-size:0.8em;">${a.nasMessageHex}</code>`)}
+                    </div>
+                </div>`;
+            }
+            return fr('消息类型',msg.messageType)+fr('方向',msg.direction)+fr('MME UE S1AP ID',msg.mmeUeS1apId)+
+                fr('eNB UE S1AP ID',msg.enbUeS1apId)+fr('UE 聚合最大比特率',msg.ueAggregateMaxBitrate)+
+                fr('安全密钥 (K_eNB)',`<code style="font-size:0.8em;">0x${msg.securityKey}</code>`)+
+                fr('安全能力',msg.securityCapabilities)+
+                `<div class="nas-section"><h3>E-RAB To Be Setup List</h3>${erabList}</div>`+nasHtml;
+        }
+
+        function renderInitialContextSetupResponse(msg) {
+            const erabList = msg.eRabSetupList.map(erab => `<div class="nested" style="margin-top:10px;">
+                ${fr('E-RAB ID',erab.eRabId)}${fr('UL GTP-TEID','0x'+erab.ulGtpTeid)}${fr('传输层地址',erab.transportLayerAddress)}
+            </div>`).join('');
+            return fr('消息类型',msg.messageType)+fr('方向',msg.direction)+fr('MME UE S1AP ID',msg.mmeUeS1apId)+
+                fr('eNB UE S1AP ID',msg.enbUeS1apId)+
+                `<div class="nas-section"><h3>E-RAB Setup List</h3>${erabList}</div>`;
+        }
+
+        function renderUEContextReleaseCommand(msg) {
+            return fr('消息类型',msg.messageType)+fr('方向',msg.direction)+fr('MME UE S1AP ID',msg.mmeUeS1apId)+
+                fr('eNB UE S1AP ID',msg.enbUeS1apId)+fr('释放原因',msg.cause,'style="color:#ff6b6b"')+
+                fr('原因详情',msg.causeDetails,'style="color:#ff6b6b"');
+        }
+
+        function renderUEContextReleaseComplete(msg) {
+            return fr('消息类型',msg.messageType)+fr('方向',msg.direction)+fr('MME UE S1AP ID',msg.mmeUeS1apId)+
+                fr('eNB UE S1AP ID',msg.enbUeS1apId)+fr('状态','UE上下文已成功释放','style="color:#00ff88"');
+        }
+
+        function renderX2HandoverRequest(msg) {
+            const erabList = msg.eRabAdmittedList.map(erab => `<div class="nested" style="margin-top:10px;">
+                ${fr('E-RAB ID',erab.eRabId)}${fr('UL GTP-TEID','0x'+erab.ulGtpTeid)}${fr('DL GTP-TEID','0x'+erab.dlGtpTeid)}${fr('传输层地址',erab.transportLayerAddress)}
+            </div>`).join('');
+            return fr('消息类型',msg.messageType)+fr('方向',msg.direction)+fr('Source eNB',msg.sourceEnbId)+
+                fr('Target eNB',msg.targetEnbId)+fr('MME UE S1AP ID',msg.mmeUeS1apId)+fr('eNB UE S1AP ID',msg.enbUeS1apId)+
+                fr('切换原因',msg.cause,'style="color:#a855f7"')+fr('原因详情',msg.causeDetails,'style="color:#a855f7"')+
+                `<div class="nas-section"><h3>E-RAB Admitted List</h3>${erabList}</div>`;
+        }
+
+        function renderX2HandoverRequestAck(msg) {
+            const erabList = msg.eRabAdmittedList.map(erab => `<div class="nested" style="margin-top:10px;">
+                ${fr('E-RAB ID',erab.eRabId)}${fr('UL GTP-TEID','0x'+erab.ulGtpTeid)}${fr('DL GTP-TEID','0x'+erab.dlGtpTeid)}${fr('传输层地址',erab.transportLayerAddress)}
+            </div>`).join('');
+            return fr('消息类型',msg.messageType)+fr('方向',msg.direction)+fr('Source eNB',msg.sourceEnbId)+
+                fr('Target eNB',msg.targetEnbId)+fr('eNB UE S1AP ID',msg.enbUeS1apId)+fr('Target eNB UE ID',msg.targetEnbUeId)+
+                `<div class="nas-section"><h3>E-RAB Admitted List</h3>${erabList}</div>`;
+        }
+
+        function renderSNStatusTransfer(msg) {
+            return fr('消息类型',msg.messageType)+fr('方向',msg.direction)+fr('Source eNB',msg.sourceEnbId)+
+                fr('Target eNB',msg.targetEnbId)+fr('E-RAB ID',msg.eRabId)+fr('UL COUNT',msg.ulCount)+
+                fr('DL COUNT',msg.dlCount)+fr('UL HFN',msg.ulHfn)+fr('DL HFN',msg.dlHfn);
+        }
+
+        function renderPathSwitchRequest(msg) {
+            return fr('消息类型',msg.messageType)+fr('方向',msg.direction)+fr('Target eNB',msg.targetEnbId)+
+                fr('MME UE S1AP ID',msg.mmeUeS1apId)+fr('eNB UE S1AP ID',msg.enbUeS1apId)+
+                fr('E-RAB ID',msg.eRabId)+fr('UL GTP-TEID','0x'+msg.ulGtpTeid)+fr('传输层地址',msg.transportLayerAddress);
+        }
+
+        function renderPathSwitchRequestAck(msg) {
+            return fr('消息类型',msg.messageType)+fr('方向',msg.direction)+fr('Target eNB',msg.targetEnbId)+
+                fr('MME UE S1AP ID',msg.mmeUeS1apId)+fr('eNB UE S1AP ID',msg.enbUeS1apId)+
+                fr('DL GTP-TEID','0x'+msg.dlGtpTeid)+fr('传输层地址',msg.transportLayerAddress);
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit',fractionalSecondDigits:3});
+        }
+
+        async function startSignaling(type) {
+            const indicator = document.getElementById('flowIndicator');
+            indicator.textContent = type === 'x2-handover' ? '当前流程: X2 切换' : '当前流程: S1 附着';
+
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('x2Btn').disabled = true;
+
+            try {
+                const response = await fetch(`/api/start?type=${type}`, { method: 'POST' });
+                const data = await response.json();
+                console.log(data.message);
+            } catch (error) {
+                console.error('Error starting signaling:', error);
+            }
+
+            setTimeout(() => {
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('x2Btn').disabled = false;
+            }, 8000);
+        }
+
+        async function resetSignaling() {
+            messages = [];
+            selectedMessageId = null;
+            renderMessageList();
+            document.getElementById('messageDetails').innerHTML = '<div style="color:#888;padding:20px;text-align:center;">选择一条消息查看详细字段</div>';
+            document.getElementById('flowIndicator').textContent = '当前流程: S1 附着';
+            try { await fetch('/api/reset', { method: 'POST' }); } catch (error) { console.error('Error resetting:', error); }
+        }
+
+        connectWebSocket();
+    </script>
+</body>
+</html>

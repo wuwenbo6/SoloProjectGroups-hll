@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G.711 音频编解码器演示</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>G.711 音频编解码器 (μ-Law / A-Law)</h1>
+            <p class="subtitle">实时语音采集 · 压缩编码 · 解码播放 · 波形对比</p>
+            
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span class="status-text" id="statusText">等待开始</span>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <aside class="control-panel">
+                <div class="card">
+                    <h2>主控制</h2>
+                    <div class="main-controls">
+                        <button class="btn btn-primary btn-large" id="startBtn">
+                            <span id="startBtnIcon">🎤</span>
+                            <span id="startBtnText">开始采集</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>音频参数</h2>
+                    <div class="control-group">
+                        <label>
+                            播放音量
+                            <span class="value" id="volumeValue">80%</span>
+                        </label>
+                        <input type="range" id="volumeSlider" min="0" max="100" value="80">
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>编码选项</h2>
+                    <div class="toggle-group">
+                        <div class="toggle-label">
+                            <strong>μ-law (PCMU)</strong>
+                            <small>北美/日本标准，-8159~+8159</small>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="radio" id="ulawRadio" name="codecType" value="ulaw" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-group">
+                        <div class="toggle-label">
+                            <strong>A-law (PCMA)</strong>
+                            <small>欧洲/国际标准，-4095~+4095</small>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="radio" id="alawRadio" name="codecType" value="alaw">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-group" style="margin-top: 1rem;">
+                        <div class="toggle-label">
+                            <strong id="recordedSizeLabel">已录制: 0 KB</strong>
+                            <small id="recordedDurationLabel">时长: 0.0s</small>
+                        </div>
+                        <button class="btn btn-secondary" id="downloadBtn" style="padding: 0.5rem 1rem; font-size: 0.8125rem;">
+                            💾 下载
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>回音消除 (NLMS AEC)</h2>
+                    <div class="toggle-group">
+                        <div class="toggle-label">
+                            启用回音消除
+                            <small id="aecTypeLabel">AudioWorklet NLMS自适应滤波</small>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="aecToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="control-group" style="margin-top: 1rem;">
+                        <label>
+                            自适应步长 (μ)
+                            <span class="value" id="stepSizeValue">0.50</span>
+                        </label>
+                        <input type="range" id="stepSizeSlider" min="1" max="100" value="50">
+                    </div>
+                    <div class="control-group">
+                        <label>
+                            滤波器长度
+                            <span class="value" id="filterLengthValue">1024</span>
+                        </label>
+                        <input type="range" id="filterLengthSlider" min="128" max="4096" step="128" value="1024">
+                    </div>
+                    <div class="control-group">
+                        <label>
+                            延迟时间 (模拟)
+                            <span class="value" id="delayValue">100ms</span>
+                        </label>
+                        <input type="range" id="delaySlider" min="10" max="500" value="100">
+                    </div>
+                    <div class="control-group">
+                        <label>
+                            衰减系数 (模拟)
+                            <span class="value" id="decayValue">0.30</span>
+                        </label>
+                        <input type="range" id="decaySlider" min="0" max="90" value="30">
+                    </div>
+                    <div class="toggle-group">
+                        <div class="toggle-label">
+                            重置滤波器
+                            <small>清除自适应权重</small>
+                        </div>
+                        <button class="btn btn-secondary" id="resetFilterBtn" style="padding: 0.5rem 1rem; font-size: 0.8125rem;">重置</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>关于 G.711</h2>
+                    <div class="tech-info" style="margin-top: 0; padding: 0; border: none; background: transparent; backdrop-filter: none;">
+                        <p>
+                            <code>G.711</code> 是ITU-T标准的脉冲编码调制（PCM）音频编解码器，广泛用于电话系统。
+                            <br><br>
+                            <strong>μ-law (PCMU)：</strong>
+                            <br>• 北美/日本标准
+                            <br>• 线性范围：-8159 ~ +8159（14位）
+                            <br>• 压缩比：2:1，比特率：64 kbps
+                            <br><br>
+                            <strong>A-law (PCMA)：</strong>
+                            <br>• 欧洲/国际标准
+                            <br>• 线性范围：-4095 ~ +4095（13位）
+                            <br>• 压缩比：2:1，比特率：64 kbps
+                            <br><br>
+                            <strong>下载格式：</strong>原始G.711字节流 (.g711)
+                        </p>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="waveform-panel">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="sampleRate">--</div>
+                        <div class="stat-label">采样率 (Hz)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="codecTypeDisplay">μ-law</div>
+                        <div class="stat-label">编码方式</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="origBitrate">--</div>
+                        <div class="stat-label">原始比特率 (kbps)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="compBitrate">--</div>
+                        <div class="stat-label">压缩后 (kbps)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="compRatio">--</div>
+                        <div class="stat-label">压缩率 (%)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="recordedSize">0 KB</div>
+                        <div class="stat-label">已录制</div>
+                    </div>
+                </div>
+
+                <div class="waveform-container">
+                    <div class="waveform-header">
+                        <div class="waveform-title original">原始音频波形</div>
+                        <div class="waveform-meta">16-bit PCM</div>
+                    </div>
+                    <canvas id="originalWaveform" class="waveform-canvas"></canvas>
+                </div>
+
+                <div class="waveform-container">
+                    <div class="waveform-header">
+                        <div class="waveform-title compressed">G.711 压缩后波形</div>
+                        <div class="waveform-meta" id="codecMetaLabel">μ-law 8-bit</div>
+                    </div>
+                    <canvas id="compressedWaveform" class="waveform-canvas"></canvas>
+                </div>
+
+                <div class="tech-info">
+                    <h3>💡 使用说明</h3>
+                    <p>
+                        1. 点击「开始采集」按钮授权麦克风权限<br>
+                        2. 对着麦克风说话，观察两个波形的差异<br>
+                        3. 调节音量滑块控制播放音量<br>
+                        4. 开启回音消除可模拟AEC效果<br>
+                        5. 使用耳机可避免真实回音干扰
+                    </p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="js/g711-codec.js"></script>
+    <script src="js/waveform.js"></script>
+    <script src="js/echo-canceller.js"></script>
+    <script src="js/audio-capture.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

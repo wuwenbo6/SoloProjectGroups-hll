@@ -1,0 +1,353 @@
+{
+  "vnfds": {
+    "vnfd-firewall-001": {
+      "id": "vnfd-firewall-001",
+      "name": "Virtual Firewall",
+      "type": "firewall",
+      "description": "Next-generation virtual firewall with DPI, IDS/IPS, and ACL capabilities",
+      "defaultCpu": 2,
+      "defaultMemory": 4096,
+      "defaultBandwidth": 10000,
+      "icon": "shield"
+    },
+    "vnfd-vrouter-001": {
+      "id": "vnfd-vrouter-001",
+      "name": "Virtual Router",
+      "type": "vrouter",
+      "description": "Software-based virtual router with BGP/OSPF support and traffic engineering",
+      "defaultCpu": 4,
+      "defaultMemory": 8192,
+      "defaultBandwidth": 25000,
+      "icon": "router"
+    }
+  },
+  "vnfs": {
+    "vnf-fce0cc4f": {
+      "id": "vnf-fce0cc4f",
+      "vnfdId": "vnfd-firewall-001",
+      "name": "edge-firewall",
+      "type": "firewall",
+      "status": "running",
+      "cpu": 2,
+      "memory": 4096,
+      "bandwidth": 5000,
+      "replicaCount": 1,
+      "positionX": 500,
+      "positionY": 200,
+      "createdAt": "2026-05-29T20:41:20.127204+08:00",
+      "updatedAt": "2026-05-29T20:41:22.128498+08:00"
+    },
+    "vnf-fe16e119": {
+      "id": "vnf-fe16e119",
+      "vnfdId": "vnfd-vrouter-001",
+      "name": "core-router",
+      "type": "vrouter",
+      "status": "running",
+      "cpu": 4,
+      "memory": 8192,
+      "bandwidth": 10000,
+      "replicaCount": 6,
+      "positionX": 300,
+      "positionY": 200,
+      "createdAt": "2026-05-29T20:41:20.126924+08:00",
+      "updatedAt": "2026-05-29T20:57:12.275901+08:00"
+    }
+  },
+  "links": {
+    "link-bbfef21f": {
+      "id": "link-bbfef21f",
+      "sourceId": "vnf-fe16e119",
+      "targetId": "vnf-fce0cc4f",
+      "bandwidth": 1000,
+      "status": "active",
+      "latency": 5
+    }
+  },
+  "routeTables": {
+    "vnf-fce0cc4f": {
+      "vnfId": "vnf-fce0cc4f",
+      "entries": [
+        {
+          "destinationCidr": "10.0.fe16.0/24",
+          "nextHopIp": "192.168.1.1",
+          "interfaceName": "eth0",
+          "metric": 35,
+          "protocol": "DYNAMIC"
+        }
+      ],
+      "version": 5,
+      "lastUpdated": "2026-05-29T20:57:12.578982+08:00"
+    },
+    "vnf-fe16e119": {
+      "vnfId": "vnf-fe16e119",
+      "entries": [
+        {
+          "destinationCidr": "10.0.fce0.0/24",
+          "nextHopIp": "192.168.1.1",
+          "interfaceName": "eth0",
+          "metric": 10,
+          "protocol": "DYNAMIC"
+        }
+      ],
+      "version": 1,
+      "lastUpdated": "2026-05-29T20:41:42.828164+08:00"
+    }
+  },
+  "events": [
+    {
+      "id": "evt-cbb894a9",
+      "type": "info",
+      "message": "Topology sort completed: 2 VNFs will be instantiated in order",
+      "timestamp": "2026-05-29T20:41:20.12636+08:00"
+    },
+    {
+      "id": "evt-cfcc56ac",
+      "type": "info",
+      "message": "VNF core-router queued for instantiation (depends on: 0)",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:41:20.127048+08:00"
+    },
+    {
+      "id": "evt-0e6c6044",
+      "type": "info",
+      "message": "VNF edge-firewall queued for instantiation (depends on: 0)",
+      "vnfId": "vnf-fce0cc4f",
+      "timestamp": "2026-05-29T20:41:20.127322+08:00"
+    },
+    {
+      "id": "evt-0bb66fd8",
+      "type": "info",
+      "message": "VNF core-router instantiation started",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:41:20.127366+08:00"
+    },
+    {
+      "id": "evt-59049e26",
+      "type": "info",
+      "message": "VNF edge-firewall instantiation started",
+      "vnfId": "vnf-fce0cc4f",
+      "timestamp": "2026-05-29T20:41:20.12748+08:00"
+    },
+    {
+      "id": "evt-43510ab8",
+      "type": "info",
+      "message": "VNF edge-firewall is now running (replicas: 1)",
+      "vnfId": "vnf-fce0cc4f",
+      "timestamp": "2026-05-29T20:41:22.128748+08:00"
+    },
+    {
+      "id": "evt-807b4f0c",
+      "type": "info",
+      "message": "VNF core-router is now running (replicas: 1)",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:41:22.1288+08:00"
+    },
+    {
+      "id": "evt-d94c5bde",
+      "type": "info",
+      "message": "Link created: core-router ↔ edge-firewall (1000 Mbps)",
+      "timestamp": "2026-05-29T20:41:42.527357+08:00"
+    },
+    {
+      "id": "evt-3d1ee252",
+      "type": "info",
+      "message": "Updating route tables for 1 neighbor VNFs of core-router",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:41:42.527458+08:00"
+    },
+    {
+      "id": "evt-9b45bc45",
+      "type": "info",
+      "message": "Updating route tables for 1 neighbor VNFs of edge-firewall",
+      "vnfId": "vnf-fce0cc4f",
+      "timestamp": "2026-05-29T20:41:42.527471+08:00"
+    },
+    {
+      "id": "evt-3eced4c0",
+      "type": "info",
+      "message": "API call: Updated route table on edge-firewall (via core-router)",
+      "vnfId": "vnf-fce0cc4f",
+      "timestamp": "2026-05-29T20:41:42.828717+08:00"
+    },
+    {
+      "id": "evt-6571543e",
+      "type": "info",
+      "message": "API call: Updated route table on core-router (via edge-firewall)",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:41:42.828843+08:00"
+    },
+    {
+      "id": "evt-c831f250",
+      "type": "info",
+      "message": "Completed route table updates for core-router",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:41:42.828939+08:00"
+    },
+    {
+      "id": "evt-f832fd32",
+      "type": "info",
+      "message": "Completed route table updates for edge-firewall",
+      "vnfId": "vnf-fce0cc4f",
+      "timestamp": "2026-05-29T20:41:42.829063+08:00"
+    },
+    {
+      "id": "evt-9d0fa59a",
+      "type": "warning",
+      "message": "VNF core-router scaling: replicas 1 → 3",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:41:48.112214+08:00"
+    },
+    {
+      "id": "evt-fce73228",
+      "type": "info",
+      "message": "VNF core-router scaling completed (replicas: 3)",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:41:51.115049+08:00"
+    },
+    {
+      "id": "evt-158e89dd",
+      "type": "info",
+      "message": "Updating route tables for 1 neighbor VNFs of core-router",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:41:51.115282+08:00"
+    },
+    {
+      "id": "evt-d6f228ca",
+      "type": "info",
+      "message": "API call: Updated route table on edge-firewall (via core-router)",
+      "vnfId": "vnf-fce0cc4f",
+      "timestamp": "2026-05-29T20:41:51.417643+08:00"
+    },
+    {
+      "id": "evt-31a31be1",
+      "type": "info",
+      "message": "Completed route table updates for core-router",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:41:51.418043+08:00"
+    },
+    {
+      "id": "evt-25947df9",
+      "type": "info",
+      "message": "Auto-scaling config updated for core-router (enabled: true)",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:55:06.823606+08:00"
+    },
+    {
+      "id": "evt-531fde3d",
+      "type": "warning",
+      "message": "Auto-scaling scale up triggered: CPU \u003e 70%, replicas 4 → 4",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:55:09.269917+08:00"
+    },
+    {
+      "id": "evt-433f22a6",
+      "type": "info",
+      "message": "Auto-scaling scale up completed (replicas: 4)",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:55:12.271706+08:00"
+    },
+    {
+      "id": "evt-0c1c22e3",
+      "type": "info",
+      "message": "Updating route tables for 1 neighbor VNFs of core-router",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:55:12.272461+08:00"
+    },
+    {
+      "id": "evt-8a9792bc",
+      "type": "info",
+      "message": "API call: Updated route table on edge-firewall (via core-router)",
+      "vnfId": "vnf-fce0cc4f",
+      "timestamp": "2026-05-29T20:55:12.575556+08:00"
+    },
+    {
+      "id": "evt-0dcad31e",
+      "type": "info",
+      "message": "Completed route table updates for core-router",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:55:12.575697+08:00"
+    },
+    {
+      "id": "evt-e444cf8b",
+      "type": "warning",
+      "message": "Auto-scaling scale up triggered: CPU \u003e 70%, replicas 5 → 5",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:56:09.271503+08:00"
+    },
+    {
+      "id": "evt-3919a378",
+      "type": "info",
+      "message": "Auto-scaling scale up completed (replicas: 5)",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:56:12.274113+08:00"
+    },
+    {
+      "id": "evt-ccfb832c",
+      "type": "info",
+      "message": "Updating route tables for 1 neighbor VNFs of core-router",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:56:12.274318+08:00"
+    },
+    {
+      "id": "evt-9696ab28",
+      "type": "info",
+      "message": "API call: Updated route table on edge-firewall (via core-router)",
+      "vnfId": "vnf-fce0cc4f",
+      "timestamp": "2026-05-29T20:56:12.575879+08:00"
+    },
+    {
+      "id": "evt-2a0d97f0",
+      "type": "info",
+      "message": "Completed route table updates for core-router",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:56:12.576172+08:00"
+    },
+    {
+      "id": "evt-890daf4c",
+      "type": "warning",
+      "message": "Auto-scaling scale up triggered: CPU \u003e 70%, replicas 6 → 6",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:57:09.275324+08:00"
+    },
+    {
+      "id": "evt-28649d44",
+      "type": "info",
+      "message": "Auto-scaling scale up completed (replicas: 6)",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:57:12.277109+08:00"
+    },
+    {
+      "id": "evt-0fc03d48",
+      "type": "info",
+      "message": "Updating route tables for 1 neighbor VNFs of core-router",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:57:12.277726+08:00"
+    },
+    {
+      "id": "evt-d0b9b3b4",
+      "type": "info",
+      "message": "API call: Updated route table on edge-firewall (via core-router)",
+      "vnfId": "vnf-fce0cc4f",
+      "timestamp": "2026-05-29T20:57:12.579526+08:00"
+    },
+    {
+      "id": "evt-8bf38534",
+      "type": "info",
+      "message": "Completed route table updates for core-router",
+      "vnfId": "vnf-fe16e119",
+      "timestamp": "2026-05-29T20:57:12.579834+08:00"
+    }
+  ],
+  "autoScaling": {
+    "vnf-fe16e119": {
+      "vnfId": "vnf-fe16e119",
+      "minReplicas": 1,
+      "maxReplicas": 10,
+      "scaleUpThreshold": 70,
+      "scaleDownThreshold": 30,
+      "cooldownSeconds": 60,
+      "enabled": true,
+      "lastScalingAt": "2026-05-29T20:57:09.264467+08:00"
+    }
+  }
+}

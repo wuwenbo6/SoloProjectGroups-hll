@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlwaysOn AG 模拟器</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>AlwaysOn AG 模拟器</h1>
+            <div class="ag-info">
+                <span class="ag-name" id="agName">AG-Simulator</span>
+                <span class="listener-info" id="listenerInfo">监听器: 127.0.0.1:8080</span>
+            </div>
+        </header>
+
+        <div class="status-bar">
+            <div class="health-indicator" id="healthIndicator">
+                <span class="health-dot" id="healthDot"></span>
+                <span class="health-text" id="healthText">检测中...</span>
+            </div>
+            <div class="primary-info">
+                <span>当前主副本: </span>
+                <strong id="currentPrimary">-</strong>
+            </div>
+            <div class="readonly-info">
+                <span>只读副本: </span>
+                <strong id="readOnlyReplica">-</strong>
+            </div>
+            <div class="connection-stats">
+                <span>连接: </span>
+                <strong id="connStats">RW: 0, RO: 0</strong>
+            </div>
+            <div class="ttl-info">
+                <span>TTL: </span>
+                <strong id="ttlValue">30s</strong>
+            </div>
+            <div class="failover-count">
+                <span>故障转移次数: </span>
+                <strong id="failoverCount">0</strong>
+            </div>
+            <div class="last-update">
+                <span>最后更新: </span>
+                <span id="lastUpdate">-</span>
+            </div>
+        </div>
+
+        <div class="replicas-grid" id="replicasGrid">
+        </div>
+
+        <div class="action-panel">
+            <h2>操作面板</h2>
+            <div class="actions">
+                <button class="btn btn-primary" onclick="testListener()">测试读写路由</button>
+                <button class="btn btn-info" onclick="testReadOnlyListener()">测试只读路由</button>
+                <button class="btn btn-warning" onclick="manualFailover()">手动故障转移</button>
+                <button class="btn btn-danger" onclick="simulateFailure()">模拟副本故障</button>
+                <button class="btn btn-success" onclick="simulateRecovery()">模拟副本恢复</button>
+            </div>
+            <div class="sync-controls">
+                <h3>同步控制</h3>
+                <div class="sync-status" id="syncStatus">同步状态: <span class="badge badge-success">运行中</span></div>
+                <div class="actions">
+                    <button class="btn btn-warning" id="suspendBtn" onclick="suspendSync()">暂停同步</button>
+                    <button class="btn btn-success" id="resumeBtn" onclick="resumeSync()">恢复同步</button>
+                </div>
+            </div>
+            <div class="listener-test" id="listenerTest" style="display:none;">
+                <h3>监听器测试结果</h3>
+                <pre id="listenerResult"></pre>
+            </div>
+        </div>
+
+        <div class="history-panel">
+            <h2>故障转移历史
+                <span class="export-link">
+                    <button class="btn btn-sm btn-info" onclick="exportHistory('csv')">导出CSV</button>
+                    <button class="btn btn-sm btn-info" onclick="exportHistory('json')">导出JSON</button>
+                </span>
+            </h2>
+            <div class="history-container" id="historyContainer">
+                <div class="history-empty">暂无故障转移记录</div>
+            </div>
+        </div>
+
+        <div class="logs-panel">
+            <h2>同步日志</h2>
+            <div class="logs-container" id="logsContainer">
+                <div class="log-entry">等待数据...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3 id="modalTitle">选择目标副本</h3>
+            <div id="modalBody" class="modal-body"></div>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" id="modalConfirm">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

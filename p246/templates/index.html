@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WEP 密钥破解工具</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>WEP 密钥破解工具</h1>
+            <p class="subtitle">FMS / PTW 攻击 · RC4 密钥恢复 · 并行 IV 处理</p>
+        </header>
+
+        <div class="main-content">
+            <div class="card config-card">
+                <h2>配置</h2>
+                <div class="form-group">
+                    <label for="interface">网络接口:</label>
+                    <select id="interface">
+                        <option value="wlan0">wlan0</option>
+                        <option value="wlan1">wlan1</option>
+                        <option value="mon0">mon0</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="bssid">BSSID (可选):</label>
+                    <input type="text" id="bssid" placeholder="AA:BB:CC:DD:EE:FF">
+                </div>
+                <div class="form-group">
+                    <label for="key-length">密钥长度:</label>
+                    <select id="key-length">
+                        <option value="5">64-bit (5字节)</option>
+                        <option value="13">128-bit (13字节)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="algorithm">攻击算法:</label>
+                    <select id="algorithm">
+                        <option value="ptw">PTW (推荐 · 更高效)</option>
+                        <option value="fms">FMS (经典攻击)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="inject-rate">ARP注入速率 (包/秒):</label>
+                    <select id="inject-rate">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                <div class="algorithm-info" id="algorithm-info">
+                    <p>PTW 攻击通常需要约 35,000-40,000 个 IV，比 FMS 攻击效率更高，支持并行 IV 处理。</p>
+                </div>
+            </div>
+
+            <div class="card inject-card">
+                <h2>ARP 注入加速</h2>
+                <p class="inject-desc">发送伪造的ARP请求包，触发AP响应以加速IV收集</p>
+                <div class="inject-stats">
+                    <div class="inject-stat">
+                        <span class="inject-value" id="inject-count">0</span>
+                        <span class="inject-label">已发送包数</span>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button id="start-inject" class="btn btn-purple">启动注入</button>
+                    <button id="stop-inject" class="btn btn-danger" disabled>停止注入</button>
+                </div>
+                <div class="status-indicator">
+                    <span class="status-dot" id="inject-status"></span>
+                    <span id="inject-status-text">未注入</span>
+                </div>
+            </div>
+
+            <div class="card stats-card">
+                <h2>捕获统计</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-ivs">0</div>
+                        <div class="stat-label">总 IV 数量</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value weak" id="weak-ivs">0</div>
+                        <div class="stat-label">弱 IV 数量</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value progress-text" id="crack-progress">0%</div>
+                        <div class="stat-label">破解进度</div>
+                    </div>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+                <div class="iv-ratio">
+                    <span class="ratio-label">弱 IV 比率:</span>
+                    <span class="ratio-value" id="iv-ratio">0%</span>
+                </div>
+            </div>
+
+            <div class="card controls-card">
+                <h2>控制</h2>
+                <div class="button-group">
+                    <button id="start-capture" class="btn btn-primary">开始捕获</button>
+                    <button id="stop-capture" class="btn btn-danger" disabled>停止捕获</button>
+                </div>
+                <div class="button-group">
+                    <button id="start-crack" class="btn btn-success">开始破解</button>
+                    <button id="stop-crack" class="btn btn-warning" disabled>停止破解</button>
+                </div>
+                <div class="button-group">
+                    <button id="reset" class="btn btn-secondary">重置</button>
+                </div>
+                <div class="status-indicator">
+                    <span class="status-dot" id="capture-status"></span>
+                    <span id="capture-status-text">未捕获</span>
+                </div>
+            </div>
+
+            <div class="card result-card">
+                <h2>破解结果</h2>
+                <div class="result-container">
+                    <div class="result-label">WEP 密钥:</div>
+                    <div class="result-value" id="cracked-key">
+                        <span class="placeholder">等待破解...</span>
+                    </div>
+                    <div class="result-hex" id="cracked-key-hex"></div>
+                </div>
+                <div class="export-buttons" id="export-buttons" style="display: none;">
+                    <button id="copy-key" class="btn btn-small btn-primary">复制密钥</button>
+                    <button id="download-key" class="btn btn-small btn-secondary">下载密钥</button>
+                </div>
+                <div class="key-status" id="key-status">
+                    <span class="status-badge pending">准备中</span>
+                </div>
+            </div>
+
+            <div class="card iv-table-card full-width">
+                <h2>IV 列表 <span class="badge" id="iv-count-badge">0</span></h2>
+                <div class="table-controls">
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-filter="all">全部</button>
+                        <button class="filter-btn" data-filter="weak">弱 IV</button>
+                    </div>
+                    <div class="page-info">
+                        <span id="page-info-text">第 1 页 / 共 1 页</span>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="iv-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>IV (Hex)</th>
+                                <th>IV (Dec)</th>
+                                <th>Key ID</th>
+                                <th>类型</th>
+                                <th>加密数据 (前8字节)</th>
+                                <th>时间戳</th>
+                            </tr>
+                        </thead>
+                        <tbody id="iv-table-body">
+                            <tr class="empty-row">
+                                <td colspan="7">暂无数据，请开始捕获</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination">
+                    <button class="page-btn" id="page-first" disabled>首页</button>
+                    <button class="page-btn" id="page-prev" disabled>上一页</button>
+                    <span class="page-numbers" id="page-numbers">1</span>
+                    <button class="page-btn" id="page-next" disabled>下一页</button>
+                    <button class="page-btn" id="page-last" disabled>末页</button>
+                    <select class="per-page-select" id="per-page">
+                        <option value="10">10/页</option>
+                        <option value="20" selected>20/页</option>
+                        <option value="50">50/页</option>
+                        <option value="100">100/页</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card info-card">
+                <h2>攻击算法对比</h2>
+                <div class="info-content">
+                    <div class="algo-compare">
+                        <div class="algo-item">
+                            <h3>FMS 攻击</h3>
+                            <ul>
+                                <li>Fluhrer-Mantin-Shamir (2001)</li>
+                                <li>仅利用弱 IV 进行统计分析</li>
+                                <li>64-bit 需约 100 个弱 IV</li>
+                                <li>128-bit 需约 600 个弱 IV</li>
+                                <li>总 IV 需约 50,000-200,000</li>
+                            </ul>
+                        </div>
+                        <div class="algo-item">
+                            <h3>PTW 攻击</h3>
+                            <ul>
+                                <li>Pychkine-Tews-Weinmann (2007)</li>
+                                <li>利用所有 IV 的 keystream 信息</li>
+                                <li>支持并行处理 IV 数据</li>
+                                <li>64-bit 需约 35,000-40,000 IV</li>
+                                <li>128-bit 需约 85,000-100,000 IV</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <p class="warning">警告: 此工具仅用于教育目的和授权安全测试。</p>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>WEP Cracker Web Interface v2.0 · FMS + PTW</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
