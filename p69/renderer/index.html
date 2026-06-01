@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>音频隐写术 - Audio Steganography</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="../node_modules/chart.js/dist/chart.umd.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <h1>🎵 音频隐写术</h1>
+      <p>在音频FFT相位中隐藏和提取图像</p>
+    </header>
+
+    <div class="tab-container">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="embed">嵌入图像</button>
+        <button class="tab-btn" data-tab="extract">提取图像</button>
+        <button class="tab-btn" data-tab="visualize">可视化</button>
+        <button class="tab-btn" data-tab="robustness">鲁棒性测试</button>
+        <button class="tab-btn" data-tab="records">历史记录</button>
+      </div>
+
+      <div class="tab-content">
+        <div id="embed" class="tab-pane active">
+          <div class="panel">
+            <h2>嵌入图像到音频</h2>
+            <div class="form-group">
+              <label>选择音频文件 (WAV)</label>
+              <div class="file-select">
+                <input type="text" id="embed-audio-path" readonly placeholder="未选择文件">
+                <button class="btn" onclick="selectEmbedAudio()">选择音频</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>选择图像文件</label>
+              <div class="file-select">
+                <input type="text" id="embed-image-path" readonly placeholder="未选择文件">
+                <button class="btn" onclick="selectEmbedImage()">选择图像</button>
+              </div>
+              <div id="embed-image-preview" class="image-preview"></div>
+            </div>
+            <div class="form-group">
+              <label>输出音频文件</label>
+              <div class="file-select">
+                <input type="text" id="embed-output-path" readonly placeholder="未选择输出路径">
+                <button class="btn" onclick="selectEmbedOutput()">选择输出</button>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-large" onclick="embedImage()">开始嵌入</button>
+            <div id="embed-result" class="result-message"></div>
+          </div>
+        </div>
+
+        <div id="extract" class="tab-pane">
+          <div class="panel">
+            <h2>从音频提取图像</h2>
+            <div class="form-group">
+              <label>选择音频文件 (WAV)</label>
+              <div class="file-select">
+                <input type="text" id="extract-audio-path" readonly placeholder="未选择文件">
+                <button class="btn" onclick="selectExtractAudio()">选择音频</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>输出图像文件</label>
+              <div class="file-select">
+                <input type="text" id="extract-output-path" readonly placeholder="未选择输出路径">
+                <button class="btn" onclick="selectExtractOutput()">选择输出</button>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-large" onclick="extractImage()">开始提取</button>
+            <div id="extract-result" class="result-message"></div>
+            <div id="extract-image-preview" class="image-preview"></div>
+          </div>
+        </div>
+
+        <div id="visualize" class="tab-pane">
+          <div class="panel">
+            <h2>音频可视化</h2>
+            <div class="form-group">
+              <label>选择音频文件 (WAV)</label>
+              <div class="file-select">
+                <input type="text" id="visualize-audio-path" readonly placeholder="未选择文件">
+                <button class="btn" onclick="selectVisualizeAudio()">选择音频</button>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="loadVisualization()">加载可视化</button>
+            
+            <div class="chart-container">
+              <h3>波形图</h3>
+              <canvas id="waveform-chart"></canvas>
+            </div>
+            <div class="chart-container">
+              <h3>频谱图</h3>
+              <canvas id="spectrum-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div id="robustness" class="tab-pane">
+          <div class="panel">
+            <h2>MP3压缩鲁棒性测试</h2>
+            <p class="description">测试不同MP3比特率下隐藏数据的可恢复性</p>
+            <div class="form-group">
+              <label>选择音频文件 (WAV)</label>
+              <div class="file-select">
+                <input type="text" id="robust-audio-path" readonly placeholder="未选择文件">
+                <button class="btn" onclick="selectRobustAudio()">选择音频</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>选择测试图像</label>
+              <div class="file-select">
+                <input type="text" id="robust-image-path" readonly placeholder="未选择文件">
+                <button class="btn" onclick="selectRobustImage()">选择图像</button>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-large" onclick="runRobustnessTest()">开始测试</button>
+            <div id="robustness-result" class="result-message"></div>
+            <div id="robustness-chart-container" class="chart-container" style="display: none;">
+              <h3>测试结果 (PSNR dB)</h3>
+              <canvas id="robustness-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div id="records" class="tab-pane">
+          <div class="panel">
+            <h2>操作历史记录</h2>
+            <div class="search-bar">
+              <input type="text" id="record-search" placeholder="搜索记录...">
+              <button class="btn" onclick="searchRecords()">搜索</button>
+              <button class="btn" onclick="loadRecords()">刷新</button>
+            </div>
+            <div id="records-table-container" class="table-container">
+              <table class="records-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>类型</th>
+                    <th>音频文件</th>
+                    <th>图像文件</th>
+                    <th>时间</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="records-tbody">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

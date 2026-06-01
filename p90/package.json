@@ -1,0 +1,19 @@
+{
+  "name": "dna-sequencer-app",
+  "version": "1.0.0",
+  "description": "DNA测序分析应用 - 通过WebUSB连接测序仪，分析电泳信号",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": ["electron", "dna", "sequencer", "webusb"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  },
+  "dependencies": {
+    "sqlite3": "^5.1.7"
+  }
+}

@@ -1,0 +1,35 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+rtsp-proxy
+
+# Test binary
+*.test
+
+# Output
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Go
+go.sum
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

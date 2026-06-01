@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeepSpeech 语音识别字幕系统</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>🎤 DeepSpeech 实时语音识别</h1>
+      <div class="language-switcher">
+        <button id="lang-en" class="lang-btn active" data-lang="english">English</button>
+        <button id="lang-zh" class="lang-btn" data-lang="chinese">中文</button>
+      </div>
+    </header>
+
+    <div class="model-config">
+      <h3>模型配置</h3>
+      <div class="model-paths">
+        <div class="path-group">
+          <label>模型文件 (.pbmm):</label>
+          <div class="path-input">
+            <input type="text" id="modelPath" placeholder="请选择模型文件" readonly>
+            <button id="selectModelBtn">选择</button>
+          </div>
+        </div>
+        <div class="path-group">
+          <label>Scorer文件 (.scorer):</label>
+          <div class="path-input">
+            <input type="text" id="scorerPath" placeholder="请选择Scorer文件" readonly>
+            <button id="selectScorerBtn">选择</button>
+          </div>
+        </div>
+      </div>
+      <button id="loadModelBtn" class="btn-primary">加载模型</button>
+      <span id="modelStatus" class="status-text">模型未加载</span>
+    </div>
+
+    <div class="hotwords-config">
+      <h3>🔥 热词定制（专业术语）</h3>
+      <p class="hint">输入专业术语、人名、地名等，提高特定词汇的识别准确率。每行一个词，可设置权重（用逗号分隔，如：深度学习,5.0）</p>
+      <div class="hotwords-input-group">
+        <textarea id="hotwordsInput" placeholder="示例：
+人工智能,5.0
+机器学习
+Transformer,3.5
+语音识别,4.0" rows="4"></textarea>
+      </div>
+      <div class="hotwords-controls">
+        <button id="applyHotwordsBtn" class="btn-secondary" disabled>应用热词</button>
+        <button id="clearHotwordsBtn" class="btn-secondary">清空热词</button>
+        <span id="hotwordsStatus" class="status-text">未设置热词</span>
+      </div>
+    </div>
+
+    <div class="waveform-container">
+      <h3>音频波形</h3>
+      <canvas id="waveformCanvas"></canvas>
+      <div class="audio-status">
+        <span id="audioStatus">未开始录音</span>
+        <span id="recordingTime">00:00</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="startBtn" class="btn-record" disabled>
+        <span class="record-icon">●</span> 开始录音
+      </button>
+      <button id="stopBtn" class="btn-stop" disabled>
+        <span class="stop-icon">■</span> 停止录音
+      </button>
+      <button id="clearBtn" class="btn-secondary">
+        清空文本
+      </button>
+      <button id="saveBtn" class="btn-save" disabled>
+        💾 保存字幕 (SRT)
+      </button>
+    </div>
+
+    <div class="transcript-container">
+      <h3>识别结果</h3>
+      <div class="transcript-display" id="transcriptDisplay">
+        <p class="placeholder">识别的文本将显示在这里...</p>
+      </div>
+    </div>
+
+    <div class="subtitle-list">
+      <h3>字幕列表 <span class="subtitle-hint">（双击编辑，点击时间调整）</span></h3>
+      <div id="subtitleList" class="subtitle-items">
+        <p class="placeholder">暂无字幕条目</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

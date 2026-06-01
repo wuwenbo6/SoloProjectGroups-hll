@@ -1,0 +1,10 @@
+# Whitelist file for SQLIDS
+# Format: IP_ADDRESS [PORT]
+# If port is omitted, all ports are whitelisted
+
+# Trusted internal servers
+192.168.1.100
+192.168.1.101 8080
+
+# Localhost
+127.0.0.1

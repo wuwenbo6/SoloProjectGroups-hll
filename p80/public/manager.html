@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NFC海报管理系统</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      padding: 20px;
+      height: calc(100vh - 80px);
+    }
+
+    .panel {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      overflow-y: auto;
+    }
+
+    .panel-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5a6fd8;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .btn-small {
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+
+    .poster-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .poster-item {
+      padding: 15px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .poster-item:hover {
+      border-color: #667eea;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+    }
+
+    .poster-item.active {
+      border-color: #10b981;
+      background: #f0fdf4;
+    }
+
+    .poster-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .poster-title {
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .tag-badge {
+      background: #667eea;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .poster-url {
+      color: #6b7280;
+      font-size: 13px;
+      margin-bottom: 8px;
+      word-break: break-all;
+    }
+
+    .poster-desc {
+      color: #9ca3af;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    .poster-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .stat-card.success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+
+    .stat-card.warning {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .stat-card.info {
+      background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-top: 4px;
+    }
+
+    .carousel-panel {
+      margin-top: 15px;
+      padding: 15px;
+      background: #ecfdf5;
+      border-radius: 8px;
+      border: 1px solid #6ee7b7;
+    }
+
+    .carousel-panel h4 {
+      margin-bottom: 10px;
+      color: #047857;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .carousel-status {
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 12px;
+    }
+
+    .carousel-status.running {
+      background: #10b981;
+      color: white;
+    }
+
+    .carousel-status.stopped {
+      background: #9ca3af;
+      color: white;
+    }
+
+    .carousel-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .carousel-controls input {
+      width: 80px;
+      padding: 6px 10px;
+      border: 1px solid #6ee7b7;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .export-panel {
+      margin-top: 15px;
+      padding: 15px;
+      background: #faf5ff;
+      border-radius: 8px;
+      border: 1px solid #d8b4fe;
+    }
+
+    .export-panel h4 {
+      margin-bottom: 10px;
+      color: #7e22ce;
+    }
+
+    .export-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .export-controls input {
+      padding: 6px 10px;
+      border: 1px solid #d8b4fe;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .poster-stats {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 5px;
+      display: flex;
+      gap: 15px;
+    }
+
+    .poster-stats span {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    }
+
+    .stat-label {
+      font-size: 13px;
+      opacity: 0.9;
+      margin-top: 5px;
+    }
+
+    .recent-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .recent-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: #f9fafb;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .recent-tag {
+      font-weight: 600;
+      color: #667eea;
+    }
+
+    .recent-time {
+      color: #9ca3af;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      width: 450px;
+      max-width: 90%;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .nfc-simulator {
+      margin-top: 20px;
+      padding: 15px;
+      background: #fef3c7;
+      border-radius: 8px;
+      border: 1px solid #fcd34d;
+    }
+
+    .nfc-simulator h4 {
+      margin-bottom: 10px;
+      color: #92400e;
+    }
+
+    .nfc-tag-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .nfc-tag-btn {
+      padding: 6px 12px;
+      background: #f59e0b;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .nfc-tag-btn:hover {
+      background: #d97706;
+    }
+
+    .settings-panel {
+      margin-top: 15px;
+      padding: 15px;
+      background: #f0f9ff;
+      border-radius: 8px;
+      border: 1px solid #7dd3fc;
+    }
+
+    .settings-panel h4 {
+      margin-bottom: 10px;
+      color: #0369a1;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .setting-row label {
+      font-size: 13px;
+      color: #0369a1;
+    }
+
+    .setting-row input {
+      width: 80px;
+      padding: 5px 10px;
+      border: 1px solid #7dd3fc;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .setting-row button {
+      padding: 5px 12px;
+      background: #0ea5e9;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .setting-row button:hover {
+      background: #0284c7;
+    }
+
+    .form-error {
+      color: #dc2626;
+      font-size: 12px;
+      margin-top: 5px;
+    }
+
+    .form-input.error {
+      border-color: #dc2626 !important;
+      background-color: #fef2f2;
+    }
+
+    .status-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #1f2937;
+      color: white;
+      padding: 10px 20px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 25px;
+      background: #1f2937;
+      color: white;
+      border-radius: 8px;
+      z-index: 2000;
+      transform: translateX(120%);
+      transition: transform 0.3s;
+    }
+
+    .toast.show {
+      transform: translateX(0);
+    }
+
+    .toast.success {
+      background: #10b981;
+    }
+
+    .toast.error {
+      background: #ef4444;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📱 NFC 海报管理系统</h1>
+    <div class="header-actions">
+      <button class="btn btn-success" onclick="openDisplay()">📺 打开显示窗口</button>
+      <button class="btn btn-primary" onclick="openAddModal()">➕ 添加海报</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="panel">
+      <div class="panel-title">
+        <span>📋 海报列表</span>
+        <span id="posterCount">0 张</span>
+      </div>
+      <div class="poster-list" id="posterList"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">
+        <span>📊 数据统计</span>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="totalTouches">0</div>
+          <div class="stat-label">总触碰次数</div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-value" id="todayTouches">0</div>
+          <div class="stat-label">今日触碰</div>
+        </div>
+        <div class="stat-card warning">
+          <div class="stat-value" id="totalDuration">0s</div>
+          <div class="stat-label">总停留时长</div>
+        </div>
+        <div class="stat-card info">
+          <div class="stat-value" id="todayDuration">0s</div>
+          <div class="stat-label">今日停留</div>
+        </div>
+      </div>
+
+      <div class="nfc-simulator">
+        <h4>🎯 NFC 标签模拟器</h4>
+        <p style="font-size: 12px; color: #92400e; margin-bottom: 10px;">点击按钮模拟触碰 NFC 标签</p>
+        <div class="nfc-tag-buttons" id="tagButtons"></div>
+      </div>
+
+      <div class="carousel-panel">
+        <h4>
+          <span>🔄 定时轮播</span>
+          <span class="carousel-status stopped" id="carouselStatus">已停止</span>
+        </h4>
+        <div class="carousel-controls">
+          <label>切换间隔:</label>
+          <input type="number" id="carouselInterval" value="5000" min="1000" max="60000">
+          <span style="font-size: 12px; color: #047857;">毫秒</span>
+          <button class="btn btn-success btn-small" onclick="startCarousel()">开始轮播</button>
+          <button class="btn btn-danger btn-small" onclick="stopCarousel()">停止轮播</button>
+        </div>
+      </div>
+
+      <div class="export-panel">
+        <h4>📤 导出报表</h4>
+        <div class="export-controls">
+          <input type="date" id="exportStartDate" placeholder="开始日期">
+          <input type="date" id="exportEndDate" placeholder="结束日期">
+          <button class="btn btn-primary btn-small" onclick="exportReport('csv')">导出 CSV</button>
+          <button class="btn btn-primary btn-small" onclick="exportReport('json')">导出 JSON</button>
+        </div>
+      </div>
+
+      <div class="settings-panel">
+        <h4>⚙️ 系统设置</h4>
+        <div class="setting-row">
+          <label>防抖动延迟:</label>
+          <input type="number" id="debounceDelay" value="1000" min="100" max="5000">
+          <span style="font-size: 12px; color: #0369a1;">毫秒</span>
+          <button onclick="updateDebounce()">应用</button>
+        </div>
+      </div>
+
+      <div class="panel-title" style="margin-top: 20px;">
+        <span>🕐 最近触碰记录</span>
+      </div>
+      <div class="recent-list" id="recentList"></div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-indicator">
+      <div class="status-dot"></div>
+      <span>PC/SC NFC 读写器已连接 - 等待标签...</span>
+    </div>
+    <div>
+      当前显示: <strong id="currentPoster">无</strong>
+    </div>
+  </div>
+
+  <div class="modal" id="posterModal">
+    <div class="modal-content">
+      <div class="modal-title" id="modalTitle">添加海报</div>
+      <form id="posterForm">
+        <input type="hidden" id="posterId">
+        <div class="form-group">
+          <label>标签 ID (Tag ID)</label>
+          <input type="text" id="tagId" placeholder="例如: NFC001" required>
+        </div>
+        <div class="form-group">
+          <label>海报标题</label>
+          <input type="text" id="title" placeholder="输入海报标题" required>
+        </div>
+        <div class="form-group">
+          <label>URL 地址</label>
+          <input type="url" id="url" placeholder="https://example.com" required>
+        </div>
+        <div class="form-group">
+          <label>描述</label>
+          <textarea id="description" placeholder="海报描述信息"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn" onclick="closeModal()">取消</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    let posters = [];
+    let currentPoster = null;
+    let isSimulating = false;
+
+    function validateForm(poster) {
+      const errors = [];
+      
+      if (!poster.tag_id || poster.tag_id.trim().length === 0) {
+        errors.push('标签ID不能为空');
+      }
+      
+      if (!poster.title || poster.title.trim().length === 0) {
+        errors.push('标题不能为空');
+      }
+      
+      if (!poster.url || poster.url.trim().length === 0) {
+        errors.push('URL不能为空');
+      } else {
+        try {
+          new URL(poster.url);
+        } catch (e) {
+          errors.push('URL格式不正确');
+        }
+      }
+      
+      return errors;
+    }
+
+    function showFieldError(fieldId, message) {
+      const field = document.getElementById(fieldId);
+      field.classList.add('error');
+      
+      let errorDiv = document.getElementById(`${fieldId}-error`);
+      if (!errorDiv) {
+        errorDiv = document.createElement('div');
+        errorDiv.id = `${fieldId}-error`;
+        errorDiv.className = 'form-error';
+        field.parentNode.appendChild(errorDiv);
+      }
+      errorDiv.textContent = message;
+    }
+
+    function clearFieldErrors() {
+      ['tagId', 'title', 'url'].forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) field.classList.remove('error');
+        const errorDiv = document.getElementById(`${fieldId}-error`);
+        if (errorDiv) errorDiv.remove();
+      });
+    }
+
+    async function loadPosters() {
+      await renderPosters();
+      renderTagButtons();
+    }
+
+    function formatDuration(seconds) {
+      if (!seconds || seconds === 0) return '0s';
+      if (seconds < 60) return `${seconds}s`;
+      if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      return `${hours}h ${minutes}m`;
+    }
+
+    async function loadStatistics() {
+      const stats = await ipcRenderer.invoke('get-statistics');
+      document.getElementById('totalTouches').textContent = stats.totalTouches;
+      document.getElementById('todayTouches').textContent = stats.todayTouches;
+      document.getElementById('totalDuration').textContent = formatDuration(stats.totalDuration || 0);
+      document.getElementById('todayDuration').textContent = formatDuration(stats.todayDuration || 0);
+      renderRecentList(stats.recentTouches);
+    }
+
+    async function loadPosterStats() {
+      const stats = await ipcRenderer.invoke('get-statistics');
+      return stats.posterStats || [];
+    }
+
+    async function renderPosters() {
+      posters = await ipcRenderer.invoke('get-posters');
+      const posterStats = await loadPosterStats();
+      
+      const statsMap = {};
+      posterStats.forEach(s => {
+        statsMap[s.id] = s;
+      });
+
+      const container = document.getElementById('posterList');
+      document.getElementById('posterCount').textContent = `${posters.length} 张`;
+      
+      container.innerHTML = posters.map(poster => {
+        const stats = statsMap[poster.id] || {};
+        return `
+        <div class="poster-item ${currentPoster && currentPoster.tag_id === poster.tag_id ? 'active' : ''}" data-tag="${poster.tag_id}">
+          <div class="poster-header">
+            <span class="poster-title">${poster.title}</span>
+            <span class="tag-badge">${poster.tag_id}</span>
+          </div>
+          <div class="poster-url">🔗 ${poster.url}</div>
+          <div class="poster-desc">${poster.description || '暂无描述'}</div>
+          <div class="poster-stats">
+            <span>👆 ${stats.touch_count || 0} 次触碰</span>
+            <span>⏱️ ${formatDuration(stats.total_duration_seconds || 0)} 总停留</span>
+            <span>📊 ${formatDuration(Math.round(stats.avg_duration_seconds || 0))} 平均</span>
+          </div>
+          <div class="poster-actions">
+            <button class="btn btn-success btn-small" onclick="simulateTag('${poster.tag_id}')">模拟触碰</button>
+            <button class="btn btn-primary btn-small" onclick="openEditModal(${poster.id})">编辑</button>
+            <button class="btn btn-danger btn-small" onclick="deletePoster(${poster.id})">删除</button>
+          </div>
+        </div>
+      `}).join('');
+    }
+
+    function renderTagButtons() {
+      const container = document.getElementById('tagButtons');
+      const tags = [...new Set(posters.map(p => p.tag_id))];
+      container.innerHTML = tags.map(tag => `
+        <button class="nfc-tag-btn" onclick="simulateTag('${tag}')">${tag}</button>
+      `).join('');
+    }
+
+    function renderRecentList(recentTouches) {
+      const container = document.getElementById('recentList');
+      if (recentTouches.length === 0) {
+        container.innerHTML = '<div style="color: #9ca3af; text-align: center; padding: 20px;">暂无记录</div>';
+        return;
+      }
+      container.innerHTML = recentTouches.map(touch => `
+        <div class="recent-item">
+          <span>
+            <span class="recent-tag">${touch.tag_id}</span>
+            ${touch.title ? `- ${touch.title}` : ''}
+          </span>
+          <span class="recent-time">${formatTime(touch.touched_at)}</span>
+        </div>
+      `).join('');
+    }
+
+    function formatTime(datetime) {
+      const date = new Date(datetime);
+      return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    async function simulateTag(tagId) {
+      if (isSimulating) {
+        console.log('[Manager] Already simulating, ignoring request');
+        return;
+      }
+      isSimulating = true;
+      try {
+        await ipcRenderer.invoke('simulate-tag', tagId);
+      } finally {
+        setTimeout(() => {
+          isSimulating = false;
+        }, 1000);
+      }
+    }
+
+    function openAddModal() {
+      clearFieldErrors();
+      document.getElementById('modalTitle').textContent = '添加海报';
+      document.getElementById('posterForm').reset();
+      document.getElementById('posterId').value = '';
+      document.getElementById('posterModal').classList.add('active');
+    }
+
+    function openEditModal(id) {
+      clearFieldErrors();
+      const poster = posters.find(p => p.id === id);
+      if (!poster) return;
+      
+      document.getElementById('modalTitle').textContent = '编辑海报';
+      document.getElementById('posterId').value = poster.id;
+      document.getElementById('tagId').value = poster.tag_id;
+      document.getElementById('title').value = poster.title;
+      document.getElementById('url').value = poster.url;
+      document.getElementById('description').value = poster.description || '';
+      document.getElementById('posterModal').classList.add('active');
+    }
+
+    function closeModal() {
+      clearFieldErrors();
+      document.getElementById('posterModal').classList.remove('active');
+    }
+
+    async function deletePoster(id) {
+      if (confirm('确定要删除这张海报吗？')) {
+        await ipcRenderer.invoke('delete-poster', id);
+        showToast('删除成功', 'success');
+        loadPosters();
+        loadStatistics();
+      }
+    }
+
+    function openDisplay() {
+      ipcRenderer.invoke('open-display');
+    }
+
+    async function updateDebounce() {
+      const delay = parseInt(document.getElementById('debounceDelay').value);
+      if (delay >= 100 && delay <= 5000) {
+        await ipcRenderer.invoke('set-debounce', delay);
+        showToast(`防抖动延迟已设置为 ${delay}ms`, 'success');
+      } else {
+        showToast('请输入有效的延迟值 (100-5000ms)', 'error');
+      }
+    }
+
+    async function startCarousel() {
+      const interval = parseInt(document.getElementById('carouselInterval').value);
+      if (interval >= 1000 && interval <= 60000) {
+        await ipcRenderer.invoke('start-carousel', interval);
+        document.getElementById('carouselStatus').textContent = '运行中';
+        document.getElementById('carouselStatus').className = 'carousel-status running';
+        showToast(`轮播已启动，间隔 ${interval}ms`, 'success');
+      } else {
+        showToast('请输入有效的间隔值 (1000-60000ms)', 'error');
+      }
+    }
+
+    async function stopCarousel() {
+      await ipcRenderer.invoke('stop-carousel');
+      document.getElementById('carouselStatus').textContent = '已停止';
+      document.getElementById('carouselStatus').className = 'carousel-status stopped';
+      showToast('轮播已停止', 'success');
+    }
+
+    async function exportReport(format) {
+      const startDate = document.getElementById('exportStartDate').value;
+      const endDate = document.getElementById('exportEndDate').value;
+
+      try {
+        const data = await ipcRenderer.invoke('export-report', format, startDate || null, endDate || null);
+        
+        const blob = new Blob([data], { 
+          type: format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json' 
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `nfc-report-${new Date().toISOString().split('T')[0]}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showToast(`报表已导出 (${format.toUpperCase()})`, 'success');
+      } catch (error) {
+        showToast('导出失败: ' + error.message, 'error');
+      }
+    }
+
+    function showToast(message, type = '') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast show ${type}`;
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    document.getElementById('posterForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearFieldErrors();
+      
+      const id = document.getElementById('posterId').value;
+      const poster = {
+        tag_id: document.getElementById('tagId').value,
+        title: document.getElementById('title').value,
+        url: document.getElementById('url').value,
+        description: document.getElementById('description').value
+      };
+
+      const errors = validateForm(poster);
+      if (errors.length > 0) {
+        errors.forEach(error => {
+          if (error.includes('标签ID')) showFieldError('tagId', error);
+          if (error.includes('标题')) showFieldError('title', error);
+          if (error.includes('URL')) showFieldError('url', error);
+        });
+        showToast(errors[0], 'error');
+        return;
+      }
+
+      try {
+        if (id) {
+          await ipcRenderer.invoke('write-tag', poster.tag_id, poster);
+          showToast('更新成功并已验证', 'success');
+        } else {
+          await ipcRenderer.invoke('write-tag', poster.tag_id, poster);
+          showToast('添加成功并已验证', 'success');
+        }
+      } catch (error) {
+        showToast('数据验证失败: ' + error.message, 'error');
+        return;
+      }
+
+      closeModal();
+      loadPosters();
+    });
+
+    ipcRenderer.on('tag-read', (event, tagData) => {
+      if (tagData.poster) {
+        currentPoster = tagData.poster;
+        document.getElementById('currentPoster').textContent = tagData.poster.title;
+        showToast(`检测到标签: ${tagData.poster.title}`, 'success');
+      } else {
+        showToast(`检测到未知标签: ${tagData.tagId}`, 'error');
+      }
+      renderPosters();
+      loadStatistics();
+    });
+
+    loadPosters();
+    loadStatistics();
+
+    setInterval(loadStatistics, 5000);
+  </script>
+</body>
+</html>

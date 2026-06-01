@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC 远程控制</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .control-panel {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel-section {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #2d3a5a;
+        }
+
+        .panel-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        input, button {
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+        }
+
+        input {
+            flex: 1;
+            background: #0f3460;
+            color: #fff;
+            border: 1px solid #2d3a5a;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #2d3a5a;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status.connected {
+            background: #27ae60;
+        }
+
+        .status.disconnected {
+            background: #e74c3c;
+        }
+
+        .status.connecting {
+            background: #f39c12;
+        }
+
+        .agents-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .agent-item {
+            background: #0f3460;
+            padding: 10px 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid #2d3a5a;
+        }
+
+        .agent-item.active {
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .agent-id {
+            font-family: monospace;
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .screen-container {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        #screen-video {
+            width: 100%;
+            max-height: 70vh;
+            background: #000;
+            border-radius: 8px;
+            cursor: crosshair;
+            object-fit: contain;
+            aspect-ratio: auto;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .info-card {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .logs {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #1a2a4a;
+        }
+
+        .log-time {
+            color: #666;
+            margin-right: 10px;
+        }
+
+        .log-info {
+            color: #3498db;
+        }
+
+        .log-success {
+            color: #2ecc71;
+        }
+
+        .log-error {
+            color: #e74c3c;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 24px;
+            background: #0f3460;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        select {
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #2d3a5a;
+            background: #0f3460;
+            color: #fff;
+            font-size: 14px;
+            min-width: 200px;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🖥️ WebRTC 远程控制系统</h1>
+            <p>主控端 - 屏幕共享与远程控制</p>
+        </header>
+
+        <div class="control-panel">
+            <div class="panel-section">
+                <h2>📋 房间管理</h2>
+                <div class="input-group">
+                    <input type="text" id="roomId" placeholder="输入房间ID或点击创建">
+                    <button id="createRoomBtn">创建房间</button>
+                    <button id="joinRoomBtn">加入房间</button>
+                </div>
+                <div>
+                    <span>状态: </span>
+                    <span id="connectionStatus" class="status disconnected">未连接</span>
+                </div>
+            </div>
+
+            <div class="panel-section hidden" id="screenSection">
+                <h2>📺 屏幕共享</h2>
+                <div class="input-group">
+                    <select id="displaySelector" class="hidden">
+                        <option value="">加载显示器中...</option>
+                    </select>
+                    <button id="startScreenBtn">开始屏幕共享</button>
+                    <button id="stopScreenBtn" class="btn-danger hidden">停止共享</button>
+                </div>
+            </div>
+
+            <div class="panel-section hidden" id="toolsSection">
+                <h2>🛠️ 工具</h2>
+                <div class="input-group">
+                    <button id="startRecordBtn" class="btn-secondary">开始录制</button>
+                    <button id="stopRecordBtn" class="btn-danger hidden">停止录制</button>
+                    <span id="recordStatus" class="status hidden">录制中 🔴</span>
+                </div>
+                <div class="input-group" style="margin-top: 10px;">
+                    <input type="file" id="fileInput" class="hidden">
+                    <button id="selectFileBtn" class="btn-secondary">选择文件</button>
+                    <button id="sendFileBtn" disabled>发送文件</button>
+                    <span id="fileName" style="line-height: 40px; margin-left: 10px; color: #888;"></span>
+                </div>
+                <div class="progress-bar hidden" id="progressBar">
+                    <div class="progress-fill" id="progressFill"></div>
+                    <span class="progress-text" id="progressText">0%</span>
+                </div>
+            </div>
+
+            <div class="panel-section hidden" id="agentsSection">
+                <h2>🤖 被控端列表</h2>
+                <button id="refreshAgentsBtn" class="btn-secondary">刷新列表</button>
+                <div class="agents-list" id="agentsList"></div>
+            </div>
+
+            <div class="panel-section hidden" id="controlSection">
+                <h2>🎮 远程控制</h2>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <div class="info-label">DataChannel状态</div>
+                        <div class="info-value" id="channelStatus">未连接</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">事件发送数</div>
+                        <div class="info-value" id="eventCount">0</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">当前被控端</div>
+                        <div class="info-value" id="currentAgent">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h2>📝 日志</h2>
+                <div class="logs" id="logs"></div>
+            </div>
+        </div>
+
+        <div class="screen-container hidden" id="screenContainer">
+            <h2>远程屏幕</h2>
+            <video id="screen-video" autoplay playsinline muted></video>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="master.js"></script>
+</body>
+</html>

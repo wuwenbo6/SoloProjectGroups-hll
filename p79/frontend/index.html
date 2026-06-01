@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>城市内涝模拟系统 - SWMM</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+        <h1>城市内涝模拟系统</h1>
+        <p class="subtitle">基于SWMM的降雨径流模拟、风险评估与避险规划</p>
+    </header>
+
+        <div class="main-content">
+            <aside class="sidebar">
+                <div class="control-panel">
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="simulation">模拟</button>
+                        <button class="tab-btn" data-tab="damage">损失评估</button>
+                        <button class="tab-btn" data-tab="evacuation">避险路径</button>
+                    </div>
+
+                    <div id="tab-simulation" class="tab-content active">
+                        <div class="control-group">
+                            <label for="returnPeriod">重现期选择</label>
+                            <select id="returnPeriod" class="form-control">
+                                <option value="2">2年一遇</option>
+                                <option value="50">50年一遇</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <button id="btnSimulate" class="btn btn-primary">运行模拟</button>
+                            <button id="btnClear" class="btn btn-secondary">清除图层</button>
+                        </div>
+
+                        <div class="control-group">
+                            <label>
+                                <input type="checkbox" id="showPoints" checked>
+                                显示水深点
+                            </label>
+                            <label>
+                                <input type="checkbox" id="showContour" checked>
+                                显示等值线
+                            </label>
+                            <label>
+                                <input type="checkbox" id="showNodes" checked>
+                                显示管网节点
+                            </label>
+                        </div>
+
+                        <div class="control-group">
+                            <label for="opacitySlider">透明度</label>
+                            <input type="range" id="opacitySlider" min="0" max="100" value="70" class="slider">
+                            <span id="opacityValue">70%</span>
+                        </div>
+
+                        <div class="legend">
+                            <h3>淹没水深图例</h3>
+                            <div class="legend-items">
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #ffffcc"></div>
+                                    <span>0.1 - 0.3m</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #c7e9b4"></div>
+                                    <span>0.3 - 0.5m</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #7fcdbb"></div>
+                                    <span>0.5 - 1.0m</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #41b6c4"></div>
+                                    <span>1.0 - 2.0m</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #2c7fb8"></div>
+                                    <span>> 2.0m</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stats" id="statsPanel">
+                            <h3>统计信息</h3>
+                            <div class="stat-item">
+                                <span class="stat-label">重现期:</span>
+                                <span class="stat-value" id="statPeriod">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">水深点数:</span>
+                                <span class="stat-value" id="statPoints">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">节点数:</span>
+                                <span class="stat-value" id="statNodes">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">最大水深:</span>
+                                <span class="stat-value" id="statMaxDepth">-</span>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <button id="btnExportPdf" class="btn btn-success" style="width: 100%;">导出PDF风险报告</button>
+                        </div>
+                    </div>
+
+                    <div id="tab-damage" class="tab-content">
+                        <h3>财产损失评估</h3>
+                        <div class="control-group">
+                            <button id="btnAssessDamage" class="btn btn-warning">运行损失评估</button>
+                        </div>
+
+                        <div class="control-group">
+                            <label>
+                                <input type="checkbox" id="showBuildings" checked>
+                                显示受损建筑
+                            </label>
+                        </div>
+
+                        <div class="stats" id="damageStats">
+                            <h3>损失统计</h3>
+                            <div class="stat-item">
+                                <span class="stat-label">建筑总数:</span>
+                                <span class="stat-value" id="statBuildings">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">受影响:</span>
+                                <span class="stat-value" id="statAffected">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">严重受损:</span>
+                                <span class="stat-value" id="statSevere">-</span>
+                            </div>
+                            <div class="stat-item highlight">
+                                <span class="stat-label">总损失:</span>
+                                <span class="stat-value" id="statTotalLoss">-</span>
+                            </div>
+                        </div>
+
+                        <div class="legend">
+                            <h3>建筑类型图例</h3>
+                            <div class="legend-items">
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #ff6b6b"></div>
+                                    <span>住宅</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #ffd93d"></div>
+                                    <span>商业</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #6bcb77"></div>
+                                    <span>工业</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #4d96ff"></div>
+                                    <span>公共设施</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-evacuation" class="tab-content">
+                        <h3>避险路径规划</h3>
+                        <div class="control-group">
+                            <p class="hint">点击地图选择起点位置，或输入坐标：</p>
+                            <div class="coord-input">
+                                <div>
+                                    <label>经度:</label>
+                                    <input type="text" id="startLon" value="116.400" class="form-control small">
+                                </div>
+                                <div>
+                                    <label>纬度:</label>
+                                    <input type="text" id="startLat" value="39.900" class="form-control small">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <button id="btnFindRoute" class="btn btn-success">查找避险路线</button>
+                            <button id="btnClearRoutes" class="btn btn-secondary">清除路径</button>
+                        </div>
+
+                        <div class="control-group">
+                            <label>
+                                <input type="checkbox" id="showSafeZones" checked>
+                                显示避险区域
+                            </label>
+                            <label>
+                                <input type="checkbox" id="showRoutes" checked>
+                                显示规划路径
+                            </label>
+                        </div>
+
+                        <div class="stats" id="routeStats">
+                            <h3>路径信息</h3>
+                            <div class="stat-item">
+                                <span class="stat-label">推荐目标:</span>
+                                <span class="stat-value" id="statDest">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">距离:</span>
+                                <span class="stat-value" id="statDist">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">预计时间:</span>
+                                <span class="stat-value" id="statTime">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">容纳人数:</span>
+                                <span class="stat-value" id="statCapacity">-</span>
+                            </div>
+                        </div>
+
+                        <div id="routeList" class="route-list">
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="map-container">
+                <div id="map"></div>
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>正在运行SWMM模拟...</p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

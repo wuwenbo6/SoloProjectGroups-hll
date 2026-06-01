@@ -1,0 +1,6 @@
+flask==3.0.0
+flask-cors==4.0.0
+numpy==1.24.3
+tensorflow==2.15.0
+midiutil==1.2.1
+music21==9.1.0

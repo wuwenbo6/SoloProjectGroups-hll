@@ -1,0 +1,16 @@
+{
+  "name": "webrtc-agent",
+  "version": "1.0.0",
+  "description": "WebRTC被控端Agent",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "ws": "^8.16.0",
+    "robotjs": "^0.6.0",
+    "node-fetch": "^3.3.2"
+  }
+}

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modbus 协议解析器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔌 Modbus 工业协议解析器</h1>
+            <p>上传 PCAP 文件，解析并展示自定义工业协议字段</p>
+        </header>
+
+        <div class="main-content">
+            <aside class="sidebar">
+                <div class="panel">
+                    <h2>📁 上传 PCAP</h2>
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="pcapFile" accept=".pcap,.pcapng" hidden>
+                        <div class="upload-icon">📤</div>
+                        <p>点击或拖拽上传 PCAP 文件</p>
+                        <small>支持 .pcap 和 .pcapng 格式</small>
+                    </div>
+                    <button id="uploadBtn" class="btn btn-primary">上传并解析</button>
+                </div>
+
+                <div class="panel">
+                    <h2>📋 已上传文件</h2>
+                    <div id="pcapList" class="pcap-list">
+                        <div class="empty-state">暂无文件</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h2>📑 协议模板</h2>
+                    <button id="initTemplateBtn" class="btn btn-secondary">初始化默认模板</button>
+                    <div id="templateList" class="template-list">
+                        <div class="empty-state">暂无模板</div>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="content">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="packets">📦 数据包</button>
+                    <button class="tab-btn" data-tab="analysis">📊 统计分析</button>
+                    <button class="tab-btn" data-tab="alerts">⚠️ 告警</button>
+                    <button class="tab-btn" data-tab="transactions">🔄 事务</button>
+                </div>
+
+                <div id="packets-tab" class="tab-content active">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2 id="currentFileName">请选择一个 PCAP 文件</h2>
+                            <div class="stats" id="stats" style="display: none;">
+                                <span class="stat">📦 数据包: <strong id="packetCount">0</strong></span>
+                                <span class="stat">📊 协议: <strong id="protocolName">-</strong></span>
+                            </div>
+                            <div class="action-buttons">
+                                <button id="analyzeBtn" class="btn btn-primary" style="display: none; width: auto;">📊 分析</button>
+                                <button id="exportJsonBtn" class="btn btn-secondary" style="display: none; width: auto;">📥 导出 JSON</button>
+                                <button id="exportHtmlBtn" class="btn btn-secondary" style="display: none; width: auto;">📄 导出 HTML</button>
+                            </div>
+                        </div>
+
+                        <div class="split-view">
+                            <div class="packet-list-container">
+                                <div class="list-header">
+                                    <span class="col-num">#</span>
+                                    <span class="col-time">时间</span>
+                                    <span class="col-src">源 IP</span>
+                                    <span class="col-dst">目的 IP</span>
+                                    <span class="col-proto">协议</span>
+                                    <span class="col-len">长度</span>
+                                </div>
+                                <div id="packetList" class="packet-list">
+                                    <div class="empty-state">上传 PCAP 后显示数据包列表</div>
+                                </div>
+                            </div>
+
+                            <div class="packet-detail-container">
+                                <div class="detail-header">
+                                    <h3>🔍 字段详情</h3>
+                                </div>
+                                <div id="fieldTree" class="field-tree">
+                                    <div class="empty-state">选择一个数据包查看字段详情</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="analysis-tab" class="tab-content">
+                    <div class="panel">
+                        <h2>📊 统计分析</h2>
+                        <div id="analysisContent">
+                            <div class="empty-state">选择并分析 PCAP 文件后显示统计信息</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="alerts-tab" class="tab-content">
+                    <div class="panel">
+                        <h2>⚠️ 告警信息</h2>
+                        <div id="alertsContent">
+                            <div class="empty-state">暂无告警信息</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="transactions-tab" class="tab-content">
+                    <div class="panel">
+                        <h2>🔄 事务列表</h2>
+                        <div id="transactionsContent">
+                            <div class="empty-state">选择并分析 PCAP 文件后显示事务列表</div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

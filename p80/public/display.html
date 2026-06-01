@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>海报显示</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #000;
+      color: white;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    .display-container {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .poster-frame {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .poster-content {
+      text-align: center;
+      padding: 40px;
+      max-width: 90%;
+      z-index: 10;
+    }
+
+    .poster-title {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+      animation: fadeInUp 0.5s ease;
+    }
+
+    .poster-url {
+      font-size: 20px;
+      opacity: 0.9;
+      margin-bottom: 30px;
+      padding: 15px 30px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50px;
+      display: inline-block;
+      backdrop-filter: blur(10px);
+    }
+
+    .poster-description {
+      font-size: 18px;
+      opacity: 0.8;
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .tag-info {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0,0,0,0.6);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      backdrop-filter: blur(10px);
+    }
+
+    .tag-badge {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-weight: 600;
+      margin-right: 10px;
+    }
+
+    .status-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+      padding: 30px 40px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    .status-text {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    .time-display {
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .welcome-screen {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .welcome-icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+      animation: bounce 2s infinite;
+    }
+
+    .welcome-title {
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 15px;
+    }
+
+    .welcome-subtitle {
+      font-size: 18px;
+      opacity: 0.8;
+    }
+
+    .background-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.3;
+      z-index: 1;
+    }
+
+    .gradient-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.7) 0%, rgba(118, 75, 162, 0.7) 100%);
+      z-index: 2;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+
+    .transition-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease-in-out;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .transition-overlay.active {
+      opacity: 1;
+    }
+
+    .transition-loading {
+      color: white;
+      font-size: 24px;
+      font-weight: 600;
+      opacity: 0.8;
+    }
+
+    .poster-frame {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      transition: opacity 0.3s ease-in-out;
+    }
+
+    .poster-frame.hidden {
+      opacity: 0;
+    }
+
+    .welcome-screen {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      transition: opacity 0.3s ease-in-out;
+    }
+
+    .welcome-screen.hidden {
+      opacity: 0;
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .poster-count {
+      background: rgba(255,255,255,0.2);
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 13px;
+    }
+
+    .source-badge {
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 13px;
+      margin-right: 10px;
+    }
+
+    .source-badge.nfc {
+      background: rgba(99, 102, 241, 0.6);
+    }
+
+    .source-badge.carousel {
+      background: rgba(16, 185, 129, 0.6);
+    }
+
+    .session-timer {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="transition-overlay" id="transitionOverlay">
+    <div class="transition-loading" id="transitionLoading">切换中...</div>
+  </div>
+  
+  <div class="display-container" id="displayContainer">
+    <div class="welcome-screen" id="welcomeScreen">
+      <div class="welcome-icon">📱</div>
+      <div class="welcome-title">NFC 海报显示系统</div>
+      <div class="welcome-subtitle">请将 NFC 标签靠近读写器以切换海报</div>
+    </div>
+
+    <div class="poster-frame hidden" id="posterFrame">
+      <div class="gradient-overlay"></div>
+      <div class="tag-info">
+        <span class="tag-badge" id="displayTagId">NFC001</span>
+        <span id="displayTime">海报更新于 -</span>
+      </div>
+      <div class="poster-content">
+        <div class="poster-title" id="displayTitle">海报标题</div>
+        <div class="poster-url" id="displayUrl">https://example.com</div>
+        <div class="poster-description" id="displayDescription">海报描述信息</div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-left">
+        <div class="status-indicator"></div>
+        <span class="status-text">PC/SC NFC 读写器已连接</span>
+      </div>
+      <div>
+        <span class="source-badge" id="sourceBadge" style="display:none;"></span>
+        <span class="session-timer" id="sessionTimer" style="display:none;"></span>
+      </div>
+      <div class="poster-count" id="posterTouchCount">已触碰 0 次</div>
+      <div class="time-display" id="currentTime"></div>
+    </div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    let currentPoster = null;
+    let currentTagId = null;
+    let touchCount = 0;
+    let isTransitioning = false;
+    let pendingPosterData = null;
+    let sessionStartTime = null;
+    let sessionTimerInterval = null;
+    const DEBOUNCE_DELAY = 800;
+
+    function updateTime() {
+      const now = new Date();
+      document.getElementById('currentTime').textContent = now.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+
+    function startSessionTimer() {
+      stopSessionTimer();
+      sessionStartTime = Date.now();
+      updateSessionTimer();
+      sessionTimerInterval = setInterval(updateSessionTimer, 1000);
+    }
+
+    function stopSessionTimer() {
+      if (sessionTimerInterval) {
+        clearInterval(sessionTimerInterval);
+        sessionTimerInterval = null;
+      }
+      sessionStartTime = null;
+    }
+
+    function updateSessionTimer() {
+      if (!sessionStartTime) return;
+      const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+      const hours = Math.floor(elapsed / 3600);
+      const minutes = Math.floor((elapsed % 3600) / 60);
+      const seconds = elapsed % 60;
+      let timeStr = '';
+      if (hours > 0) timeStr += `${hours}h `;
+      if (minutes > 0 || hours > 0) timeStr += `${minutes}m `;
+      timeStr += `${seconds}s`;
+      document.getElementById('sessionTimer').textContent = `停留: ${timeStr}`;
+    }
+
+    function showSourceBadge(source) {
+      const badge = document.getElementById('sourceBadge');
+      const timer = document.getElementById('sessionTimer');
+      
+      if (source) {
+        badge.style.display = 'inline-block';
+        badge.className = `source-badge ${source}`;
+        badge.textContent = source === 'carousel' ? '🔄 轮播' : '📱 NFC';
+        timer.style.display = 'inline';
+      } else {
+        badge.style.display = 'none';
+        timer.style.display = 'none';
+      }
+    }
+
+    function showPoster(posterData) {
+      if (isTransitioning) {
+        pendingPosterData = posterData;
+        return;
+      }
+
+      if (posterData && posterData.tagId === currentTagId) {
+        console.log('[Display] Same poster, skipping transition');
+        return;
+      }
+
+      isTransitioning = true;
+      const transitionOverlay = document.getElementById('transitionOverlay');
+      const welcomeScreen = document.getElementById('welcomeScreen');
+      const posterFrame = document.getElementById('posterFrame');
+      const transitionLoading = document.getElementById('transitionLoading');
+
+      if (posterData && posterData.poster) {
+        transitionLoading.textContent = posterData.poster.title;
+      }
+
+      transitionOverlay.classList.add('active');
+
+      setTimeout(() => {
+        currentPoster = posterData;
+        currentTagId = posterData ? posterData.tagId : null;
+        touchCount++;
+
+        if (posterData && posterData.poster) {
+          welcomeScreen.classList.add('hidden');
+          posterFrame.classList.remove('hidden');
+
+          document.getElementById('displayTagId').textContent = posterData.tagId;
+          document.getElementById('displayTitle').textContent = posterData.poster.title;
+          document.getElementById('displayUrl').textContent = posterData.poster.url;
+          document.getElementById('displayDescription').textContent = posterData.poster.description || '暂无描述';
+          document.getElementById('displayTime').textContent = `检测于 ${new Date(posterData.timestamp).toLocaleTimeString('zh-CN')}`;
+          document.getElementById('posterTouchCount').textContent = `已触碰 ${touchCount} 次`;
+          
+          showSourceBadge(posterData.source || 'nfc');
+          startSessionTimer();
+        } else {
+          welcomeScreen.classList.remove('hidden');
+          posterFrame.classList.add('hidden');
+          showSourceBadge(null);
+          stopSessionTimer();
+        }
+
+        setTimeout(() => {
+          transitionOverlay.classList.remove('active');
+          
+          setTimeout(() => {
+            isTransitioning = false;
+            if (pendingPosterData) {
+              const nextData = pendingPosterData;
+              pendingPosterData = null;
+              showPoster(nextData);
+            }
+          }, 200);
+        }, 300);
+      }, 200);
+    }
+
+    ipcRenderer.on('poster-change', (event, tagData) => {
+      if (tagData && tagData.poster) {
+        showPoster(tagData);
+      }
+    });
+
+    updateTime();
+    setInterval(updateTime, 1000);
+  </script>
+</body>
+</html>

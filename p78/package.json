@@ -1,0 +1,23 @@
+{
+  "name": "usb-oscilloscope",
+  "version": "1.0.0",
+  "description": "USB Oscilloscope with Electron, libusb, WebRTC and Canvas",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:cpp": "node-gyp rebuild",
+    "dev": "electron . --dev"
+  },
+  "keywords": ["oscilloscope", "usb", "libusb", "electron", "webrtc"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "node-addon-api": "^7.1.0",
+    "bindings": "^1.5.0",
+    "@electron/remote": "^2.0.11"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "node-gyp": "^10.0.1"
+  }
+}

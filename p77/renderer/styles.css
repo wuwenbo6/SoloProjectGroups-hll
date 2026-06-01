@@ -1,0 +1,621 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: #fff;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+header {
+  text-align: center;
+  padding: 30px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 30px;
+}
+
+header h1 {
+  font-size: 2.5rem;
+  background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 25px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+section h2 {
+  font-size: 1.3rem;
+  margin-bottom: 20px;
+  color: #00d2ff;
+}
+
+.input-section,
+.preview-section,
+.presets-section {
+  grid-column: 1 / -1;
+}
+
+.chord-input textarea {
+  width: 100%;
+  height: 100px;
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-size: 1.1rem;
+  resize: vertical;
+  font-family: monospace;
+}
+
+.midi-input {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.midi-input h3 {
+  width: 100%;
+  margin-bottom: 10px;
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+.midi-input select,
+.midi-input button,
+.setting-group select,
+.setting-group input {
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-size: 1rem;
+}
+
+.midi-input button,
+.preset-form button,
+#savePresetBtn {
+  background: linear-gradient(135deg, #3a7bd5, #00d2ff);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.midi-input button:hover,
+.preset-form button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(0, 210, 255, 0.4);
+}
+
+#midiStatus {
+  padding: 10px 15px;
+  border-radius: 8px;
+  background: rgba(255, 100, 100, 0.2);
+  font-size: 0.9rem;
+}
+
+#midiStatus.connected {
+  background: rgba(100, 255, 100, 0.2);
+}
+
+.detected-chords {
+  margin-top: 20px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+.detected-chords h4 {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  margin-bottom: 10px;
+}
+
+#chordDisplay {
+  font-family: monospace;
+  font-size: 1.3rem;
+  color: #00ff88;
+}
+
+.setting-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.setting-group label {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.setting-group input {
+  width: 100px;
+}
+
+.action-section {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.primary-btn,
+.secondary-btn {
+  padding: 15px 40px;
+  font-size: 1.1rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 600;
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+  color: #fff;
+  box-shadow: 0 5px 20px rgba(0, 210, 255, 0.3);
+}
+
+.primary-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 210, 255, 0.5);
+}
+
+.secondary-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.secondary-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#previewStatus {
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+#tracksPreview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.track-card {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.track-card h4 {
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+
+.track-card.drums { border-left: 4px solid #ff6b6b; }
+.track-card.bass { border-left: 4px solid #ffd93d; }
+.track-card.piano { border-left: 4px solid #6bcb77; }
+
+.preset-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.preset-form input {
+  flex: 1;
+  padding: 12px 15px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-size: 1rem;
+}
+
+.presets-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.preset-item {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 12px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.preset-item:hover {
+  background: rgba(0, 210, 255, 0.2);
+}
+
+.preset-info h4 {
+  font-size: 0.95rem;
+  margin-bottom: 3px;
+}
+
+.preset-info p {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.preset-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.preset-actions button {
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.preset-load {
+  background: #3a7bd5;
+  color: #fff;
+}
+
+.preset-delete {
+  background: #ff6b6b;
+  color: #fff;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.midi-section {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.midi-input-group,
+.midi-output-group,
+.midi-clock-group {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.midi-section h3 {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin-bottom: 5px;
+}
+
+.midi-section select,
+.midi-section button {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.midi-section button {
+  background: linear-gradient(135deg, #3a7bd5, #00d2ff);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.midi-section button:hover {
+  transform: translateY(-2px);
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 5px;
+  background: rgba(255, 100, 100, 0.3);
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.status-badge.connected {
+  background: rgba(100, 255, 100, 0.3);
+}
+
+.clock-btn {
+  background: linear-gradient(135deg, #ff6b6b, #ffd93d) !important;
+}
+
+.clock-btn.active {
+  background: linear-gradient(135deg, #6bcb77, #4ecdc4) !important;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.clock-display,
+.playback-display {
+  padding: 8px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.3);
+  text-align: center;
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
+.playback-section {
+  grid-column: 1 / -1;
+}
+
+.playback-controls {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.play-btn,
+.stop-btn {
+  padding: 12px 30px;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.play-btn {
+  background: linear-gradient(135deg, #6bcb77, #4ecdc4);
+  color: #fff;
+}
+
+.play-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 5px 20px rgba(107, 203, 119, 0.4);
+}
+
+.play-btn.playing {
+  background: linear-gradient(135deg, #ffd93d, #ff6b6b);
+}
+
+.stop-btn {
+  background: rgba(255, 107, 107, 0.3);
+  color: #fff;
+  border: 1px solid rgba(255, 107, 107, 0.5);
+}
+
+.stop-btn:hover:not(:disabled) {
+  background: rgba(255, 107, 107, 0.5);
+}
+
+.sheet-music-section {
+  grid-column: 1 / -1;
+}
+
+.sheet-music-container {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  min-height: 200px;
+  padding: 20px;
+}
+
+.sheet-placeholder {
+  text-align: center;
+  padding: 40px;
+  opacity: 0.5;
+}
+
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sheet-header h3 {
+  margin: 0;
+}
+
+.sheet-info {
+  display: flex;
+  gap: 20px;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.chord-progression-display {
+  margin-bottom: 20px;
+}
+
+.chord-progression-display h4 {
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+  opacity: 0.8;
+}
+
+.chord-bar {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.chord-cell {
+  padding: 10px 15px;
+  background: rgba(0, 210, 255, 0.2);
+  border-radius: 6px;
+  text-align: center;
+  min-width: 60px;
+  position: relative;
+}
+
+.chord-cell.bar-start {
+  border-left: 3px solid #00d2ff;
+}
+
+.chord-name {
+  font-weight: bold;
+  font-size: 1.1rem;
+  display: block;
+}
+
+.chord-number {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.tracks-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.track-sheet {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.track-sheet-label {
+  width: 80px;
+  font-size: 0.9rem;
+  text-align: right;
+  padding-right: 10px;
+}
+
+.track-sheet-staff {
+  flex: 1;
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.bar-line {
+  flex: 1;
+  min-height: 50px;
+  position: relative;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bar-line.first {
+  border-left: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.staff-lines {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.staff-line {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.bar-notes {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+}
+
+.note-marker {
+  position: absolute;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.note-name {
+  font-size: 0.65rem;
+  opacity: 0.7;
+  margin-bottom: 2px;
+}
+
+.note-head {
+  width: 8px;
+  height: 8px;
+  background: #00d2ff;
+  border-radius: 50%;
+}
+
+.rest {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.3;
+  font-size: 1.2rem;
+}

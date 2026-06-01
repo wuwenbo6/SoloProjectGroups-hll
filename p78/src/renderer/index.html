@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USB Oscilloscope</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <h1>📡 USB 示波器</h1>
+            <div class="status-bar">
+                <span id="connectionStatus" class="status disconnected">未连接</span>
+                <span id="captureStatus" class="status stopped">已停止</span>
+                <span id="sampleRate">采样率: 0</span>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <aside class="control-panel">
+                <div class="control-section">
+                    <h3>连接控制</h3>
+                    <button id="btnConnect" class="btn btn-primary">连接设备</button>
+                    <button id="btnDisconnect" class="btn btn-danger" disabled>断开连接</button>
+                    <button id="btnStart" class="btn btn-success" disabled>开始采集</button>
+                    <button id="btnStop" class="btn btn-warning" disabled>停止采集</button>
+                </div>
+
+                <div class="control-section">
+                    <h3>通道设置</h3>
+                    <div class="channel-selector">
+                        <label class="channel-checkbox">
+                            <input type="checkbox" id="ch1Enabled" checked disabled>
+                            <span class="channel-label ch1-color">CH1</span>
+                        </label>
+                        <label class="channel-checkbox">
+                            <input type="checkbox" id="ch2Enabled" disabled>
+                            <span class="channel-label ch2-color">CH2</span>
+                        </label>
+                        <label class="channel-checkbox">
+                            <input type="checkbox" id="mathEnabled" disabled>
+                            <span class="channel-label math-color">MATH</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>电压轴 (Volt/Div)</h3>
+                    <div class="control-info">
+                        <label>CH1 量程</label>
+                        <select id="voltageScale" class="control-select" disabled>
+                            <option value="1">1 V</option>
+                            <option value="2">2 V</option>
+                            <option value="5" selected>5 V</option>
+                            <option value="10">10 V</option>
+                        </select>
+                    </div>
+                    <div class="control-info">
+                        <label>CH2 量程</label>
+                        <select id="ch2VoltageScale" class="control-select" disabled>
+                            <option value="1">1 V</option>
+                            <option value="2">2 V</option>
+                            <option value="5" selected>5 V</option>
+                            <option value="10">10 V</option>
+                        </select>
+                    </div>
+                    <div class="control-info">
+                        <label>CH1 偏移</label>
+                        <input type="range" id="ch1Offset" min="-100" max="100" value="0" disabled>
+                        <span id="ch1OffsetValue">0</span>
+                    </div>
+                    <div class="control-info">
+                        <label>CH2 偏移</label>
+                        <input type="range" id="ch2Offset" min="-100" max="100" value="50" disabled>
+                        <span id="ch2OffsetValue">50</span>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>时间轴 (Time/Div)</h3>
+                    <select id="timeScale" class="control-select" disabled>
+                        <option value="1">1 ms</option>
+                        <option value="2">2 ms</option>
+                        <option value="5" selected>5 ms</option>
+                        <option value="10">10 ms</option>
+                        <option value="50">50 ms</option>
+                    </select>
+                    <div class="control-info">
+                        <label>滚动速度</label>
+                        <input type="range" id="scrollSpeed" min="1" max="10" value="5" disabled>
+                        <span id="scrollSpeedValue">5</span>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>触发设置</h3>
+                    <div class="control-info">
+                        <label>触发模式</label>
+                        <select id="triggerMode" class="control-select" disabled>
+                            <option value="auto">自动</option>
+                            <option value="normal">正常</option>
+                            <option value="single">单次</option>
+                        </select>
+                    </div>
+                    <div class="control-info">
+                        <label>触发电平</label>
+                        <input type="range" id="triggerLevel" min="-32768" max="32767" value="0" disabled>
+                        <span id="triggerLevelValue">0</span>
+                    </div>
+                    <div class="control-info">
+                        <label>触发迟滞</label>
+                        <input type="range" id="triggerHysteresis" min="0" max="5000" value="500" disabled>
+                        <span id="triggerHysteresisValue">500</span>
+                    </div>
+                    <div class="control-info">
+                        <label>触发防抖 (ms)</label>
+                        <input type="range" id="triggerDebounce" min="0" max="1000" value="100" disabled>
+                        <span id="triggerDebounceValue">100</span>
+                    </div>
+                    <div class="control-info">
+                        <label>触发边沿</label>
+                        <select id="triggerEdge" class="control-select" disabled>
+                            <option value="rising">上升沿</option>
+                            <option value="falling">下降沿</option>
+                        </select>
+                    </div>
+                    <div class="control-info">
+                        <label>噪声滤波强度</label>
+                        <select id="noiseFilterSize" class="control-select" disabled>
+                            <option value="1">关闭</option>
+                            <option value="3">弱 (3点)</option>
+                            <option value="5" selected>中 (5点)</option>
+                            <option value="7">强 (7点)</option>
+                            <option value="11">很强 (11点)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>数学运算</h3>
+                    <div class="control-info">
+                        <label>运算类型</label>
+                        <select id="mathOperation" class="control-select" disabled>
+                            <option value="add">CH1 + CH2</option>
+                            <option value="subtract">CH1 - CH2</option>
+                            <option value="multiply">CH1 × CH2</option>
+                            <option value="fft">FFT 频谱</option>
+                        </select>
+                    </div>
+                    <div class="control-info">
+                        <label>运算增益</label>
+                        <input type="range" id="mathGain" min="1" max="100" value="10" disabled>
+                        <span id="mathGainValue">1.0x</span>
+                    </div>
+                    <div class="control-info">
+                        <label>FFT 窗口</label>
+                        <select id="fftWindow" class="control-select" disabled>
+                            <option value="rectangular">矩形窗</option>
+                            <option value="hann" selected>汉宁窗</option>
+                            <option value="hamming">汉明窗</option>
+                            <option value="blackman">布莱克曼窗</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>显示设置</h3>
+                    <div class="control-info">
+                        <label>CH1 颜色</label>
+                        <input type="color" id="ch1Color" value="#00ff88" disabled>
+                    </div>
+                    <div class="control-info">
+                        <label>CH2 颜色</label>
+                        <input type="color" id="ch2Color" value="#00d4ff" disabled>
+                    </div>
+                    <div class="control-info">
+                        <label>MATH 颜色</label>
+                        <input type="color" id="mathColor" value="#ffaa00" disabled>
+                    </div>
+                    <div class="control-info">
+                        <label>网格显示</label>
+                        <input type="checkbox" id="showGrid" checked disabled>
+                    </div>
+                    <div class="control-info">
+                        <label>显示测量</label>
+                        <input type="checkbox" id="showMeasurements" checked disabled>
+                    </div>
+                    <div class="control-info">
+                        <label>显示FFT</label>
+                        <input type="checkbox" id="showFFT" disabled>
+                        <span class="fft-label" id="fftInfo">OFF</span>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>数据导出</h3>
+                    <button id="btnExportCSV" class="btn btn-secondary" disabled>导出 CSV</button>
+                    <button id="btnCapture" class="btn btn-secondary" disabled>截屏保存</button>
+                    <div class="control-info">
+                        <label>导出通道</label>
+                        <select id="exportChannel" class="control-select" disabled>
+                            <option value="ch1">CH1 仅</option>
+                            <option value="ch2">CH2 仅</option>
+                            <option value="both" selected>CH1 + CH2</option>
+                            <option value="all">全部通道</option>
+                        </select>
+                    </div>
+                </div>
+            </aside>
+
+            <section class="waveform-container">
+                <div class="canvas-wrapper">
+                    <canvas id="waveformCanvas"></canvas>
+                    <div class="measurements-overlay" id="measurementsOverlay">
+                        <div class="measurement-item">
+                            <span class="label">Vpp:</span>
+                            <span class="value" id="vppValue">0.00 V</span>
+                        </div>
+                        <div class="measurement-item">
+                            <span class="label">Vmax:</span>
+                            <span class="value" id="vmaxValue">0.00 V</span>
+                        </div>
+                        <div class="measurement-item">
+                            <span class="label">Vmin:</span>
+                            <span class="value" id="vminValue">0.00 V</span>
+                        </div>
+                        <div class="measurement-item">
+                            <span class="label">Freq:</span>
+                            <span class="value" id="freqValue">0.00 Hz</span>
+                        </div>
+                        <div class="measurement-item">
+                            <span class="label">Period:</span>
+                            <span class="value" id="periodValue">0.00 ms</span>
+                        </div>
+                        <div class="measurement-item fft-item">
+                            <span class="label">Peak:</span>
+                            <span class="value" id="fftPeakValue">-- Hz</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="fft-container" id="fftContainer" style="display: none;">
+                    <canvas id="fftCanvas"></canvas>
+                    <div class="fft-axis">
+                        <div class="fft-markers" id="fftMarkers"></div>
+                    </div>
+                </div>
+                <div class="time-axis">
+                    <div class="time-markers" id="timeMarkers"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

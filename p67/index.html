@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FMCW 雷达信号处理系统</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="node_modules/chart.js/dist/chart.umd.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>FMCW 雷达信号处理系统</h1>
+      <p>调频连续波雷达 - 距离估计与时频分析</p>
+    </header>
+
+    <div class="main-content">
+      <aside class="sidebar">
+        <div class="control-panel">
+          <h2>参数设置</h2>
+          
+          <div class="param-group">
+            <label for="bandwidth">带宽 (MHz)</label>
+            <input type="range" id="bandwidth" min="10" max="500" value="100" step="10">
+            <span id="bandwidth-value">100 MHz</span>
+          </div>
+
+          <div class="param-group">
+            <label for="sweepTime">扫频时间 (ms)</label>
+            <input type="range" id="sweepTime" min="0.1" max="10" value="1" step="0.1">
+            <span id="sweepTime-value">1 ms</span>
+          </div>
+
+          <div class="param-group">
+            <label for="sampleRate">采样率 (MHz)</label>
+            <input type="range" id="sampleRate" min="2" max="20" value="5" step="0.5">
+            <span id="sampleRate-value">5 MHz</span>
+          </div>
+
+          <div class="param-group">
+            <label for="numChirps">Chirp数量</label>
+            <input type="range" id="numChirps" min="8" max="64" value="32" step="8">
+            <span id="numChirps-value">32</span>
+          </div>
+
+          <div class="param-group">
+            <label for="windowType">窗函数</label>
+            <select id="windowType" class="select-input">
+              <option value="none">无窗 (矩形窗) - 最高分辨率</option>
+              <option value="hamming">汉明窗 (Hamming) - 40dB旁瓣抑制</option>
+              <option value="hanning">汉宁窗 (Hanning) - 32dB旁瓣抑制</option>
+              <option value="blackman">布莱克曼窗 (Blackman) - 58dB旁瓣抑制</option>
+              <option value="kaiser">凯泽窗 (Kaiser) - 70dB旁瓣抑制</option>
+            </select>
+          </div>
+
+          <div class="button-group">
+            <button id="startBtn" class="btn btn-primary">开始处理</button>
+            <button id="saveBtn" class="btn btn-secondary" disabled>保存结果</button>
+          </div>
+
+          <div class="export-group">
+            <button id="exportIqBtn" class="btn btn-small" disabled>导出IQ数据</button>
+            <button id="exportDetBtn" class="btn btn-small" disabled>导出检测结果</button>
+          </div>
+
+          <div class="info-panel">
+            <h3>计算信息</h3>
+            <div class="info-item">
+              <span>距离分辨率:</span>
+              <span id="rangeResolution">-</span>
+            </div>
+            <div class="info-item">
+              <span>最大不模糊距离:</span>
+              <span id="maxRange">-</span>
+            </div>
+            <div class="info-item">
+              <span>速度分辨率:</span>
+              <span id="velocityResolution">-</span>
+            </div>
+            <div class="info-item">
+              <span>最大不模糊速度:</span>
+              <span id="maxVelocity">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="history-panel">
+          <h2>测量历史</h2>
+          <button id="loadHistoryBtn" class="btn btn-small">刷新历史</button>
+          <div id="historyList" class="history-list">
+            <p class="empty-hint">暂无历史记录</p>
+          </div>
+        </div>
+      </aside>
+
+      <main class="content">
+        <div class="charts-container">
+          <div class="chart-row">
+            <div class="chart-card">
+              <h3>距离-幅度谱</h3>
+              <div class="chart-wrapper">
+                <canvas id="rangeChart"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <h3>速度-幅度谱</h3>
+              <div class="chart-wrapper">
+                <canvas id="velocityChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-row">
+            <div class="chart-card">
+              <h3>距离-多普勒图 (Range-Doppler Map)</h3>
+              <div class="chart-wrapper">
+                <canvas id="rdMapChart"></canvas>
+              </div>
+              <div class="colorbar">
+                <span>低</span>
+                <div class="color-gradient"></div>
+                <span>高 (dB)</span>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <h3>检测结果 (CFAR)</h3>
+              <div class="detection-results" id="detectionResults">
+                <p>检测到的目标将显示在这里</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-bar">
+          <span id="statusText">就绪</span>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

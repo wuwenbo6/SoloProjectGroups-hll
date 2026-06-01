@@ -1,0 +1,40 @@
+{
+  "name": "gnss-spoofing-detector",
+  "version": "1.0.0",
+  "description": "GNSS GPS Signal Spoofing Detection Application",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder"
+  },
+  "author": "GNSS Security Team",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.2.2",
+    "chart.js": "^4.4.0",
+    "express": "^4.18.2",
+    "node-pty": "^1.0.0",
+    "ws": "^8.14.2"
+  },
+  "build": {
+    "appId": "com.gnss.spoofingdetector",
+    "productName": "GNSS Spoofing Detector",
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "deb"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "panorama-stitcher",
+  "version": "1.0.0",
+  "description": "Electron + Python + OpenCV 全景图拼接应用",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": ["electron", "opencv", "sift", "panorama"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  },
+  "dependencies": {
+    "python-shell": "^5.0.0"
+  }
+}

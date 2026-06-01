@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TIFF Document Processor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="toolbar">
+      <div class="toolbar-left">
+        <button id="btn-open" class="btn btn-primary">打开TIFF</button>
+        <button id="btn-save" class="btn">保存项目</button>
+        <button id="btn-load" class="btn">加载项目</button>
+        <div class="dropdown">
+          <button id="btn-export" class="btn">导出 ▾</button>
+          <div class="dropdown-content">
+            <button id="btn-export-pdf">导出PDF (带文本层)</button>
+            <button id="btn-export-images">导出图片</button>
+          </div>
+        </div>
+      </div>
+      <div class="toolbar-center">
+        <span id="file-info" class="file-info">未加载文件</span>
+      </div>
+      <div class="toolbar-right">
+        <span id="page-info" class="page-info">- / -</span>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <h3>页面列表</h3>
+          <div id="page-thumbnails" class="page-thumbnails"></div>
+        </div>
+      </aside>
+
+      <main class="canvas-container">
+        <div class="canvas-wrapper">
+          <canvas id="main-canvas"></canvas>
+          <div id="drop-hint" class="drop-hint">
+            <p>拖拽TIFF文件到此处或点击"打开TIFF"按钮</p>
+          </div>
+        </div>
+      </main>
+
+      <aside class="tools-panel">
+        <div class="tools-section">
+          <h3>页面操作</h3>
+          <div class="tool-group">
+            <button id="btn-rotate-left" class="btn btn-tool" title="逆时针旋转90°">↺ 旋转</button>
+            <button id="btn-rotate-right" class="btn btn-tool" title="顺时针旋转90°">↻ 旋转</button>
+          </div>
+          <div class="tool-group">
+            <button id="btn-crop" class="btn btn-tool" title="裁剪">✂ 裁剪模式</button>
+            <button id="btn-crop-apply" class="btn btn-tool btn-success hidden">✓ 应用裁剪</button>
+            <button id="btn-crop-cancel" class="btn btn-tool btn-danger hidden">✕ 取消</button>
+          </div>
+          <div class="tool-group">
+            <button id="btn-move-up" class="btn btn-tool" title="上移页面">↑ 上移</button>
+            <button id="btn-move-down" class="btn btn-tool" title="下移页面">↓ 下移</button>
+          </div>
+          <div class="tool-group">
+            <button id="btn-delete-page" class="btn btn-tool btn-danger" title="删除页面">🗑 删除</button>
+          </div>
+        </div>
+
+        <div class="tools-section">
+          <h3>自动分页</h3>
+          <div class="tool-group">
+            <label>空白阈值:</label>
+            <input type="range" id="split-threshold" min="0.8" max="0.99" step="0.01" value="0.95">
+            <span id="threshold-value">95%</span>
+          </div>
+          <div class="tool-group">
+            <button id="btn-auto-split" class="btn btn-tool">📄 自动分页</button>
+            <button id="btn-merge-pages" class="btn btn-tool">📎 合并选中页</button>
+          </div>
+          <div id="split-result" class="split-result hidden"></div>
+        </div>
+
+        <div class="tools-section">
+          <h3>标注工具</h3>
+          <div class="tool-group">
+            <button id="btn-select" class="btn btn-tool btn-active" title="选择工具">↖ 选择</button>
+            <button id="btn-highlight" class="btn btn-tool" title="高亮工具">🖍 高亮</button>
+            <button id="btn-textbox" class="btn btn-tool" title="文本框">📝 文本框</button>
+          </div>
+          <div class="tool-group">
+            <label>高亮颜色:</label>
+            <input type="color" id="highlight-color" value="#ffff00">
+            <label>透明度:</label>
+            <input type="range" id="highlight-opacity" min="0.1" max="1" step="0.1" value="0.5">
+          </div>
+          <div class="tool-group">
+            <button id="btn-clear-annotations" class="btn btn-tool btn-danger">清除标注</button>
+          </div>
+        </div>
+
+        <div class="tools-section">
+          <h3>全文搜索</h3>
+          <div class="tool-group">
+            <input type="text" id="search-input" class="search-input" placeholder="输入搜索关键词...">
+            <div class="search-buttons">
+              <button id="btn-search" class="btn btn-tool">搜索</button>
+              <button id="btn-search-prev" class="btn btn-tool">← 上一个</button>
+              <button id="btn-search-next" class="btn btn-tool">下一个 →</button>
+            </div>
+          </div>
+          <div id="search-results" class="search-results hidden">
+            <span id="search-count">找到 0 个匹配</span>
+          </div>
+        </div>
+
+        <div class="tools-section">
+          <h3>OCR文字识别</h3>
+          <div class="tool-group">
+            <button id="btn-ocr" class="btn btn-tool">开始识别</button>
+            <button id="btn-ocr-area" class="btn btn-tool">选择区域识别</button>
+            <button id="btn-ocr-cancel" class="btn btn-tool btn-danger hidden">取消选择</button>
+            <button id="btn-ocr-all" class="btn btn-tool">全部识别</button>
+          </div>
+          <div id="ocr-area-hint" class="ocr-area-hint hidden">
+            在文档上拖拽鼠标选择识别区域
+          </div>
+          <div id="ocr-progress" class="progress-bar hidden">
+            <div class="progress-fill"></div>
+          </div>
+          <textarea id="ocr-result" class="ocr-result" placeholder="OCR识别结果将显示在这里..." readonly></textarea>
+        </div>
+
+        <div class="tools-section">
+          <h3>视图控制</h3>
+          <div class="tool-group">
+            <button id="btn-zoom-in" class="btn btn-tool">🔍+ 放大</button>
+            <button id="btn-zoom-out" class="btn btn-tool">🔍- 缩小</button>
+            <button id="btn-zoom-fit" class="btn btn-tool">⛶ 适应</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div id="crop-overlay" class="crop-overlay hidden">
+    <div class="crop-box">
+      <div class="crop-handle nw" data-handle="nw"></div>
+      <div class="crop-handle ne" data-handle="ne"></div>
+      <div class="crop-handle sw" data-handle="sw"></div>
+      <div class="crop-handle se" data-handle="se"></div>
+    </div>
+  </div>
+
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <p>加载中...</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

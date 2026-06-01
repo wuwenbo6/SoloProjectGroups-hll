@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文档扫描器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <h1>📄 文档扫描器</h1>
+            <div class="header-actions">
+                <button id="addFilesBtn" class="btn btn-primary">添加图片</button>
+                <button id="batchProcessBtn" class="btn btn-secondary">批量处理</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <aside class="sidebar">
+                <div class="file-list-header">
+                    <h3>文件列表</h3>
+                    <span id="fileCount">0 个文件</span>
+                </div>
+                <div id="fileList" class="file-list"></div>
+            </aside>
+
+            <main class="editor">
+                <div class="editor-tabs">
+                    <button class="tab-btn active" data-tab="original">原图</button>
+                    <button class="tab-btn" data-tab="result">校正结果</button>
+                </div>
+
+                <div class="editor-content">
+                    <div id="originalTab" class="tab-content active">
+                        <div class="canvas-container">
+                            <canvas id="originalCanvas"></canvas>
+                        </div>
+                        <div class="controls">
+                            <button id="detectBtn" class="btn btn-primary">自动检测角点</button>
+                            <button id="detectBarcodeBtn" class="btn btn-secondary">识别条形码</button>
+                            <button id="resetCornersBtn" class="btn btn-secondary">重置角点</button>
+                        </div>
+                    </div>
+
+                    <div id="resultTab" class="tab-content">
+                        <div class="canvas-container">
+                            <canvas id="resultCanvas"></canvas>
+                        </div>
+                        <div class="controls">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="removeShadowCheck"> 去除阴影
+                            </label>
+                            <label class="select-label">
+                                OCR语言:
+                                <select id="ocrLangSelect">
+                                    <option value="chi_sim+eng">中文+英文</option>
+                                    <option value="chi_sim">中文</option>
+                                    <option value="eng">英文</option>
+                                </select>
+                            </label>
+                            <button id="processBtn" class="btn btn-primary">应用校正</button>
+                            <button id="ocrBtn" class="btn btn-secondary">OCR识别</button>
+                            <button id="exportPngBtn" class="btn btn-success">导出 PNG</button>
+                            <button id="exportPdfBtn" class="btn btn-success">导出 PDF</button>
+                            <button id="exportSearchablePdfBtn" class="btn btn-success">导出可搜索PDF</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="infoPanel" class="info-panel hidden">
+                    <div class="info-panel-header">
+                        <span id="infoPanelTitle">识别结果</span>
+                        <button id="closeInfoPanel" class="close-btn">×</button>
+                    </div>
+                    <div id="infoPanelContent" class="info-panel-content"></div>
+                </div>
+
+                <div id="statusBar" class="status-bar">
+                    <span id="statusText">就绪</span>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

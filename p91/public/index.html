@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NB-IoT 设备管理系统</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>NB-IoT 设备管理系统</h1>
+      <div class="stats">
+        <div class="stat-item">
+          <span class="stat-label">设备总数</span>
+          <span class="stat-value" id="totalDevices">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">在线设备</span>
+          <span class="stat-value online" id="onlineDevices">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">离线设备</span>
+          <span class="stat-value offline" id="offlineDevices">0</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <div class="sidebar">
+        <div class="panel">
+          <h2>设备列表</h2>
+          <div class="device-list" id="deviceList"></div>
+        </div>
+
+        <div class="panel" id="deviceDetail" style="display: none;">
+          <h2>设备详情</h2>
+          <div class="device-info" id="deviceInfo"></div>
+          <div class="device-actions">
+            <button class="btn btn-primary" id="restartBtn">重启设备</button>
+            <button class="btn btn-secondary" id="refreshDataBtn">刷新数据</button>
+          </div>
+          <div class="sensor-history">
+            <h3>传感器历史数据</h3>
+            <div id="sensorDataList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="map-container">
+        <div id="map"></div>
+      </div>
+    </div>
+
+    <div class="commands-panel">
+      <h2>命令历史</h2>
+      <div class="command-list" id="commandList"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">提示</h3>
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

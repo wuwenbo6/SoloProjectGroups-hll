@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GNSS 欺骗检测系统</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <div class="header-left">
+        <h1>🛰️ GNSS 欺骗检测系统</h1>
+        <div class="system-status">
+          <span id="status-indicator" class="status-indicator offline"></span>
+          <span id="status-text">未连接</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="alarm-indicator" id="alarm-indicator">
+          <span class="alarm-icon">🔔</span>
+          <span id="alarm-count" class="alarm-count">0</span>
+        </div>
+        <button id="start-btn" class="btn btn-primary">开始分析</button>
+        <button id="stop-btn" class="btn btn-danger" disabled>停止分析</button>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div class="sidebar">
+        <div class="panel">
+          <h3>卫星列表</h3>
+          <div id="satellite-list" class="satellite-list">
+          </div>
+        </div>
+        
+        <div class="panel">
+          <h3>统计信息</h3>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-value" id="stat-satellites">0</div>
+              <div class="stat-label">可见卫星</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="stat-anomalies">0</div>
+              <div class="stat-label">异常事件</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="stat-avg-snr">--</div>
+              <div class="stat-label">平均SNR</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="stat-alarms">0</div>
+              <div class="stat-label">活跃警报</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-area">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="skyview">天空视图</button>
+          <button class="tab-btn" data-tab="signals">信号分析</button>
+          <button class="tab-btn" data-tab="direction">测向验证</button>
+          <button class="tab-btn" data-tab="authentication">信号认证</button>
+          <button class="tab-btn" data-tab="ephemeris">星历数据</button>
+          <button class="tab-btn" data-tab="anomalies">异常记录</button>
+          <button class="tab-btn" data-tab="reports">报告导出</button>
+        </div>
+
+        <div class="tab-content">
+          <div id="tab-skyview" class="tab-pane active">
+            <div class="panel">
+              <h3>卫星天空视图</h3>
+              <div class="skyview-container">
+                <canvas id="skyview-canvas" width="400" height="400"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div id="tab-signals" class="tab-pane">
+            <div class="panel">
+              <h3>信号功率趋势</h3>
+              <div class="chart-container">
+                <canvas id="snr-chart"></canvas>
+              </div>
+              <h3>伪距变化趋势</h3>
+              <div class="chart-container">
+                <canvas id="pseudorange-chart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div id="tab-ephemeris" class="tab-pane">
+            <div class="panel">
+              <h3>卫星星历数据</h3>
+              <div id="ephemeris-content">
+                <p class="text-muted">请从左侧选择一颗卫星查看星历数据</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="tab-anomalies" class="tab-pane">
+            <div class="panel">
+              <div class="panel-header">
+                <h3>异常事件记录</h3>
+                <div class="panel-actions">
+                  <button id="ack-all-btn" class="btn btn-sm btn-secondary">确认全部</button>
+                  <button id="export-btn" class="btn btn-sm btn-primary">导出数据</button>
+                </div>
+              </div>
+              <div class="anomaly-filters">
+                <select id="filter-type" class="filter-select">
+                  <option value="">全部类型</option>
+                  <option value="pseudorange_jump">伪距突变</option>
+                  <option value="gradual_pseudorange_drift">伪距渐进漂移</option>
+                  <option value="signal_power_spike">信号功率突升</option>
+                  <option value="signal_power_drop">信号功率突降</option>
+                  <option value="gradual_signal_drift">信号功率漂移</option>
+                  <option value="low_cn0">载噪比过低</option>
+                  <option value="unnatural_stability">异常稳定</option>
+                  <option value="satellite_outlier">卫星数据异常</option>
+                  <option value="unnatural_snr_uniformity">SNR异常一致</option>
+                </select>
+                <select id="filter-severity" class="filter-select">
+                  <option value="">全部级别</option>
+                  <option value="low">低</option>
+                  <option value="medium">中</option>
+                  <option value="high">高</option>
+                  <option value="critical">严重</option>
+                </select>
+              </div>
+              <div id="anomaly-list" class="anomaly-list">
+              </div>
+            </div>
+          </div>
+
+          <div id="tab-direction" class="tab-pane">
+            <div class="panel">
+              <h3>多天线测向验证 (AoA)</h3>
+              <div style="margin-bottom: 16px;">
+                <p class="text-muted" style="text-align: left; padding: 0;">使用4天线阵列进行到达角估计，检测信号方向异常</p>
+              </div>
+              <div class="doa-grid" id="doa-grid">
+                <p class="text-muted">启动分析后显示测向数据</p>
+              </div>
+            </div>
+            <div class="panel">
+              <h3>天线阵列配置</h3>
+              <div class="antenna-config">
+                <div class="antenna-item">
+                  <div class="antenna-id">ANT0</div>
+                  <div class="antenna-pos">(0, 0, 0) cm - 参考天线</div>
+                </div>
+                <div class="antenna-item">
+                  <div class="antenna-id">ANT1</div>
+                  <div class="antenna-pos">(15, 0, 0) cm - X轴基线</div>
+                </div>
+                <div class="antenna-item">
+                  <div class="antenna-id">ANT2</div>
+                  <div class="antenna-pos">(0, 15, 0) cm - Y轴基线</div>
+                </div>
+                <div class="antenna-item">
+                  <div class="antenna-id">ANT3</div>
+                  <div class="antenna-pos">(7.5, 7.5, 10) cm - 冗余天线</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="tab-authentication" class="tab-pane">
+            <div class="panel">
+              <h3>民用信号加密验证</h3>
+              <div style="margin-bottom: 16px;">
+                <p class="text-muted" style="text-align: left; padding: 0;">GPS L1 C/A信号认证检测：奇偶校验、SMU检测、NMA验证</p>
+              </div>
+              <div class="auth-grid" id="auth-grid">
+                <p class="text-muted">启动分析后显示认证数据</p>
+              </div>
+            </div>
+            <div class="panel">
+              <h3>认证检测说明</h3>
+              <div class="auth-explanation">
+                <div class="explanation-item">
+                  <h4>🔢 奇偶校验 (Parity Check)</h4>
+                  <p>验证GPS导航消息的6位奇偶校验位。错误率超过10%可能表明信号被篡改。</p>
+                </div>
+                <div class="explanation-item">
+                  <h4>🕵️ SMU检测</h4>
+                  <p>检测欺骗消息单元(Spoofed Message Unit)。分析导航比特模式相似度和时序一致性。</p>
+                </div>
+                <div class="explanation-item">
+                  <h4>🔐 NMA认证</h4>
+                  <p>导航消息认证(Navigation Message Authentication)。通过熵值分析检测伪造的认证数据。</p>
+                </div>
+                <div class="explanation-item">
+                  <h4>⏱️ 时序一致性</h4>
+                  <p>验证子帧传输时间间隔。偏离6秒标准超过1秒视为异常。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="tab-reports" class="tab-pane">
+            <div class="panel">
+              <h3>生成检测报告</h3>
+              <div class="report-options">
+                <div class="report-type">
+                  <h4>📄 完整HTML报告</h4>
+                  <p>包含卫星状态、异常记录、系统配置的完整分析报告</p>
+                  <button class="btn btn-primary" id="generate-html-report">生成HTML报告</button>
+                </div>
+                <div class="report-type">
+                  <h4>📊 异常数据CSV</h4>
+                  <p>导出所有异常事件为CSV格式，便于数据分析</p>
+                  <button class="btn btn-secondary" id="export-csv-report">导出CSV文件</button>
+                </div>
+                <div class="report-type">
+                  <h4>📋 数据摘要</h4>
+                  <p>快速查看当前系统状态摘要</p>
+                  <button class="btn btn-secondary" id="view-summary">查看摘要</button>
+                </div>
+              </div>
+              <div id="report-result" class="report-result hidden">
+                <div class="result-icon">✅</div>
+                <h4>报告生成成功！</h4>
+                <p id="report-path">文件已保存到：</p>
+                <button class="btn btn-sm btn-primary" id="open-report">打开报告</button>
+              </div>
+            </div>
+            <div class="panel" id="summary-panel" style="display: none;">
+              <h3>系统状态摘要</h3>
+              <div id="summary-content"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div id="alarm-modal" class="modal-overlay hidden">
+      <div class="modal-content alarm-modal">
+        <div class="modal-header alarm-header">
+          <h2>🚨 安全警报</h2>
+          <button class="modal-close" id="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div id="alarm-details"></div>
+        </div>
+        <div class="modal-footer">
+          <button id="ack-alarm-btn" class="btn btn-primary">确认警报</button>
+          <button id="view-details-btn" class="btn btn-secondary">查看详情</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="notification-area" class="notification-area"></div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "eit-3d-visualizer",
+  "version": "1.0.0",
+  "description": "3D EIT impedance visualization with Three.js",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx vite",
+    "build": "npx vite build",
+    "preview": "npx vite preview"
+  },
+  "dependencies": {
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.8"
+  }
+}

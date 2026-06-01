@@ -1,0 +1,14 @@
+{
+  "name": "ladder-logic-editor",
+  "version": "1.0.0",
+  "description": "Blockly-based Ladder Logic Editor for STM32",
+  "main": "server.js",
+  "scripts": {
+    "start": "python3 app.py",
+    "dev": "python3 app.py"
+  },
+  "dependencies": {},
+  "keywords": ["blockly", "ladder-logic", "stm32", "plc"],
+  "author": "",
+  "license": "MIT"
+}

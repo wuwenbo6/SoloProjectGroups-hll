@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>和弦伴奏生成器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎹 LSTM 和弦伴奏生成器</h1>
+    </header>
+
+    <main>
+      <section class="input-section">
+        <h2>和弦输入</h2>
+        <div class="chord-input">
+          <textarea id="chordProgression" placeholder="输入和弦进行，例如:&#10;C Am F G&#10;支持: maj7, 7, m7 等七和弦"></textarea>
+        </div>
+        
+        <div class="midi-section">
+          <div class="midi-input-group">
+            <h3>MIDI输入</h3>
+            <select id="midiInput">
+              <option value="">选择MIDI输入设备</option>
+            </select>
+            <button id="enableMidi">启用输入</button>
+            <div id="midiStatus" class="status-badge">未连接</div>
+          </div>
+          
+          <div class="midi-output-group">
+            <h3>MIDI输出</h3>
+            <select id="midiOutput">
+              <option value="">选择MIDI输出设备</option>
+            </select>
+            <button id="enableMidiOutput">启用输出</button>
+          </div>
+          
+          <div class="midi-clock-group">
+            <h3>MIDI时钟同步</h3>
+            <button id="clockToggleBtn" class="clock-btn">⏱ 启用时钟同步</button>
+            <div id="clockDisplay" class="clock-display">BPM: --</div>
+            <div id="playbackPosition" class="playback-display">位置: 0 拍</div>
+          </div>
+        </div>
+
+        <div id="detectedChords" class="detected-chords">
+          <h4>识别的和弦：</h4>
+          <span id="chordDisplay">-</span>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h2>设置</h2>
+        <div class="setting-group">
+          <label>风格选择:</label>
+          <select id="styleSelect">
+            <option value="jazz">爵士 (Jazz)</option>
+            <option value="rock">摇滚 (Rock)</option>
+            <option value="pop">流行 (Pop)</option>
+          </select>
+        </div>
+        
+        <div class="setting-group">
+          <label>BPM (速度):</label>
+          <input type="number" id="bpmInput" value="120" min="60" max="200">
+        </div>
+
+        <div class="setting-group">
+          <label>生成长度 (小节):</label>
+          <input type="number" id="lengthInput" value="8" min="4" max="32">
+        </div>
+      </section>
+
+      <section class="playback-section">
+        <h2>播放控制</h2>
+        <div class="playback-controls">
+          <button id="playBtn" class="play-btn" disabled>▶ 播放</button>
+          <button id="stopPlaybackBtn" class="stop-btn" disabled>⏹ 停止</button>
+        </div>
+      </section>
+
+      <section class="action-section">
+        <button id="generateBtn" class="primary-btn">🎵 生成伴奏</button>
+        <button id="stopBtn" class="secondary-btn" disabled>⏹ 停止生成</button>
+        <button id="exportBtn" class="secondary-btn" disabled>💾 导出MIDI</button>
+        <button id="exportStemBtn" class="secondary-btn" disabled>🎛 导出分轨</button>
+      </section>
+
+      <section class="preview-section">
+        <h2>生成预览</h2>
+        <div id="previewStatus">等待生成...</div>
+        <div id="tracksPreview"></div>
+      </section>
+
+      <section class="sheet-music-section">
+        <h2>乐谱显示</h2>
+        <div id="sheetMusicContainer" class="sheet-music-container">
+          <div class="sheet-placeholder">
+            <p>生成伴奏后将显示乐谱预览</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="presets-section">
+        <h2>预设管理</h2>
+        <div class="preset-form">
+          <input type="text" id="presetName" placeholder="预设名称">
+          <button id="savePresetBtn">保存预设</button>
+        </div>
+        <div id="presetsList" class="presets-list">
+          <!-- 预设列表动态加载 -->
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

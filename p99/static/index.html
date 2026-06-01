@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>污染扩散模拟系统 - 粒子追踪模型</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 400px;
+            background: #1a1a2e;
+            color: #fff;
+            padding: 15px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            font-size: 13px;
+        }
+        .sidebar h1 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #00d4ff;
+        }
+        .form-group {
+            margin-bottom: 10px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 3px;
+            font-size: 12px;
+            color: #aaa;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 7px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #16213e;
+            color: #fff;
+            font-size: 12px;
+        }
+        .form-row {
+            display: flex;
+            gap: 8px;
+        }
+        .form-row .form-group {
+            flex: 1;
+        }
+        .btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #fff;
+            margin-top: 8px;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+        .btn-secondary {
+            background: #333;
+            color: #fff;
+            margin-top: 6px;
+            padding: 8px;
+            font-size: 12px;
+        }
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(26, 26, 46, 0.95);
+            padding: 12px 20px;
+            border-radius: 10px;
+            color: #fff;
+            z-index: 1000;
+            display: none;
+            backdrop-filter: blur(10px);
+        }
+        .controls.active {
+            display: block;
+        }
+        .time-display {
+            text-align: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        #timeSlider {
+            flex: 1;
+            width: 280px;
+        }
+        .play-controls {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+        .play-btn {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 4px;
+            background: #00d4ff;
+            color: #fff;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(26, 26, 46, 0.95);
+            padding: 12px;
+            border-radius: 8px;
+            color: #fff;
+            z-index: 1000;
+            display: none;
+            backdrop-filter: blur(10px);
+            min-width: 160px;
+        }
+        .legend.active {
+            display: block;
+        }
+        .legend h3 {
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 3px 0;
+            font-size: 11px;
+        }
+        .legend-color {
+            width: 18px;
+            height: 10px;
+            border-radius: 2px;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            display: none;
+        }
+        .status.success {
+            background: rgba(0, 200, 100, 0.2);
+            color: #00c864;
+            display: block;
+        }
+        .status.error {
+            background: rgba(255, 60, 60, 0.2);
+            color: #ff3c3c;
+            display: block;
+        }
+        .status.info {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            display: block;
+        }
+        .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            margin: 15px 0 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #333;
+            color: #00d4ff;
+        }
+        .simulation-list {
+            margin-top: 8px;
+        }
+        .simulation-item {
+            padding: 8px;
+            background: #16213e;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .simulation-item:hover {
+            background: #1f3460;
+        }
+        .simulation-item .name {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        .simulation-item .meta {
+            color: #888;
+            font-size: 10px;
+        }
+        .toggle-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .toggle-btn {
+            flex: 1;
+            padding: 6px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #16213e;
+            color: #888;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        .toggle-btn.active {
+            background: #00d4ff;
+            color: #000;
+            border-color: #00d4ff;
+        }
+        .weather-points {
+            max-height: 120px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+        .weather-point {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 5px;
+            align-items: center;
+        }
+        .weather-point input {
+            flex: 1;
+            padding: 5px;
+            font-size: 11px;
+        }
+        .remove-btn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .stats {
+            font-size: 11px;
+            color: #888;
+            margin-top: 5px;
+        }
+        .view-options {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .view-options label {
+            font-size: 11px;
+            color: #aaa;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .collapsible {
+            cursor: pointer;
+            user-select: none;
+        }
+        .collapsible::before {
+            content: '▶ ';
+            font-size: 10px;
+        }
+        .collapsible.open::before {
+            content: '▼ ';
+        }
+        .collapsed-content {
+            display: none;
+        }
+        .collapsed-content.open {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h1>🌍 污染扩散模拟系统</h1>
+        
+        <div class="section-title">功能模式</div>
+        <div class="toggle-group" style="margin-bottom: 10px;">
+            <button class="toggle-btn active" onclick="setSimulationMode('forward')" id="modeForward">正向模拟</button>
+            <button class="toggle-btn" onclick="setSimulationMode('backward')" id="modeBackward">逆向溯源</button>
+            <button class="toggle-btn" onclick="setSimulationMode('multisource')" id="modeMulti">多源叠加</button>
+        </div>
+        
+        <div id="forwardMode">
+            <div class="section-title collapsible open" onclick="toggleSection('source')">污染源参数</div>
+        <div id="source-content" class="collapsed-content open">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>纬度</label>
+                    <input type="number" id="sourceLat" value="31.2304" step="0.0001">
+                </div>
+                <div class="form-group">
+                    <label>经度</label>
+                    <input type="number" id="sourceLon" value="121.4737" step="0.0001">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>排放速率 (g/s)</label>
+                    <input type="number" id="emissionRate" value="100" step="1">
+                </div>
+                <div class="form-group">
+                    <label>粒子数量</label>
+                    <input type="number" id="numParticles" value="15000" min="1000" max="50000" step="1000">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>污染物类型</label>
+                <select id="pollutantType">
+                    <option value="PM2.5">PM2.5</option>
+                    <option value="SO2">二氧化硫 (SO2)</option>
+                    <option value="NOx">氮氧化物 (NOx)</option>
+                    <option value="CO">一氧化碳 (CO)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="section-title collapsible open" onclick="toggleSection('weather')">气象参数</div>
+        <div id="weather-content" class="collapsed-content open">
+            <div class="toggle-group">
+                <button class="toggle-btn active" onclick="setWeatherMode('static')" id="staticBtn">静态风向</button>
+                <button class="toggle-btn" onclick="setWeatherMode('dynamic')" id="dynamicBtn">动态风向</button>
+            </div>
+            <div id="staticWeather">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>风速 (m/s)</label>
+                        <input type="number" id="windSpeed" value="3.5" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>风向 (度)</label>
+                        <input type="number" id="windDirection" value="90" step="1">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>大气稳定度</label>
+                    <select id="stabilityClass">
+                        <option value="A">A - 极不稳定</option>
+                        <option value="B">B - 不稳定</option>
+                        <option value="C">C - 弱不稳定</option>
+                        <option value="D" selected>D - 中性</option>
+                        <option value="E">E - 弱稳定</option>
+                        <option value="F">F - 稳定</option>
+                    </select>
+                </div>
+            </div>
+            <div id="dynamicWeather" style="display:none;">
+                <div class="form-group">
+                    <label>时间点气象条件（时间单位：小时）</label>
+                </div>
+                <div id="weatherPoints" class="weather-points">
+                    <div class="weather-point">
+                        <input type="number" placeholder="时间" value="0" class="wp-time">
+                        <input type="number" placeholder="风速" value="3" class="wp-speed">
+                        <input type="number" placeholder="风向" value="90" class="wp-dir">
+                        <button class="remove-btn" onclick="removeWeatherPoint(this)">×</button>
+                    </div>
+                    <div class="weather-point">
+                        <input type="number" placeholder="时间" value="2" class="wp-time">
+                        <input type="number" placeholder="风速" value="3" class="wp-speed">
+                        <input type="number" placeholder="风向" value="180" class="wp-dir">
+                        <button class="remove-btn" onclick="removeWeatherPoint(this)">×</button>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="addWeatherPoint()" style="padding:5px;font-size:11px;">+ 添加时间点</button>
+            </div>
+        </div>
+
+        <div class="section-title collapsible" onclick="toggleSection('sim')">模拟参数</div>
+        <div id="sim-content" class="collapsed-content">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>持续时间 (小时)</label>
+                    <input type="number" id="durationHours" value="4" step="1">
+                </div>
+                <div class="form-group">
+                    <label>网格分辨率</label>
+                    <input type="number" id="gridResolution" value="0.003" step="0.001">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>模拟名称</label>
+                <input type="text" id="simulationName" value="粒子追踪模拟">
+            </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="runSimulation()">▶ 运行模拟</button>
+        <button class="btn btn-secondary" onclick="exportKML()" id="exportBtn" style="display:none;">📥 导出KML动画</button>
+        <button class="btn btn-secondary" onclick="loadSimulations()">📋 加载历史模拟</button>
+        </div>
+
+        <div id="backwardMode" style="display:none;">
+            <div class="section-title">观测点设置</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>观测点纬度</label>
+                    <input type="number" id="obsLat" value="31.2400" step="0.0001">
+                </div>
+                <div class="form-group">
+                    <label>观测点经度</label>
+                    <input type="number" id="obsLon" value="121.4800" step="0.0001">
+                </div>
+            </div>
+            <div class="section-title">气象参数</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>风速 (m/s)</label>
+                    <input type="number" id="backwardWindSpeed" value="3.5" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>风向 (度)</label>
+                    <input type="number" id="backwardWindDir" value="90" step="1">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>回溯时间 (小时)</label>
+                    <input type="number" id="backwardDuration" value="12" step="1">
+                </div>
+                <div class="form-group">
+                    <label>粒子数量</label>
+                    <input type="number" id="backwardParticles" value="5000" step="500">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="runBackwardTracery()">🔍 开始溯源</button>
+            <p style="font-size:11px;color:#888;margin-top:8px;">提示：在地图上点击设置观测点位置</p>
+        </div>
+
+        <div id="multisourceMode" style="display:none;">
+            <div class="section-title">污染源列表</div>
+            <div id="sourceList">
+                <div class="source-item" style="background:#16213e;padding:8px;border-radius:4px;margin-bottom:6px;">
+                    <div style="display:flex;gap:5px;margin-bottom:4px;">
+                        <input type="number" placeholder="纬度" value="31.2304" class="src-lat" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                        <input type="number" placeholder="经度" value="121.4737" class="src-lon" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                        <input type="number" placeholder="排放率" value="100" class="src-rate" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                    </div>
+                    <div style="display:flex;gap:5px;">
+                        <input type="number" placeholder="风速" value="3.5" class="src-speed" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                        <input type="number" placeholder="风向" value="90" class="src-dir" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                        <select class="src-stability" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                            <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+                            <option value="D" selected>D</option><option value="E">E</option><option value="F">F</option>
+                        </select>
+                        <button class="remove-btn" onclick="removeSource(this)" style="width:22px;height:22px;">×</button>
+                    </div>
+                </div>
+                <div class="source-item" style="background:#16213e;padding:8px;border-radius:4px;margin-bottom:6px;">
+                    <div style="display:flex;gap:5px;margin-bottom:4px;">
+                        <input type="number" placeholder="纬度" value="31.2450" class="src-lat" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                        <input type="number" placeholder="经度" value="121.4900" class="src-lon" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                        <input type="number" placeholder="排放率" value="80" class="src-rate" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                    </div>
+                    <div style="display:flex;gap:5px;">
+                        <input type="number" placeholder="风速" value="3.0" class="src-speed" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                        <input type="number" placeholder="风向" value="180" class="src-dir" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                        <select class="src-stability" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                            <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+                            <option value="D" selected>D</option><option value="E">E</option><option value="F">F</option>
+                        </select>
+                        <button class="remove-btn" onclick="removeSource(this)" style="width:22px;height:22px;">×</button>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-secondary" onclick="addSource()" style="padding:6px;font-size:11px;">+ 添加污染源</button>
+            <div class="form-row" style="margin-top:10px;">
+                <div class="form-group">
+                    <label>模拟时长 (小时)</label>
+                    <input type="number" id="multiDuration" value="4" step="1">
+                </div>
+                <div class="form-group">
+                    <label>网格分辨率</label>
+                    <input type="number" id="multiResolution" value="0.003" step="0.001">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="runMultiSource()">▶ 运行多源模拟</button>
+        </div>
+
+        <div id="status" class="status"></div>
+        <div id="stats" class="stats"></div>
+
+        <div class="section-title">显示选项</div>
+        <div class="view-options">
+            <label><input type="checkbox" id="showParticles" checked onchange="updateDisplay()"> 显示粒子</label>
+            <label><input type="checkbox" id="showConcentration" checked onchange="updateDisplay()"> 浓度云</label>
+            <label><input type="checkbox" id="showContours" onchange="updateDisplay()"> 等值线</label>
+        </div>
+
+        <div class="section-title">历史模拟</div>
+        <div id="simulationList" class="simulation-list"></div>
+    </div>
+
+    <div class="map-container">
+        <div id="map"></div>
+        
+        <div class="legend" id="legend">
+            <h3>浓度图例 (μg/m³)</h3>
+            <div class="legend-item">
+                <div class="legend-color" style="background: rgba(128, 0, 128, 0.9)"></div>
+                <span>极高</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: rgba(255, 0, 0, 0.75)"></div>
+                <span>高</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: rgba(255, 165, 0, 0.6)"></div>
+                <span>中高</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: rgba(255, 255, 0, 0.5)"></div>
+                <span>中</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: rgba(0, 255, 0, 0.4)"></div>
+                <span>低</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: rgba(0, 100, 255, 0.3)"></div>
+                <span>极低</span>
+            </div>
+        </div>
+
+        <div class="controls" id="controls">
+            <div class="time-display">时间: <span id="currentTime">0</span> 小时</div>
+            <div class="slider-container">
+                <span>0h</span>
+                <input type="range" id="timeSlider" min="0" max="100" value="0">
+                <span id="maxTime">4h</span>
+            </div>
+            <div class="play-controls">
+                <button class="play-btn" onclick="toggleAnimation()" id="playBtn">▶ 播放</button>
+                <button class="play-btn" onclick="resetAnimation()">⏹ 重置</button>
+                <button class="play-btn" onclick="stepForward()" style="background:#666;">⏭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/v1/simulations';
+        
+        let map = L.map('map').setView([31.2304, 121.4737], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        let sourceMarker = null;
+        let concentrationLayer = null;
+        let contourLayers = [];
+        let particleLayer = null;
+        let currentSimulation = null;
+        let animationInterval = null;
+        let isPlaying = false;
+        let currentTimeStep = 0;
+        let weatherMode = 'static';
+
+        function toggleSection(id) {
+            const content = document.getElementById(id + '-content');
+            const title = document.querySelector(`.collapsible[onclick*="${id}"]`);
+            content.classList.toggle('open');
+            title.classList.toggle('open');
+        }
+
+        function setWeatherMode(mode) {
+            weatherMode = mode;
+            document.getElementById('staticBtn').classList.toggle('active', mode === 'static');
+            document.getElementById('dynamicBtn').classList.toggle('active', mode === 'dynamic');
+            document.getElementById('staticWeather').style.display = mode === 'static' ? 'block' : 'none';
+            document.getElementById('dynamicWeather').style.display = mode === 'dynamic' ? 'block' : 'none';
+        }
+
+        function addWeatherPoint() {
+            const container = document.getElementById('weatherPoints');
+            const div = document.createElement('div');
+            div.className = 'weather-point';
+            div.innerHTML = `
+                <input type="number" placeholder="时间" class="wp-time">
+                <input type="number" placeholder="风速" class="wp-speed">
+                <input type="number" placeholder="风向" class="wp-dir">
+                <button class="remove-btn" onclick="removeWeatherPoint(this)">×</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeWeatherPoint(btn) {
+            btn.parentElement.remove();
+        }
+
+        function getWeatherSeries() {
+            const points = document.querySelectorAll('.weather-point');
+            const series = [];
+            points.forEach(p => {
+                const time = parseFloat(p.querySelector('.wp-time').value) || 0;
+                const speed = parseFloat(p.querySelector('.wp-speed').value) || 3;
+                const dir = parseFloat(p.querySelector('.wp-dir').value) || 90;
+                series.push({
+                    time: time * 3600,
+                    wind_speed: speed,
+                    wind_direction: dir,
+                    stability_class: document.getElementById('stabilityClass').value
+                });
+            });
+            return series.sort((a, b) => a.time - b.time);
+        }
+
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+            setTimeout(() => {
+                status.className = 'status';
+            }, 5000);
+        }
+
+        function showStats(text) {
+            document.getElementById('stats').textContent = text;
+        }
+
+        function getColor(concentration, maxConc) {
+            if (maxConc === 0 || concentration <= 0) return 'rgba(0, 0, 255, 0)';
+            const ratio = Math.min(concentration / maxConc, 1.0);
+            if (ratio > 0.75) return `rgba(128, 0, 128, ${0.35 + ratio * 0.55})`;
+            if (ratio > 0.5) return `rgba(255, 0, 0, ${0.25 + ratio * 0.55})`;
+            if (ratio > 0.25) return `rgba(255, 165, 0, ${0.2 + ratio * 0.5})`;
+            if (ratio > 0.1) return `rgba(255, 255, 0, ${0.15 + ratio * 0.45})`;
+            if (ratio > 0.02) return `rgba(0, 255, 0, ${0.1 + ratio * 0.4})`;
+            return `rgba(0, 100, 255, ${0.05 + ratio * 0.3})`;
+        }
+
+        function bilinearInterpolate(x, y, grid) {
+            const x0 = Math.floor(x);
+            const y0 = Math.floor(y);
+            const x1 = Math.min(x0 + 1, grid.length - 1);
+            const y1 = Math.min(y0 + 1, grid[0].length - 1);
+            
+            const fx = x - x0;
+            const fy = y - y0;
+            
+            const v00 = grid[x0][y0];
+            const v10 = grid[x1][y0];
+            const v01 = grid[x0][y1];
+            const v11 = grid[x1][y1];
+            
+            return v00 * (1 - fx) * (1 - fy) +
+                   v10 * fx * (1 - fy) +
+                   v01 * (1 - fx) * fy +
+                   v11 * fx * fy;
+        }
+
+        function drawSmoothConcentration(data, timeIndex) {
+            if (concentrationLayer) {
+                map.removeLayer(concentrationLayer);
+            }
+            if (!document.getElementById('showConcentration').checked) return;
+
+            const concentrations = data.time_series ? data.time_series[timeIndex] : data.concentrations;
+            const lats = data.grid_lats;
+            const lons = data.grid_lons;
+            
+            const flatConcs = concentrations.flat();
+            const maxConc = Math.max(...flatConcs);
+            
+            if (maxConc <= 0) return;
+
+            const scaleFactor = 2;
+            const features = [];
+            
+            for (let i = 0; i < (lats.length - 1) * scaleFactor; i++) {
+                for (let j = 0; j < (lons.length - 1) * scaleFactor; j++) {
+                    const origI = i / scaleFactor;
+                    const origJ = j / scaleFactor;
+                    
+                    const conc = bilinearInterpolate(origI, origJ, concentrations);
+                    
+                    if (conc > maxConc * 0.005) {
+                        const lat0 = lats[Math.floor(origI)] + (origI - Math.floor(origI)) * (lats[Math.ceil(origI)] - lats[Math.floor(origI)]);
+                        const lon0 = lons[Math.floor(origJ)] + (origJ - Math.floor(origJ)) * (lons[Math.ceil(origJ)] - lons[Math.floor(origJ)]);
+                        const lat1 = lat0 + (lats[1] - lats[0]) / scaleFactor;
+                        const lon1 = lon0 + (lons[1] - lons[0]) / scaleFactor;
+                        
+                        features.push({
+                            type: 'Feature',
+                            properties: { concentration: conc },
+                            geometry: {
+                                type: 'Polygon',
+                                coordinates: [[
+                                    [lon0, lat0],
+                                    [lon1, lat0],
+                                    [lon1, lat1],
+                                    [lon0, lat1],
+                                    [lon0, lat0]
+                                ]]
+                            }
+                        });
+                    }
+                }
+            }
+
+            concentrationLayer = L.geoJSON(features, {
+                style: function(feature) {
+                    return {
+                        fillColor: getColor(feature.properties.concentration, maxConc),
+                        fillOpacity: 0.8,
+                        stroke: false
+                    };
+                }
+            }).addTo(map);
+
+            return maxConc;
+        }
+
+        function drawParticles(data, timeIndex) {
+            if (particleLayer) {
+                map.removeLayer(particleLayer);
+            }
+            if (!document.getElementById('showParticles').checked) return;
+            if (!data.particle_snapshots || !data.particle_snapshots[timeIndex]) return;
+
+            const snapshot = data.particle_snapshots[timeIndex];
+            const particles = snapshot.particles || [];
+            
+            const particlePoints = particles.map(p => 
+                L.circleMarker([p[0], p[1]], {
+                    radius: 2,
+                    fillColor: '#ff6600',
+                    color: '#ff6600',
+                    weight: 0,
+                    fillOpacity: 0.6
+                })
+            );
+
+            particleLayer = L.layerGroup(particlePoints).addTo(map);
+        }
+
+        function drawContours(contours) {
+            contourLayers.forEach(layer => map.removeLayer(layer));
+            contourLayers = [];
+            if (!document.getElementById('showContours').checked) return;
+
+            contours.forEach((contour, index) => {
+                if (contour.points && contour.points.length > 0) {
+                    const coords = contour.points.map(p => [p[0], p[1]]);
+                    const layer = L.polygon(coords, {
+                        color: 'rgba(255, 255, 255, 0.6)',
+                        weight: 1.5,
+                        fill: false,
+                        opacity: 0.7,
+                        dashArray: '5, 5'
+                    }).addTo(map);
+                    contourLayers.push(layer);
+                }
+            });
+        }
+
+        function updateDisplay() {
+            if (!currentSimulation) return;
+            drawSmoothConcentration(currentSimulation, currentTimeStep);
+            drawParticles(currentSimulation, currentTimeStep);
+            if (currentSimulation.contours) {
+                drawContours(currentSimulation.contours);
+            }
+        }
+
+        function updateSourceMarker(lat, lon) {
+            if (sourceMarker) {
+                map.removeLayer(sourceMarker);
+            }
+            sourceMarker = L.marker([lat, lon], {
+                icon: L.divIcon({
+                    className: 'source-marker',
+                    html: '<div style="background: #ff4444; width: 18px; height: 18px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 12px rgba(255,68,68,0.9);"></div>',
+                    iconSize: [18, 18]
+                })
+            }).addTo(map);
+            
+            sourceMarker.bindPopup(`
+                <b>污染源位置</b><br>
+                纬度: ${lat.toFixed(4)}<br>
+                经度: ${lon.toFixed(4)}
+            `);
+        }
+
+        async function runSimulation() {
+            const useDynamic = weatherMode === 'dynamic';
+            const weatherSeries = useDynamic ? getWeatherSeries() : null;
+            
+            const params = {
+                name: document.getElementById('simulationName').value,
+                source_lat: parseFloat(document.getElementById('sourceLat').value),
+                source_lon: parseFloat(document.getElementById('sourceLon').value),
+                emission_rate: parseFloat(document.getElementById('emissionRate').value),
+                wind_speed: parseFloat(document.getElementById('windSpeed').value),
+                wind_direction: parseFloat(document.getElementById('windDirection').value),
+                stability_class: document.getElementById('stabilityClass').value,
+                duration_hours: parseInt(document.getElementById('durationHours').value),
+                grid_resolution: parseFloat(document.getElementById('gridResolution').value),
+                pollutant_type: document.getElementById('pollutantType').value,
+                num_particles: parseInt(document.getElementById('numParticles').value),
+                use_dynamic_weather: useDynamic,
+                weather_series: weatherSeries,
+                description: useDynamic ? '动态气象模拟' : '粒子追踪模拟'
+            };
+
+            showStatus('正在运行粒子模拟...', 'info');
+            showStats(`使用 ${params.num_particles.toLocaleString()} 个粒子`);
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch(API_BASE + '/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params)
+                });
+
+                if (!response.ok) throw new Error('模拟失败');
+                
+                currentSimulation = await response.json();
+                const elapsed = (Date.now() - startTime) / 1000;
+                
+                showStatus(`模拟完成！耗时 ${elapsed.toFixed(1)}s`, 'success');
+                showStats(`粒子数: ${currentSimulation.num_particles_used.toLocaleString()} | 时间步: ${currentSimulation.time_steps.length}`);
+                
+                updateSourceMarker(params.source_lat, params.source_lon);
+                
+                document.getElementById('controls').classList.add('active');
+                document.getElementById('legend').classList.add('active');
+                document.getElementById('maxTime').textContent = params.duration_hours + 'h';
+                
+                const slider = document.getElementById('timeSlider');
+                slider.max = currentSimulation.time_steps.length - 1;
+                slider.value = currentSimulation.time_steps.length - 1;
+                currentTimeStep = currentSimulation.time_steps.length - 1;
+                
+                updateDisplay();
+                
+                document.getElementById('currentTime').textContent = 
+                    currentSimulation.time_steps[currentTimeStep].toFixed(2);
+                
+                loadSimulations();
+                
+            } catch (error) {
+                showStatus('模拟失败: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        async function loadSimulations() {
+            try {
+                const response = await fetch(API_BASE);
+                const simulations = await response.json();
+                
+                const list = document.getElementById('simulationList');
+                list.innerHTML = simulations.slice(0, 5).map(sim => `
+                    <div class="simulation-item" onclick="loadSimulation(${sim.id})">
+                        <div class="name">${sim.name}</div>
+                        <div class="meta">${sim.created_at.substring(0, 16)} | ${sim.pollutant_type}</div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('加载历史模拟失败', error);
+            }
+        }
+
+        async function loadSimulation(id) {
+            try {
+                const response = await fetch(API_BASE + '/' + id);
+                const sim = await response.json();
+                
+                document.getElementById('simulationName').value = sim.name;
+                document.getElementById('sourceLat').value = sim.source_lat;
+                document.getElementById('sourceLon').value = sim.source_lon;
+                document.getElementById('emissionRate').value = sim.emission_rate;
+                document.getElementById('windSpeed').value = sim.wind_speed;
+                document.getElementById('windDirection').value = sim.wind_direction;
+                document.getElementById('stabilityClass').value = sim.stability_class;
+                document.getElementById('durationHours').value = sim.duration_hours;
+                document.getElementById('gridResolution').value = sim.grid_resolution;
+                document.getElementById('pollutantType').value = sim.pollutant_type;
+                
+                updateSourceMarker(sim.source_lat, sim.source_lon);
+                
+                if (sim.result_data) {
+                    const resultResponse = await fetch(API_BASE + '/' + id + '/result');
+                    const result = await resultResponse.json();
+                    
+                    currentSimulation = {
+                        ...result,
+                        simulation_id: id,
+                        time_series: [result.final_concentrations]
+                    };
+                    
+                    document.getElementById('controls').classList.add('active');
+                    document.getElementById('legend').classList.add('active');
+                    
+                    updateDisplay();
+                    showStatus('模拟数据已加载', 'success');
+                }
+                
+                map.setView([sim.source_lat, sim.source_lon], 12);
+                
+            } catch (error) {
+                showStatus('加载模拟失败', 'error');
+                console.error(error);
+            }
+        }
+
+        function toggleAnimation() {
+            if (!currentSimulation || !currentSimulation.time_series) return;
+            
+            if (isPlaying) {
+                clearInterval(animationInterval);
+                isPlaying = false;
+                document.getElementById('playBtn').textContent = '▶ 播放';
+            } else {
+                isPlaying = true;
+                document.getElementById('playBtn').textContent = '⏸ 暂停';
+                
+                animationInterval = setInterval(() => {
+                    currentTimeStep++;
+                    if (currentTimeStep >= currentSimulation.time_steps.length) {
+                        currentTimeStep = 0;
+                    }
+                    
+                    document.getElementById('timeSlider').value = currentTimeStep;
+                    document.getElementById('currentTime').textContent = 
+                        currentSimulation.time_steps[currentTimeStep].toFixed(2);
+                    
+                    updateDisplay();
+                }, 150);
+            }
+        }
+
+        function stepForward() {
+            if (!currentSimulation) return;
+            currentTimeStep = Math.min(currentTimeStep + 1, currentSimulation.time_steps.length - 1);
+            document.getElementById('timeSlider').value = currentTimeStep;
+            document.getElementById('currentTime').textContent = 
+                currentSimulation.time_steps[currentTimeStep].toFixed(2);
+            updateDisplay();
+        }
+
+        function resetAnimation() {
+            if (animationInterval) {
+                clearInterval(animationInterval);
+            }
+            isPlaying = false;
+            currentTimeStep = 0;
+            document.getElementById('playBtn').textContent = '▶ 播放';
+            document.getElementById('timeSlider').value = 0;
+            document.getElementById('currentTime').textContent = '0';
+            
+            if (currentSimulation) {
+                updateDisplay();
+            }
+        }
+
+        document.getElementById('timeSlider').addEventListener('input', function(e) {
+            currentTimeStep = parseInt(e.target.value);
+            document.getElementById('currentTime').textContent = 
+                currentSimulation.time_steps[currentTimeStep].toFixed(2);
+            updateDisplay();
+        });
+
+        let currentMode = 'forward';
+        let obsMarker = null;
+        let sourceMarkers = [];
+        let backwardResult = null;
+        let multiSourceResult = null;
+
+        function setSimulationMode(mode) {
+            currentMode = mode;
+            document.getElementById('modeForward').classList.toggle('active', mode === 'forward');
+            document.getElementById('modeBackward').classList.toggle('active', mode === 'backward');
+            document.getElementById('modeMulti').classList.toggle('active', mode === 'multisource');
+            
+            document.getElementById('forwardMode').style.display = mode === 'forward' ? 'block' : 'none';
+            document.getElementById('backwardMode').style.display = mode === 'backward' ? 'block' : 'none';
+            document.getElementById('multisourceMode').style.display = mode === 'multisource' ? 'block' : 'none';
+            
+            document.getElementById('exportBtn').style.display = mode === 'forward' ? 'block' : 'none';
+            
+            clearAllLayers();
+        }
+
+        function clearAllLayers() {
+            if (concentrationLayer) { map.removeLayer(concentrationLayer); concentrationLayer = null; }
+            if (particleLayer) { map.removeLayer(particleLayer); particleLayer = null; }
+            if (obsMarker) { map.removeLayer(obsMarker); obsMarker = null; }
+            sourceMarkers.forEach(m => map.removeLayer(m));
+            sourceMarkers = [];
+            contourLayers.forEach(l => map.removeLayer(l));
+            contourLayers = [];
+            document.getElementById('controls').classList.remove('active');
+            document.getElementById('legend').classList.remove('active');
+        }
+
+        map.on('click', function(e) {
+            if (currentMode === 'forward') {
+                document.getElementById('sourceLat').value = e.latlng.lat.toFixed(4);
+                document.getElementById('sourceLon').value = e.latlng.lng.toFixed(4);
+                updateSourceMarker(e.latlng.lat, e.latlng.lng);
+            } else if (currentMode === 'backward') {
+                document.getElementById('obsLat').value = e.latlng.lat.toFixed(4);
+                document.getElementById('obsLon').value = e.latlng.lng.toFixed(4);
+                updateObsMarker(e.latlng.lat, e.latlng.lng);
+            }
+        });
+
+        function updateObsMarker(lat, lon) {
+            if (obsMarker) {
+                map.removeLayer(obsMarker);
+            }
+            obsMarker = L.marker([lat, lon], {
+                icon: L.divIcon({
+                    className: 'obs-marker',
+                    html: '<div style="background: #00ff88; width: 22px; height: 22px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 12px rgba(0,255,136,0.9);"></div>',
+                    iconSize: [22, 22]
+                })
+            }).addTo(map);
+            obsMarker.bindPopup(`<b>观测点</b><br>纬度: ${lat.toFixed(4)}<br>经度: ${lon.toFixed(4)}`);
+        }
+
+        async function runBackwardTracery() {
+            const params = {
+                observation_lat: parseFloat(document.getElementById('obsLat').value),
+                observation_lon: parseFloat(document.getElementById('obsLon').value),
+                wind_speed: parseFloat(document.getElementById('backwardWindSpeed').value),
+                wind_direction: parseFloat(document.getElementById('backwardWindDir').value),
+                duration_hours: parseFloat(document.getElementById('backwardDuration').value),
+                num_particles: parseInt(document.getElementById('backwardParticles').value)
+            };
+
+            showStatus('正在运行逆向溯源...', 'info');
+            
+            try {
+                const response = await fetch(API_BASE + '/backward-tracery', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params)
+                });
+
+                if (!response.ok) throw new Error('溯源失败');
+                
+                backwardResult = await response.json();
+                
+                showStatus('溯源完成！最可能污染源已高亮显示', 'success');
+                
+                updateObsMarker(params.observation_lat, params.observation_lon);
+                
+                drawBackwardProbability(backwardResult.source_probability);
+                drawBackwardTrajectories(backwardResult.particle_histories);
+                
+                const maxLoc = backwardResult.source_probability.max_probability_location;
+                showStats(`最可能污染源: (${maxLoc[0].toFixed(4)}, ${maxLoc[1].toFixed(4)}) | 置信度: ${(maxLoc[2] * 100).toFixed(1)}%`);
+                
+                map.setView([maxLoc[0], maxLoc[1]], 13);
+                
+            } catch (error) {
+                showStatus('溯源失败: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        function drawBackwardProbability(probData) {
+            if (concentrationLayer) map.removeLayer(concentrationLayer);
+            
+            const lats = probData.grid_lats;
+            const lons = probData.grid_lons;
+            const probs = probData.probability;
+            
+            const features = [];
+            for (let i = 0; i < lats.length - 1; i++) {
+                for (let j = 0; j < lons.length - 1; j++) {
+                    const prob = probs[i][j];
+                    if (prob > 0.1) {
+                        features.push({
+                            type: 'Feature',
+                            properties: { probability: prob },
+                            geometry: {
+                                type: 'Polygon',
+                                coordinates: [[
+                                    [lons[j], lats[i]],
+                                    [lons[j+1], lats[i]],
+                                    [lons[j+1], lats[i+1]],
+                                    [lons[j], lats[i+1]],
+                                    [lons[j], lats[i]]
+                                ]]
+                            }
+                        });
+                    }
+                }
+            }
+
+            concentrationLayer = L.geoJSON(features, {
+                style: function(feature) {
+                    const p = feature.properties.probability;
+                    const alpha = Math.min(p * 255, 200);
+                    return {
+                        fillColor: `rgba(255, ${Math.floor(255 - p * 255)}, 0, ${p * 0.7})`,
+                        fillOpacity: 0.6,
+                        stroke: false
+                    };
+                }
+            }).addTo(map);
+        }
+
+        function drawBackwardTrajectories(histories) {
+            if (particleLayer) map.removeLayer(particleLayer);
+            
+            const lines = histories.map(h => {
+                const coords = h.map(p => [p[0], p[1]]);
+                return L.polyline(coords, {
+                    color: 'rgba(0, 200, 100, 0.3)',
+                    weight: 1.5
+                });
+            });
+
+            particleLayer = L.layerGroup(lines).addTo(map);
+        }
+
+        function addSource() {
+            const container = document.getElementById('sourceList');
+            const div = document.createElement('div');
+            div.className = 'source-item';
+            div.style.cssText = 'background:#16213e;padding:8px;border-radius:4px;margin-bottom:6px;';
+            div.innerHTML = `
+                <div style="display:flex;gap:5px;margin-bottom:4px;">
+                    <input type="number" placeholder="纬度" class="src-lat" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                    <input type="number" placeholder="经度" class="src-lon" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                    <input type="number" placeholder="排放率" class="src-rate" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                </div>
+                <div style="display:flex;gap:5px;">
+                    <input type="number" placeholder="风速" value="3.0" class="src-speed" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                    <input type="number" placeholder="风向" value="90" class="src-dir" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                    <select class="src-stability" style="width:30%;padding:4px;font-size:11px;background:#1a1a2e;border:1px solid #333;color:#fff;">
+                        <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+                        <option value="D" selected>D</option><option value="E">E</option><option value="F">F</option>
+                    </select>
+                    <button class="remove-btn" onclick="removeSource(this)" style="width:22px;height:22px;">×</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeSource(btn) {
+            btn.closest('.source-item').remove();
+        }
+
+        async function runMultiSource() {
+            const sourceItems = document.querySelectorAll('.source-item');
+            const sources = [];
+            
+            sourceItems.forEach(item => {
+                const lat = parseFloat(item.querySelector('.src-lat').value);
+                const lon = parseFloat(item.querySelector('.src-lon').value);
+                const rate = parseFloat(item.querySelector('.src-rate').value);
+                if (!isNaN(lat) && !isNaN(lon) && !isNaN(rate)) {
+                    sources.push({
+                        lat: lat,
+                        lon: lon,
+                        emission_rate: rate,
+                        wind_speed: parseFloat(item.querySelector('.src-speed').value) || 3.0,
+                        wind_direction: parseFloat(item.querySelector('.src-dir').value) || 90,
+                        stability_class: item.querySelector('.src-stability').value
+                    });
+                }
+            });
+
+            if (sources.length === 0) {
+                showStatus('请至少添加一个污染源', 'error');
+                return;
+            }
+
+            const params = {
+                sources: sources,
+                duration_hours: parseFloat(document.getElementById('multiDuration').value),
+                grid_resolution: parseFloat(document.getElementById('multiResolution').value)
+            };
+
+            showStatus(`正在运行 ${sources.length} 个污染源模拟...`, 'info');
+            
+            try {
+                const response = await fetch(API_BASE + '/multi-source', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params)
+                });
+
+                if (!response.ok) throw new Error('多源模拟失败');
+                
+                multiSourceResult = await response.json();
+                
+                showStatus('多源模拟完成！', 'success');
+                showStats(`污染源: ${sources.length} 个 | 最大浓度: ${multiSourceResult.max_concentration.toFixed(2)} μg/m³`);
+                
+                sourceMarkers.forEach(m => map.removeLayer(m));
+                sourceMarkers = [];
+                sources.forEach((src, idx) => {
+                    const marker = L.circleMarker([src.lat, src.lon], {
+                        radius: 10,
+                        fillColor: `hsl(${idx * 60}, 100%, 50%)`,
+                        color: '#fff',
+                        weight: 2,
+                        fillOpacity: 0.9
+                    }).addTo(map);
+                    marker.bindPopup(`污染源 ${idx + 1}<br>排放率: ${src.emission_rate} g/s`);
+                    sourceMarkers.push(marker);
+                });
+                
+                drawMultiSourceConcentration(multiSourceResult);
+                
+                document.getElementById('legend').classList.add('active');
+                
+            } catch (error) {
+                showStatus('多源模拟失败: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        function drawMultiSourceConcentration(result) {
+            if (concentrationLayer) map.removeLayer(concentrationLayer);
+            
+            const lats = result.combined_grid_lats;
+            const lons = result.combined_grid_lons;
+            const concentrations = result.combined_concentrations;
+            const maxConc = result.max_concentration;
+            
+            const features = [];
+            for (let i = 0; i < lats.length - 1; i++) {
+                for (let j = 0; j < lons.length - 1; j++) {
+                    const conc = concentrations[i][j];
+                    if (conc > maxConc * 0.01) {
+                        features.push({
+                            type: 'Feature',
+                            properties: { concentration: conc },
+                            geometry: {
+                                type: 'Polygon',
+                                coordinates: [[
+                                    [lons[j], lats[i]],
+                                    [lons[j+1], lats[i]],
+                                    [lons[j+1], lats[i+1]],
+                                    [lons[j], lats[i+1]],
+                                    [lons[j], lats[i]]
+                                ]]
+                            }
+                        });
+                    }
+                }
+            }
+
+            concentrationLayer = L.geoJSON(features, {
+                style: function(feature) {
+                    return {
+                        fillColor: getColor(feature.properties.concentration, maxConc),
+                        fillOpacity: 0.7,
+                        stroke: false
+                    };
+                }
+            }).addTo(map);
+        }
+
+        async function exportKML() {
+            if (!currentSimulation || !currentSimulation.simulation_id) {
+                showStatus('请先运行模拟', 'error');
+                return;
+            }
+            
+            showStatus('正在生成KML动画...', 'info');
+            
+            try {
+                const response = await fetch(API_BASE + '/' + currentSimulation.simulation_id + '/export-kml', {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) throw new Error('导出失败');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `simulation_${currentSimulation.simulation_id}.kml`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                showStatus('KML文件已下载', 'success');
+            } catch (error) {
+                showStatus('导出失败: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        updateSourceMarker(31.2304, 121.4737);
+        loadSimulations();
+    </script>
+</body>
+</html>

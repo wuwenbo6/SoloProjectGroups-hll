@@ -1,0 +1,30 @@
+{
+  "name": "nfc-poster-reader",
+  "version": "1.0.0",
+  "description": "NFC poster reader application with PC/SC simulation",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "sqlite3": "^5.1.7",
+    "express": "^4.18.3",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2"
+  },
+  "devDependencies": {
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.nfc.poster.reader",
+    "productName": "NFC Poster Reader",
+    "directories": {
+      "output": "dist"
+    }
+  }
+}

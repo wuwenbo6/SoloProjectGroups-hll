@@ -1,0 +1,50 @@
+server:
+  port: 8080
+  host: "0.0.0.0"
+
+database:
+  path: "data/streams.db"
+
+ffmpeg:
+  path: "ffmpeg"
+
+  transcode_mode: "copy"
+
+  low_latency: true
+
+  hls_time: 0.5
+  hls_list_size: 3
+  hls_flags: "delete_segments+append_list+omit_endlist+discont_start"
+
+  video_codec: ""
+  audio_codec: ""
+  video_bitrate: ""
+  audio_bitrate: ""
+
+  hardware_encoder: ""
+  hardware_decoder: ""
+
+  max_concurrent: 4
+
+  idle_timeout_sec: 60
+
+hls:
+  output_dir: "data/hls"
+  base_url: "/hls"
+
+recording:
+  output_dir: "data/recordings"
+
+snapshot:
+  output_dir: "data/snapshots"
+  quality: 2
+
+streams:
+  - id: "camera1"
+    name: "摄像头1"
+    rtsp_url: "rtsp://admin:password@192.168.1.100:554/stream1"
+    enabled: true
+  - id: "camera2"
+    name: "摄像头2"
+    rtsp_url: "rtsp://admin:password@192.168.1.101:554/stream1"
+    enabled: true

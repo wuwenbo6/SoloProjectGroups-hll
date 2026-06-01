@@ -1,0 +1,46 @@
+{
+  "name": "tiff-document-processor",
+  "version": "1.0.0",
+  "description": "Electron application for processing multi-page TIFF documents with OCR and annotation tools",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder"
+  },
+  "keywords": [
+    "electron",
+    "tiff",
+    "ocr",
+    "document",
+    "annotation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "utif": "^3.1.0",
+    "tesseract.js": "^5.0.4",
+    "fabric": "^5.3.0",
+    "pdf-lib": "^1.17.1"
+  },
+  "build": {
+    "appId": "com.tiff.processor",
+    "productName": "TIFF Document Processor",
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "deb"
+    }
+  }
+}
