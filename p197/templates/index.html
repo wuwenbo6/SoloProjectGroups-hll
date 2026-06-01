@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卫星通信链路预算计算器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0c1445 0%, #1a237e 50%, #0d47a1 100%);
+            min-height: 100vh; color: #fff; padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        header { text-align: center; padding: 40px 20px; }
+        h1 {
+            font-size: 2.5rem; font-weight: 700; margin-bottom: 10px;
+            background: linear-gradient(90deg, #4fc3f7, #81d4fa, #b3e5fc);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .subtitle { color: #90caf9; font-size: 1.1rem; opacity: 0.9; }
+        .main-content { display: grid; grid-template-columns: 380px 1fr; gap: 30px; margin-top: 30px; }
+        @media (max-width: 968px) { .main-content { grid-template-columns: 1fr; } }
+        .card {
+            background: rgba(255,255,255,0.08); backdrop-filter: blur(20px);
+            border-radius: 20px; padding: 30px; border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .card-title {
+            font-size: 1.4rem; font-weight: 600; margin-bottom: 25px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .card-title::before {
+            content: ''; width: 4px; height: 24px;
+            background: linear-gradient(180deg, #4fc3f7, #29b6f6); border-radius: 2px;
+        }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 6px; font-weight: 500; color: #bbdefb; font-size: 0.9rem; }
+        .input-wrapper { position: relative; }
+        input[type="number"] {
+            width: 100%; padding: 10px 14px; font-size: 0.95rem;
+            border: 2px solid rgba(79,195,247,0.3); border-radius: 10px;
+            background: rgba(255,255,255,0.05); color: #fff; transition: all 0.3s ease;
+        }
+        input[type="number"]:focus {
+            outline: none; border-color: #4fc3f7; background: rgba(255,255,255,0.1);
+            box-shadow: 0 0 0 4px rgba(79,195,247,0.15);
+        }
+        input[type="number"]::placeholder { color: rgba(255,255,255,0.4); }
+        .unit { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #90caf9; font-size: 0.85rem; pointer-events: none; }
+        .required-fields {
+            background: rgba(79,195,247,0.1); border: 1px solid rgba(79,195,247,0.3);
+            border-radius: 12px; padding: 18px; margin-bottom: 20px;
+        }
+        .required-fields h3 { color: #4fc3f7; margin-bottom: 12px; font-size: 1rem; }
+        .advanced-toggle {
+            background: none; border: none; color: #90caf9; font-size: 0.9rem; cursor: pointer;
+            display: flex; align-items: center; gap: 8px; padding: 8px 0; margin-bottom: 12px; transition: color 0.3s;
+        }
+        .advanced-toggle:hover { color: #4fc3f7; }
+        .advanced-fields { display: none; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .advanced-fields.show { display: block; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+        .btn-calculate {
+            width: 100%; padding: 14px; font-size: 1rem; font-weight: 600; color: #0d47a1;
+            background: linear-gradient(135deg, #4fc3f7, #29b6f6); border: none; border-radius: 12px;
+            cursor: pointer; transition: all 0.3s ease; letter-spacing: 1px; margin-top: 10px;
+        }
+        .btn-calculate:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(79,195,247,0.4); }
+        .btn-calculate:active { transform: translateY(0); }
+        .btn-calculate:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .right-col { display: flex; flex-direction: column; gap: 24px; }
+        .chart-card {
+            background: rgba(255,255,255,0.06); backdrop-filter: blur(20px);
+            border-radius: 16px; padding: 24px; border: 1px solid rgba(255,255,255,0.12);
+        }
+        .chart-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: #90caf9; }
+        .chart-container { position: relative; width: 100%; }
+        .chart-container canvas { width: 100% !important; border-radius: 8px; }
+        .snr-canvas-wrap { display: flex; justify-content: center; }
+        .snr-canvas-wrap canvas { max-width: 200px; }
+        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 700px) { .results-grid { grid-template-columns: 1fr; } }
+        .result-box {
+            background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px;
+            border-left: 3px solid #4fc3f7;
+        }
+        .result-box.rain { border-left-color: #ffa726; }
+        .result-box.atmo { border-left-color: #66bb6a; }
+        .result-box.scint { border-left-color: #ab47bc; }
+        .result-box.snr { border-left-color: #ef5350; }
+        .result-box.rx { border-left-color: #29b6f6; }
+        .result-box .label { color: #90caf9; font-size: 0.85rem; margin-bottom: 4px; }
+        .result-box .value { font-size: 1.3rem; font-weight: 700; color: #fff; }
+        .result-box .value.highlight { color: #4fc3f7; }
+        .result-box .desc { color: rgba(255,255,255,0.5); font-size: 0.75rem; margin-top: 4px; }
+        .loading { display: none; text-align: center; padding: 40px; }
+        .spinner {
+            width: 40px; height: 40px; border: 4px solid rgba(79,195,247,0.2);
+            border-top-color: #4fc3f7; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error-message {
+            background: rgba(239,83,80,0.2); border: 1px solid rgba(239,83,80,0.5);
+            color: #ef9a9a; padding: 12px; border-radius: 10px; margin-bottom: 16px; display: none; font-size: 0.9rem;
+        }
+        .placeholder {
+            text-align: center; padding: 60px 20px; color: rgba(255,255,255,0.5);
+        }
+        .placeholder-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.5; }
+        .footer { text-align: center; padding: 30px; color: rgba(255,255,255,0.4); font-size: 0.85rem; }
+        .chevron { transition: transform 0.3s ease; display: inline-block; }
+        .chevron.rotated { transform: rotate(90deg); }
+        .aux-info {
+            background: rgba(79,195,247,0.08); border-radius: 10px; padding: 14px; margin-top: 12px;
+            font-size: 0.85rem; color: #90caf9;
+        }
+        .tabs {
+            display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .tab-btn {
+            background: none; border: none; color: #90caf9; font-size: 0.95rem; padding: 10px 16px;
+            cursor: pointer; opacity: 0.6; transition: all 0.3s; border-bottom: 2px solid transparent;
+        }
+        .tab-btn.active { opacity: 1; border-bottom-color: #4fc3f7; }
+        .tab-btn:hover { opacity: 0.9; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .action-bar {
+            display: flex; gap: 10px; margin-top: 16px;
+        }
+        .btn-action {
+            flex: 1; padding: 12px; font-size: 0.9rem; font-weight: 500; border: none;
+            border-radius: 10px; cursor: pointer; transition: all 0.3s;
+        }
+        .btn-pdf {
+            background: linear-gradient(135deg, #ef5350, #e53935); color: white;
+        }
+        .btn-pdf:hover { box-shadow: 0 6px 20px rgba(239,83,80,0.3); transform: translateY(-1px); }
+        .btn-multibeam {
+            background: linear-gradient(135deg, #66bb6a, #43a047); color: white;
+        }
+        .btn-multibeam:hover { box-shadow: 0 6px 20px rgba(102,187,106,0.3); transform: translateY(-1px); }
+        .beam-item {
+            background: rgba(255,255,255,0.05); border-radius: 10px; padding: 14px; margin-bottom: 12px;
+            border-left: 3px solid #66bb6a;
+        }
+        .beam-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .beam-name { font-weight: 600; color: #fff; }
+        .beam-remove { background: none; border: none; color: #ef5350; cursor: pointer; font-size: 1.1rem; }
+        .beam-params { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 0.85rem; }
+        .beam-param label { color: #90caf9; font-size: 0.75rem; margin-bottom: 2px; display: block; }
+        .beam-param input {
+            width: 100%; padding: 6px 8px; font-size: 0.85rem;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(79,195,247,0.3);
+            border-radius: 6px; color: #fff;
+        }
+        .mb-summary {
+            background: rgba(102,187,106,0.1); border: 1px solid rgba(102,187,106,0.3);
+            border-radius: 12px; padding: 16px; margin-bottom: 16px;
+        }
+        .mb-summary-title { color: #66bb6a; font-weight: 600; margin-bottom: 10px; }
+        .mb-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9rem; }
+        .mb-summary-item { display: flex; justify-content: space-between; }
+        .mb-summary-label { color: #90caf9; }
+        .mb-summary-value { color: #fff; font-weight: 500; }
+        .mb-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .mb-table th {
+            background: rgba(102,187,106,0.2); color: #66bb6a; padding: 10px; text-align: left;
+            border-bottom: 1px solid rgba(102,187,106,0.3);
+        }
+        .mb-table td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .mb-table tr:hover td { background: rgba(255,255,255,0.03); }
+        .mb-best { color: #66bb6a; }
+        .mb-worst { color: #ef5350; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛰️ 卫星通信链路预算计算器</h1>
+            <p class="subtitle">ITU-R P.618 · P.676 · P.838 · P.839 | EIRP · 传播损耗 · 信噪比 · 雨衰 · 大气吸收</p>
+        </header>
+
+        <div class="main-content">
+            <div class="card">
+                <h2 class="card-title">参数输入</h2>
+                <div class="error-message" id="errorMessage"></div>
+
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="single">📡 单波束</button>
+                    <button class="tab-btn" data-tab="multi">🔀 多波束分析</button>
+                </div>
+
+                <div class="tab-content active" id="tab-single">
+                    <div class="required-fields">
+                        <h3>📡 基本参数（必填）</h3>
+                        <div class="form-group">
+                            <label for="freq_ghz">工作频率</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="freq_ghz" step="0.1" min="1" max="50" placeholder="1-50" required>
+                                <span class="unit">GHz</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="distance_km">通信距离</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="distance_km" step="1" min="1" max="500000" placeholder="如 35786" required>
+                                <span class="unit">km</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="advanced-toggle" id="advancedToggle">
+                        <span class="chevron" id="chevron">▶</span> 高级参数
+                    </button>
+
+                    <div class="advanced-fields" id="advancedFields">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>发射功率</label>
+                                <div class="input-wrapper"><input type="number" id="tx_power_dbm" step="0.1" value="40"><span class="unit">dBm</span></div>
+                            </div>
+                            <div class="form-group">
+                                <label>发射天线增益</label>
+                                <div class="input-wrapper"><input type="number" id="tx_gain_dbi" step="0.1" value="40"><span class="unit">dBi</span></div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>接收天线增益</label>
+                                <div class="input-wrapper"><input type="number" id="rx_gain_dbi" step="0.1" value="35"><span class="unit">dBi</span></div>
+                            </div>
+                            <div class="form-group">
+                                <label>仰角</label>
+                                <div class="input-wrapper"><input type="number" id="elevation_angle_deg" step="0.1" min="1" max="90" value="45"><span class="unit">°</span></div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>降雨率 R₀.₀₁</label>
+                                <div class="input-wrapper"><input type="number" id="rain_rate_mmhr" step="0.1" min="0" value="10"><span class="unit">mm/h</span></div>
+                            </div>
+                            <div class="form-group">
+                                <label>可用度</label>
+                                <div class="input-wrapper"><input type="number" id="availability" step="0.01" min="90" max="99.999" value="99.9"><span class="unit">%</span></div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>信号带宽</label>
+                                <div class="input-wrapper"><input type="number" id="bandwidth_hz" step="1000" min="1" value="1000000"><span class="unit">Hz</span></div>
+                            </div>
+                            <div class="form-group">
+                                <label>噪声系数</label>
+                                <div class="input-wrapper"><input type="number" id="noise_figure_db" step="0.1" min="0" value="3"><span class="unit">dB</span></div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>发射端损耗</label>
+                                <div class="input-wrapper"><input type="number" id="tx_loss_db" step="0.1" min="0" value="2"><span class="unit">dB</span></div>
+                            </div>
+                            <div class="form-group">
+                                <label>接收端损耗</label>
+                                <div class="input-wrapper"><input type="number" id="rx_loss_db" step="0.1" min="0" value="1"><span class="unit">dB</span></div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>极化角度</label>
+                                <div class="input-wrapper"><input type="number" id="polarization_angle_deg" step="1" value="0"><span class="unit">°</span></div>
+                            </div>
+                            <div class="form-group">
+                                <label>系统温度</label>
+                                <div class="input-wrapper"><input type="number" id="system_temp_k" step="1" min="1" value="290"><span class="unit">K</span></div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>地面站纬度</label>
+                                <div class="input-wrapper"><input type="number" id="lat_deg" step="0.1" value="35"><span class="unit">°</span></div>
+                            </div>
+                            <div class="form-group">
+                                <label>地面站海拔</label>
+                                <div class="input-wrapper"><input type="number" id="h_s_km" step="0.01" min="0" value="0.5"><span class="unit">km</span></div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>天线口径</label>
+                                <div class="input-wrapper"><input type="number" id="antenna_diameter_m" step="0.1" min="0.1" value="1.0"><span class="unit">m</span></div>
+                            </div>
+                            <div class="form-group">
+                                <label>温度</label>
+                                <div class="input-wrapper"><input type="number" id="temperature_c" step="0.1" value="15"><span class="unit">°C</span></div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>气压</label>
+                                <div class="input-wrapper"><input type="number" id="pressure_hpa" step="0.1" value="1013.25"><span class="unit">hPa</span></div>
+                            </div>
+                            <div class="form-group">
+                                <label>水汽密度</label>
+                                <div class="input-wrapper"><input type="number" id="water_density_gm3" step="0.1" value="7.5"><span class="unit">g/m³</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn-calculate" id="calculateBtn">🔢 计算链路预算</button>
+
+                    <div class="action-bar">
+                        <button class="btn-action btn-pdf" id="exportPdfBtn">📄 导出PDF报告</button>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="tab-multi">
+                    <div class="required-fields">
+                        <h3>🔀 多波束配置</h3>
+                        <div class="form-group">
+                            <label for="mb_distance_km">通信距离（所有波束共用）</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="mb_distance_km" step="1" min="1" max="500000" value="35786">
+                                <span class="unit">km</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="mb_lat_deg">地面站纬度（所有波束共用）</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="mb_lat_deg" step="0.1" value="35">
+                                <span class="unit">°</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="beamsContainer"></div>
+
+                    <div class="action-bar">
+                        <button class="btn-action btn-multibeam" id="addBeamBtn">➕ 添加波束</button>
+                    </div>
+
+                    <div class="action-bar">
+                        <button class="btn-calculate" id="calculateMultiBtn">🔀 分析多波束</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-col">
+                <div class="loading" id="loading"><div class="spinner"></div><p>正在计算中...</p></div>
+
+                <div class="placeholder" id="placeholder">
+                    <div class="placeholder-icon">📊</div>
+                    <p>输入参数后点击计算<br>查看链路预算分析与频率扫描图表</p>
+                </div>
+
+                <div id="results" style="display:none;">
+                    <div class="results-grid" id="resultsGrid"></div>
+
+                    <div class="aux-info" id="auxInfo"></div>
+
+                    <div class="chart-card" style="margin-top:20px;">
+                        <div class="chart-title">📉 损耗构成</div>
+                        <div class="chart-container"><canvas id="lossBarChart" height="200"></canvas></div>
+                    </div>
+
+                    <div class="chart-card" style="margin-top:20px;">
+                        <div class="chart-title">📈 频率扫描 (1-50 GHz)</div>
+                        <div class="chart-container"><canvas id="sweepChart" height="320"></canvas></div>
+                    </div>
+                </div>
+
+                <div id="multiResults" style="display:none;">
+                    <div class="mb-summary">
+                        <div class="mb-summary-title">📊 多波束分析汇总</div>
+                        <div class="mb-summary-grid" id="mbSummaryGrid"></div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-title">🔀 多波束SNR对比</div>
+                        <div class="chart-container"><canvas id="mbSnrChart" height="220"></canvas></div>
+                    </div>
+
+                    <div class="chart-card" style="margin-top:20px;">
+                        <div class="chart-title">📋 波束详细数据</div>
+                        <table class="mb-table" id="mbTable">
+                            <thead>
+                                <tr>
+                                    <th>波束</th>
+                                    <th>频率</th>
+                                    <th>仰角</th>
+                                    <th>雨衰</th>
+                                    <th>总损耗</th>
+                                    <th>SNR</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mbTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>ITU-R P.618-13 雨衰 · P.676 大气吸收 · P.838-3 雨衰减系数 · P.839 雨高 | 支持 1-50 GHz</p>
+        </div>
+    </div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+$('advancedToggle').addEventListener('click', () => {
+    $('advancedFields').classList.toggle('show');
+    $('chevron').classList.toggle('rotated');
+});
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        $('tab-' + btn.dataset.tab).classList.add('active');
+    });
+});
+
+function showError(msg) { $('errorMessage').textContent = msg; $('errorMessage').style.display = 'block'; }
+function hideError() { $('errorMessage').style.display = 'none'; }
+
+function gatherParams() {
+    return {
+        freq_ghz: parseFloat($('freq_ghz').value),
+        distance_km: parseFloat($('distance_km').value),
+        tx_power_dbm: parseFloat($('tx_power_dbm').value),
+        tx_gain_dbi: parseFloat($('tx_gain_dbi').value),
+        tx_loss_db: parseFloat($('tx_loss_db').value),
+        rx_gain_dbi: parseFloat($('rx_gain_dbi').value),
+        rx_loss_db: parseFloat($('rx_loss_db').value),
+        elevation_angle_deg: parseFloat($('elevation_angle_deg').value),
+        rain_rate_mmhr: parseFloat($('rain_rate_mmhr').value),
+        polarization_angle_deg: parseFloat($('polarization_angle_deg').value),
+        availability: parseFloat($('availability').value),
+        bandwidth_hz: parseFloat($('bandwidth_hz').value),
+        noise_figure_db: parseFloat($('noise_figure_db').value),
+        system_temp_k: parseFloat($('system_temp_k').value),
+        lat_deg: parseFloat($('lat_deg').value),
+        h_s_km: parseFloat($('h_s_km').value),
+        antenna_diameter_m: parseFloat($('antenna_diameter_m').value),
+        temperature_c: parseFloat($('temperature_c').value),
+        pressure_hpa: parseFloat($('pressure_hpa').value),
+        water_density_gm3: parseFloat($('water_density_gm3').value)
+    };
+}
+
+let sweepData = null;
+let lastSingleResult = null;
+
+$('calculateBtn').addEventListener('click', async () => {
+    hideError();
+    const params = gatherParams();
+    if (isNaN(params.freq_ghz) || isNaN(params.distance_km)) { showError('请填写频率和距离'); return; }
+    if (params.freq_ghz < 1 || params.freq_ghz > 50) { showError('频率范围: 1-50 GHz'); return; }
+
+    $('calculateBtn').disabled = true;
+    $('calculateBtn').textContent = '计算中...';
+    $('loading').style.display = 'block';
+    $('placeholder').style.display = 'none';
+    $('results').style.display = 'none';
+    $('multiResults').style.display = 'none';
+
+    try {
+        const [calcRes, sweepRes] = await Promise.all([
+            fetch('/api/calculate', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(params) }).then(r => r.json()),
+            fetch('/api/sweep', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(params) }).then(r => r.json())
+        ]);
+
+        if (calcRes.error) { showError(calcRes.error); $('placeholder').style.display = 'block'; return; }
+        if (sweepRes.error) { sweepData = null; } else { sweepData = sweepRes; }
+
+        lastSingleResult = calcRes;
+        displayResults(calcRes);
+    } catch (e) {
+        showError('网络错误，请稍后重试');
+        $('placeholder').style.display = 'block';
+    } finally {
+        $('loading').style.display = 'none';
+        $('calculateBtn').disabled = false;
+        $('calculateBtn').textContent = '🔢 计算链路预算';
+    }
+});
+
+$('exportPdfBtn').addEventListener('click', async () => {
+    if (!lastSingleResult) {
+        showError('请先计算链路预算');
+        return;
+    }
+    const params = gatherParams();
+    try {
+        const response = await fetch('/api/export/pdf', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(params)
+        });
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `link-budget-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    } catch (e) {
+        showError('PDF导出失败');
+    }
+});
+
+function displayResults(data) {
+    $('results').style.display = 'block';
+    $('placeholder').style.display = 'none';
+
+    const grid = $('resultsGrid');
+    grid.innerHTML = '';
+
+    const boxes = [
+        { label: 'EIRP', value: `${data.eirp.value} ${data.eirp.unit}`, cls: '', desc: data.eirp.description },
+        { label: '自由空间损耗', value: `${data.losses.free_space.value} ${data.losses.free_space.unit}`, cls: '', desc: data.losses.free_space.description },
+        { label: '大气吸收损耗', value: `${data.losses.atmospheric.value} ${data.losses.atmospheric.unit}`, cls: 'atmo', desc: data.losses.atmospheric.description },
+        { label: '雨衰', value: `${data.losses.rain.value} ${data.losses.rain.unit}`, cls: 'rain', desc: data.losses.rain.description },
+        { label: '闪烁衰落', value: `${data.losses.scintillation.value} ${data.losses.scintillation.unit}`, cls: 'scint', desc: data.losses.scintillation.description },
+        { label: '总链路损耗', value: `${data.losses.total.value} ${data.losses.total.unit}`, cls: '', desc: data.losses.total.description },
+        { label: '接收功率', value: `${data.received_power.value} ${data.received_power.unit}`, cls: 'rx', desc: data.received_power.description },
+        { label: '信噪比 (SNR)', value: `${data.snr.value} ${data.snr.unit}`, cls: 'snr', desc: data.snr.description },
+    ];
+
+    boxes.forEach(b => {
+        const div = document.createElement('div');
+        div.className = `result-box ${b.cls}`;
+        div.innerHTML = `<div class="label">${b.label}</div><div class="value ${b.cls==='snr'?'highlight':''}">${b.value}</div><div class="desc">${b.desc}</div>`;
+        grid.appendChild(div);
+    });
+
+    const aux = data.auxiliary;
+    $('auxInfo').innerHTML = `📐 雨高 h<sub>R</sub> = ${aux.rain_height_km} km (${aux.rain_height_description}) | 仰角 = ${data.parameters.elevation_angle_deg}° | 纬度 = ${data.parameters.lat_deg}° | 降雨率 R₀.₀₁ = ${data.parameters.rain_rate_mmhr} mm/h | 可用度 = ${data.parameters.availability}%`;
+
+    drawLossBar(data);
+    if (sweepData) drawSweepChart(sweepData, data.parameters.freq_ghz);
+}
+
+let beamCount = 0;
+const defaultBeams = [
+    { name: '波束1 (Ku)', freq_ghz: 12, elevation_angle_deg: 45, rain_rate_mmhr: 10, polarization_angle_deg: 0, availability: 99.9 },
+    { name: '波束2 (Ka)', freq_ghz: 28, elevation_angle_deg: 35, rain_rate_mmhr: 15, polarization_angle_deg: 0, availability: 99.9 },
+    { name: '波束3 (Ka)', freq_ghz: 28, elevation_angle_deg: 25, rain_rate_mmhr: 20, polarization_angle_deg: 45, availability: 99.9 },
+    { name: '波束4 (Q)', freq_ghz: 40, elevation_angle_deg: 40, rain_rate_mmhr: 12, polarization_angle_deg: 0, availability: 99.5 }
+];
+
+function addBeam(beam) {
+    beamCount++;
+    const div = document.createElement('div');
+    div.className = 'beam-item';
+    div.dataset.beamId = beamCount;
+    div.innerHTML = `
+        <div class="beam-header">
+            <span class="beam-name">${beam.name}</span>
+            <button class="beam-remove" onclick="removeBeam(${beamCount})">✕</button>
+        </div>
+        <div class="beam-params">
+            <div class="beam-param">
+                <label>名称</label>
+                <input type="text" class="beam-name-input" value="${beam.name}">
+            </div>
+            <div class="beam-param">
+                <label>频率 (GHz)</label>
+                <input type="number" class="beam-freq" step="0.1" min="1" max="50" value="${beam.freq_ghz}">
+            </div>
+            <div class="beam-param">
+                <label>仰角 (°)</label>
+                <input type="number" class="beam-elev" step="0.1" min="1" max="90" value="${beam.elevation_angle_deg}">
+            </div>
+            <div class="beam-param">
+                <label>降雨率 (mm/h)</label>
+                <input type="number" class="beam-rain" step="0.1" min="0" value="${beam.rain_rate_mmhr}">
+            </div>
+            <div class="beam-param">
+                <label>极化角 (°)</label>
+                <input type="number" class="beam-pol" step="1" value="${beam.polarization_angle_deg}">
+            </div>
+            <div class="beam-param">
+                <label>可用度 (%)</label>
+                <input type="number" class="beam-avail" step="0.01" min="90" max="99.999" value="${beam.availability}">
+            </div>
+        </div>
+    `;
+    $('beamsContainer').appendChild(div);
+}
+
+function removeBeam(id) {
+    const el = document.querySelector(`.beam-item[data-beam-id="${id}"]`);
+    if (el) el.remove();
+}
+
+$('addBeamBtn').addEventListener('click', () => {
+    addBeam({ name: `波束${beamCount+1}`, freq_ghz: 12, elevation_angle_deg: 45, rain_rate_mmhr: 10, polarization_angle_deg: 0, availability: 99.9 });
+});
+
+defaultBeams.forEach(b => addBeam(b));
+
+$('calculateMultiBtn').addEventListener('click', async () => {
+    hideError();
+    const beams = [];
+    document.querySelectorAll('.beam-item').forEach(item => {
+        beams.push({
+            name: item.querySelector('.beam-name-input').value,
+            freq_ghz: parseFloat(item.querySelector('.beam-freq').value),
+            elevation_angle_deg: parseFloat(item.querySelector('.beam-elev').value),
+            rain_rate_mmhr: parseFloat(item.querySelector('.beam-rain').value),
+            polarization_angle_deg: parseFloat(item.querySelector('.beam-pol').value),
+            availability: parseFloat(item.querySelector('.beam-avail').value)
+        });
+    });
+
+    if (beams.length === 0) { showError('请至少添加一个波束'); return; }
+
+    const baseParams = {
+        distance_km: parseFloat($('mb_distance_km').value),
+        lat_deg: parseFloat($('mb_lat_deg').value),
+        tx_power_dbm: parseFloat($('tx_power_dbm').value),
+        tx_gain_dbi: parseFloat($('tx_gain_dbi').value),
+        tx_loss_db: parseFloat($('tx_loss_db').value),
+        rx_gain_dbi: parseFloat($('rx_gain_dbi').value),
+        rx_loss_db: parseFloat($('rx_loss_db').value),
+        bandwidth_hz: parseFloat($('bandwidth_hz').value),
+        noise_figure_db: parseFloat($('noise_figure_db').value),
+        system_temp_k: parseFloat($('system_temp_k').value),
+        h_s_km: parseFloat($('h_s_km').value),
+        antenna_diameter_m: parseFloat($('antenna_diameter_m').value),
+        temperature_c: parseFloat($('temperature_c').value),
+        pressure_hpa: parseFloat($('pressure_hpa').value),
+        water_density_gm3: parseFloat($('water_density_gm3').value),
+        beams: beams
+    };
+
+    $('calculateMultiBtn').disabled = true;
+    $('calculateMultiBtn').textContent = '计算中...';
+    $('loading').style.display = 'block';
+    $('placeholder').style.display = 'none';
+    $('results').style.display = 'none';
+    $('multiResults').style.display = 'none';
+
+    try {
+        const res = await fetch('/api/multibeam', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(baseParams)
+        });
+        const data = await res.json();
+
+        if (data.error) { showError(data.error); $('placeholder').style.display = 'block'; return; }
+
+        displayMultiResults(data);
+    } catch (e) {
+        showError('网络错误，请稍后重试');
+        $('placeholder').style.display = 'block';
+    } finally {
+        $('loading').style.display = 'none';
+        $('calculateMultiBtn').disabled = false;
+        $('calculateMultiBtn').textContent = '🔀 分析多波束';
+    }
+});
+
+function displayMultiResults(data) {
+    $('multiResults').style.display = 'block';
+    $('placeholder').style.display = 'none';
+
+    const s = data.summary;
+    $('mbSummaryGrid').innerHTML = `
+        <div class="mb-summary-item"><span class="mb-summary-label">波束总数</span><span class="mb-summary-value">${s.beam_count}</span></div>
+        <div class="mb-summary-item"><span class="mb-summary-label">平均SNR</span><span class="mb-summary-value">${s.avg_snr} dB</span></div>
+        <div class="mb-summary-item"><span class="mb-summary-label">最佳波束</span><span class="mb-summary-value mb-best">${s.best_snr_beam} (${s.best_snr} dB)</span></div>
+        <div class="mb-summary-item"><span class="mb-summary-label">最差波束</span><span class="mb-summary-value mb-worst">${s.worst_snr_beam} (${s.worst_snr} dB)</span></div>
+    `;
+
+    const tbody = $('mbTableBody');
+    tbody.innerHTML = '';
+    data.beams.forEach(beam => {
+        const isBest = beam.beam_name === s.best_snr_beam;
+        const isWorst = beam.beam_name === s.worst_snr_beam;
+        const cls = isBest ? 'mb-best' : (isWorst ? 'mb-worst' : '');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${beam.beam_name}</td>
+            <td>${beam.parameters.freq_ghz} GHz</td>
+            <td>${beam.parameters.elevation_angle_deg}°</td>
+            <td>${beam.losses.rain.value} dB</td>
+            <td>${beam.losses.total.value} dB</td>
+            <td class="${cls}">${beam.snr.value} dB</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    drawMbSnrChart(data.beams);
+}
+
+function drawMbSnrChart(beams) {
+    const canvas = $('mbSnrChart');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = 220 * dpr;
+    canvas.style.height = '220px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    const W = rect.width, H = 220;
+
+    ctx.clearRect(0, 0, W, H);
+
+    const pad = { top: 25, right: 30, bottom: 50, left: 50 };
+    const cw = W - pad.left - pad.right;
+    const ch = H - pad.top - pad.bottom;
+    const bw = cw / beams.length * 0.6;
+    const gap = cw / beams.length * 0.4;
+
+    const snrs = beams.map(b => b.snr.value);
+    const snrMin = Math.min(0, Math.min(...snrs) - 5);
+    const snrMax = Math.max(...snrs) + 5;
+
+    function bx(i) { return pad.left + i * (bw + gap) + gap / 2; }
+    function by(v) { return pad.top + (1 - (v - snrMin) / (snrMax - snrMin)) * ch; }
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 1;
+    const step = 5;
+    for (let v = Math.ceil(snrMin / step) * step; v <= snrMax; v += step) {
+        const y = by(v);
+        ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cw, y); ctx.stroke();
+        ctx.fillStyle = '#90caf9';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(v.toFixed(0), pad.left - 6, y + 3);
+    }
+
+    const best = Math.max(...snrs);
+    beams.forEach((beam, i) => {
+        const snr = beam.snr.value;
+        const x = bx(i);
+        const h = by(snrMin) - by(snr);
+        const y = by(snr);
+
+        const grad = ctx.createLinearGradient(x, y, x, by(snrMin));
+        if (snr >= 15) { grad.addColorStop(0, '#66bb6a'); grad.addColorStop(1, '#43a047'); }
+        else if (snr >= 6) { grad.addColorStop(0, '#ffa726'); grad.addColorStop(1, '#fb8c00'); }
+        else { grad.addColorStop(0, '#ef5350'); grad.addColorStop(1, '#e53935'); }
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(x, y, bw, h);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(snr.toFixed(1) + ' dB', x + bw / 2, y - 5);
+
+        ctx.fillStyle = '#90caf9';
+        ctx.font = '10px sans-serif';
+        ctx.save();
+        ctx.translate(x + bw / 2, by(snrMin) + 12);
+        ctx.rotate(-Math.PI / 6);
+        ctx.fillText(beam.beam_name.replace(/ \(.+\)/, ''), 0, 0);
+        ctx.restore();
+    });
+
+    ctx.fillStyle = '#90caf9';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('SNR (dB)', pad.left + cw / 2, pad.top - 8);
+}
+
+function drawLossBar(data) {
+    const canvas = $('lossBarChart');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = 200 * dpr;
+    canvas.style.height = '200px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    const W = rect.width, H = 200;
+
+    ctx.clearRect(0, 0, W, H);
+
+    const items = [
+        { label: '自由空间', value: data.losses.free_space.value, color: '#42a5f5' },
+        { label: '大气吸收', value: data.losses.atmospheric.value, color: '#66bb6a' },
+        { label: '雨衰', value: data.losses.rain.value, color: '#ffa726' },
+        { label: '闪烁', value: data.losses.scintillation.value, color: '#ab47bc' },
+    ];
+
+    const barY = 40, barH = 36, barX = 100, barW = W - 140;
+    const maxVal = data.losses.free_space.value * 1.05;
+
+    ctx.fillStyle = '#90caf9';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('损耗构成 (dB)', barX, 24);
+
+    const scale = barW / maxVal;
+
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillRect(barX, barY, barW, barH);
+
+    let x = barX;
+    items.forEach(item => {
+        const w = Math.max(item.value * scale, item.value > 0 ? 2 : 0);
+        ctx.fillStyle = item.color;
+        ctx.fillRect(x, barY, w, barH);
+        x += w;
+    });
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.strokeRect(barX, barY, barW, barH);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText(`总计 ${data.losses.total.value} dB`, barX + barW + 6, barY + barH / 2 + 4);
+
+    let ly = barY + barH + 18;
+    items.forEach(item => {
+        ctx.fillStyle = item.color;
+        ctx.fillRect(barX, ly, 12, 12);
+        ctx.fillStyle = '#bbdefb';
+        ctx.font = '12px sans-serif';
+        ctx.fillText(`${item.label}: ${item.value} dB`, barX + 18, ly + 10);
+        ly += 20;
+    });
+
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = '11px sans-serif';
+    ctx.fillText('0', barX, barY + barH + 6);
+    const maxLabel = maxVal.toFixed(0);
+    ctx.fillText(maxLabel, barX + barW - ctx.measureText(maxLabel).width, barY + barH + 6);
+}
+
+function drawSweepChart(sweep, markerFreq) {
+    const canvas = $('sweepChart');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = 320 * dpr;
+    canvas.style.height = '320px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    const W = rect.width, H = 320;
+
+    ctx.clearRect(0, 0, W, H);
+
+    const pad = { top: 30, right: 60, bottom: 50, left: 70 };
+    const cw = W - pad.left - pad.right;
+    const ch = H - pad.top - pad.bottom;
+
+    const freqs = sweep.map(d => d.freq_ghz);
+    const fMin = 1, fMax = 50;
+
+    const allSnr = sweep.map(d => d.snr);
+    const allRain = sweep.map(d => d.rain);
+    const allAtmo = sweep.map(d => d.atmospheric);
+
+    const snrMin = Math.min(...allSnr) - 5;
+    const snrMax = Math.max(...allSnr) + 5;
+
+    const lossMax = Math.max(...allRain, ...allAtmo, 1) * 1.3;
+    const lossMin = 0;
+
+    function fx(f) { return pad.left + (f - fMin) / (fMax - fMin) * cw; }
+    function snrY(v) { return pad.top + (1 - (v - snrMin) / (snrMax - snrMin)) * ch; }
+    function lossY(v) { return pad.top + (1 - (v - lossMin) / (lossMax - lossMin)) * ch; }
+
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.fillRect(pad.left, pad.top, cw, ch);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 1;
+    for (let f = 5; f <= 50; f += 5) {
+        const x = fx(f);
+        ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + ch); ctx.stroke();
+    }
+
+    const snrStep = Math.ceil((snrMax - snrMin) / 8 / 5) * 5 || 5;
+    for (let v = Math.ceil(snrMin / snrStep) * snrStep; v <= snrMax; v += snrStep) {
+        const y = snrY(v);
+        ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cw, y); ctx.stroke();
+        ctx.fillStyle = '#90caf9';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(v.toFixed(0), pad.left - 8, y + 3);
+    }
+
+    ctx.textAlign = 'left';
+    const lossStep = Math.ceil(lossMax / 5) || 1;
+    for (let v = lossStep; v <= lossMax; v += lossStep) {
+        const y = lossY(v);
+        if (y > pad.top + ch || y < pad.top) continue;
+        ctx.fillStyle = 'rgba(255,167,38,0.5)';
+        ctx.font = '10px sans-serif';
+        ctx.fillText(v.toFixed(1), pad.left + cw + 8, y + 3);
+    }
+
+    function drawLine(data, key, yFn, color, width) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width || 2;
+        ctx.beginPath();
+        data.forEach((d, i) => {
+            const x = fx(d.freq_ghz);
+            const y = yFn(d[key]);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+    }
+
+    function drawArea(data, key, yFn, color) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(fx(data[0].freq_ghz), yFn(0));
+        data.forEach(d => ctx.lineTo(fx(d.freq_ghz), yFn(d[key])));
+        ctx.lineTo(fx(data[data.length-1].freq_ghz), yFn(0));
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    drawArea(sweep, 'atmospheric', lossY, 'rgba(102,187,106,0.15)');
+    drawLine(sweep, 'atmospheric', lossY, '#66bb6a', 2);
+
+    drawArea(sweep, 'rain', lossY, 'rgba(255,167,38,0.15)');
+    drawLine(sweep, 'rain', lossY, '#ffa726', 2);
+
+    drawLine(sweep, 'snr', snrY, '#4fc3f7', 2.5);
+
+    if (markerFreq >= fMin && markerFreq <= fMax) {
+        const mx = fx(markerFreq);
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(mx, pad.top); ctx.lineTo(mx, pad.top + ch); ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${markerFreq} GHz`, mx, pad.top + ch + 14);
+    }
+
+    ctx.fillStyle = '#90caf9';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('频率 (GHz)', pad.left + cw / 2, H - 8);
+
+    for (let f = 5; f <= 50; f += 5) {
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(f, fx(f), pad.top + ch + 16);
+    }
+
+    ctx.save();
+    ctx.translate(16, pad.top + ch / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = '#4fc3f7';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('SNR (dB)', 0, 0);
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(W - 8, pad.top + ch / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.fillStyle = '#ffa726';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('损耗 (dB)', 0, 0);
+    ctx.restore();
+
+    const legendY = pad.top + 8;
+    const legendItems = [
+        { label: 'SNR', color: '#4fc3f7' },
+        { label: '雨衰', color: '#ffa726' },
+        { label: '大气吸收', color: '#66bb6a' },
+    ];
+    let lx = pad.left + 12;
+    legendItems.forEach(item => {
+        ctx.strokeStyle = item.color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(lx, legendY); ctx.lineTo(lx + 20, legendY); ctx.stroke();
+        ctx.fillStyle = '#bbdefb';
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(item.label, lx + 24, legendY + 4);
+        lx += ctx.measureText(item.label).width + 40;
+    });
+}
+</script>
+</body>
+</html>

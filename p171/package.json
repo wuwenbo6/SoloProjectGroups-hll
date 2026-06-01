@@ -1,0 +1,25 @@
+{
+  "name": "pd-pps-controller",
+  "version": "1.0.0",
+  "description": "USB-PD PPS Controller with Curve Configuration",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": [
+    "electron",
+    "usb-pd",
+    "pps",
+    "power-supply"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.0",
+    "serialport": "^12.0.0"
+  }
+}

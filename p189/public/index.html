@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LISP 映射服务器 (MS/MR)</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+
+    .card h2 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card h2::before {
+      content: '';
+      width: 4px;
+      height: 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 2px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      color: #555;
+      font-weight: 500;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e1e8ed;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      width: 100%;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .query-result {
+      margin-top: 15px;
+      padding: 15px;
+      border-radius: 8px;
+      background: #f8fafc;
+      display: none;
+    }
+
+    .query-result.success {
+      background: #ecfdf5;
+      border-left: 4px solid #10b981;
+    }
+
+    .query-result.error {
+      background: #fef2f2;
+      border-left: 4px solid #ef4444;
+    }
+
+    .query-result.show {
+      display: block;
+    }
+
+    .result-item {
+      margin: 8px 0;
+      color: #374151;
+    }
+
+    .result-item strong {
+      color: #1f2937;
+    }
+
+    .rloc-list {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-left: 8px;
+    }
+
+    .rloc-tag {
+      background: #667eea;
+      color: white;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+
+    .rloc-tag .meta {
+      opacity: 0.8;
+      font-size: 10px;
+      margin-left: 4px;
+    }
+
+    .ttl-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .ttl-badge.permanent {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .ttl-badge.warning {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    .ttl-badge.danger {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .rloc-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+
+    .rloc-row input {
+      flex: 1;
+    }
+
+    .rloc-row input[type="number"] {
+      flex: 0 0 80px;
+    }
+
+    .btn-add-row {
+      background: #10b981;
+      color: white;
+      padding: 8px 16px;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    .btn-remove-row {
+      background: #ef4444;
+      color: white;
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+    }
+
+    .priority-badge {
+      display: inline-block;
+      min-width: 20px;
+      text-align: center;
+      padding: 2px 6px;
+      background: #f59e0b;
+      color: white;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: bold;
+      margin-right: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid #e1e8ed;
+    }
+
+    th {
+      background: #f8fafc;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    tr:hover {
+      background: #f8fafc;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #9ca3af;
+    }
+
+    .timestamp {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    @media (max-width: 768px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .help-text {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      display: none;
+    }
+
+    .alert.show {
+      display: block;
+    }
+
+    .alert-success {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+
+    .alert-error {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>LISP 映射服务器 (MS/MR)</h1>
+      <p>EID (端点标识符) ↔ RLOC (路由定位符) 映射管理</p>
+    </header>
+
+    <div class="main-grid">
+      <div class="card">
+        <h2>Map-Request 查询</h2>
+        <div class="alert" id="queryAlert"></div>
+        <div class="form-group">
+          <label for="queryEid">EID (端点标识符)</label>
+          <input type="text" id="queryEid" placeholder="例如: 10.1.2.3 或 10.0.0.0/8">
+          <div class="help-text">支持 IPv4、IPv6 及 CIDR 前缀格式</div>
+        </div>
+        <button class="btn btn-primary" onclick="queryMapping()">查询映射</button>
+        <div class="query-result" id="queryResult"></div>
+      </div>
+
+      <div class="card">
+        <h2>添加映射</h2>
+        <div class="alert" id="addAlert"></div>
+        <div class="form-group">
+          <label for="addEid">EID (端点标识符)</label>
+          <input type="text" id="addEid" placeholder="例如: 172.16.0.0/12">
+        </div>
+        <div class="form-group">
+          <label>TTL (秒)</label>
+          <input type="number" id="addTtl" placeholder="0 表示永不过期" value="0" min="0">
+          <div class="help-text">0 = 永久有效，其他值表示过期秒数</div>
+        </div>
+        <div class="form-group">
+          <label>RLOC (路由定位符)</label>
+          <div class="help-text" style="margin-bottom: 10px;">优先级(1-255，越小越优先)，权重(0-100，负载均衡)</div>
+          <div id="rlocRows">
+            <div class="rloc-row">
+              <input type="text" class="rloc-address" placeholder="RLOC 地址, 例如: 192.168.1.10">
+              <input type="number" class="rloc-priority" placeholder="优先级" value="1" min="1" max="255">
+              <input type="number" class="rloc-weight" placeholder="权重" value="100" min="0" max="100">
+              <button class="btn btn-remove-row" onclick="removeRlocRow(this)" style="display:none;">×</button>
+            </div>
+          </div>
+          <button class="btn btn-add-row" onclick="addRlocRow()">+ 添加 RLOC</button>
+        </div>
+        <button class="btn btn-primary" onclick="addMapping()">添加映射</button>
+      </div>
+
+      <div class="card full-width">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 style="margin-bottom: 0;">映射列表</h2>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn" onclick="exportMappings()" style="background: #10b981; color: white; padding: 10px 20px;">📥 导出 JSON</button>
+            <button class="btn" onclick="toggleRegisterForm()" id="toggleRegisterBtn" style="background: #f59e0b; color: white; padding: 10px 20px;">📝 Map-Register</button>
+          </div>
+        </div>
+        
+        <div id="registerForm" style="display: none; margin-bottom: 20px; padding: 20px; background: #f8fafc; border-radius: 8px;">
+          <h3 style="margin-bottom: 15px; color: #333;">Map-Register 动态注册</h3>
+          <div class="alert" id="registerAlert"></div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="registerEid">EID</label>
+              <input type="text" id="registerEid" placeholder="例如: 192.168.0.0/16">
+            </div>
+            <div class="form-group">
+              <label for="registerTtl">TTL (秒)</label>
+              <input type="number" id="registerTtl" placeholder="默认 3600" value="3600" min="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="registerSource">注册来源</label>
+            <input type="text" id="registerSource" placeholder="例如: xTR-01, 10.0.0.1" value="map-register">
+          </div>
+          <div class="form-group">
+            <label>RLOC (路由定位符)</label>
+            <div id="registerRlocRows">
+              <div class="rloc-row">
+                <input type="text" class="register-rloc-address" placeholder="RLOC 地址, 例如: 203.0.113.1">
+                <input type="number" class="register-rloc-priority" placeholder="优先级" value="1" min="1" max="255">
+                <input type="number" class="register-rloc-weight" placeholder="权重" value="100" min="0" max="100">
+                <button class="btn btn-remove-row" onclick="removeRegisterRlocRow(this)" style="display:none;">×</button>
+              </div>
+            </div>
+            <button class="btn btn-add-row" onclick="addRegisterRlocRow()">+ 添加 RLOC</button>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-primary" onclick="registerMapping()" style="flex: 1;">注册映射</button>
+            <button class="btn" onclick="toggleRegisterForm()" style="background: #9ca3af; color: white;">取消</button>
+          </div>
+        </div>
+        
+        <table id="mappingsTable">
+          <thead>
+            <tr>
+              <th>EID</th>
+              <th>RLOCs</th>
+              <th>来源</th>
+              <th>TTL</th>
+              <th>创建时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="mappingsBody">
+          </tbody>
+        </table>
+        <div class="empty-state" id="emptyState">
+          暂无映射数据
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api';
+    let refreshInterval = null;
+
+    function addRlocRow() {
+      const container = document.getElementById('rlocRows');
+      const rows = container.querySelectorAll('.rloc-row');
+      const newRow = rows[0].cloneNode(true);
+      newRow.querySelectorAll('input').forEach(input => {
+        if (input.type === 'text') input.value = '';
+        if (input.classList.contains('rloc-priority')) input.value = '1';
+        if (input.classList.contains('rloc-weight')) input.value = '100';
+      });
+      const removeBtn = newRow.querySelector('.btn-remove-row');
+      removeBtn.style.display = 'inline-block';
+      container.appendChild(newRow);
+    }
+
+    function removeRlocRow(btn) {
+      const container = document.getElementById('rlocRows');
+      const rows = container.querySelectorAll('.rloc-row');
+      if (rows.length > 1) {
+        btn.parentElement.remove();
+      }
+    }
+
+    function formatRlocTag(rloc) {
+      return `<span class="rloc-tag">
+        <span class="priority-badge">P${rloc.priority}</span>
+        ${rloc.address}
+        <span class="meta">w:${rloc.weight}</span>
+      </span>`;
+    }
+
+    function formatTtl(ttl, remainingTtl) {
+      if (ttl === 0 || ttl === null) {
+        return '<span class="ttl-badge permanent">永久</span>';
+      }
+      const display = remainingTtl !== null && remainingTtl !== undefined ? remainingTtl : ttl;
+      let className = 'permanent';
+      if (display <= 10) className = 'danger';
+      else if (display <= 60) className = 'warning';
+      return `<span class="ttl-badge ${className}">${display}s</span>`;
+    }
+
+    async function queryMapping() {
+      const eid = document.getElementById('queryEid').value.trim();
+      const alertEl = document.getElementById('queryAlert');
+      const resultEl = document.getElementById('queryResult');
+
+      if (!eid) {
+        showAlert(alertEl, '请输入 EID 地址', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/map-request?eid=${encodeURIComponent(eid)}`);
+        const data = await response.json();
+
+        if (data.success) {
+          resultEl.className = 'query-result show success';
+          resultEl.innerHTML = `
+            <div class="result-item"><strong>查询 EID:</strong> ${data.eid}</div>
+            <div class="result-item"><strong>匹配映射:</strong> ${data.mappedEid}</div>
+            <div class="result-item">
+              <strong>RLOCs:</strong>
+              <span class="rloc-list">
+                ${data.rlocs.map(r => formatRlocTag(r)).join('')}
+              </span>
+            </div>
+            <div class="result-item"><strong>TTL:</strong> ${formatTtl(data.ttl, data.remainingTtl)}</div>
+          `;
+        } else {
+          resultEl.className = 'query-result show error';
+          resultEl.innerHTML = `
+            <div class="result-item"><strong>查询 EID:</strong> ${data.eid}</div>
+            <div class="result-item"><strong>状态:</strong> ❌ ${data.message}</div>
+          `;
+        }
+      } catch (error) {
+        showAlert(alertEl, '查询失败: ' + error.message, 'error');
+      }
+    }
+
+    async function addMapping() {
+      const eid = document.getElementById('addEid').value.trim();
+      const ttl = parseInt(document.getElementById('addTtl').value, 10) || 0;
+      const alertEl = document.getElementById('addAlert');
+
+      const rlocRows = document.querySelectorAll('#rlocRows .rloc-row');
+      const rlocs = [];
+      rlocRows.forEach(row => {
+        const address = row.querySelector('.rloc-address').value.trim();
+        const priority = parseInt(row.querySelector('.rloc-priority').value, 10) || 1;
+        const weight = parseInt(row.querySelector('.rloc-weight').value, 10) || 100;
+        if (address) {
+          rlocs.push({ address, priority, weight });
+        }
+      });
+
+      if (!eid || rlocs.length === 0) {
+        showAlert(alertEl, '请填写 EID 和至少一个 RLOC', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/mappings`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ eid, rlocs, ttl })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert(alertEl, '映射添加成功！', 'success');
+          document.getElementById('addEid').value = '';
+          document.getElementById('addTtl').value = '0';
+          const container = document.getElementById('rlocRows');
+          container.innerHTML = `
+            <div class="rloc-row">
+              <input type="text" class="rloc-address" placeholder="RLOC 地址, 例如: 192.168.1.10">
+              <input type="number" class="rloc-priority" placeholder="优先级" value="1" min="1" max="255">
+              <input type="number" class="rloc-weight" placeholder="权重" value="100" min="0" max="100">
+              <button class="btn btn-remove-row" onclick="removeRlocRow(this)" style="display:none;">×</button>
+            </div>
+          `;
+          loadMappings();
+        } else {
+          showAlert(alertEl, data.message, 'error');
+        }
+      } catch (error) {
+        showAlert(alertEl, '添加失败: ' + error.message, 'error');
+      }
+    }
+
+    async function deleteMapping(eid) {
+      if (!confirm(`确定要删除 EID ${eid} 的映射吗？`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/mappings`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ eid })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          loadMappings();
+        } else {
+          alert('删除失败: ' + data.message);
+        }
+      } catch (error) {
+        alert('删除失败: ' + error.message);
+      }
+    }
+
+    async function loadMappings() {
+      try {
+        const response = await fetch(`${API_BASE}/mappings`);
+        const data = await response.json();
+
+        const tbody = document.getElementById('mappingsBody');
+        const emptyState = document.getElementById('emptyState');
+
+        if (data.success && data.mappings.length > 0) {
+          tbody.innerHTML = data.mappings.map(mapping => `
+            <tr data-eid="${mapping.eid}">
+              <td><code>${mapping.eid}</code></td>
+              <td>
+                <span class="rloc-list">
+                  ${mapping.rlocs.map(r => formatRlocTag(r)).join('')}
+                </span>
+              </td>
+              <td><span class="source-badge" style="padding: 2px 8px; border-radius: 4px; font-size: 11px; background: ${mapping.source === 'map-register' ? '#fef3c7' : '#dbeafe'}; color: ${mapping.source === 'map-register' ? '#92400e' : '#1d4ed8'};">${mapping.source || 'manual'}</span></td>
+              <td class="ttl-cell" data-ttl="${mapping.ttl}" data-expires="${mapping.expiresAt || ''}">
+                ${formatTtl(mapping.ttl, mapping.remainingTtl)}
+              </td>
+              <td><span class="timestamp">${formatTimestamp(mapping.timestamp)}</span></td>
+              <td>
+                <button class="btn btn-danger" onclick="deleteMapping('${mapping.eid}')">删除</button>
+              </td>
+            </tr>
+          `).join('');
+          tbody.style.display = 'table-row-group';
+          emptyState.style.display = 'none';
+        } else {
+          tbody.innerHTML = '';
+          tbody.style.display = 'none';
+          emptyState.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('加载映射列表失败:', error);
+      }
+    }
+
+    function updateTtlDisplay() {
+      const now = Date.now();
+      document.querySelectorAll('.ttl-cell').forEach(cell => {
+        const ttl = parseInt(cell.dataset.ttl, 10);
+        const expiresAt = cell.dataset.expires ? parseInt(cell.dataset.expires, 10) : null;
+        if (ttl === 0 || !expiresAt) {
+          cell.innerHTML = formatTtl(0, null);
+        } else {
+          const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
+          cell.innerHTML = formatTtl(ttl, remaining);
+        }
+      });
+    }
+
+    function showAlert(element, message, type) {
+      element.textContent = message;
+      element.className = `alert alert-${type} show`;
+      setTimeout(() => {
+        element.className = 'alert';
+      }, 3000);
+    }
+
+    function formatTimestamp(timestamp) {
+      const date = new Date(timestamp);
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+
+    function toggleRegisterForm() {
+      const form = document.getElementById('registerForm');
+      const btn = document.getElementById('toggleRegisterBtn');
+      if (form.style.display === 'none') {
+        form.style.display = 'block';
+        btn.textContent = '✕ 关闭';
+      } else {
+        form.style.display = 'none';
+        btn.textContent = '📝 Map-Register';
+      }
+    }
+
+    function addRegisterRlocRow() {
+      const container = document.getElementById('registerRlocRows');
+      const rows = container.querySelectorAll('.rloc-row');
+      const newRow = rows[0].cloneNode(true);
+      newRow.querySelectorAll('input').forEach(input => {
+        if (input.type === 'text') input.value = '';
+        if (input.classList.contains('register-rloc-priority')) input.value = '1';
+        if (input.classList.contains('register-rloc-weight')) input.value = '100';
+      });
+      const removeBtn = newRow.querySelector('.btn-remove-row');
+      removeBtn.style.display = 'inline-block';
+      container.appendChild(newRow);
+    }
+
+    function removeRegisterRlocRow(btn) {
+      const container = document.getElementById('registerRlocRows');
+      const rows = container.querySelectorAll('.rloc-row');
+      if (rows.length > 1) {
+        btn.parentElement.remove();
+      }
+    }
+
+    async function registerMapping() {
+      const eid = document.getElementById('registerEid').value.trim();
+      const ttl = parseInt(document.getElementById('registerTtl').value, 10) || 3600;
+      const source = document.getElementById('registerSource').value.trim() || 'map-register';
+      const alertEl = document.getElementById('registerAlert');
+
+      const rlocRows = document.querySelectorAll('#registerRlocRows .rloc-row');
+      const rlocs = [];
+      rlocRows.forEach(row => {
+        const address = row.querySelector('.register-rloc-address').value.trim();
+        const priority = parseInt(row.querySelector('.register-rloc-priority').value, 10) || 1;
+        const weight = parseInt(row.querySelector('.register-rloc-weight').value, 10) || 100;
+        if (address) {
+          rlocs.push({ address, priority, weight });
+        }
+      });
+
+      if (!eid || rlocs.length === 0) {
+        showAlert(alertEl, '请填写 EID 和至少一个 RLOC', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/map-register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ eid, rlocs, ttl, source })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert(alertEl, 'Map-Register 注册成功！', 'success');
+          document.getElementById('registerEid').value = '';
+          document.getElementById('registerTtl').value = '3600';
+          document.getElementById('registerSource').value = 'map-register';
+          const container = document.getElementById('registerRlocRows');
+          container.innerHTML = `
+            <div class="rloc-row">
+              <input type="text" class="register-rloc-address" placeholder="RLOC 地址, 例如: 203.0.113.1">
+              <input type="number" class="register-rloc-priority" placeholder="优先级" value="1" min="1" max="255">
+              <input type="number" class="register-rloc-weight" placeholder="权重" value="100" min="0" max="100">
+              <button class="btn btn-remove-row" onclick="removeRegisterRlocRow(this)" style="display:none;">×</button>
+            </div>
+          `;
+          loadMappings();
+        } else {
+          showAlert(alertEl, data.message, 'error');
+        }
+      } catch (error) {
+        showAlert(alertEl, '注册失败: ' + error.message, 'error');
+      }
+    }
+
+    async function exportMappings() {
+      try {
+        const response = await fetch(`${API_BASE}/export`);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `lisp-mappings-${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        alert('导出失败: ' + error.message);
+      }
+    }
+
+    document.getElementById('queryEid').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') queryMapping();
+    });
+
+    loadMappings();
+    refreshInterval = setInterval(updateTtlDisplay, 1000);
+    setInterval(loadMappings, 10000);
+  </script>
+</body>
+</html>

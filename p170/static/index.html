@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STUN/TURN 监控面板</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        .header p {
+            opacity: 0.9;
+        }
+        .controls {
+            background: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        .controls label {
+            font-weight: 500;
+            color: #333;
+        }
+        .controls select,
+        .controls button {
+            padding: 8px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .controls select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .controls button {
+            background: #667eea;
+            color: white;
+            border: none;
+        }
+        .controls button:hover {
+            background: #5a6fd8;
+        }
+        .time-range-info {
+            margin-left: auto;
+            font-size: 13px;
+            color: #6b7280;
+            background: #eef2ff;
+            padding: 6px 12px;
+            border-radius: 6px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            border-left: 4px solid #667eea;
+        }
+        .stat-card.orange {
+            border-left-color: #f59e0b;
+        }
+        .stat-card.green {
+            border-left-color: #10b981;
+        }
+        .stat-card.red {
+            border-left-color: #ef4444;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        .stat-unit {
+            font-size: 16px;
+            color: #6b7280;
+            margin-left: 4px;
+        }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 1200px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .chart-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 16px;
+        }
+        .chart {
+            width: 100%;
+            height: 320px;
+        }
+        .ip-distribution {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        .ip-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .ip-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .ip-item:last-child {
+            border-bottom: none;
+        }
+        .ip-address {
+            font-family: 'Monaco', 'Consolas', monospace;
+            color: #374151;
+        }
+        .ip-count {
+            background: #eef2ff;
+            color: #4f46e5;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+        }
+        .alert-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .alert-warning {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        .alert-error {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        .alert-critical {
+            background: #7f1d1d;
+            color: #fef2f2;
+        }
+        .alert-item {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 4px solid;
+        }
+        .alert-item.warning {
+            background: #fffbeb;
+            border-color: #f59e0b;
+        }
+        .alert-item.error {
+            background: #fef2f2;
+            border-color: #ef4444;
+        }
+        .alert-item.critical {
+            background: #fef2f2;
+            border-color: #dc2626;
+        }
+        .alert-item.resolved {
+            opacity: 0.6;
+        }
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .alert-time {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        .alert-message {
+            font-size: 14px;
+            color: #374151;
+            margin-bottom: 4px;
+        }
+        .alert-details {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .resolve-btn {
+            background: none;
+            border: 1px solid #d1d5db;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        .resolve-btn:hover {
+            background: #f3f4f6;
+        }
+        .action-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .action-btn:hover {
+            background: #059669;
+        }
+        .action-btn.secondary {
+            background: #6366f1;
+        }
+        .action-btn.secondary:hover {
+            background: #4f46e5;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>STUN/TURN 服务器监控</h1>
+        <p>实时监控会话数、流量及IP分布 | 数据存储: InfluxDB</p>
+    </div>
+
+    <div class="controls">
+        <label for="serverSelect">服务器:</label>
+        <select id="serverSelect">
+            <option value="">加载中...</option>
+        </select>
+        <label for="durationSelect">时间范围:</label>
+        <select id="durationSelect">
+            <option value="15m">最近15分钟</option>
+            <option value="1h" selected>最近1小时</option>
+            <option value="6h">最近6小时</option>
+            <option value="24h">最近24小时</option>
+            <option value="7d">最近7天</option>
+            <option value="30d">最近30天</option>
+        </select>
+        <button onclick="refreshData()">刷新</button>
+        <button class="action-btn secondary" onclick="generateReport()">生成报告</button>
+        <button class="action-btn" onclick="downloadReport()">下载报告</button>
+        <div class="time-range-info" id="timeRangeInfo">
+            查询范围: --
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">当前会话数</div>
+            <div class="stat-value" id="sessionCount">--</div>
+        </div>
+        <div class="stat-card orange">
+            <div class="stat-label">入站流量</div>
+            <div class="stat-value" id="bytesIn">--<span class="stat-unit">MB</span></div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-label">出站流量</div>
+            <div class="stat-value" id="bytesOut">--<span class="stat-unit">MB</span></div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-label">独立IP数</div>
+            <div class="stat-value" id="uniqueIPs">--</div>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-title">会话数趋势</div>
+            <div id="sessionChart" class="chart"></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">流量趋势</div>
+            <div id="trafficChart" class="chart"></div>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="ip-distribution">
+            <div class="section-title">
+                <span>告警记录</span>
+                <span class="alert-badge alert-error" id="activeAlertCount" style="display:none;">0 活跃</span>
+            </div>
+            <div id="alertList" style="max-height: 350px; overflow-y: auto;">
+                <div class="empty-state">暂无告警</div>
+            </div>
+        </div>
+        <div class="ip-distribution">
+            <div class="chart-title">IP分布 (Top 20)</div>
+            <div id="ipList" class="ip-list">
+                <div class="empty-state">暂无数据</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sessionChart, trafficChart;
+        let refreshInterval;
+        let currentTimeRange = { start: null, end: null };
+
+        const fixedTimeRanges = {
+            '15m': { label: '最近15分钟', duration: 15 * 60 * 1000 },
+            '1h': { label: '最近1小时', duration: 60 * 60 * 1000 },
+            '6h': { label: '最近6小时', duration: 6 * 60 * 60 * 1000 },
+            '24h': { label: '最近24小时', duration: 24 * 60 * 60 * 1000 },
+            '7d': { label: '最近7天', duration: 7 * 24 * 60 * 60 * 1000 },
+            '30d': { label: '最近30天', duration: 30 * 24 * 60 * 60 * 1000 }
+        };
+
+        function initCharts() {
+            sessionChart = echarts.init(document.getElementById('sessionChart'));
+            trafficChart = echarts.init(document.getElementById('trafficChart'));
+
+            window.addEventListener('resize', () => {
+                sessionChart.resize();
+                trafficChart.resize();
+            });
+        }
+
+        async function loadServers() {
+            try {
+                const response = await fetch('/api/servers');
+                const data = await response.json();
+                const select = document.getElementById('serverSelect');
+                select.innerHTML = '';
+
+                if (data.success && data.data && data.data.length > 0) {
+                    data.data.forEach(server => {
+                        const option = document.createElement('option');
+                        option.value = server;
+                        option.textContent = server;
+                        select.appendChild(option);
+                    });
+                    select.value = data.data[0];
+                    refreshData();
+                } else {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = '无可用服务器';
+                    select.appendChild(option);
+                }
+            } catch (error) {
+                console.error('Failed to load servers:', error);
+            }
+        }
+
+        function updateTimeRangeInfo(durationKey) {
+            const range = fixedTimeRanges[durationKey];
+            if (range) {
+                const end = new Date();
+                const start = new Date(end.getTime() - range.duration);
+                currentTimeRange = { start, end };
+
+                const fmt = (d) => d.toLocaleString('zh-CN', {
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                document.getElementById('timeRangeInfo').textContent =
+                    `查询范围: ${fmt(start)} ~ ${fmt(end)}`;
+            }
+        }
+
+        async function refreshData() {
+            const server = document.getElementById('serverSelect').value;
+            const duration = document.getElementById('durationSelect').value;
+
+            if (!server) return;
+
+            updateTimeRangeInfo(duration);
+
+            await Promise.all([
+                loadLatestData(server),
+                loadHistoryData(server, duration),
+                loadIPDistribution(server, duration),
+                loadAlerts()
+            ]);
+        }
+
+        async function loadAlerts() {
+            try {
+                const response = await fetch('/api/alerts?limit=20');
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    updateAlerts(data.data);
+                }
+            } catch (error) {
+                console.error('Failed to load alerts:', error);
+            }
+        }
+
+        function updateAlerts(alerts) {
+            const container = document.getElementById('alertList');
+            const activeBadge = document.getElementById('activeAlertCount');
+
+            if (!alerts || alerts.length === 0) {
+                container.innerHTML = '<div class="empty-state">暂无告警</div>';
+                activeBadge.style.display = 'none';
+                return;
+            }
+
+            const activeCount = alerts.filter(a => !a.resolved).length;
+            if (activeCount > 0) {
+                activeBadge.textContent = `${activeCount} 活跃`;
+                activeBadge.style.display = 'inline-block';
+            } else {
+                activeBadge.style.display = 'none';
+            }
+
+            container.innerHTML = alerts.map(alert => {
+                const levelClass = alert.level === 'warning' ? 'warning' : 
+                                 alert.level === 'error' ? 'error' : 'critical';
+                const levelLabel = alert.level === 'warning' ? '警告' : 
+                                 alert.level === 'error' ? '错误' : '严重';
+                const resolvedClass = alert.resolved ? 'resolved' : '';
+                
+                const time = new Date(alert.timestamp);
+                const timeStr = time.toLocaleString('zh-CN');
+
+                return `
+                    <div class="alert-item ${levelClass} ${resolvedClass}">
+                        <div class="alert-header">
+                            <span class="alert-badge alert-${alert.level}">${levelLabel}</span>
+                            <span class="alert-time">${timeStr}</span>
+                        </div>
+                        <div class="alert-message">${alert.message}</div>
+                        <div class="alert-details">
+                            会话数: ${alert.session_count} / 阈值: ${alert.threshold}
+                            ${!alert.resolved ? `<button class="resolve-btn" onclick="resolveAlert('${alert.id}')">标记已解决</button>` : ''}
+                            ${alert.resolved_at ? `<span style="margin-left: 8px;">已解决: ${new Date(alert.resolved_at).toLocaleString('zh-CN')}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function resolveAlert(id) {
+            try {
+                await fetch(`/api/alerts/resolve?id=${encodeURIComponent(id)}`);
+                loadAlerts();
+            } catch (error) {
+                console.error('Failed to resolve alert:', error);
+            }
+        }
+
+        async function generateReport() {
+            const duration = document.getElementById('durationSelect').value;
+            try {
+                const response = await fetch(`/api/report/generate?duration=${duration}`);
+                const data = await response.json();
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Failed to generate report:', error);
+                alert('生成报告失败');
+            }
+        }
+
+        async function downloadReport() {
+            const duration = document.getElementById('durationSelect').value;
+            try {
+                const response = await fetch(`/api/report/download?duration=${duration}`);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `stun-report-${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Failed to download report:', error);
+                alert('下载报告失败');
+            }
+        }
+
+        async function loadLatestData(server) {
+            try {
+                const response = await fetch(`/api/metrics/latest?server=${encodeURIComponent(server)}`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    const m = data.data;
+                    document.getElementById('sessionCount').textContent = m.session_count || 0;
+                    document.getElementById('bytesIn').innerHTML = formatBytes(m.total_bytes_in || 0);
+                    document.getElementById('bytesOut').innerHTML = formatBytes(m.total_bytes_out || 0);
+                    document.getElementById('uniqueIPs').textContent = Object.keys(m.ip_distribution || {}).length;
+                }
+            } catch (error) {
+                console.error('Failed to load latest data:', error);
+            }
+        }
+
+        async function loadHistoryData(server, duration) {
+            try {
+                const response = await fetch(`/api/metrics/history?server=${encodeURIComponent(server)}&duration=${duration}`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    updateCharts(data.data);
+                }
+            } catch (error) {
+                console.error('Failed to load history data:', error);
+            }
+        }
+
+        async function loadIPDistribution(server, duration) {
+            try {
+                const response = await fetch(`/api/metrics/ip-distribution?server=${encodeURIComponent(server)}&duration=${duration}`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    updateIPDistribution(data.data);
+                }
+            } catch (error) {
+                console.error('Failed to load IP distribution:', error);
+            }
+        }
+
+        function updateCharts(metrics) {
+            if (!metrics || metrics.length === 0) {
+                sessionChart.clear();
+                trafficChart.clear();
+                return;
+            }
+
+            const times = metrics.map(m => {
+                const date = new Date(m.timestamp);
+                return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            });
+
+            const sessions = metrics.map(m => m.session_count || 0);
+            const bytesIn = metrics.map(m => (m.total_bytes_in || 0) / 1024 / 1024);
+            const bytesOut = metrics.map(m => (m.total_bytes_out || 0) / 1024 / 1024);
+
+            sessionChart.setOption({
+                tooltip: {
+                    trigger: 'axis'
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: times
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '会话数'
+                },
+                series: [{
+                    name: '会话数',
+                    type: 'line',
+                    smooth: true,
+                    data: sessions,
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(102, 126, 234, 0.5)' },
+                            { offset: 1, color: 'rgba(102, 126, 234, 0.05)' }
+                        ])
+                    },
+                    lineStyle: {
+                        color: '#667eea',
+                        width: 2
+                    },
+                    itemStyle: {
+                        color: '#667eea'
+                    }
+                }]
+            });
+
+            trafficChart.setOption({
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        let result = params[0].name + '<br/>';
+                        params.forEach(param => {
+                            result += `${param.marker}${param.seriesName}: ${param.value.toFixed(2)} MB<br/>`;
+                        });
+                        return result;
+                    }
+                },
+                legend: {
+                    data: ['入站流量', '出站流量']
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: times
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '流量 (MB)'
+                },
+                series: [
+                    {
+                        name: '入站流量',
+                        type: 'line',
+                        smooth: true,
+                        data: bytesIn,
+                        lineStyle: {
+                            color: '#f59e0b',
+                            width: 2
+                        },
+                        itemStyle: {
+                            color: '#f59e0b'
+                        }
+                    },
+                    {
+                        name: '出站流量',
+                        type: 'line',
+                        smooth: true,
+                        data: bytesOut,
+                        lineStyle: {
+                            color: '#10b981',
+                            width: 2
+                        },
+                        itemStyle: {
+                            color: '#10b981'
+                        }
+                    }
+                ]
+            });
+        }
+
+        function updateIPDistribution(ipDistribution) {
+            const ips = Object.entries(ipDistribution)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 20);
+
+            const container = document.getElementById('ipList');
+
+            if (ips.length === 0) {
+                container.innerHTML = '<div class="empty-state">暂无IP数据</div>';
+                return;
+            }
+
+            container.innerHTML = ips.map(([ip, count]) => `
+                <div class="ip-item">
+                    <span class="ip-address">${ip}</span>
+                    <span class="ip-count">${count} 次</span>
+                </div>
+            `).join('');
+        }
+
+        function formatBytes(bytes) {
+            if (bytes < 1024) {
+                return bytes + '<span class="stat-unit">B</span>';
+            } else if (bytes < 1024 * 1024) {
+                return (bytes / 1024).toFixed(2) + '<span class="stat-unit">KB</span>';
+            } else if (bytes < 1024 * 1024 * 1024) {
+                return (bytes / 1024 / 1024).toFixed(2) + '<span class="stat-unit">MB</span>';
+            } else {
+                return (bytes / 1024 / 1024 / 1024).toFixed(2) + '<span class="stat-unit">GB</span>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            loadServers();
+
+            document.getElementById('durationSelect').addEventListener('change', refreshData);
+
+            refreshInterval = setInterval(refreshData, 10000);
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>

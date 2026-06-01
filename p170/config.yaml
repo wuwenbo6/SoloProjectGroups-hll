@@ -1,0 +1,42 @@
+server:
+  listen_addr: ":8080"
+  scrape_interval: 10s
+
+influxdb:
+  url: "http://localhost:8086"
+  token: "my-token"
+  org: "my-org"
+  bucket: "stun-monitor"
+
+alert:
+  enabled: true
+  max_alerts: 1000
+  rules:
+    - server_name: ""
+      session_threshold: 1000
+      level: "warning"
+      duration: 5m
+      cooldown: 5m
+    - server_name: ""
+      session_threshold: 5000
+      level: "error"
+      duration: 5m
+      cooldown: 10m
+    - server_name: ""
+      session_threshold: 10000
+      level: "critical"
+      duration: 1m
+      cooldown: 15m
+
+stun_servers:
+  - name: "coturn-1"
+    type: "api"
+    api_url: "http://localhost:3478/status"
+    timeout: 5s
+  - name: "coturn-2"
+    type: "log"
+    log_path: "/var/log/turnserver.log"
+
+frontend:
+  enable: true
+  static_dir: "./static"

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CANopen SDO Tool - USB-CAN适配器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>CANopen SDO 工具</h1>
+      <div class="connection-status">
+        <span id="statusIndicator" class="status-indicator disconnected"></span>
+        <span id="statusText">未检测</span>
+        <button id="detectBtn" class="btn btn-secondary">检测设备</button>
+        <select id="deviceSelect" class="device-select" disabled>
+          <option value="">请先检测设备</option>
+        </select>
+        <button id="connectBtn" class="btn btn-primary" disabled>连接适配器</button>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <div class="panel">
+        <h2>设备信息</h2>
+        <div id="deviceInfo" class="device-info">
+          <div class="info-row">
+            <span class="info-label">设备状态:</span>
+            <span id="deviceStatus" class="info-value">未检测</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">设备名称:</span>
+            <span id="deviceName" class="info-value">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">序列号:</span>
+            <span id="deviceSerial" class="info-value">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">厂商ID:</span>
+            <span id="deviceVendor" class="info-value">-</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>SDO 操作</h2>
+        <div class="form-group">
+          <label>节点ID (Node ID):</label>
+          <input type="number" id="nodeId" value="1" min="1" max="127">
+        </div>
+        <div class="form-group">
+          <label>索引 (Index, 十六进制):</label>
+          <input type="text" id="index" value="2000" placeholder="例如: 1000">
+        </div>
+        <div class="form-group">
+          <label>子索引 (SubIndex):</label>
+          <input type="number" id="subIndex" value="1" min="0" max="255">
+        </div>
+        
+        <div class="button-group">
+          <button id="readBtn" class="btn btn-success" disabled>读取SDO</button>
+          <button id="writeBtn" class="btn btn-warning" disabled>写入SDO</button>
+        </div>
+
+        <div class="form-group">
+          <label>写入数据格式:</label>
+          <select id="dataFormat">
+            <option value="hex">十六进制 (Hex)</option>
+            <option value="text">文本 (Text)</option>
+            <option value="uint8">8位无符号整数</option>
+            <option value="uint16">16位无符号整数</option>
+            <option value="uint32">32位无符号整数</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>写入数据:</label>
+          <textarea id="writeData" rows="3" placeholder="输入要写入的数据..."></textarea>
+        </div>
+
+        <div id="progressContainer" class="progress-container hidden">
+          <div class="progress-bar">
+            <div id="progressFill" class="progress-fill"></div>
+          </div>
+          <span id="progressText">0%</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>读取结果</h2>
+        <div class="result-container">
+          <div class="result-row">
+            <span class="result-label">十六进制:</span>
+            <span id="resultHex" class="result-value">-</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">文本:</span>
+            <span id="resultText" class="result-value">-</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">数据长度:</span>
+            <span id="resultLength" class="result-value">-</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">传输类型:</span>
+            <span id="resultType" class="result-value">-</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel full-width">
+        <h2>CAN 消息日志</h2>
+        <div class="log-controls">
+          <button id="clearLogBtn" class="btn btn-secondary">清除日志</button>
+          <label class="checkbox-label">
+            <input type="checkbox" id="autoScroll" checked> 自动滚动
+          </label>
+        </div>
+        <div id="messageLog" class="message-log"></div>
+      </div>
+
+      <div class="panel">
+        <h2>快速测试</h2>
+        <div class="test-buttons">
+          <button class="btn btn-secondary test-btn" data-index="1000" data-sub="0" data-desc="读取设备类型 (0x1000)">设备类型</button>
+          <button class="btn btn-secondary test-btn" data-index="1008" data-sub="0" data-desc="读取设备名称 (0x1008, 分块)">设备名称</button>
+          <button class="btn btn-secondary test-btn" data-index="2000" data-sub="1" data-desc="读取长数据 (0x2000, 50字节, 分块)">长数据测试</button>
+        </div>
+      </div>
+
+      <div class="panel full-width">
+        <h2>批量操作</h2>
+        <div class="batch-controls">
+          <div class="batch-actions">
+            <button id="batchReadBtn" class="btn btn-success" disabled>批量读取</button>
+            <button id="batchWriteBtn" class="btn btn-warning" disabled>批量写入</button>
+            <button id="importCSVBtn" class="btn btn-secondary">导入CSV</button>
+            <button id="exportCSVBtn" class="btn btn-secondary" disabled>导出CSV</button>
+            <button id="addEntryBtn" class="btn btn-primary">添加条目</button>
+            <button id="clearEntriesBtn" class="btn btn-secondary">清空列表</button>
+          </div>
+          <div id="batchProgressContainer" class="progress-container hidden">
+            <div class="progress-bar">
+              <div id="batchProgressFill" class="progress-fill"></div>
+            </div>
+            <span id="batchProgressText">0/0</span>
+          </div>
+        </div>
+        <div class="batch-table-container">
+          <table id="batchTable" class="batch-table">
+            <thead>
+              <tr>
+                <th>选择</th>
+                <th>索引 (Hex)</th>
+                <th>子索引</th>
+                <th>名称</th>
+                <th>写入数据 (Hex)</th>
+                <th>读取结果 (Hex)</th>
+                <th>长度</th>
+                <th>传输类型</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="batchTableBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

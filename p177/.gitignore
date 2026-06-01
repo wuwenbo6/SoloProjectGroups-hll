@@ -1,0 +1,7 @@
+node_modules/
+dist/
+build/
+test_data/
+*.log
+.DS_Store
+.cache/

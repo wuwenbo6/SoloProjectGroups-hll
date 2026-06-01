@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASN 格式转换器 | 2字节 ASN ↔ ASdot</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="header-content">
+        <div class="logo">
+          <i class="fa-solid fa-network-wired"></i>
+          <h1>ASN 格式转换器</h1>
+        </div>
+        <p class="subtitle">2字节 ASN (1-64511) ↔ 4字节 ASdot 表示法</p>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div class="converter-card">
+        <div class="mode-switcher">
+          <button 
+            id="mode-asn-to-asdot" 
+            class="mode-btn active"
+            data-direction="asn-to-asdot"
+          >
+            <i class="fa-solid fa-arrow-right"></i>
+            <span>ASN → ASdot</span>
+          </button>
+          <button 
+            id="mode-asdot-to-asn" 
+            class="mode-btn"
+            data-direction="asdot-to-asn"
+          >
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>ASdot → ASN</span>
+          </button>
+        </div>
+
+        <div class="converter-body">
+          <div class="input-section">
+            <div class="section-header">
+              <label id="input-label" for="input-area">
+                <i class="fa-solid fa-keyboard"></i>
+                输入 ASN (1-64511)
+              </label>
+              <div class="hint">
+                <i class="fa-solid fa-info-circle"></i>
+                <span id="input-hint">支持批量输入，每行一个值</span>
+              </div>
+            </div>
+            <textarea 
+              id="input-area" 
+              class="input-area"
+              placeholder="例如：&#10;100&#10;200&#10;64511"
+              rows="10"
+            ></textarea>
+            <div class="input-actions">
+              <button id="convert-btn" class="btn btn-primary">
+                <i class="fa-solid fa-exchange-alt"></i>
+                转换
+              </button>
+              <button id="clear-btn" class="btn btn-secondary">
+                <i class="fa-solid fa-trash"></i>
+                清空
+              </button>
+              <button id="example-btn" class="btn btn-tertiary">
+                <i class="fa-solid fa-lightbulb"></i>
+                示例
+              </button>
+            </div>
+          </div>
+
+          <div class="result-section">
+            <div class="section-header">
+              <label id="output-label">
+                <i class="fa-solid fa-list-check"></i>
+                转换结果 (ASdot)
+              </label>
+              <div class="btn-group">
+                <button id="copy-all-btn" class="btn btn-small" disabled>
+                  <i class="fa-solid fa-copy"></i>
+                  复制全部
+                </button>
+                <button id="export-csv-btn" class="btn btn-small btn-export" disabled>
+                  <i class="fa-solid fa-file-csv"></i>
+                  CSV
+                </button>
+                <button id="export-tsv-btn" class="btn btn-small btn-export" disabled>
+                  <i class="fa-solid fa-file-lines"></i>
+                  TSV
+                </button>
+              </div>
+            </div>
+            <div id="result-container" class="result-container">
+              <div class="empty-state">
+                <i class="fa-solid fa-inbox"></i>
+                <p>输入值后点击"转换"按钮</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="error-message" class="error-message hidden">
+          <i class="fa-solid fa-exclamation-triangle"></i>
+          <span id="error-text"></span>
+        </div>
+      </div>
+
+      <div class="info-cards">
+        <div class="info-card">
+          <div class="info-card-header">
+            <i class="fa-solid fa-calculator"></i>
+            <h3>转换算法</h3>
+          </div>
+          <div class="info-card-content">
+            <div class="formula">
+              <div class="formula-item">
+                <span class="formula-label">ASN → ASdot:</span>
+                <code>高16位 = ASN / 65536<br>低16位 = ASN % 65536<br>结果 = "高.低"</code>
+              </div>
+              <div class="formula-item">
+                <span class="formula-label">ASdot → ASN:</span>
+                <code>ASN = 高 × 65536 + 低</code>
+              </div>
+              <div class="formula-item">
+                <span class="formula-label">AS_TRANS (23456):</span>
+                <code>2字节 BGP 发言者遇到4字节 ASN 时<br>使用 AS_TRANS=23456 作为占位符<br>如: ASN 65538 → ASdot "1.2"<br>    2字节表示: AS_TRANS (23456)</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card-header">
+            <i class="fa-solid fa-tags"></i>
+            <h3>ASN 范围分类 (IANA)</h3>
+          </div>
+          <div class="info-card-content">
+            <div class="range-table-wrapper">
+              <table class="range-table">
+                <thead>
+                  <tr>
+                    <th>分类</th>
+                    <th>范围</th>
+                    <th>类型</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="badge badge-classification" style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3)">公网 ASN</span></td>
+                    <td class="range-val">1 - 64511</td>
+                    <td class="range-type">2B</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge badge-classification" style="background:rgba(99,102,241,0.15);color:#6366f1;border:1px solid rgba(99,102,241,0.3)">文档示例</span></td>
+                    <td class="range-val">64496 - 64511</td>
+                    <td class="range-type">2B</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge badge-classification" style="background:rgba(168,85,247,0.15);color:#a855f7;border:1px solid rgba(168,85,247,0.3)">IANA 保留</span></td>
+                    <td class="range-val">64512 - 65534</td>
+                    <td class="range-type">2B</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge badge-classification" style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3)">AS_TRANS</span></td>
+                    <td class="range-val">23456</td>
+                    <td class="range-type">2B</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge badge-classification" style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3)">2字节最后</span></td>
+                    <td class="range-val">65535</td>
+                    <td class="range-type">2B</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge badge-classification" style="background:rgba(14,165,233,0.15);color:#0ea5e9;border:1px solid rgba(14,165,233,0.3)">4字节公网</span></td>
+                    <td class="range-val">65536 - 4199999999</td>
+                    <td class="range-type">4B</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge badge-classification" style="background:rgba(236,72,153,0.15);color:#ec4899;border:1px solid rgba(236,72,153,0.3)">4字节私网</span></td>
+                    <td class="range-val">4200000000 - 4294967294</td>
+                    <td class="range-type">4B</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge badge-classification" style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3)">4字节最后</span></td>
+                    <td class="range-val">4294967295</td>
+                    <td class="range-type">4B</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <p>ASN 范围: 1-64511 (2字节) / 最大 4294967295 (4字节) | AS_TRANS: 23456 | 流式批量转换</p>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast hidden">
+    <i class="fa-solid fa-check-circle"></i>
+    <span id="toast-message"></span>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

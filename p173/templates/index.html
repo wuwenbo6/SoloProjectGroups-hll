@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PBF 区域裁剪工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2 .step {
+            background: #667eea;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #fafafa;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f5f7ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+            transform: scale(1.02);
+        }
+
+        .upload-area input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .upload-area p {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .upload-area .hint {
+            color: #999;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-info p {
+            color: #2e7d32;
+            font-size: 0.9rem;
+            margin: 5px 0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+            background: white;
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .progress-section {
+            display: none;
+        }
+
+        .progress-section.show {
+            display: block;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 24px;
+            background: #eee;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #333;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+        }
+
+        .status-message {
+            text-align: center;
+            color: #666;
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: #f5f7ff;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-card .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-card .label {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .download-section {
+            display: none;
+            text-align: center;
+        }
+
+        .download-section.show {
+            display: block;
+        }
+
+        .download-btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(17, 153, 142, 0.4);
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .pbf-path-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: monospace;
+        }
+
+        .pbf-path-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .pbf-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .pbf-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .pbf-item:hover {
+            background: #f5f7ff;
+        }
+
+        .pbf-item:last-child {
+            border-bottom: none;
+        }
+
+        .pbf-item .name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .pbf-item .size {
+            font-size: 0.85rem;
+            color: #999;
+            margin-top: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗺️ PBF 区域裁剪工具</h1>
+            <p>上传区域GeoJSON，从PBF文件中裁剪出该区域的数据</p>
+        </div>
+
+        <div class="card">
+            <h2><span class="step">1</span> 上传区域 GeoJSON</h2>
+            <label class="upload-area" id="geojsonUpload">
+                <input type="file" id="geojsonFile" accept=".geojson,.json">
+                <div class="upload-icon">📁</div>
+                <p>点击或拖拽上传 GeoJSON 文件</p>
+                <p class="hint">支持 .geojson 或 .json 格式，必须包含多边形区域</p>
+            </label>
+            <div class="file-info" id="geojsonInfo">
+                <p><strong>文件名：</strong><span id="geojsonName"></span></p>
+                <p><strong>边界范围：</strong><span id="geojsonBounds"></span></p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2><span class="step">2</span> 选择 PBF 文件</h2>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="list">从列表选择</button>
+                <button class="tab-btn" data-tab="path">输入路径</button>
+                <button class="tab-btn" data-tab="upload">上传文件</button>
+            </div>
+
+            <div class="tab-content" id="tab-list">
+                <div id="pbfList" class="pbf-list">
+                    <p style="padding: 20px; text-align: center; color: #999;">加载中...</p>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-path" style="display: none;">
+                <div class="form-group">
+                    <label>PBF 文件路径</label>
+                    <input type="text" class="pbf-path-input" id="pbfPath" placeholder="/path/to/your/file.osm.pbf">
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-upload" style="display: none;">
+                <label class="upload-area" id="pbfUploadArea">
+                    <input type="file" id="pbfFile" accept=".pbf,.osm.pbf">
+                    <div class="upload-icon">📦</div>
+                    <p>点击或拖拽上传 PBF 文件</p>
+                    <p class="hint">支持 .pbf 或 .osm.pbf 格式</p>
+                </label>
+                <div class="file-info" id="pbfInfo">
+                    <p><strong>文件名：</strong><span id="pbfFileName"></span></p>
+                    <p><strong>元素数量：</strong><span id="pbfElements"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2><span class="step">3</span> 导出设置</h2>
+            <div class="form-group">
+                <label for="outputFormat">输出格式</label>
+                <select id="outputFormat">
+                    <option value="geojson">GeoJSON</option>
+                    <option value="osm">OSM XML</option>
+                    <option value="csv">CSV (节点/路径/关系)</option>
+                    <option value="shapefile">Shapefile (点/线/面)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="includeRelations" checked style="width: 18px; height: 18px;">
+                    <span>包含关系 (Relations)</span>
+                </label>
+                <p style="font-size: 0.85rem; color: #666; margin-top: 5px; padding-left: 28px;">
+                    注意：禁用可加快处理速度，但会丢失关系数据
+                </p>
+            </div>
+            <button class="btn btn-primary" id="startBtn" disabled>开始裁剪</button>
+        </div>
+
+        <div class="card progress-section" id="progressSection">
+            <h2><span class="step">4</span> 处理进度</h2>
+            <p class="status-message" id="statusMessage">准备中...</p>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+            <div class="stats" id="stats"></div>
+            <div class="error-message" id="errorMessage"></div>
+            <div class="download-section" id="downloadSection">
+                <a href="#" class="download-btn" id="downloadBtn">⬇️ 下载结果</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let geojsonId = null;
+        let selectedPbfPath = null;
+        let eventSource = null;
+
+        const geojsonUpload = document.getElementById('geojsonUpload');
+        const geojsonFile = document.getElementById('geojsonFile');
+        const geojsonInfo = document.getElementById('geojsonInfo');
+        const startBtn = document.getElementById('startBtn');
+        const progressSection = document.getElementById('progressSection');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const statusMessage = document.getElementById('statusMessage');
+        const stats = document.getElementById('stats');
+        const errorMessage = document.getElementById('errorMessage');
+        const downloadSection = document.getElementById('downloadSection');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const pbfList = document.getElementById('pbfList');
+
+        function setupDragDrop(uploadArea, fileInput, handler) {
+            uploadArea.addEventListener('click', () => fileInput.click());
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    handler(e.dataTransfer.files[0]);
+                }
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handler(e.target.files[0]);
+                }
+            });
+        }
+
+        setupDragDrop(geojsonUpload, geojsonFile, async (file) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch('/upload/geojson', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    geojsonId = data.file_id;
+                    document.getElementById('geojsonName').textContent = data.filename;
+                    document.getElementById('geojsonBounds').textContent = 
+                        `[${data.bounds.min_lon.toFixed(4)}, ${data.bounds.min_lat.toFixed(4)}] - [${data.bounds.max_lon.toFixed(4)}, ${data.bounds.max_lat.toFixed(4)}]`;
+                    geojsonInfo.classList.add('show');
+                    checkStartButton();
+                } else {
+                    alert('上传失败: ' + data.detail);
+                }
+            } catch (err) {
+                alert('上传失败: ' + err.message);
+            }
+        });
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+                document.getElementById('tab-' + btn.dataset.tab).style.display = 'block';
+                
+                if (btn.dataset.tab === 'list') {
+                    loadPbfList();
+                }
+            });
+        });
+
+        async function loadPbfList() {
+            try {
+                const response = await fetch('/pbf/list');
+                const data = await response.json();
+                
+                if (data.files.length === 0) {
+                    pbfList.innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">data 目录中没有找到 PBF 文件</p>';
+                } else {
+                    pbfList.innerHTML = data.files.map(f => `
+                        <div class="pbf-item" data-path="${f.path}">
+                            <div class="name">${f.name}</div>
+                            <div class="size">${(f.size / 1024 / 1024).toFixed(2)} MB</div>
+                        </div>
+                    `).join('');
+                    
+                    document.querySelectorAll('.pbf-item').forEach(item => {
+                        item.addEventListener('click', () => {
+                            document.querySelectorAll('.pbf-item').forEach(i => i.style.background = '');
+                            item.style.background = '#e8f5e9';
+                            selectedPbfPath = item.dataset.path;
+                            checkStartButton();
+                        });
+                    });
+                }
+            } catch (err) {
+                pbfList.innerHTML = '<p style="padding: 20px; text-align: center; color: #e53935;">加载失败</p>';
+            }
+        }
+
+        document.getElementById('pbfPath').addEventListener('input', (e) => {
+            selectedPbfPath = e.target.value;
+            checkStartButton();
+        });
+
+        setupDragDrop(document.getElementById('pbfUploadArea'), document.getElementById('pbfFile'), async (file) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch('/upload/pbf', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    selectedPbfPath = 'data/' + data.file_id + '.osm.pbf';
+                    document.getElementById('pbfFileName').textContent = data.filename;
+                    document.getElementById('pbfElements').textContent = 
+                        `${data.elements.nodes.toLocaleString()} 节点, ${data.elements.ways.toLocaleString()} 路径, ${data.elements.relations.toLocaleString()} 关系`;
+                    document.getElementById('pbfInfo').classList.add('show');
+                    checkStartButton();
+                } else {
+                    alert('上传失败: ' + data.detail);
+                }
+            } catch (err) {
+                alert('上传失败: ' + err.message);
+            }
+        });
+
+        function checkStartButton() {
+            startBtn.disabled = !(geojsonId && selectedPbfPath);
+        }
+
+        startBtn.addEventListener('click', async () => {
+            const outputFormat = document.getElementById('outputFormat').value;
+            const includeRelations = document.getElementById('includeRelations').checked;
+            
+            progressSection.classList.add('show');
+            downloadSection.classList.remove('show');
+            errorMessage.classList.remove('show');
+            stats.innerHTML = '';
+            progressBar.style.width = '0%';
+            progressText.textContent = '0%';
+            statusMessage.textContent = '正在启动...';
+            startBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/clip', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        geojson_id: geojsonId,
+                        pbf_path: selectedPbfPath,
+                        output_format: outputFormat,
+                        include_relations: includeRelations
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    streamProgress(data.task_id);
+                } else {
+                    showError(data.detail);
+                }
+            } catch (err) {
+                showError(err.message);
+            }
+        });
+
+        function streamProgress(taskId) {
+            if (eventSource) {
+                eventSource.close();
+            }
+            
+            eventSource = new EventSource(`/stream/${taskId}`);
+            
+            eventSource.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                updateProgress(data);
+                
+                if (data.status === 'completed' || data.status === 'failed') {
+                    eventSource.close();
+                    startBtn.disabled = false;
+                }
+            };
+            
+            eventSource.onerror = () => {
+                eventSource.close();
+                startBtn.disabled = false;
+            };
+        }
+
+        function updateProgress(data) {
+            if (data.progress !== undefined) {
+                progressBar.style.width = data.progress + '%';
+                progressText.textContent = data.progress.toFixed(1) + '%';
+            }
+            
+            if (data.message) {
+                statusMessage.textContent = data.message;
+            }
+            
+            if (data.details) {
+                const details = data.details;
+                let statsHtml = '';
+                
+                if (details.node_count !== undefined) {
+                    statsHtml += `<div class="stat-card"><div class="value">${details.node_count.toLocaleString()}</div><div class="label">已处理节点</div></div>`;
+                }
+                if (details.way_count !== undefined) {
+                    statsHtml += `<div class="stat-card"><div class="value">${details.way_count.toLocaleString()}</div><div class="label">已处理路径</div></div>`;
+                }
+                if (details.features_exported !== undefined) {
+                    statsHtml += `<div class="stat-card"><div class="value">${details.features_exported.toLocaleString()}</div><div class="label">导出要素</div></div>`;
+                }
+                if (details.kept_nodes !== undefined) {
+                    statsHtml += `<div class="stat-card"><div class="value">${details.kept_nodes.toLocaleString()}</div><div class="label">保留节点</div></div>`;
+                }
+                if (details.kept_ways !== undefined) {
+                    statsHtml += `<div class="stat-card"><div class="value">${details.kept_ways.toLocaleString()}</div><div class="label">保留路径</div></div>`;
+                }
+                if (details.points_exported !== undefined) {
+                    statsHtml += `<div class="stat-card"><div class="value">${details.points_exported.toLocaleString()}</div><div class="label">点要素</div></div>`;
+                }
+                if (details.lines_exported !== undefined) {
+                    statsHtml += `<div class="stat-card"><div class="value">${details.lines_exported.toLocaleString()}</div><div class="label">线要素</div></div>`;
+                }
+                if (details.polygons_exported !== undefined) {
+                    statsHtml += `<div class="stat-card"><div class="value">${details.polygons_exported.toLocaleString()}</div><div class="label">面要素</div></div>`;
+                }
+                if (details.nodes_exported !== undefined) {
+                    statsHtml += `<div class="stat-card"><div class="value">${details.nodes_exported.toLocaleString()}</div><div class="label">导出节点</div></div>`;
+                }
+                if (details.ways_exported !== undefined) {
+                    statsHtml += `<div class="stat-card"><div class="value">${details.ways_exported.toLocaleString()}</div><div class="label">导出路径</div></div>`;
+                }
+                if (details.elapsed_seconds !== undefined) {
+                    statsHtml += `<div class="stat-card"><div class="value">${details.elapsed_seconds}s</div><div class="label">已用时间</div></div>`;
+                }
+                if (details.file_size !== undefined) {
+                    const mb = (details.file_size / 1024 / 1024).toFixed(1);
+                    statsHtml += `<div class="stat-card"><div class="value">${mb} MB</div><div class="label">文件大小</div></div>`;
+                }
+                if (details.bytes_read !== undefined) {
+                    const mb = (details.bytes_read / 1024 / 1024).toFixed(1);
+                    statsHtml += `<div class="stat-card"><div class="value">${mb} MB</div><div class="label">已读取</div></div>`;
+                }
+                
+                stats.innerHTML = statsHtml;
+            }
+            
+            if (data.status === 'completed') {
+                statusMessage.textContent = '✅ 处理完成！';
+                progressBar.style.width = '100%';
+                progressText.textContent = '100%';
+                
+                if (data.stats) {
+                    let statsHtml = '';
+                    for (const [key, value] of Object.entries(data.stats)) {
+                        const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        const displayValue = typeof value === 'number' && value > 1000 ? value.toLocaleString() : value;
+                        statsHtml += `<div class="stat-card"><div class="value">${displayValue}</div><div class="label">${label}</div></div>`;
+                    }
+                    stats.innerHTML = statsHtml;
+                }
+                
+                if (data.download_url) {
+                    downloadBtn.href = data.download_url;
+                    downloadSection.classList.add('show');
+                }
+            }
+            
+            if (data.status === 'failed') {
+                showError(data.error || '处理失败');
+            }
+        }
+
+        function showError(message) {
+            errorMessage.textContent = '❌ 错误: ' + message;
+            errorMessage.classList.add('show');
+            statusMessage.textContent = '处理失败';
+            startBtn.disabled = false;
+        }
+
+        loadPbfList();
+    </script>
+</body>
+</html>

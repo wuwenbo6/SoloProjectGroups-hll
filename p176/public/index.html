@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>AMQP Link Credit Flow Control Demo</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 24px;
+  }
+  h1 { margin: 0 0 8px; font-size: 22px; }
+  .sub { color: #94a3b8; margin-bottom: 24px; font-size: 13px; }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .card {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 14px 16px;
+    border: 1px solid #334155;
+  }
+  .card .label { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+  .card .value { font-size: 28px; font-weight: 600; margin-top: 4px; }
+  .card .value.small { font-size: 18px; }
+  .card .hint { font-size: 11px; color: #64748b; margin-top: 4px; }
+
+  .paused { color: #ef4444; }
+  .ok { color: #22c55e; }
+  .latency { color: #fbbf24; }
+  .window { color: #a78bfa; }
+
+  .charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 1200px) {
+    .charts { grid-template-columns: 1fr; }
+  }
+  .chart {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .chart h3 { margin: 0 0 12px; font-size: 14px; color: #cbd5e1; }
+  canvas { width: 100%; height: 220px; display: block; }
+
+  .credit-chart {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .credit-chart h3 { margin: 0 0 12px; font-size: 14px; color: #cbd5e1; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #94a3b8; margin-top: 8px; }
+  .legend span::before { content: ''; display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: middle; border-radius: 2px; }
+  .legend .send::before { background: #38bdf8; }
+  .legend .recv::before { background: #22c55e; }
+  .legend .credit::before { background: #fbbf24; }
+  .legend .window::before { background: #a78bfa; }
+</style>
+</head>
+<body>
+  <h1>AMQP 1.0 链路信用（Link Credit）流控演示</h1>
+  <div class="sub">
+    发送端每次发送前显式检查 credit，credit=0 时自动等待；吞吐量仅统计首次发送，重传过滤；
+    接收端根据端到端延迟动态调整 credit 窗口（AIMD 策略）。
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="label">发送 (total)</div>
+      <div id="sent" class="value">0</div>
+      <div class="hint">已发送消息总数（去重）</div>
+    </div>
+    <div class="card">
+      <div class="label">接收 (total)</div>
+      <div id="received" class="value">0</div>
+      <div class="hint">已接收消息总数</div>
+    </div>
+    <div class="card">
+      <div class="label">发送吞吐 (msg/s)</div>
+      <div id="sentPerSec" class="value">0</div>
+      <div class="hint">最近 1s 发送速率</div>
+    </div>
+    <div class="card">
+      <div class="label">接收吞吐 (msg/s)</div>
+      <div id="receivedPerSec" class="value">0</div>
+      <div class="hint">最近 1s 接收速率</div>
+    </div>
+    <div class="card">
+      <div class="label">Sender Credit</div>
+      <div id="senderCredit" class="value">0</div>
+      <div class="hint">发送端当前可用链路信用</div>
+    </div>
+    <div class="card">
+      <div class="label">Receiver Credit</div>
+      <div id="receiverCredit" class="value">0</div>
+      <div class="hint">接收端当前剩余信用</div>
+    </div>
+    <div class="card">
+      <div class="label">当前窗口</div>
+      <div id="currentWindow" class="value window">0</div>
+      <div class="hint">动态调整的 credit 窗口</div>
+    </div>
+    <div class="card">
+      <div class="label">端到端延迟</div>
+      <div id="latency" class="value latency">0 ms</div>
+      <div class="hint">EWMA 平滑延迟</div>
+    </div>
+    <div class="card">
+      <div class="label">发送状态</div>
+      <div id="status" class="value small ok">RUNNING</div>
+      <div class="hint">credit=0 时自动 PAUSED</div>
+    </div>
+    <div class="card">
+      <div class="label">重传过滤</div>
+      <div id="retrans" class="value small">0</div>
+      <div class="hint">检测到并跳过的重传次数</div>
+    </div>
+  </div>
+
+  <div class="charts">
+    <div class="chart">
+      <h3>发送吞吐 (msg/s)</h3>
+      <canvas id="chartSend"></canvas>
+    </div>
+    <div class="chart">
+      <h3>接收吞吐 (msg/s)</h3>
+      <canvas id="chartRecv"></canvas>
+    </div>
+  </div>
+
+  <div class="credit-chart">
+    <h3>Credit 使用曲线 & 动态窗口</h3>
+    <canvas id="chartCredit" height="280"></canvas>
+    <div class="legend">
+      <span class="send">发送吞吐 (msg/s)</span>
+      <span class="recv">接收吞吐 (msg/s)</span>
+      <span class="credit">Sender Credit (剩余)</span>
+      <span class="window">当前窗口大小</span>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const MAX_POINTS = 60;
+  const sendData = new Array(MAX_POINTS).fill(0);
+  const recvData = new Array(MAX_POINTS).fill(0);
+  const senderCreditData = new Array(MAX_POINTS).fill(0);
+  const windowData = new Array(MAX_POINTS).fill(0);
+
+  const $ = (id) => document.getElementById(id);
+
+  function drawChart(canvas, data, color) {
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width;
+    const h = rect.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const max = Math.max(1, ...data);
+    const stepX = w / (MAX_POINTS - 1);
+    const stepY = h / max;
+
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 5; i++) {
+      const y = (h / 5) * i;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < data.length; i++) {
+      const x = i * stepX;
+      const y = h - data[i] * stepY;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    ctx.fillStyle = color;
+    for (let i = 0; i < data.length; i++) {
+      const x = i * stepX;
+      const y = h - data[i] * stepY;
+      ctx.beginPath();
+      ctx.arc(x, y, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawMultiChart(canvas, datasets) {
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width;
+    const h = rect.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Grid
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 5; i++) {
+      const y = (h / 5) * i;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+
+    const allValues = datasets.flatMap(d => d.data);
+    const max = Math.max(1, ...allValues);
+    const stepX = w / (MAX_POINTS - 1);
+    const stepY = h / max;
+
+    for (const ds of datasets) {
+      ctx.strokeStyle = ds.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < ds.data.length; i++) {
+        const x = i * stepX;
+        const y = h - ds.data[i] * stepY;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+  }
+
+  function update(state) {
+    $('sent').textContent = state.sent.toLocaleString();
+    $('received').textContent = state.received.toLocaleString();
+    $('sentPerSec').textContent = state.sentPerSec.toLocaleString();
+    $('receivedPerSec').textContent = state.receivedPerSec.toLocaleString();
+    $('senderCredit').textContent = state.senderCredit;
+    $('receiverCredit').textContent = state.receiverCredit;
+    $('retrans').textContent = state.retrans;
+    $('currentWindow').textContent = state.currentWindow;
+    $('latency').textContent = state.latencyMs.toFixed(1) + ' ms';
+
+    const statusEl = $('status');
+    if (state.paused) {
+      statusEl.textContent = 'PAUSED (credit=0)';
+      statusEl.className = 'value small paused';
+    } else {
+      statusEl.textContent = 'RUNNING';
+      statusEl.className = 'value small ok';
+    }
+
+    sendData.push(state.sentPerSec);
+    if (sendData.length > MAX_POINTS) sendData.shift();
+    recvData.push(state.receivedPerSec);
+    if (recvData.length > MAX_POINTS) recvData.shift();
+    senderCreditData.push(state.senderCredit);
+    if (senderCreditData.length > MAX_POINTS) senderCreditData.shift();
+    windowData.push(state.currentWindow);
+    if (windowData.length > MAX_POINTS) windowData.shift();
+
+    drawChart($('chartSend'), sendData, '#38bdf8');
+    drawChart($('chartRecv'), recvData, '#22c55e');
+    drawMultiChart($('chartCredit'), [
+      { data: sendData, color: '#38bdf8' },
+      { data: recvData, color: '#22c55e' },
+      { data: senderCreditData, color: '#fbbf24' },
+      { data: windowData, color: '#a78bfa' },
+    ]);
+  }
+
+  // WebSocket
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(`${proto}//${location.host}`);
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'hello' || msg.type === 'tick') {
+      update(msg);
+    }
+  };
+  ws.onclose = () => {
+    $('status').textContent = 'DISCONNECTED';
+    $('status').className = 'value small paused';
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "name": "electron-rdp-recorder",
+  "version": "1.0.0",
+  "description": "Electron RDP Recorder & Player",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^28.0.0"
+  },
+  "dependencies": {
+    "fs-extra": "^11.2.0"
+  }
+}
+  "dependencies": {
+    "robotjs": "^0.6.0",
+    "fs-extra": "^11.2.0"
+  }
+}
+  "dependencies": {
+    "node-rdp": "^1.2.0",
+    "robotjs": "^0.6.0",
+    "fs-extra": "^11.2.0"
+  }
+}

@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码沙箱 - Code Sandbox</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            color: white;
+            padding: 24px 32px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.8;
+            font-size: 14px;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 32px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .language-select {
+            display: flex;
+            gap: 8px;
+        }
+
+        .lang-btn {
+            padding: 10px 20px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            color: #475569;
+        }
+
+        .lang-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .lang-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: white;
+        }
+
+        .example-select {
+            padding: 10px 16px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .example-select:hover {
+            border-color: #667eea;
+        }
+
+        .example-select:focus {
+            border-color: #667eea;
+        }
+
+        .example-select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .toolbar-btn {
+            padding: 10px 16px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .toolbar-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .file-upload-input {
+            display: none;
+        }
+
+        .files-panel {
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 12px 32px;
+            display: none;
+        }
+
+        .files-panel.show {
+            display: block;
+        }
+
+        .files-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .files-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .files-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #475569;
+        }
+
+        .file-item .remove-file {
+            cursor: pointer;
+            color: #94a3b8;
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .file-item .remove-file:hover {
+            color: #ef4444;
+        }
+
+        .history-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: white;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .history-panel.show {
+            right: 0;
+        }
+
+        .history-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .history-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            opacity: 0.8;
+        }
+
+        .history-close:hover {
+            opacity: 1;
+        }
+
+        .history-actions {
+            padding: 12px 20px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .history-clear {
+            padding: 6px 12px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .history-clear:hover {
+            background: #fee2e2;
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .history-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .history-item:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .history-lang {
+            padding: 2px 8px;
+            background: #e0e7ff;
+            color: #4338ca;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .history-time {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .history-preview {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            color: #475569;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-delete {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0 4px;
+        }
+
+        .history-delete:hover {
+            color: #ef4444;
+        }
+
+        .history-empty {
+            text-align: center;
+            color: #64748b;
+            padding: 40px 20px;
+            font-size: 14px;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 999;
+        }
+
+        .overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .run-btn {
+            margin-left: auto;
+            padding: 12px 32px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .run-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .run-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+        }
+
+        .editor-section, .output-section {
+            padding: 24px 32px;
+        }
+
+        .editor-section {
+            border-right: 1px solid #e2e8f0;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        #code-editor {
+            width: 100%;
+            height: 400px;
+            padding: 16px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            resize: vertical;
+            background: #0f172a;
+            color: #e2e8f0;
+            transition: border-color 0.2s ease;
+        }
+
+        #code-editor:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .output-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 12px;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 8px;
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: #64748b;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #1e293b;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .output-panel {
+            height: 400px;
+            padding: 16px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            background: #0f172a;
+            color: #e2e8f0;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .output-panel:empty::before {
+            content: '运行代码后将在此显示输出...';
+            color: #64748b;
+        }
+
+        .stderr {
+            color: #f87171;
+        }
+
+        .error-message {
+            margin-top: 12px;
+            padding: 12px 16px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            color: #dc2626;
+            font-size: 14px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            .editor-section {
+                border-right: none;
+                border-bottom: 1px solid #e2e8f0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 代码沙箱</h1>
+            <p>在线执行 Go 和 Python 代码</p>
+        </div>
+
+        <div class="toolbar">
+            <div class="language-select">
+                <button class="lang-btn active" data-lang="python">Python</button>
+                <button class="lang-btn" data-lang="go">Go</button>
+            </div>
+            <select class="example-select" id="example-select">
+                <option value="basic">基础示例</option>
+                <option value="numpy">NumPy 示例</option>
+                <option value="pandas">Pandas 示例</option>
+                <option value="error">错误处理示例</option>
+            </select>
+            <button class="toolbar-btn" id="upload-btn">
+                📁 上传文件
+            </button>
+            <input type="file" id="file-input" class="file-upload-input" multiple accept=".py,.go,.txt">
+            <button class="toolbar-btn" id="history-btn">
+                📜 历史记录
+            </button>
+            <button class="run-btn" id="run-btn">
+                <span>▶ 运行代码</span>
+            </button>
+        </div>
+
+        <div class="files-panel" id="files-panel">
+            <div class="files-header">
+                <span class="files-title">已上传文件</span>
+                <button class="toolbar-btn" style="padding: 4px 12px; font-size: 12px;" id="clear-files-btn">
+                    清空全部
+                </button>
+            </div>
+            <div class="files-list" id="files-list"></div>
+        </div>
+
+        <div class="main-content">
+            <div class="editor-section">
+                <div class="section-title">代码编辑器</div>
+                <textarea id="code-editor" placeholder="在此输入代码..."></textarea>
+                <div class="error-message" id="error-message"></div>
+            </div>
+
+            <div class="output-section">
+                <div class="section-title">输出结果</div>
+                <div class="output-tabs">
+                    <button class="tab-btn active" data-tab="stdout">标准输出</button>
+                    <button class="tab-btn" data-tab="stderr">错误输出</button>
+                </div>
+                <div class="output-panel" id="output-panel"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <div class="history-panel" id="history-panel">
+        <div class="history-header">
+            <h3>📜 代码历史</h3>
+            <button class="history-close" id="history-close">×</button>
+        </div>
+        <div class="history-actions">
+            <span id="history-count">共 0 条记录</span>
+            <button class="history-clear" id="history-clear">清空历史</button>
+        </div>
+        <div class="history-list" id="history-list"></div>
+    </div>
+
+    <script>
+        const codeTemplates = {
+            python: {
+                basic: `# Python 示例 - 斐波那契数列
+def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+
+for i in range(10):
+    print(f"F({i}) = {fibonacci(i)}")`,
+                numpy: `# NumPy 示例 - 数组运算
+import numpy as np
+
+# 创建数组
+a = np.array([1, 2, 3, 4, 5])
+b = np.array([10, 20, 30, 40, 50])
+
+print("数组 a:", a)
+print("数组 b:", b)
+print("a + b:", a + b)
+print("a * b:", a * b)
+print("a 的均值:", np.mean(a))
+print("b 的标准差:", np.std(b))
+
+# 矩阵运算
+matrix = np.array([[1, 2], [3, 4]])
+print("\\n矩阵:")
+print(matrix)
+print("矩阵转置:")
+print(matrix.T)`,
+                pandas: `# Pandas 示例 - 数据分析
+import pandas as pd
+import numpy as np
+
+# 创建DataFrame
+data = {
+    '姓名': ['张三', '李四', '王五', '赵六'],
+    '年龄': [25, 30, 35, 28],
+    '部门': ['技术部', '市场部', '技术部', '财务部'],
+    '薪资': [15000, 12000, 18000, 11000]
+}
+
+df = pd.DataFrame(data)
+print("员工数据:")
+print(df)
+print("\\n基本统计:")
+print(df.describe())
+print("\\n按部门分组平均薪资:")
+print(df.groupby('部门')['薪资'].mean())
+print("\\n薪资大于12000的员工:")
+print(df[df['薪资'] > 12000])`,
+                error: `# 错误处理示例
+import sys
+
+def divide(a, b):
+    try:
+        result = a / b
+        return result
+    except ZeroDivisionError as e:
+        print(f"错误: {e}", file=sys.stderr)
+        return None
+
+print("divide(10, 3) =", divide(10, 3))
+print("divide(10, 0) =", divide(10, 0))`
+            },
+            go: `package main
+
+import "fmt"
+
+func fibonacci(n int) int {
+    if n <= 1 {
+        return n
+    }
+    return fibonacci(n-1) + fibonacci(n-2)
+}
+
+func main() {
+    for i := 0; i < 10; i++ {
+        fmt.Printf("F(%d) = %d\\n", i, fibonacci(i))
+    }
+}`
+        };
+
+        let currentLang = 'python';
+        let currentTab = 'stdout';
+        let currentExample = 'basic';
+        let lastOutput = { stdout: '', stderr: '' };
+        let uploadedFiles = {};
+
+        const codeEditor = document.getElementById('code-editor');
+        const runBtn = document.getElementById('run-btn');
+        const outputPanel = document.getElementById('output-panel');
+        const errorMessage = document.getElementById('error-message');
+        const exampleSelect = document.getElementById('example-select');
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileInput = document.getElementById('file-input');
+        const filesPanel = document.getElementById('files-panel');
+        const filesList = document.getElementById('files-list');
+        const clearFilesBtn = document.getElementById('clear-files-btn');
+        const historyBtn = document.getElementById('history-btn');
+        const historyPanel = document.getElementById('history-panel');
+        const historyClose = document.getElementById('history-close');
+        const historyList = document.getElementById('history-list');
+        const historyCount = document.getElementById('history-count');
+        const historyClear = document.getElementById('history-clear');
+        const overlay = document.getElementById('overlay');
+
+        const HISTORY_KEY = 'code_sandbox_history';
+        const MAX_HISTORY = 50;
+
+        function getCurrentTemplate() {
+            if (currentLang === 'python') {
+                return codeTemplates.python[currentExample];
+            }
+            return codeTemplates.go;
+        }
+
+        codeEditor.value = getCurrentTemplate();
+
+        exampleSelect.addEventListener('change', () => {
+            currentExample = exampleSelect.value;
+            codeEditor.value = getCurrentTemplate();
+        });
+
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentLang = btn.dataset.lang;
+
+                if (currentLang === 'go') {
+                    exampleSelect.disabled = true;
+                } else {
+                    exampleSelect.disabled = false;
+                }
+
+                codeEditor.value = getCurrentTemplate();
+            });
+        });
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTab = btn.dataset.tab;
+                updateOutput();
+            });
+        });
+
+        function updateOutput() {
+            const content = lastOutput[currentTab] || '';
+            outputPanel.innerHTML = '';
+            if (content) {
+                const pre = document.createElement('pre');
+                pre.className = currentTab === 'stderr' ? 'stderr' : '';
+                pre.textContent = content;
+                outputPanel.appendChild(pre);
+            }
+        }
+
+        uploadBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const files = e.target.files;
+            handleFiles(files);
+            fileInput.value = '';
+        });
+
+        function handleFiles(files) {
+            for (let file of files) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    uploadedFiles[file.name] = {
+                        name: file.name,
+                        content: e.target.result,
+                        size: file.size
+                    };
+                    renderFilesList();
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function renderFilesList() {
+            filesList.innerHTML = '';
+            const fileNames = Object.keys(uploadedFiles);
+            
+            if (fileNames.length > 0) {
+                filesPanel.classList.add('show');
+            } else {
+                filesPanel.classList.remove('show');
+            }
+
+            fileNames.forEach(name => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <span>📄 ${name}</span>
+                    <span class="remove-file" data-name="${name}">×</span>
+                `;
+                filesList.appendChild(fileItem);
+            });
+
+            document.querySelectorAll('.remove-file').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    delete uploadedFiles[btn.dataset.name];
+                    renderFilesList();
+                });
+            });
+        }
+
+        clearFilesBtn.addEventListener('click', () => {
+            uploadedFiles = {};
+            renderFilesList();
+        });
+
+        historyBtn.addEventListener('click', () => {
+            historyPanel.classList.add('show');
+            overlay.classList.add('show');
+            renderHistory();
+        });
+
+        historyClose.addEventListener('click', closeHistory);
+        overlay.addEventListener('click', closeHistory);
+
+        function closeHistory() {
+            historyPanel.classList.remove('show');
+            overlay.classList.remove('show');
+        }
+
+        function getHistory() {
+            try {
+                const history = localStorage.getItem(HISTORY_KEY);
+                return history ? JSON.parse(history) : [];
+            } catch {
+                return [];
+            }
+        }
+
+        function saveHistory(code, language) {
+            const history = getHistory();
+            const newItem = {
+                id: Date.now(),
+                code: code,
+                language: language,
+                timestamp: Date.now()
+            };
+            
+            history.unshift(newItem);
+            
+            if (history.length > MAX_HISTORY) {
+                history.splice(MAX_HISTORY);
+            }
+            
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        }
+
+        function deleteHistoryItem(id) {
+            let history = getHistory();
+            history = history.filter(item => item.id !== id);
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            renderHistory();
+        }
+
+        function clearHistory() {
+            if (confirm('确定要清空所有历史记录吗？')) {
+                localStorage.removeItem(HISTORY_KEY);
+                renderHistory();
+            }
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) return '刚刚';
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
+            
+            return date.toLocaleDateString('zh-CN', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function renderHistory() {
+            const history = getHistory();
+            historyCount.textContent = `共 ${history.length} 条记录`;
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="history-empty">暂无历史记录</div>';
+                return;
+            }
+
+            historyList.innerHTML = '';
+            history.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <div class="history-item-header">
+                        <span class="history-lang">${item.language}</span>
+                        <span class="history-time">${formatTime(item.timestamp)}</span>
+                        <button class="history-delete" data-id="${item.id}" title="删除">×</button>
+                    </div>
+                    <div class="history-preview">${escapeHtml(item.code.split('\n')[0])}</div>
+                `;
+                
+                historyItem.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('history-delete')) return;
+                    codeEditor.value = item.code;
+                    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelector(`[data-lang="${item.language}"]`).classList.add('active');
+                    currentLang = item.language;
+                    exampleSelect.disabled = item.language === 'go';
+                    closeHistory();
+                });
+                
+                historyItem.querySelector('.history-delete').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteHistoryItem(item.id);
+                });
+                
+                historyList.appendChild(historyItem);
+            });
+        }
+
+        historyClear.addEventListener('click', clearHistory);
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        runBtn.addEventListener('click', async () => {
+            const code = codeEditor.value.trim();
+            if (!code) {
+                showError('请输入代码');
+                return;
+            }
+
+            runBtn.disabled = true;
+            runBtn.innerHTML = '<div class="spinner"></div><span>运行中...</span>';
+            errorMessage.classList.remove('show');
+
+            try {
+                const response = await fetch('/api/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        language: currentLang,
+                        code: code,
+                        files: uploadedFiles
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    showError(result.error);
+                }
+
+                lastOutput = {
+                    stdout: result.stdout || '',
+                    stderr: result.stderr || ''
+                };
+
+                updateOutput();
+
+                if (lastOutput.stderr && currentTab === 'stdout') {
+                    document.querySelector('[data-tab="stderr"]').click();
+                }
+
+                saveHistory(code, currentLang);
+
+            } catch (err) {
+                showError('请求失败: ' + err.message);
+            } finally {
+                runBtn.disabled = false;
+                runBtn.innerHTML = '<span>▶ 运行代码</span>';
+            }
+        });
+
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorMessage.classList.add('show');
+        }
+
+        codeEditor.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                runBtn.click();
+            }
+        });
+
+        document.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+
+        document.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFiles(files);
+            }
+        });
+    </script>
+</body>
+</html>

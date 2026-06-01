@@ -1,0 +1,58 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><title>RDP Recorder</title>
+<style>body{font-family:Arial;background:#1a1a2e;color:#fff;padding:20px}
+.container{max-width:1000px;margin:0 auto}
+h1{color:#00d4ff;text-align:center}
+.section{background:#16213e;padding:20px;margin:15px 0;border-radius:8px}
+button{padding:10px 20px;margin:5px;border:none;border-radius:5px;cursor:pointer}
+.btn-primary{background:#00d4ff;color:#000}.btn-danger{background:#e94560;color:#fff}
+.btn-success{background:#00ff88;color:#000}.btn-warning{background:#ffd93d;color:#000}
+input{padding:8px;margin:5px;background:#0f3460;border:1px solid #533483;color:#fff;border-radius:4px}
+.status{padding:10px;margin:10px 0;border-radius:5px;display:none}
+.status.success{background:#00ff8833;color:#00ff88;display:block}
+.status.info{background:#00d4ff33;color:#00d4ff;display:block}
+.event-list{max-height:200px;overflow-y:auto;background:#0f3460;padding:10px;border-radius:5px}
+.event-item{padding:5px;border-bottom:1px solid #533483;font-size:12px;font-family:monospace}
+.progress-bar{width:100%;height:8px;background:#0f3460;border-radius:4px}
+.progress-fill{height:100%;background:#00ff88;width:0%}
+</style></head><body>
+<div class="container"><h1>RDP Recorder & Player</h1>
+<div class="section"><h3>RDP Connection</h3>
+<input type="text" id="host" placeholder="Host" value="localhost">
+<input type="number" id="port" placeholder="Port" value="3389">
+<input type="text" id="username" placeholder="Username">
+<input type="password" id="password" placeholder="Password">
+<button class="btn-primary" id="btnConnect">Connect RDP</button>
+<div id="rdpStatus" class="status"></div></div>
+<div class="section"><h3>Recording</h3>
+<button class="btn-danger" id="btnStart">Start Recording</button>
+<button class="btn-warning" id="btnStop" disabled>Stop</button>
+<button class="btn-primary" id="btnSave" disabled>Save</button>
+<div id="recordStatus" class="status"></div>
+<div class="stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:15px">
+  <div style="text-align:center;background:#0f3460;padding:10px;border-radius:5px">
+    <div style="font-size:20px;font-weight:bold;color:#00d4ff" id="eventCount">0</div>
+    <div style="font-size:11px;color:#aaa">Events</div>
+  </div>
+  <div style="text-align:center;background:#0f3460;padding:10px;border-radius:5px">
+    <div style="font-size:20px;font-weight:bold;color:#ffd93d" id="compressedCount">0</div>
+    <div style="font-size:11px;color:#aaa">Compressed</div>
+  </div>
+  <div style="text-align:center;background:#0f3460;padding:10px;border-radius:5px">
+    <div style="font-size:20px;font-weight:bold;color:#00ff88" id="compressionRatio">0%</div>
+    <div style="font-size:11px;color:#aaa">Saved</div>
+  </div>
+  <div style="text-align:center;background:#0f3460;padding:10px;border-radius:5px">
+    <div style="font-size:20px;font-weight:bold;color:#e94560" id="dpiInfo">-</div>
+    <div style="font-size:11px;color:#aaa">DPI</div>
+  </div>
+</div></div>
+<div class="section"><h3>Replay</h3>
+<button class="btn-success" id="btnLoad">Load</button>
+<button class="btn-primary" id="btnReplay" disabled>Start Replay</button>
+<button class="btn-danger" id="btnStopReplay" disabled>Stop</button>
+<div id="replayStatus" class="status"></div>
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div></div>
+<div class="section"><h3>Events</h3><div class="event-list" id="eventList">
+<div style="color:#666;text-align:center;padding:20px">No events</div>
+</div></div></div>
+<script src="renderer.js"></script></body></html>

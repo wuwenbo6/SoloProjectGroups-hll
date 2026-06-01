@@ -1,0 +1,13 @@
+{
+  "name": "amqp-rhea-flow-control-demo",
+  "version": "1.0.0",
+  "description": "AMQP sender & receiver demonstrating link credit flow control with real-time throughput dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "rhea": "^3.0.2",
+    "ws": "^8.18.0"
+  }
+}

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>USB-PD PPS 控制器</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <h1>USB-PD PPS 控制器</h1>
+      <div class="connection-status">
+        <span id="status-indicator" class="status-indicator disconnected"></span>
+        <span id="status-text">未连接</span>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <aside class="control-panel">
+        <div class="panel-section">
+          <h2>设备连接</h2>
+          <button id="connect-btn" class="btn btn-primary">连接设备</button>
+          <button id="disconnect-btn" class="btn btn-secondary" disabled>断开连接</button>
+        </div>
+
+        <div class="panel-section">
+          <h2>PPS 手动控制</h2>
+          <div class="control-group">
+            <label>电压 (V)</label>
+            <input type="range" id="voltage-slider" min="3" max="21" step="0.02" value="5" disabled>
+            <input type="number" id="voltage-input" min="3" max="21" step="0.02" value="5" disabled>
+          </div>
+          <div class="control-group">
+            <label>电流 (A)</label>
+            <input type="range" id="current-slider" min="0.5" max="5" step="0.05" value="3" disabled>
+            <input type="number" id="current-input" min="0.5" max="5" step="0.05" value="3" disabled>
+          </div>
+          <button id="set-pps-btn" class="btn btn-primary" disabled>设置 PPS</button>
+        </div>
+
+        <div class="panel-section">
+          <h2>实时监测</h2>
+          <button id="start-monitor-btn" class="btn btn-success" disabled>开始监测</button>
+          <button id="stop-monitor-btn" class="btn btn-danger" disabled>停止监测</button>
+        </div>
+
+        <div class="panel-section">
+          <h2>曲线配置</h2>
+          <div class="curve-controls">
+            <button id="add-point-btn" class="btn btn-secondary" disabled>添加点</button>
+            <button id="clear-curve-btn" class="btn btn-secondary" disabled>清空</button>
+            <button id="execute-curve-btn" class="btn btn-primary" disabled>执行曲线</button>
+            <button id="stop-curve-btn" class="btn btn-danger" disabled>停止</button>
+          </div>
+          <div id="curve-points-list" class="curve-points-list"></div>
+        </div>
+
+        <div class="panel-section">
+          <h2>负载瞬态测试</h2>
+          <div class="control-group">
+            <label>低电流 (A)</label>
+            <input type="number" id="load-low-current" min="0.1" max="5" step="0.1" value="0.5" disabled>
+          </div>
+          <div class="control-group">
+            <label>高电流 (A)</label>
+            <input type="number" id="load-high-current" min="0.5" max="5" step="0.1" value="3" disabled>
+          </div>
+          <div class="control-group">
+            <label>循环次数</label>
+            <input type="number" id="load-cycles" min="1" max="100" step="1" value="5" disabled>
+          </div>
+          <div class="control-group">
+            <label>稳定时间 (ms)</label>
+            <input type="number" id="load-settle-time" min="100" max="5000" step="100" value="1000" disabled>
+          </div>
+          <button id="start-load-test-btn" class="btn btn-primary" disabled>开始测试</button>
+          <button id="stop-load-test-btn" class="btn btn-danger" disabled>停止测试</button>
+        </div>
+
+        <div class="panel-section">
+          <h2>纹波测试</h2>
+          <div class="control-group">
+            <label>测试电压 (V)</label>
+            <input type="number" id="ripple-voltage" min="3" max="21" step="0.1" value="5" disabled>
+          </div>
+          <div class="control-group">
+            <label>测试电流 (A)</label>
+            <input type="number" id="ripple-current" min="0.1" max="5" step="0.1" value="2" disabled>
+          </div>
+          <div class="control-group">
+            <label>测试时长 (s)</label>
+            <input type="number" id="ripple-duration" min="1" max="60" step="1" value="5" disabled>
+          </div>
+          <div class="control-group">
+            <label>采样率 (Hz)</label>
+            <input type="number" id="ripple-sample-rate" min="100" max="2000" step="100" value="1000" disabled>
+          </div>
+          <button id="start-ripple-test-btn" class="btn btn-primary" disabled>开始测试</button>
+          <button id="export-report-btn" class="btn btn-secondary" disabled>导出报告</button>
+        </div>
+      </aside>
+
+      <main class="data-display">
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">电压</div>
+            <div class="metric-value" id="voltage-value">--</div>
+            <div class="metric-unit">V</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">电流</div>
+            <div class="metric-value" id="current-value">--</div>
+            <div class="metric-unit">A</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">功率</div>
+            <div class="metric-value" id="power-value">--</div>
+            <div class="metric-unit">W</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">目标电压</div>
+            <div class="metric-value" id="target-voltage-value">--</div>
+            <div class="metric-unit">V</div>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <h3>电压/电流实时曲线</h3>
+          <canvas id="monitoring-chart"></canvas>
+        </div>
+
+        <div class="chart-container">
+          <h3>配置曲线预览</h3>
+          <canvas id="curve-preview-chart"></canvas>
+        </div>
+
+        <div class="curve-progress" id="curve-progress-container" style="display: none;">
+          <h3>曲线执行进度</h3>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <div class="progress-text" id="progress-text">0%</div>
+        </div>
+
+        <div class="chart-container" id="load-test-container" style="display: none;">
+          <h3>负载瞬态测试结果</h3>
+          <canvas id="load-test-chart"></canvas>
+        </div>
+
+        <div class="chart-container" id="ripple-test-container" style="display: none;">
+          <h3>纹波测试结果</h3>
+          <canvas id="ripple-chart"></canvas>
+        </div>
+
+        <div class="test-results" id="ripple-results-container" style="display: none;">
+          <h3>纹波测试统计</h3>
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-label">平均电压</div>
+              <div class="metric-value" id="avg-voltage-value">--</div>
+              <div class="metric-unit">V</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">最小电压</div>
+              <div class="metric-value" id="min-voltage-value">--</div>
+              <div class="metric-unit">V</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">最大电压</div>
+              <div class="metric-value" id="max-voltage-value">--</div>
+              <div class="metric-unit">V</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">纹波峰峰值</div>
+              <div class="metric-value" id="ripple-pp-value">--</div>
+              <div class="metric-unit">mV</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="test-progress" id="test-progress-container" style="display: none;">
+          <h3>测试进度</h3>
+          <div class="progress-bar">
+            <div class="progress-fill" id="test-progress-fill"></div>
+          </div>
+          <div class="progress-text" id="test-progress-text">0%</div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "canopen-sdo-tool",
+  "version": "1.0.0",
+  "description": "CANopen SDO Tool with USB-CAN Adapter Simulation",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --debug"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}

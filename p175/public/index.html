@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MAVLink Parameter Console</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">✈</span>
+      <h1>MAVLink Parameter Console</h1>
+    </div>
+    <div class="status" id="status">
+      <span class="dot" id="dot"></span>
+      <span id="linkLabel">connecting…</span>
+      <span class="sep">·</span>
+      <span id="portLabel">—</span>
+      <span class="sep">·</span>
+      <span id="countLabel">0 params</span>
+      <span class="sep">·</span>
+      <span id="progressLabel">0 / 0</span>
+    </div>
+    <div class="actions">
+      <button id="btnMode" class="btn-mode">Compare</button>
+      <button id="btnExport">Export</button>
+      <label class="btn-file">
+        Import
+        <input type="file" id="fileImport" accept=".params,.txt,.param" />
+      </label>
+      <button id="btnReconnect">Reconnect</button>
+      <button id="btnReload">Reload params</button>
+    </div>
+  </header>
+
+  <section class="toolbar" id="toolbar">
+    <div class="mode-tabs" id="modeTabs">
+      <button class="tab active" data-mode="list">List</button>
+      <button class="tab" data-mode="compare">Compare</button>
+    </div>
+    <div class="group" id="groupList">
+      <button class="chip active" data-group="__all__">All</button>
+      <!-- chips injected by JS -->
+    </div>
+    <div class="search">
+      <input id="search" type="text" placeholder="Filter param id (e.g. RTL, GPS, …)" autocomplete="off" />
+      <select id="typeFilter" title="Filter by type">
+        <option value="">All types</option>
+        <option value="uint8">uint8</option>
+        <option value="int8">int8</option>
+        <option value="uint16">uint16</option>
+        <option value="uint32">uint32</option>
+        <option value="uint64">uint64</option>
+        <option value="int16">int16</option>
+        <option value="int32">int32</option>
+        <option value="int64">int64</option>
+        <option value="float">float</option>
+        <option value="double">double</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- Compare toolbar (only visible in compare mode) -->
+  <section class="compare-bar hidden" id="compareBar">
+    <div class="compare-side">
+      <span class="side-label">A (Live)</span>
+      <span class="side-name" id="sideAname">Live parameters</span>
+    </div>
+    <div class="compare-controls">
+      <label class="btn-file">
+        Load B…
+        <input type="file" id="fileCompare" accept=".params,.txt,.param" />
+      </label>
+      <button id="btnSwap">Swap A ↔ B</button>
+      <button id="btnOnlyDiff" class="toggle">Only diffs</button>
+      <span class="diff-stats" id="diffStats"></span>
+    </div>
+    <div class="compare-side right">
+      <span class="side-label">B (File)</span>
+      <span class="side-name" id="sideBname">Not loaded</span>
+    </div>
+  </section>
+
+  <main>
+    <!-- List view -->
+    <div id="viewList">
+      <table class="params" id="paramTable">
+        <thead>
+          <tr>
+            <th class="col-id">Parameter</th>
+            <th class="col-group">Group</th>
+            <th class="col-val">Value</th>
+            <th class="col-type">Type</th>
+            <th class="col-idx">Index</th>
+            <th class="col-act">Action</th>
+          </tr>
+        </thead>
+        <tbody id="paramBody">
+          <tr class="empty"><td colspan="6">Waiting for MAVLink PARAM_VALUE messages…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Compare view -->
+    <div id="viewCompare" class="hidden">
+      <table class="params compare-table" id="compareTable">
+        <thead>
+          <tr>
+            <th class="col-id">Parameter</th>
+            <th class="col-group">Group</th>
+            <th class="col-val-a">Value A</th>
+            <th class="col-val-b">Value B</th>
+            <th class="col-delta">Δ</th>
+          </tr>
+        </thead>
+        <tbody id="compareBody">
+          <tr class="empty"><td colspan="5">Load a file for side B to compare.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

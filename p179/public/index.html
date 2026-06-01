@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DICOM MWL SCP 模拟器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .card-header h2 {
+            color: #2c3e50;
+            font-size: 18px;
+        }
+
+        .badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .filter-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .worklist-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .worklist-table th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #2c3e50;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .worklist-table td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .worklist-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-scheduled {
+            background: #3498db;
+            color: white;
+        }
+
+        .status-in-progress {
+            background: #f39c12;
+            color: white;
+        }
+
+        .status-completed {
+            background: #27ae60;
+            color: white;
+        }
+
+        .status-discontinued {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .storage-committed {
+            background: #27ae60;
+            color: white;
+        }
+
+        .storage-not-committed {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .storage-failed {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .modality-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .mpps-history {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .mpps-item {
+            padding: 15px;
+            border-left: 4px solid #667eea;
+            background: #f8f9fa;
+            margin-bottom: 10px;
+            border-radius: 6px;
+        }
+
+        .mpps-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .mpps-item-patient {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .mpps-item-time {
+            font-size: 11px;
+            color: #7f8c8d;
+        }
+
+        .mpps-item-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #34495e;
+        }
+
+        .arrow {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .mpps-item-details {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #95a5a6;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .selected {
+            background: #e8f4fd !important;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>DICOM MWL SCP 模拟器</h1>
+            <p class="subtitle">Modality Worklist SCP & MPPS 模拟服务</p>
+        </header>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="statTotal">0</div>
+                <div class="stat-label">总检查数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statScheduled">0</div>
+                <div class="stat-label">已预约</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statInProgress">0</div>
+                <div class="stat-label">执行中</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statCompleted">0</div>
+                <div class="stat-label">已完成</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2>检查工作列表 (MWL)</h2>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span class="badge" id="worklistCount">0 条记录</span>
+                        <button class="btn btn-sm btn-primary" onclick="exportWorklistCSV()">导出CSV</button>
+                    </div>
+                </div>
+
+                <div class="filter-form">
+                    <div class="form-group">
+                        <label>患者姓名</label>
+                        <input type="text" id="filterPatientName" placeholder="输入患者姓名">
+                    </div>
+                    <div class="form-group">
+                        <label>开始日期</label>
+                        <input type="date" id="filterStartDate">
+                    </div>
+                    <div class="form-group">
+                        <label>结束日期</label>
+                        <input type="date" id="filterEndDate">
+                    </div>
+                    <div class="form-group">
+                        <label>检查类型</label>
+                        <select id="filterModality">
+                            <option value="">全部</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="justify-content: flex-end;">
+                        <label>&nbsp;</label>
+                        <button class="btn btn-primary" onclick="queryWorklist()">查询</button>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="worklist-table">
+                        <thead>
+                            <tr>
+                                <th>检查号</th>
+                                <th>患者姓名</th>
+                                <th>检查项目</th>
+                                <th>检查类型</th>
+                                <th>检查日期</th>
+                                <th>MPPS状态</th>
+                                <th>存储提交</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="worklistBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>MPPS 状态更新历史</h2>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span class="badge" id="mppsCount">0 条记录</span>
+                        <button class="btn btn-sm btn-primary" onclick="exportMppsCSV()">导出CSV</button>
+                    </div>
+                </div>
+                <div class="mpps-history" id="mppsHistory">
+                    <div class="empty-state">暂无 MPPS 记录</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mppsModal" style="display: none;">
+        <div class="modal-overlay" onclick="closeModal(event)">
+            <div class="modal" onclick="event.stopPropagation()">
+                <h3>更新 MPPS 状态</h3>
+                <div class="filter-form">
+                    <div class="form-group">
+                        <label>患者姓名</label>
+                        <input type="text" id="mppsPatientName" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>检查号</label>
+                        <input type="text" id="mppsAccessionNumber" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>新状态</label>
+                        <select id="mppsStatus">
+                            <option value="IN PROGRESS">执行中</option>
+                            <option value="COMPLETED">已完成</option>
+                            <option value="DISCONTINUED">已终止</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>执行设备 AE Title</label>
+                        <input type="text" id="mppsStationAe" value="CT_SCANNER_01">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>备注</label>
+                        <input type="text" id="mppsComments" placeholder="输入备注信息">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn" style="background: #ecf0f1; color: #2c3e50;" onclick="closeModal()">取消</button>
+                    <button class="btn btn-primary" onclick="submitMpps()">提交</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="storageModal" style="display: none;">
+        <div class="modal-overlay" onclick="closeStorageModal(event)">
+            <div class="modal" onclick="event.stopPropagation()">
+                <h3>存储提交 (Storage Commitment)</h3>
+                <div class="filter-form">
+                    <div class="form-group">
+                        <label>患者姓名</label>
+                        <input type="text" id="storagePatientName" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>检查号</label>
+                        <input type="text" id="storageAccessionNumber" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>操作类型</label>
+                        <select id="storageAction">
+                            <option value="COMMIT">提交存储</option>
+                            <option value="FAIL">提交失败</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>请求方 AE Title</label>
+                        <input type="text" id="storageRequestingAe" value="WORKSTATION_01">
+                    </div>
+                    <div class="form-group">
+                        <label>接收方 AE Title</label>
+                        <input type="text" id="storageReceivingAe" value="PACS_ARCHIVE">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn" style="background: #ecf0f1; color: #2c3e50;" onclick="closeStorageModal()">取消</button>
+                    <button class="btn btn-primary" onclick="submitStorageCommitment()">提交</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedWorkItem = null;
+        let currentWorklist = [];
+
+        function getStatusClass(status) {
+            const map = {
+                'SCHEDULED': 'status-scheduled',
+                'IN PROGRESS': 'status-in-progress',
+                'COMPLETED': 'status-completed',
+                'DISCONTINUED': 'status-discontinued'
+            };
+            return map[status] || 'status-scheduled';
+        }
+
+        function getStatusText(status) {
+            const map = {
+                'SCHEDULED': '已预约',
+                'IN PROGRESS': '执行中',
+                'COMPLETED': '已完成',
+                'DISCONTINUED': '已终止'
+            };
+            return map[status] || status;
+        }
+
+        function getStorageStatusClass(status) {
+            const map = {
+                'COMMITTED': 'storage-committed',
+                'NOT_COMMITTED': 'storage-not-committed',
+                'FAILED': 'storage-failed'
+            };
+            return map[status] || 'storage-not-committed';
+        }
+
+        function getStorageStatusText(status) {
+            const map = {
+                'COMMITTED': '已提交',
+                'NOT_COMMITTED': '未提交',
+                'FAILED': '提交失败'
+            };
+            return map[status] || '未提交';
+        }
+
+        async function loadModalities() {
+            try {
+                const res = await fetch('/api/modalities');
+                const data = await res.json();
+                const select = document.getElementById('filterModality');
+                data.modalities.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m;
+                    option.textContent = m;
+                    select.appendChild(option);
+                });
+            } catch (e) {
+                console.error('Failed to load modalities:', e);
+            }
+        }
+
+        function formatDateToDicom(dateStr) {
+            if (!dateStr) return '';
+            return dateStr.replace(/-/g, '');
+        }
+
+        async function queryWorklist() {
+            const patientName = document.getElementById('filterPatientName').value;
+            const startDate = formatDateToDicom(document.getElementById('filterStartDate').value);
+            const endDate = formatDateToDicom(document.getElementById('filterEndDate').value);
+            const modality = document.getElementById('filterModality').value;
+
+            const params = new URLSearchParams();
+            if (patientName) params.append('patientName', patientName);
+            if (startDate) params.append('startDate', startDate);
+            if (endDate) params.append('endDate', endDate);
+            if (modality) params.append('modality', modality);
+
+            try {
+                const res = await fetch(`/api/mwl?${params.toString()}`);
+                const data = await res.json();
+                currentWorklist = data.worklist;
+                renderWorklist(data.worklist);
+                updateStats(data.worklist);
+            } catch (e) {
+                console.error('Failed to query worklist:', e);
+            }
+        }
+
+        function renderWorklist(worklist) {
+            const tbody = document.getElementById('worklistBody');
+            document.getElementById('worklistCount').textContent = `${worklist.length} 条记录`;
+
+            if (worklist.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="empty-state">暂无数据</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = worklist.map(item => `
+                <tr class="${selectedWorkItem && selectedWorkItem.accessionNumber === item.accessionNumber ? 'selected' : ''}">
+                    <td>${item.accessionNumber}</td>
+                    <td>${item.patientName}</td>
+                    <td>${item.scheduledProcedureStepDescription}</td>
+                    <td><span class="modality-tag">${item.modality}</span></td>
+                    <td>${item.scheduledProcedureStepStartDate} ${item.scheduledProcedureStepStartTime}</td>
+                    <td><span class="status-badge ${getStatusClass(item.mppsStatus)}">${getStatusText(item.mppsStatus)}</span></td>
+                    <td><span class="status-badge ${getStorageStatusClass(item.storageCommitmentStatus)}">${getStorageStatusText(item.storageCommitmentStatus)}</span></td>
+                    <td>
+                        <div class="action-buttons">
+                            ${item.mppsStatus === 'SCHEDULED' ? 
+                                `<button class="btn btn-success btn-sm" onclick="openMppsModal('${item.accessionNumber}')">开始</button>` :
+                                item.mppsStatus === 'IN PROGRESS' ?
+                                `<button class="btn btn-warning btn-sm" onclick="openMppsModal('${item.accessionNumber}')">完成</button>` :
+                                ''
+                            }
+                            ${item.mppsStatus === 'COMPLETED' && item.storageCommitmentStatus !== 'COMMITTED' ?
+                                `<button class="btn btn-primary btn-sm" onclick="openStorageModal('${item.accessionNumber}')">存储</button>` :
+                                ''
+                            }
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStats(worklist) {
+            const total = worklist.length;
+            const scheduled = worklist.filter(i => i.mppsStatus === 'SCHEDULED').length;
+            const inProgress = worklist.filter(i => i.mppsStatus === 'IN PROGRESS').length;
+            const completed = worklist.filter(i => i.mppsStatus === 'COMPLETED').length;
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statScheduled').textContent = scheduled;
+            document.getElementById('statInProgress').textContent = inProgress;
+            document.getElementById('statCompleted').textContent = completed;
+        }
+
+        function openMppsModal(accessionNumber) {
+            selectedWorkItem = currentWorklist.find(item => item.accessionNumber === accessionNumber);
+            if (!selectedWorkItem) return;
+
+            document.getElementById('mppsPatientName').value = selectedWorkItem.patientName;
+            document.getElementById('mppsAccessionNumber').value = selectedWorkItem.accessionNumber;
+
+            const statusSelect = document.getElementById('mppsStatus');
+            if (selectedWorkItem.mppsStatus === 'SCHEDULED') {
+                statusSelect.innerHTML = '<option value="IN PROGRESS">执行中</option>';
+            } else if (selectedWorkItem.mppsStatus === 'IN PROGRESS') {
+                statusSelect.innerHTML = '<option value="COMPLETED">已完成</option><option value="DISCONTINUED">已终止</option>';
+            }
+
+            document.getElementById('mppsModal').style.display = 'block';
+        }
+
+        function closeModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('mppsModal').style.display = 'none';
+            selectedWorkItem = null;
+        }
+
+        async function submitMpps() {
+            if (!selectedWorkItem) return;
+
+            const mppsData = {
+                studyInstanceUid: selectedWorkItem.studyInstanceUid,
+                scheduledProcedureStepId: selectedWorkItem.scheduledProcedureStepId,
+                status: document.getElementById('mppsStatus').value,
+                performedStationAeTitle: document.getElementById('mppsStationAe').value,
+                comments: document.getElementById('mppsComments').value
+            };
+
+            try {
+                const res = await fetch('/api/mpps', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(mppsData)
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    closeModal();
+                    queryWorklist();
+                    loadMppsHistory();
+                } else {
+                    alert('提交失败: ' + data.error);
+                }
+            } catch (e) {
+                console.error('Failed to submit MPPS:', e);
+                alert('提交失败');
+            }
+        }
+
+        async function loadMppsHistory() {
+            try {
+                const res = await fetch('/api/mpps/history');
+                const data = await res.json();
+                renderMppsHistory(data.history);
+            } catch (e) {
+                console.error('Failed to load MPPS history:', e);
+            }
+        }
+
+        function renderMppsHistory(history) {
+            const container = document.getElementById('mppsHistory');
+            document.getElementById('mppsCount').textContent = `${history.length} 条记录`;
+
+            if (history.length === 0) {
+                container.innerHTML = '<div class="empty-state">暂无 MPPS 记录</div>';
+                return;
+            }
+
+            container.innerHTML = history.map(item => `
+                <div class="mpps-item">
+                    <div class="mpps-item-header">
+                        <span class="mpps-item-patient">${item.patientName}</span>
+                        <span class="mpps-item-time">${new Date(item.timestamp).toLocaleString('zh-CN')}</span>
+                    </div>
+                    <div class="mpps-item-status">
+                        <span class="status-badge ${getStatusClass(item.previousStatus)}">${getStatusText(item.previousStatus)}</span>
+                        <span class="arrow">→</span>
+                        <span class="status-badge ${getStatusClass(item.newStatus)}">${getStatusText(item.newStatus)}</span>
+                    </div>
+                    ${item.comments ? `<div class="mpps-item-details">备注: ${item.comments}</div>` : ''}
+                    ${item.performedStationAeTitle ? `<div class="mpps-item-details">设备: ${item.performedStationAeTitle}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function openStorageModal(accessionNumber) {
+            selectedWorkItem = currentWorklist.find(item => item.accessionNumber === accessionNumber);
+            if (!selectedWorkItem) return;
+
+            document.getElementById('storagePatientName').value = selectedWorkItem.patientName;
+            document.getElementById('storageAccessionNumber').value = selectedWorkItem.accessionNumber;
+
+            document.getElementById('storageModal').style.display = 'block';
+        }
+
+        function closeStorageModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('storageModal').style.display = 'none';
+            selectedWorkItem = null;
+        }
+
+        async function submitStorageCommitment() {
+            if (!selectedWorkItem) return;
+
+            const storageData = {
+                studyInstanceUid: selectedWorkItem.studyInstanceUid,
+                accessionNumber: selectedWorkItem.accessionNumber,
+                action: document.getElementById('storageAction').value,
+                requestingAeTitle: document.getElementById('storageRequestingAe').value,
+                receivingAeTitle: document.getElementById('storageReceivingAe').value
+            };
+
+            try {
+                const res = await fetch('/api/storage-commitment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(storageData)
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    closeStorageModal();
+                    queryWorklist();
+                } else {
+                    alert('提交失败: ' + data.error);
+                }
+            } catch (e) {
+                console.error('Failed to submit storage commitment:', e);
+                alert('提交失败');
+            }
+        }
+
+        function exportWorklistCSV() {
+            const patientName = document.getElementById('filterPatientName').value;
+            const startDate = formatDateToDicom(document.getElementById('filterStartDate').value);
+            const endDate = formatDateToDicom(document.getElementById('filterEndDate').value);
+            const modality = document.getElementById('filterModality').value;
+
+            const params = new URLSearchParams();
+            if (patientName) params.append('patientName', patientName);
+            if (startDate) params.append('startDate', startDate);
+            if (endDate) params.append('endDate', endDate);
+            if (modality) params.append('modality', modality);
+
+            window.open(`/api/export/worklist.csv?${params.toString()}`, '_blank');
+        }
+
+        function exportMppsCSV() {
+            window.open('/api/export/mpps.csv', '_blank');
+        }
+
+        function init() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('filterStartDate').value = today;
+
+            loadModalities();
+            queryWorklist();
+            loadMppsHistory();
+
+            setInterval(loadMppsHistory, 5000);
+        }
+
+        init();
+    </script>
+</body>
+</html>

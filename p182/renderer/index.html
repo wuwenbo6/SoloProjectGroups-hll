@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LC3 音频压缩对比工具</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 5px;
+      margin-bottom: -1px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 15px 20px;
+      background: rgba(255,255,255,0.8);
+      border: none;
+      border-radius: 12px 12px 0 0;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #666;
+      transition: all 0.3s ease;
+    }
+
+    .tab-btn:hover {
+      background: rgba(255,255,255,0.9);
+      color: #667eea;
+    }
+
+    .tab-btn.active {
+      background: white;
+      color: #667eea;
+      box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+    }
+
+    .card {
+      background: white;
+      border-radius: 0 16px 16px 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .upload-section {
+      text-align: center;
+    }
+
+    .drop-zone {
+      border: 3px dashed #667eea;
+      border-radius: 12px;
+      padding: 40px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: #f8f9ff;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: #764ba2;
+      background: #f0f2ff;
+    }
+
+    .drop-zone-icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+
+    .drop-zone-text {
+      font-size: 1.1rem;
+      color: #666;
+    }
+
+    .file-info {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f0f8ff;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .file-info.show {
+      display: block;
+    }
+
+    .bitrate-control {
+      margin-top: 20px;
+    }
+
+    .bitrate-control label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: 600;
+      color: #444;
+    }
+
+    .bitrate-slider {
+      width: 100%;
+      height: 8px;
+      -webkit-appearance: none;
+      background: linear-gradient(to right, #ff6b6b, #feca57, #48dbfb, #1dd1a1);
+      border-radius: 4px;
+      outline: none;
+    }
+
+    .bitrate-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      background: #667eea;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    .bitrate-value {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #667eea;
+      margin-top: 10px;
+    }
+
+    .process-btn {
+      margin-top: 20px;
+      padding: 15px 40px;
+      font-size: 1.1rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      width: 100%;
+    }
+
+    .process-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .process-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .progress {
+      display: none;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .progress.show {
+      display: block;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .results-section {
+      display: none;
+    }
+
+    .results-section.show {
+      display: block;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #333;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+    }
+
+    .mos-score {
+      text-align: center;
+      padding: 30px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      color: white;
+      margin-bottom: 20px;
+    }
+
+    .mos-value {
+      font-size: 4rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .mos-quality {
+      font-size: 1.2rem;
+      opacity: 0.9;
+    }
+
+    .mos-confidence {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .metric-card {
+      background: #f8f9ff;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .metric-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    .metric-label {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .audio-comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .audio-player {
+      background: #f8f9ff;
+      padding: 20px;
+      border-radius: 12px;
+    }
+
+    .audio-player h3 {
+      margin-bottom: 15px;
+      color: #444;
+    }
+
+    audio {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    .audio-info {
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    .error-message {
+      background: #ffebee;
+      color: #c62828;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    .multi-bitrate-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .bitrate-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 10px 15px;
+      background: #f0f8ff;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .bitrate-checkbox:hover {
+      background: #e0f0ff;
+    }
+
+    .bitrate-checkbox input {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .bitrate-checkbox.checked {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .multi-results-container {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .bitrate-result-card {
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 20px;
+      background: #fafafa;
+    }
+
+    .bitrate-result-card h3 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 1.2rem;
+    }
+
+    .live-section {
+      text-align: center;
+    }
+
+    .recording-status {
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      background: #f5f5f5;
+    }
+
+    .recording-status.recording {
+      background: #ffebee;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .status-text {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .live-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .live-metric {
+      background: #f8f9ff;
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .live-metric-value {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    .live-metric-label {
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .live-controls {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .live-btn {
+      padding: 15px 30px;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 600;
+    }
+
+    .live-btn.start {
+      background: #4caf50;
+      color: white;
+    }
+
+    .live-btn.start:hover {
+      background: #388e3c;
+    }
+
+    .live-btn.stop {
+      background: #f44336;
+      color: white;
+    }
+
+    .live-btn.stop:hover {
+      background: #d32f2f;
+    }
+
+    .live-btn.play {
+      background: #2196f3;
+      color: white;
+    }
+
+    .live-btn.play:hover {
+      background: #1976d2;
+    }
+
+    .live-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .waveform-container {
+      width: 100%;
+      height: 100px;
+      background: #f0f0f0;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .mos-mini {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    .mos-mini-score {
+      font-size: 2.5rem;
+      font-weight: bold;
+    }
+
+    @media (max-width: 600px) {
+      .audio-comparison {
+        grid-template-columns: 1fr;
+      }
+      
+      header h1 {
+        font-size: 1.8rem;
+      }
+
+      .tabs {
+        flex-direction: column;
+      }
+
+      .tab-btn {
+        border-radius: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎵 LC3 音频压缩对比工具</h1>
+      <p>上传WAV文件或使用麦克风，体验LC3编码压缩效果</p>
+    </header>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="single">单比特率处理</button>
+      <button class="tab-btn" data-tab="multi">多比特率对比</button>
+      <button class="tab-btn" data-tab="live">实时编码</button>
+    </div>
+
+    <div class="card">
+      <div class="tab-content active" id="single-tab">
+        <div class="upload-section">
+          <div class="drop-zone" id="dropZone">
+            <div class="drop-zone-icon">📁</div>
+            <div class="drop-zone-text">点击或拖拽WAV文件到此处上传</div>
+            <div style="margin-top: 10px; font-size: 0.9rem; color: #999;">支持16位PCM WAV格式</div>
+          </div>
+
+          <div class="file-info" id="fileInfo">
+            <strong>文件名称：</strong><span id="fileName"></span><br>
+            <strong>文件大小：</strong><span id="fileSize"></span> KB
+          </div>
+
+          <div class="bitrate-control" id="bitrateControl" style="display: none;">
+            <label>编码码率：<span id="bitrateLabel">32</span> kbps</label>
+            <input type="range" id="bitrateSlider" class="bitrate-slider" min="8" max="160" value="32" step="8">
+            <div class="bitrate-value"><span id="bitrateValue">32</span> kbps</div>
+          </div>
+
+          <button class="process-btn" id="processBtn" disabled>开始压缩处理</button>
+
+          <div class="progress" id="progress">
+            <div class="spinner"></div>
+            <div style="margin-top: 10px;">正在处理音频...</div>
+          </div>
+
+          <div class="error-message" id="errorMessage"></div>
+        </div>
+
+        <div class="results-section" id="singleResults">
+          <div class="section-title">📊 处理结果</div>
+
+          <div class="mos-score">
+            <div class="mos-value" id="singleMosValue">4.5</div>
+            <div class="mos-quality" id="singleMosQuality">优秀（轻微失真）</div>
+            <div class="mos-confidence" id="singleMosConfidence">置信度：高</div>
+            <div style="margin-top: 15px; font-size: 0.85rem; opacity: 0.9;">
+              <span id="singlePesqDetails"></span>
+            </div>
+          </div>
+
+          <div class="metrics-grid" id="singleMetricsGrid">
+            <div class="metric-card">
+              <div class="metric-value" id="singleCompressionRatio">15%</div>
+              <div class="metric-label">压缩率</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" id="singleOriginalSize">-</div>
+              <div class="metric-label">原始大小</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" id="singleCompressedSize">-</div>
+              <div class="metric-label">压缩后大小</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" id="singlePesqScore">-</div>
+              <div class="metric-label">PESQ评分</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" id="singlePesqD">-</div>
+              <div class="metric-label">不对称失真 (D)</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" id="singlePesqA">-</div>
+              <div class="metric-label">对称扰动 (A)</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" id="singleSegSNR">-</div>
+              <div class="metric-label">分段SNR (dB)</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" id="singleLsd">-</div>
+              <div class="metric-label">对数谱距离</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" id="singleGlobalSNR">-</div>
+              <div class="metric-label">全局SNR (dB)</div>
+            </div>
+          </div>
+
+          <div class="section-title">🎧 音频对比</div>
+          <div class="audio-comparison">
+            <div class="audio-player">
+              <h3>🔊 原始音频</h3>
+              <audio id="singleOriginalAudio" controls></audio>
+              <div class="audio-info" id="singleOriginalInfo"></div>
+            </div>
+            <div class="audio-player">
+              <h3>🎶 压缩后音频</h3>
+              <audio id="singleProcessedAudio" controls></audio>
+              <div class="audio-info" id="singleProcessedInfo"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="multi-tab">
+        <div class="upload-section">
+          <div class="drop-zone" id="multiDropZone">
+            <div class="drop-zone-icon">📁</div>
+            <div class="drop-zone-text">点击或拖拽WAV文件到此处上传</div>
+            <div style="margin-top: 10px; font-size: 0.9rem; color: #999;">支持16位PCM WAV格式</div>
+          </div>
+
+          <div class="file-info" id="multiFileInfo">
+            <strong>文件名称：</strong><span id="multiFileName"></span><br>
+            <strong>文件大小：</strong><span id="multiFileSize"></span> KB
+          </div>
+
+          <div class="bitrate-control" id="multiBitrateControl" style="display: none;">
+            <label style="text-align: center;">选择对比码率：</label>
+            <div class="multi-bitrate-controls" id="bitrateCheckboxes">
+              <label class="bitrate-checkbox" data-bitrate="16000">
+                <input type="checkbox" value="16000" checked>
+                <span>16 kbps</span>
+              </label>
+              <label class="bitrate-checkbox checked" data-bitrate="32000">
+                <input type="checkbox" value="32000" checked>
+                <span>32 kbps</span>
+              </label>
+              <label class="bitrate-checkbox checked" data-bitrate="48000">
+                <input type="checkbox" value="48000">
+                <span>48 kbps</span>
+              </label>
+              <label class="bitrate-checkbox" data-bitrate="64000">
+                <input type="checkbox" value="64000">
+                <span>64 kbps</span>
+              </label>
+              <label class="bitrate-checkbox" data-bitrate="96000">
+                <input type="checkbox" value="96000">
+                <span>96 kbps</span>
+              </label>
+              <label class="bitrate-checkbox" data-bitrate="128000">
+                <input type="checkbox" value="128000">
+                <span>128 kbps</span>
+              </label>
+            </div>
+          </div>
+
+          <button class="process-btn" id="multiProcessBtn" disabled>开始多比特率对比处理</button>
+
+          <div class="progress" id="multiProgress">
+            <div class="spinner"></div>
+            <div style="margin-top: 10px;">正在处理音频，请稍候...</div>
+          </div>
+
+          <div class="error-message" id="multiErrorMessage"></div>
+        </div>
+
+        <div class="results-section" id="multiResults">
+          <div class="section-title">📊 多比特率对比结果</div>
+
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-value" id="multiOriginalSize">-</div>
+              <div class="metric-label">原始大小</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" id="multiSampleRate">-</div>
+              <div class="metric-label">采样率</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" id="multiChannels">-</div>
+              <div class="metric-label">声道数</div>
+            </div>
+          </div>
+
+          <div class="section-title">🎧 各码率结果对比</div>
+          <div class="multi-results-container" id="multiResultsContainer">
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="live-tab">
+        <div class="live-section">
+          <div class="recording-status" id="recordingStatus">
+            <div class="status-text" id="statusText">准备就绪，点击开始录制</div>
+            <div style="font-size: 0.9rem; color: #666; margin-top: 5px;">
+              采样率：48000 Hz · 声道：1 · 帧长：7.5ms
+            </div>
+          </div>
+
+          <div class="bitrate-control">
+            <label>实时编码码率：<span id="liveBitrateLabel">32</span> kbps</label>
+            <input type="range" id="liveBitrateSlider" class="bitrate-slider" min="8" max="160" value="32" step="8">
+            <div class="bitrate-value"><span id="liveBitrateValue">32</span> kbps</div>
+          </div>
+
+          <div class="live-metrics" style="margin-top: 20px;">
+            <div class="live-metric">
+              <div class="live-metric-value" id="liveMos">--</div>
+              <div class="live-metric-label">实时MOS分</div>
+            </div>
+            <div class="live-metric">
+              <div class="live-metric-value" id="livePesq">--</div>
+              <div class="live-metric-label">PESQ评分</div>
+            </div>
+            <div class="live-metric">
+              <div class="live-metric-value" id="liveDuration">0s</div>
+              <div class="live-metric-label">录制时长</div>
+            </div>
+            <div class="live-metric">
+              <div class="live-metric-value" id="liveFrames">0</div>
+              <div class="live-metric-label">处理帧数</div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top: 20px;">波形显示</div>
+          <div class="waveform-container">
+            <canvas id="waveformCanvas"></canvas>
+          </div>
+
+          <div class="live-controls">
+            <button class="live-btn start" id="startBtn">🎤 开始录制</button>
+            <button class="live-btn stop" id="stopBtn" disabled>⏹ 停止录制</button>
+            <button class="live-btn play" id="playOriginalBtn" disabled>🔊 播放原声</button>
+            <button class="live-btn play" id="playProcessedBtn" disabled>🎶 播放处理后</button>
+          </div>
+
+          <div class="error-message" id="liveErrorMessage"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HEVC SEI 工具 - NAL单元分析与SEI数据处理</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>HEVC/H.265 SEI 处理工具</h1>
+      <p class="subtitle">NAL单元解析 · SEI信息提取 · SEI时间戳插入</p>
+    </header>
+
+    <div class="main-content">
+      <div class="sidebar">
+        <div class="card">
+          <h2>文件操作</h2>
+          <div class="file-section">
+            <label>输入文件:</label>
+            <div class="file-input-group">
+              <input type="text" id="filePath" placeholder="选择HEVC/H.265文件" readonly>
+              <button id="selectFileBtn" class="btn btn-primary">选择文件</button>
+            </div>
+          </div>
+
+          <div class="sei-options">
+            <label>SEI类型:</label>
+            <select id="seiTypeSelect">
+              <option value="unregistered">未注册用户数据 (类型5)</option>
+              <option value="registered">注册用户数据 (类型4 - ITU-T T.35)</option>
+            </select>
+          </div>
+
+          <div class="action-buttons">
+            <button id="parseBtn" class="btn btn-secondary" disabled>解析NAL单元</button>
+            <button id="extractSEIBtn" class="btn btn-secondary" disabled>提取SEI信息</button>
+            <button id="insertSEIBtn" class="btn btn-success" disabled>插入时间戳SEI</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>批量处理</h2>
+          <div class="file-section">
+            <label>输入文件夹:</label>
+            <div class="file-input-group">
+              <input type="text" id="inputFolder" placeholder="选择包含HEVC文件的文件夹" readonly>
+              <button id="selectInputFolderBtn" class="btn btn-primary">选择</button>
+            </div>
+          </div>
+          <div class="file-section">
+            <label>输出文件夹:</label>
+            <div class="file-input-group">
+              <input type="text" id="outputFolder" placeholder="选择输出文件夹" readonly>
+              <button id="selectOutputFolderBtn" class="btn btn-primary">选择</button>
+            </div>
+          </div>
+          <div class="action-buttons">
+            <button id="batchProcessBtn" class="btn btn-success" disabled>批量插入SEI</button>
+          </div>
+        </div>
+
+        <div class="card" id="fileInfoCard" style="display: none;">
+          <h2>文件信息</h2>
+          <div class="info-item">
+            <span class="label">文件路径:</span>
+            <span class="value" id="infoFilePath">-</span>
+          </div>
+          <div class="info-item">
+            <span class="label">文件大小:</span>
+            <span class="value" id="infoFileSize">-</span>
+          </div>
+          <div class="info-item">
+            <span class="label">NAL单元总数:</span>
+            <span class="value" id="infoNalCount">-</span>
+          </div>
+          <div class="info-item">
+            <span class="label">SEI NAL单元:</span>
+            <span class="value" id="infoSeiCount">-</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>统计信息</h2>
+          <div id="statsContainer">
+            <p class="empty-text">请先选择并解析文件</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-area">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="nalUnits">NAL单元列表</button>
+          <button class="tab-btn" data-tab="seiInfo">SEI信息</button>
+          <button class="tab-btn" data-tab="operationLog">操作日志</button>
+        </div>
+
+        <div class="tab-content">
+          <div id="nalUnits" class="tab-pane active">
+            <div class="toolbar">
+              <input type="text" id="nalFilter" placeholder="搜索NAL单元类型...">
+              <span id="nalCountDisplay"></span>
+            </div>
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>索引</th>
+                    <th>类型</th>
+                    <th>类型名称</th>
+                    <th>起始位置</th>
+                    <th>长度</th>
+                    <th>SEI消息</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="nalTableBody">
+                  <tr>
+                    <td colspan="7" class="empty-row">请先解析文件</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="seiInfo" class="tab-pane">
+            <div id="seiContainer">
+              <p class="empty-text">请先提取SEI信息</p>
+            </div>
+          </div>
+
+          <div id="operationLog" class="tab-pane">
+            <div id="logContainer">
+              <p class="empty-text">暂无操作日志</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">详细信息</h3>
+        <button class="close-btn" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
