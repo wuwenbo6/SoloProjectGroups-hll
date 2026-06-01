@@ -1,0 +1,2014 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卫星轨道计算与可视化系统</title>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.111/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.111/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #ffffff;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #cesiumContainer {
+            position: absolute;
+            top: 0;
+            left: 350px;
+            right: 0;
+            bottom: 0;
+        }
+        
+        .sidebar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 350px;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            border-right: 1px solid rgba(59, 130, 246, 0.3);
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            text-align: center;
+        }
+        
+        .sidebar-header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .sidebar-header p {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .tab-buttons {
+            display: flex;
+            background: rgba(30, 41, 59, 0.8);
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 12px 8px;
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab-btn:hover {
+            color: #ffffff;
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .tab-btn.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            border: none;
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 8px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: rgba(71, 85, 105, 0.5);
+            margin-top: 12px;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(71, 85, 105, 0.8);
+            box-shadow: 0 4px 12px rgba(71, 85, 105, 0.3);
+        }
+        
+        .result-panel {
+            margin-top: 20px;
+            padding: 16px;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 8px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        
+        .result-panel h3 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: #3b82f6;
+        }
+        
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+        }
+        
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .result-label {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+        
+        .result-value {
+            color: #22c55e;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        
+        .highlight {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 12px;
+        }
+        
+        .highlight .result-value {
+            font-size: 16px;
+            color: #22c55e;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            z-index: 1000;
+        }
+        
+        .legend h4 {
+            font-size: 12px;
+            margin-bottom: 10px;
+            color: #94a3b8;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 4px;
+            border-radius: 2px;
+            margin-right: 8px;
+        }
+        
+        .loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: calc(50% + 175px);
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(59, 130, 246, 0.2);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .preset-btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .preset-btn {
+            padding: 8px 12px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 4px;
+            color: #3b82f6;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .preset-btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+        }
+        
+        .section-title {
+            font-size: 13px;
+            color: #94a3b8;
+            margin: 16px 0 8px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+        }
+        
+        .tle-input textarea {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            resize: vertical;
+            min-height: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h1>🛰️ 卫星轨道计算</h1>
+            <p>Orbit Calculation & Visualization</p>
+        </div>
+        
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="switchTab('orbit')">轨道计算</button>
+            <button class="tab-btn" onclick="switchTab('maneuver')">轨道机动</button>
+            <button class="tab-btn" onclick="switchTab('gravity')">引力辅助</button>
+            <button class="tab-btn" onclick="switchTab('debris')">碎片规避</button>
+            <button class="tab-btn" onclick="switchTab('launch')">发射窗口</button>
+            <button class="tab-btn" onclick="switchTab('fuel')">燃料计算</button>
+            <button class="tab-btn" onclick="switchTab('export')">指令导出</button>
+        </div>
+        
+        <div id="orbit-tab" class="tab-content active">
+            <div class="section-title">轨道参数输入</div>
+            
+            <div style="margin-bottom: 12px;">
+                <select id="inputMode" onchange="toggleInputMode()" style="width:100%; padding:8px; background:rgba(30,41,59,0.8); border:1px solid rgba(71,85,105,0.5); border-radius:6px; color:#fff;">
+                    <option value="elements">轨道根数输入</option>
+                    <option value="tle">TLE输入</option>
+                </select>
+            </div>
+            
+            <div id="elements-input">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>半长轴 (km)</label>
+                        <input type="number" id="semiMajor" value="7000" step="100">
+                    </div>
+                    <div class="form-group">
+                        <label>偏心率</label>
+                        <input type="number" id="eccentricity" value="0.001" step="0.001" min="0" max="1">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>倾角 (°)</label>
+                        <input type="number" id="inclination" value="28.5" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label>升交点赤经 (°)</label>
+                        <input type="number" id="raan" value="0" step="1">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>近地点幅角 (°)</label>
+                    <input type="number" id="argPerigee" value="0" step="1">
+                </div>
+                
+                <div class="preset-btns">
+                    <button class="preset-btn" onclick="setPreset('LEO')">LEO (400km)</button>
+                    <button class="preset-btn" onclick="setPreset('MEO')">MEO (20000km)</button>
+                    <button class="preset-btn" onclick="setPreset('GEO')">GEO (35786km)</button>
+                    <button class="preset-btn" onclick="setPreset('SSO')">SSO (500km)</button>
+                </div>
+            </div>
+            
+            <div id="tle-input" style="display:none;">
+                <div class="form-group tle-input">
+                    <label>TLE 第一行</label>
+                    <textarea id="tleLine1" rows="2">1 25544U 98067A   24001.50000000  .00016717  00000-0  10270-3 0  9993</textarea>
+                </div>
+                <div class="form-group tle-input">
+                    <label>TLE 第二行</label>
+                    <textarea id="tleLine2" rows="2">2 25544  51.6400 208.9163 0006703  35.0000 325.0000 15.49563637  1234</textarea>
+                </div>
+            </div>
+            
+            <button class="btn" onclick="calculateOrbit()">计算并显示轨道</button>
+            <button class="btn btn-secondary" onclick="clearOrbits()">清除所有轨道</button>
+            
+            <div id="orbit-result" class="result-panel" style="display:none;">
+                <h3>📊 轨道参数</h3>
+                <div class="result-item">
+                    <span class="result-label">半长轴</span>
+                    <span class="result-value" id="res-a">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">偏心率</span>
+                    <span class="result-value" id="res-ecc">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">轨道周期</span>
+                    <span class="result-value" id="res-period">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">轨道速度</span>
+                    <span class="result-value" id="res-vel">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="maneuver-tab" class="tab-content">
+            <div class="section-title">转移类型选择</div>
+            
+            <div class="form-group">
+                <select id="maneuverType" onchange="toggleManeuverInputs()" style="width:100%; padding:10px; background:rgba(30,41,59,0.8); border:1px solid rgba(71,85,105,0.5); border-radius:6px; color:#fff;">
+                    <option value="hohmann">共面霍曼转移</option>
+                    <option value="inclined">异面轨道转移</option>
+                    <option value="bielliptic">双椭圆转移</option>
+                    <option value="lowthrust">小推力连续推进</option>
+                </select>
+            </div>
+            
+            <div id="hohmann-inputs">
+                <div class="section-title">轨道参数</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>初始轨道半径 (km)</label>
+                        <input type="number" id="initialRadius" value="7000" step="100">
+                    </div>
+                    <div class="form-group">
+                        <label>目标轨道半径 (km)</label>
+                        <input type="number" id="targetRadius" value="36000" step="100">
+                    </div>
+                </div>
+            </div>
+            
+            <div id="inclined-inputs" style="display:none;">
+                <div class="section-title">轨道与倾角参数</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>初始半径 (km)</label>
+                        <input type="number" id="incInitialRadius" value="7000" step="100">
+                    </div>
+                    <div class="form-group">
+                        <label>目标半径 (km)</label>
+                        <input type="number" id="incTargetRadius" value="36000" step="100">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>初始倾角 (°)</label>
+                        <input type="number" id="initialInc" value="28.5" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label>目标倾角 (°)</label>
+                        <input type="number" id="targetInc" value="0.0" step="1">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>初始RAAN (°)</label>
+                        <input type="number" id="initialRaan" value="0.0" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label>目标RAAN (°)</label>
+                        <input type="number" id="targetRaan" value="0.0" step="1">
+                    </div>
+                </div>
+            </div>
+            
+            <div id="bielliptic-inputs" style="display:none;">
+                <div class="section-title">双椭圆参数</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>初始半径 (km)</label>
+                        <input type="number" id="biInitialRadius" value="7000" step="100">
+                    </div>
+                    <div class="form-group">
+                        <label>目标半径 (km)</label>
+                        <input type="number" id="biTargetRadius" value="36000" step="100">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>中间轨道半径 (km，可选)</label>
+                    <input type="number" id="biIntermediate" placeholder="自动计算最优值" step="1000">
+                </div>
+            </div>
+            
+            <div id="lowthrust-inputs" style="display:none;">
+                <div class="section-title">小推力参数</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>初始半径 (km)</label>
+                        <input type="number" id="ltInitialRadius" value="7000" step="100">
+                    </div>
+                    <div class="form-group">
+                        <label>目标半径 (km)</label>
+                        <input type="number" id="ltTargetRadius" value="36000" step="100">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>推力 (N)</label>
+                        <input type="number" id="thrust" value="0.5" step="0.1" min="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>比冲 Isp (s)</label>
+                        <input type="number" id="ltIsp" value="3000" step="100">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>初始质量 (kg)</label>
+                        <input type="number" id="ltMass" value="5000" step="100">
+                    </div>
+                    <div class="form-group">
+                        <label>最大步数</label>
+                        <input type="number" id="ltSteps" value="5000" step="1000" min="100">
+                    </div>
+                </div>
+                <div style="background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); padding:10px; border-radius:6px; margin-top:10px;">
+                    <p style="font-size:12px; color:#fbbf24;">⚠️ 小推力计算可能需要较长时间，请耐心等待</p>
+                </div>
+            </div>
+            
+            <div id="common-maneuver-inputs">
+                <div class="section-title">推进剂参数</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>比冲 Isp (s)</label>
+                        <input type="number" id="maneuverIsp" value="300" step="10">
+                    </div>
+                    <div class="form-group">
+                        <label>初始质量 (kg)</label>
+                        <input type="number" id="maneuverMass" value="5000" step="100">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="preset-btns">
+                <button class="preset-btn" onclick="setManeuverPreset('LEO-GEO')">LEO → GEO</button>
+                <button class="preset-btn" onclick="setManeuverPreset('LEO-MEO')">LEO → MEO</button>
+            </div>
+            
+            <button class="btn" onclick="calculateManeuver()">计算轨道转移</button>
+            
+            <div id="maneuver-result" class="result-panel" style="display:none;">
+                <h3>🚀 转移结果</h3>
+                <div id="maneuver-result-content"></div>
+            </div>
+        </div>
+        
+        <div id="gravity-tab" class="tab-content">
+            <div class="section-title">多体引力辅助</div>
+            
+            <div class="form-group">
+                <label>引力辅助天体</label>
+                <select id="assistBody" style="width:100%; padding:10px; background:rgba(30,41,59,0.8); border:1px solid rgba(71,85,105,0.5); border-radius:6px; color:#fff;">
+                    <option value="moon">🌙 月球</option>
+                    <option value="sun">☀️ 太阳</option>
+                </select>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>初始轨道半径 (km)</label>
+                    <input type="number" id="gaInitialRadius" value="7000" step="100">
+                </div>
+                <div class="form-group">
+                    <label>目标轨道半径 (km)</label>
+                    <input type="number" id="gaTargetRadius" value="200000" step="1000">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>比冲 Isp (s)</label>
+                    <input type="number" id="gaIsp" value="300" step="10">
+                </div>
+                <div class="form-group">
+                    <label>初始质量 (kg)</label>
+                    <input type="number" id="gaMass" value="5000" step="100">
+                </div>
+            </div>
+            
+            <button class="btn" onclick="calculateGravityAssist()">计算引力辅助转移</button>
+            
+            <div id="gravity-result" class="result-panel" style="display:none;">
+                <h3>🌌 引力辅助结果</h3>
+                <div id="gravity-result-content"></div>
+            </div>
+        </div>
+        
+        <div id="debris-tab" class="tab-content">
+            <div class="section-title">空间碎片规避</div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>碎片数量</label>
+                    <input type="number" id="debrisCount" value="20" step="5" min="5" max="100">
+                </div>
+                <div class="form-group">
+                    <label>基准轨道半径 (km)</label>
+                    <input type="number" id="debrisBaseRadius" value="7000" step="100">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>初始轨道半径 (km)</label>
+                    <input type="number" id="avoidInitialRadius" value="7000" step="100">
+                </div>
+                <div class="form-group">
+                    <label>目标轨道半径 (km)</label>
+                    <input type="number" id="avoidTargetRadius" value="36000" step="100">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>比冲 Isp (s)</label>
+                    <input type="number" id="avoidIsp" value="300" step="10">
+                </div>
+                <div class="form-group">
+                    <label>初始质量 (kg)</label>
+                    <input type="number" id="avoidMass" value="5000" step="100">
+                </div>
+            </div>
+            
+            <div class="preset-btns">
+                <button class="preset-btn" onclick="generateDebris()">生成碎片</button>
+                <button class="preset-btn" onclick="toggleDebrisDisplay()">显示/隐藏碎片</button>
+            </div>
+            
+            <button class="btn" onclick="calculateObstacleAvoidance()">计算规避路径</button>
+            
+            <div id="debris-result" class="result-panel" style="display:none;">
+                <h3>🛡️ 碎片规避结果</h3>
+                <div id="debris-result-content"></div>
+            </div>
+        </div>
+        
+        <div id="launch-tab" class="tab-content">
+            <div class="section-title">发射场与目标轨道</div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>发射场经度 (°)</label>
+                    <input type="number" id="launchLon" value="100.0" step="1">
+                </div>
+                <div class="form-group">
+                    <label>发射场纬度 (°)</label>
+                    <input type="number" id="launchLat" value="28.0" step="1">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>目标轨道倾角 (°)</label>
+                    <input type="number" id="targetInc" value="28.5" step="1">
+                </div>
+                <div class="form-group">
+                    <label>目标RAAN (°)</label>
+                    <input type="number" id="targetRAAN" value="90.0" step="1">
+                </div>
+            </div>
+            
+            <button class="btn" onclick="calculateLaunchWindow()">计算发射窗口</button>
+            
+            <div id="launch-result" class="result-panel" style="display:none;">
+                <h3>⏰ 发射窗口</h3>
+                <div id="launch-windows-list"></div>
+            </div>
+        </div>
+        
+        <div id="fuel-tab" class="tab-content">
+            <div class="section-title">燃料计算参数</div>
+            
+            <div class="form-group">
+                <label>Δv (m/s)</label>
+                <input type="number" id="deltaV" value="1000" step="100">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>比冲 Isp (s)</label>
+                    <input type="number" id="fuelIsp" value="300" step="10">
+                </div>
+                <div class="form-group">
+                    <label>初始质量 (kg)</label>
+                    <input type="number" id="fuelMass" value="5000" step="100">
+                </div>
+            </div>
+            
+            <button class="btn" onclick="calculateFuel()">计算燃料</button>
+            
+            <div id="fuel-result" class="result-panel" style="display:none;">
+                <h3>⛽ 燃料计算结果</h3>
+                <div class="highlight">
+                    <div class="result-item">
+                        <span class="result-label">所需燃料</span>
+                        <span class="result-value" id="fuel-amount">-</span>
+                    </div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">初始质量</span>
+                    <span class="result-value" id="fuel-initial">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">最终质量</span>
+                    <span class="result-value" id="fuel-final">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">质量比</span>
+                    <span class="result-value" id="fuel-ratio">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="export-tab" class="tab-content">
+            <div class="section-title">机动指令导出</div>
+            
+            <div class="form-group">
+                <label>机动类型</label>
+                <select id="exportManeuverType" style="width:100%; padding:10px; background:rgba(30,41,59,0.8); border:1px solid rgba(71,85,105,0.5); border-radius:6px; color:#fff;">
+                    <option value="hohmann">霍曼转移</option>
+                    <option value="inclined">异面转移</option>
+                    <option value="bielliptic">双椭圆转移</option>
+                    <option value="lowthrust">小推力推进</option>
+                    <option value="gravity_assist">引力辅助</option>
+                    <option value="collision_avoidance">碎片规避</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>导出格式</label>
+                <select id="exportFormat" style="width:100%; padding:10px; background:rgba(30,41,59,0.8); border:1px solid rgba(71,85,105,0.5); border-radius:6px; color:#fff;">
+                    <option value="json">JSON 格式</option>
+                    <option value="csv">CSV 格式</option>
+                </select>
+            </div>
+            
+            <div class="section-title">机动参数 (用于生成指令)</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>初始半径 (km)</label>
+                    <input type="number" id="expInitialRadius" value="7000" step="100">
+                </div>
+                <div class="form-group">
+                    <label>目标半径 (km)</label>
+                    <input type="number" id="expTargetRadius" value="36000" step="100">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>初始倾角 (°)</label>
+                    <input type="number" id="expInitialInc" value="28.5" step="1">
+                </div>
+                <div class="form-group">
+                    <label>目标倾角 (°)</label>
+                    <input type="number" id="expTargetInc" value="0.0" step="1">
+                </div>
+            </div>
+            
+            <button class="btn" onclick="previewCommands()">预览指令</button>
+            <button class="btn btn-secondary" onclick="exportCommands()">导出文件</button>
+            
+            <div id="export-result" class="result-panel" style="display:none;">
+                <h3>📋 机动指令预览</h3>
+                <div id="export-summary" style="margin-bottom:15px;"></div>
+                <div id="export-commands-list" style="max-height:300px; overflow-y:auto; font-size:12px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="cesiumContainer"></div>
+    
+    <div class="legend">
+        <h4>图例 Legend</h4>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #3b82f6;"></div>
+            <span>初始轨道</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #22c55e;"></div>
+            <span>转移轨道</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #10b981;"></div>
+            <span>小推力轨迹</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #8b5cf6;"></div>
+            <span>中间轨道</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #f59e0b;"></div>
+            <span>目标轨道</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #ef4444;"></div>
+            <span>空间碎片</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #fbbf24;"></div>
+            <span>引力辅助天体</span>
+        </div>
+    </div>
+    
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+    </div>
+
+    <script>
+        let viewer;
+        let orbitEntities = [];
+        
+        function initCesium() {
+            Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYWE1OWUxNy1mMWZiLTQzYjYtYTQ0OS1kMWFjYmFkNjc5YzciLCJpZCI6NTM0NCwiaWF0IjoxNTYxNjAyNjc0fQ.FZuU_2L1Z9xqK7P8QZ7x7Y6p8Z7x7Y6p8QZ7x7Y6p8';
+            
+            viewer = new Cesium.Viewer('cesiumContainer', {
+                terrain: Cesium.Terrain.fromWorldTerrain(),
+                animation: false,
+                timeline: false,
+                baseLayerPicker: true,
+                geocoder: false,
+                homeButton: true,
+                sceneModePicker: true,
+                navigationHelpButton: false,
+                fullscreenButton: true,
+                infoBox: false,
+                selectionIndicator: false
+            });
+            
+            viewer.scene.globe.enableLighting = true;
+            viewer.scene.sun.show = true;
+            viewer.scene.moon.show = true;
+            
+            viewer.camera.setView({
+                destination: Cesium.Cartesian3.fromDegrees(0, 0, 30000000)
+            });
+        }
+        
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+        }
+        
+        function toggleInputMode() {
+            const mode = document.getElementById('inputMode').value;
+            document.getElementById('elements-input').style.display = mode === 'elements' ? 'block' : 'none';
+            document.getElementById('tle-input').style.display = mode === 'tle' ? 'block' : 'none';
+        }
+        
+        function setPreset(type) {
+            switch(type) {
+                case 'LEO':
+                    document.getElementById('semiMajor').value = 6771;
+                    document.getElementById('eccentricity').value = 0.001;
+                    document.getElementById('inclination').value = 51.6;
+                    break;
+                case 'MEO':
+                    document.getElementById('semiMajor').value = 26571;
+                    document.getElementById('eccentricity').value = 0.01;
+                    document.getElementById('inclination').value = 55;
+                    break;
+                case 'GEO':
+                    document.getElementById('semiMajor').value = 42164;
+                    document.getElementById('eccentricity').value = 0.0;
+                    document.getElementById('inclination').value = 0;
+                    break;
+                case 'SSO':
+                    document.getElementById('semiMajor').value = 6878;
+                    document.getElementById('eccentricity').value = 0.001;
+                    document.getElementById('inclination').value = 97.5;
+                    break;
+            }
+        }
+        
+        function setManeuverPreset(type) {
+            switch(type) {
+                case 'LEO-GEO':
+                    document.getElementById('initialRadius').value = 6771;
+                    document.getElementById('targetRadius').value = 42164;
+                    break;
+                case 'LEO-MEO':
+                    document.getElementById('initialRadius').value = 6771;
+                    document.getElementById('targetRadius').value = 26571;
+                    break;
+            }
+        }
+        
+        function showLoading() {
+            document.getElementById('loading').classList.add('active');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('active');
+        }
+        
+        function createOrbitPolyline(points, color, name) {
+            const positions = points.map(p => {
+                return Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.alt);
+            });
+            
+            const entity = viewer.entities.add({
+                name: name,
+                polyline: {
+                    positions: positions,
+                    width: 3,
+                    material: new Cesium.PolylineGlowMaterialProperty({
+                        glowPower: 0.2,
+                        color: color
+                    }),
+                    clampToGround: false
+                }
+            });
+            
+            orbitEntities.push(entity);
+            return entity;
+        }
+        
+        function createTransferOrbit(points, color, name) {
+            const positions = points.map(p => {
+                const lon = Math.atan2(p.y, p.x) * 180 / Math.PI;
+                const r = Math.sqrt(p.x * p.x + p.y * p.y);
+                const lat = 0;
+                const alt = (r - 6371) * 1000;
+                return Cesium.Cartesian3.fromDegrees(lon, lat, alt);
+            });
+            
+            const entity = viewer.entities.add({
+                name: name,
+                polyline: {
+                    positions: positions,
+                    width: 4,
+                    material: new Cesium.PolylineGlowMaterialProperty({
+                        glowPower: 0.3,
+                        color: color
+                    }),
+                    clampToGround: false
+                }
+            });
+            
+            orbitEntities.push(entity);
+            return entity;
+        }
+        
+        function clearOrbits() {
+            orbitEntities.forEach(entity => {
+                viewer.entities.remove(entity);
+            });
+            orbitEntities = [];
+        }
+        
+        async function calculateOrbit() {
+            showLoading();
+            
+            try {
+                const mode = document.getElementById('inputMode').value;
+                let data;
+                
+                if (mode === 'elements') {
+                    data = {
+                        a: parseFloat(document.getElementById('semiMajor').value),
+                        ecc: parseFloat(document.getElementById('eccentricity').value),
+                        inc: parseFloat(document.getElementById('inclination').value),
+                        raan: parseFloat(document.getElementById('raan').value),
+                        argp: parseFloat(document.getElementById('argPerigee').value)
+                    };
+                    
+                    const response = await fetch('/api/orbit/from-elements', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        clearOrbits();
+                        createOrbitPolyline(result.points, Cesium.Color.BLUE, '卫星轨道');
+                        
+                        document.getElementById('orbit-result').style.display = 'block';
+                        document.getElementById('res-a').textContent = result.orbit.a.toFixed(2) + ' km';
+                        document.getElementById('res-ecc').textContent = result.orbit.ecc.toFixed(4);
+                        document.getElementById('res-period').textContent = result.orbit.period.toFixed(2) + ' min';
+                        document.getElementById('res-vel').textContent = result.orbit.velocity.toFixed(2) + ' m/s';
+                        
+                        viewer.camera.flyTo({
+                            destination: Cesium.Cartesian3.fromDegrees(0, 0, 20000000)
+                        });
+                    }
+                } else {
+                    data = {
+                        tle_line1: document.getElementById('tleLine1').value,
+                        tle_line2: document.getElementById('tleLine2').value
+                    };
+                    
+                    const response = await fetch('/api/orbit/from-tle', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        clearOrbits();
+                        createOrbitPolyline(result.points, Cesium.Color.CYAN, 'TLE轨道');
+                        
+                        document.getElementById('orbit-result').style.display = 'block';
+                        document.getElementById('res-a').textContent = result.orbit.a.toFixed(2) + ' km';
+                        document.getElementById('res-ecc').textContent = result.orbit.ecc.toFixed(4);
+                        document.getElementById('res-period').textContent = (result.orbit.period / 60).toFixed(2) + ' min';
+                        document.getElementById('res-vel').textContent = 'N/A';
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('计算出错，请检查输入参数');
+            }
+            
+            hideLoading();
+        }
+        
+        function toggleManeuverInputs() {
+            const type = document.getElementById('maneuverType').value;
+            
+            document.getElementById('hohmann-inputs').style.display = type === 'hohmann' ? 'block' : 'none';
+            document.getElementById('inclined-inputs').style.display = type === 'inclined' ? 'block' : 'none';
+            document.getElementById('bielliptic-inputs').style.display = type === 'bielliptic' ? 'block' : 'none';
+            document.getElementById('lowthrust-inputs').style.display = type === 'lowthrust' ? 'block' : 'none';
+            
+            document.getElementById('common-maneuver-inputs').style.display = type === 'lowthrust' ? 'none' : 'block';
+        }
+        
+        function displayHohmannResult(result) {
+            const content = document.getElementById('maneuver-result-content');
+            content.innerHTML = `
+                <div class="result-item">
+                    <span class="result-label">转移半长轴</span>
+                    <span class="result-value">${result.transfer.a_transfer.toFixed(2)} km</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">第一次Δv</span>
+                    <span class="result-value">${result.transfer.delta_v1.toFixed(2)} m/s</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">第二次Δv</span>
+                    <span class="result-value">${result.transfer.delta_v2.toFixed(2)} m/s</span>
+                </div>
+                <div class="highlight">
+                    <div class="result-item">
+                        <span class="result-label">总Δv</span>
+                        <span class="result-value">${result.transfer.total_delta_v.toFixed(2)} m/s</span>
+                    </div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">转移时间</span>
+                    <span class="result-value">${result.transfer.transfer_time.toFixed(2)} min</span>
+                </div>
+                <h3 style="margin-top:15px;">⛽ 燃料消耗</h3>
+                <div class="result-item">
+                    <span class="result-label">燃料质量</span>
+                    <span class="result-value">${result.fuel.fuel_mass.toFixed(2)} kg</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">最终质量</span>
+                    <span class="result-value">${result.fuel.final_mass.toFixed(2)} kg</span>
+                </div>
+            `;
+        }
+        
+        function displayInclinedResult(result) {
+            const content = document.getElementById('maneuver-result-content');
+            content.innerHTML = `
+                <h3 style="color:#8b5cf6;">🔄 轨道面变化</h3>
+                <div class="result-item">
+                    <span class="result-label">初始倾角</span>
+                    <span class="result-value">${result.plane_change.initial_inc.toFixed(2)}°</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">目标倾角</span>
+                    <span class="result-value">${result.plane_change.target_inc.toFixed(2)}°</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">倾角变化</span>
+                    <span class="result-value">${result.plane_change.inclination_change.delta_angle.toFixed(2)}°</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">倾角机动Δv</span>
+                    <span class="result-value">${result.plane_change.inclination_change.delta_v.toFixed(2)} m/s</span>
+                </div>
+                
+                <h3 style="margin-top:15px; color:#3b82f6;">🚀 霍曼转移</h3>
+                <div class="result-item">
+                    <span class="result-label">转移半长轴</span>
+                    <span class="result-value">${result.plane_change.hohmann.a_transfer.toFixed(2)} km</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">转移Δv</span>
+                    <span class="result-value">${result.plane_change.hohmann.total_delta_v.toFixed(2)} m/s</span>
+                </div>
+                
+                <div class="highlight" style="background:rgba(139,92,246,0.1); border-color:rgba(139,92,246,0.3);">
+                    <div class="result-item">
+                        <span class="result-label">总Δv (含轨道面变化)</span>
+                        <span class="result-value" style="color:#8b5cf6;">${result.plane_change.total_delta_v.toFixed(2)} m/s</span>
+                    </div>
+                </div>
+                
+                <div class="result-item">
+                    <span class="result-label">转移时间</span>
+                    <span class="result-value">${result.plane_change.hohmann.transfer_time.toFixed(2)} min</span>
+                </div>
+                
+                <h3 style="margin-top:15px;">⛽ 燃料消耗</h3>
+                <div class="result-item">
+                    <span class="result-label">燃料质量</span>
+                    <span class="result-value">${result.fuel.fuel_mass.toFixed(2)} kg</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">最终质量</span>
+                    <span class="result-value">${result.fuel.final_mass.toFixed(2)} kg</span>
+                </div>
+            `;
+        }
+        
+        function displayBiellipticResult(result) {
+            const content = document.getElementById('maneuver-result-content');
+            const saving = result.hohmann_comparison.saving;
+            const savingClass = saving > 0 ? 'text-green-500' : 'text-red-500';
+            
+            content.innerHTML = `
+                <div class="result-item">
+                    <span class="result-label">中间轨道半径</span>
+                    <span class="result-value">${result.transfer.r_intermediate.toFixed(2)} km</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Δv₁ (初始→中间)</span>
+                    <span class="result-value">${result.transfer.delta_v1.toFixed(2)} m/s</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Δv₂ (中间→外)</span>
+                    <span class="result-value">${result.transfer.delta_v2.toFixed(2)} m/s</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Δv₃ (外→目标)</span>
+                    <span class="result-value">${result.transfer.delta_v3.toFixed(2)} m/s</span>
+                </div>
+                <div class="highlight">
+                    <div class="result-item">
+                        <span class="result-label">总Δv</span>
+                        <span class="result-value">${result.transfer.total_delta_v.toFixed(2)} m/s</span>
+                    </div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">第一转移时间</span>
+                    <span class="result-value">${result.transfer.transfer_time1.toFixed(2)} min</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">第二转移时间</span>
+                    <span class="result-value">${result.transfer.transfer_time2.toFixed(2)} min</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">总转移时间</span>
+                    <span class="result-value">${result.transfer.total_transfer_time.toFixed(2)} min</span>
+                </div>
+                
+                <h3 style="margin-top:15px;">📊 与霍曼转移对比</h3>
+                <div class="result-item">
+                    <span class="result-label">霍曼Δv</span>
+                    <span class="result-value">${result.hohmann_comparison.delta_v.toFixed(2)} m/s</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Δv节省量</span>
+                    <span class="result-value" style="color:${saving > 0 ? '#22c55e' : '#ef4444'};">${saving > 0 ? '+' : ''}${saving.toFixed(2)} m/s</span>
+                </div>
+                
+                <h3 style="margin-top:15px;">⛽ 燃料消耗</h3>
+                <div class="result-item">
+                    <span class="result-label">燃料质量</span>
+                    <span class="result-value">${result.fuel.fuel_mass.toFixed(2)} kg</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">最终质量</span>
+                    <span class="result-value">${result.fuel.final_mass.toFixed(2)} kg</span>
+                </div>
+            `;
+        }
+        
+        function displayLowThrustResult(result) {
+            const content = document.getElementById('maneuver-result-content');
+            content.innerHTML = `
+                <div class="result-item">
+                    <span class="result-label">推力</span>
+                    <span class="result-value">${result.low_thrust.thrust.toFixed(2)} N</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">比冲 Isp</span>
+                    <span class="result-value">${result.low_thrust.Isp.toFixed(0)} s</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">最终轨道半径</span>
+                    <span class="result-value">${result.low_thrust.final_radius.toFixed(2)} km</span>
+                </div>
+                <div class="highlight" style="background:rgba(16,185,129,0.1); border-color:rgba(16,185,129,0.3);">
+                    <div class="result-item">
+                        <span class="result-label">总Δv</span>
+                        <span class="result-value" style="color:#10b981;">${result.low_thrust.total_delta_v.toFixed(2)} m/s</span>
+                    </div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">转移时间</span>
+                    <span class="result-value">${result.low_thrust.transfer_time.toFixed(2)} min</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">积分步数</span>
+                    <span class="result-value">${result.low_thrust.num_steps}</span>
+                </div>
+                
+                <h3 style="margin-top:15px;">⛽ 燃料消耗</h3>
+                <div class="result-item">
+                    <span class="result-label">初始质量</span>
+                    <span class="result-value">${result.low_thrust.trajectory_points[0].mass.toFixed(2)} kg</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">最终质量</span>
+                    <span class="result-value">${result.low_thrust.final_mass.toFixed(2)} kg</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">燃料消耗</span>
+                    <span class="result-value">${result.low_thrust.fuel_used.toFixed(2)} kg</span>
+                </div>
+            `;
+        }
+        
+        function createTrajectoryPolyline(points, color, name) {
+            const positions = points.map(p => {
+                if (p.lon !== undefined) {
+                    return Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.alt);
+                } else {
+                    const lon = Math.atan2(p.y, p.x) * 180 / Math.PI;
+                    const r = Math.sqrt(p.x * p.x + p.y * p.y);
+                    const alt = (r - 6371) * 1000;
+                    return Cesium.Cartesian3.fromDegrees(lon, 0, alt);
+                }
+            });
+            
+            const entity = viewer.entities.add({
+                name: name,
+                polyline: {
+                    positions: positions,
+                    width: 2,
+                    material: new Cesium.PolylineGlowMaterialProperty({
+                        glowPower: 0.2,
+                        color: color
+                    }),
+                    clampToGround: false
+                }
+            });
+            
+            orbitEntities.push(entity);
+            return entity;
+        }
+        
+        async function calculateManeuver() {
+            showLoading();
+            
+            try {
+                const type = document.getElementById('maneuverType').value;
+                let data, response, endpoint;
+                
+                if (type === 'hohmann') {
+                    data = {
+                        initial_radius: parseFloat(document.getElementById('initialRadius').value),
+                        target_radius: parseFloat(document.getElementById('targetRadius').value),
+                        Isp: parseFloat(document.getElementById('maneuverIsp').value),
+                        initial_mass: parseFloat(document.getElementById('maneuverMass').value)
+                    };
+                    endpoint = '/api/maneuver/hohmann';
+                } else if (type === 'inclined') {
+                    data = {
+                        initial_radius: parseFloat(document.getElementById('incInitialRadius').value),
+                        target_radius: parseFloat(document.getElementById('incTargetRadius').value),
+                        initial_inclination: parseFloat(document.getElementById('initialInc').value),
+                        target_inclination: parseFloat(document.getElementById('targetInc').value),
+                        initial_raan: parseFloat(document.getElementById('initialRaan').value),
+                        target_raan: parseFloat(document.getElementById('targetRaan').value),
+                        Isp: parseFloat(document.getElementById('maneuverIsp').value),
+                        initial_mass: parseFloat(document.getElementById('maneuverMass').value)
+                    };
+                    endpoint = '/api/maneuver/inclined-hohmann';
+                } else if (type === 'bielliptic') {
+                    const intermediate = document.getElementById('biIntermediate').value;
+                    data = {
+                        initial_radius: parseFloat(document.getElementById('biInitialRadius').value),
+                        target_radius: parseFloat(document.getElementById('biTargetRadius').value),
+                        intermediate_radius: intermediate ? parseFloat(intermediate) : null,
+                        Isp: parseFloat(document.getElementById('maneuverIsp').value),
+                        initial_mass: parseFloat(document.getElementById('maneuverMass').value)
+                    };
+                    endpoint = '/api/maneuver/bielliptic';
+                } else if (type === 'lowthrust') {
+                    data = {
+                        initial_radius: parseFloat(document.getElementById('ltInitialRadius').value),
+                        target_radius: parseFloat(document.getElementById('ltTargetRadius').value),
+                        thrust: parseFloat(document.getElementById('thrust').value),
+                        Isp: parseFloat(document.getElementById('ltIsp').value),
+                        initial_mass: parseFloat(document.getElementById('ltMass').value),
+                        num_steps: parseInt(document.getElementById('ltSteps').value)
+                    };
+                    endpoint = '/api/maneuver/low-thrust';
+                }
+                
+                response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    clearOrbits();
+                    
+                    if (type === 'hohmann') {
+                        createOrbitPolyline(result.initial_orbit_points, Cesium.Color.BLUE, '初始轨道');
+                        createTransferOrbit(result.transfer_orbit_points, Cesium.Color.LIME, '转移轨道');
+                        createOrbitPolyline(result.target_orbit_points, Cesium.Color.ORANGE, '目标轨道');
+                        displayHohmannResult(result);
+                    } else if (type === 'inclined') {
+                        createOrbitPolyline(result.initial_orbit_points, Cesium.Color.BLUE, '初始轨道');
+                        createOrbitPolyline(result.transfer_orbit_points, Cesium.Color.LIME, '转移轨道');
+                        createOrbitPolyline(result.target_orbit_points, Cesium.Color.ORANGE, '目标轨道');
+                        displayInclinedResult(result);
+                    } else if (type === 'bielliptic') {
+                        createOrbitPolyline(result.initial_orbit_points, Cesium.Color.BLUE, '初始轨道');
+                        createOrbitPolyline(result.intermediate_orbit_points, Cesium.Color.PURPLE, '中间轨道');
+                        createTransferOrbit(result.transfer1_orbit_points, Cesium.Color.LIME, '第一转移');
+                        createTransferOrbit(result.transfer2_orbit_points, Cesium.Color.YELLOW, '第二转移');
+                        createOrbitPolyline(result.target_orbit_points, Cesium.Color.ORANGE, '目标轨道');
+                        displayBiellipticResult(result);
+                    } else if (type === 'lowthrust') {
+                        createOrbitPolyline(result.initial_orbit_points, Cesium.Color.BLUE, '初始轨道');
+                        createTrajectoryPolyline(result.trajectory_points, Cesium.Color.fromCssColorString('#10b981'), '小推力轨迹');
+                        createOrbitPolyline(result.target_orbit_points, Cesium.Color.ORANGE, '目标轨道');
+                        displayLowThrustResult(result);
+                    }
+                    
+                    document.getElementById('maneuver-result').style.display = 'block';
+                    
+                    viewer.camera.flyTo({
+                        destination: Cesium.Cartesian3.fromDegrees(0, 0, 50000000)
+                    });
+                } else {
+                    alert('计算失败: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('计算出错，请检查输入参数: ' + error.message);
+            }
+            
+            hideLoading();
+        }
+        
+        async function calculateLaunchWindow() {
+            showLoading();
+            
+            try {
+                const data = {
+                    raan: parseFloat(document.getElementById('targetRAAN').value),
+                    inc: parseFloat(document.getElementById('targetInc').value),
+                    lon_launch: parseFloat(document.getElementById('launchLon').value),
+                    lat_launch: parseFloat(document.getElementById('launchLat').value)
+                };
+                
+                const response = await fetch('/api/launch-window', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const windowsList = document.getElementById('launch-windows-list');
+                    windowsList.innerHTML = '';
+                    
+                    result.windows.forEach((window, index) => {
+                        const hours = Math.floor(window.window_time);
+                        const minutes = Math.floor((window.window_time - hours) * 60);
+                        
+                        windowsList.innerHTML += `
+                            <div class="result-item">
+                                <span class="result-label">第${window.opportunity}次机会</span>
+                                <span class="result-value">${hours}h ${minutes}min</span>
+                            </div>
+                        `;
+                    });
+                    
+                    document.getElementById('launch-result').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('计算出错，请检查输入参数');
+            }
+            
+            hideLoading();
+        }
+        
+        async function calculateFuel() {
+            showLoading();
+            
+            try {
+                const data = {
+                    delta_v: parseFloat(document.getElementById('deltaV').value),
+                    Isp: parseFloat(document.getElementById('fuelIsp').value),
+                    initial_mass: parseFloat(document.getElementById('fuelMass').value)
+                };
+                
+                const response = await fetch('/api/fuel-calculation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('fuel-result').style.display = 'block';
+                    document.getElementById('fuel-amount').textContent = result.fuel.fuel_mass.toFixed(2) + ' kg';
+                    document.getElementById('fuel-initial').textContent = result.fuel.initial_mass.toFixed(2) + ' kg';
+                    document.getElementById('fuel-final').textContent = result.fuel.final_mass.toFixed(2) + ' kg';
+                    document.getElementById('fuel-ratio').textContent = result.fuel.mass_ratio.toFixed(4);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('计算出错，请检查输入参数');
+            }
+            
+            hideLoading();
+        }
+        
+        let currentDebris = null;
+        let debrisVisible = false;
+        let debrisEntities = [];
+        let lastManeuverData = null;
+        
+        function createDebrisPoint(debris) {
+            const pos = debris.position;
+            const entity = viewer.entities.add({
+                name: debris.id,
+                position: Cesium.Cartesian3.fromDegrees(pos.lon, pos.lat, pos.alt),
+                point: {
+                    pixelSize: 8 + debris.size * 2,
+                    color: Cesium.Color.RED,
+                    outlineColor: Cesium.Color.WHITE,
+                    outlineWidth: 2
+                },
+                label: {
+                    text: debris.id,
+                    font: '10px sans-serif',
+                    style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                    outlineWidth: 2,
+                    verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                    pixelOffset: new Cesium.Cartesian2(0, -10)
+                }
+            });
+            return entity;
+        }
+        
+        function createDebrisOrbit(debris) {
+            const positions = debris.points.map(p => {
+                return Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.alt);
+            });
+            
+            const entity = viewer.entities.add({
+                name: debris.id + '_orbit',
+                polyline: {
+                    positions: positions,
+                    width: 1,
+                    material: new Cesium.PolylineGlowMaterialProperty({
+                        glowPower: 0.1,
+                        color: Cesium.Color.RED.withAlpha(0.5)
+                    }),
+                    clampToGround: false
+                }
+            });
+            return entity;
+        }
+        
+        async function generateDebris() {
+            showLoading();
+            
+            try {
+                const data = {
+                    num_debris: parseInt(document.getElementById('debrisCount').value),
+                    base_orbit_radius: parseFloat(document.getElementById('debrisBaseRadius').value)
+                };
+                
+                const response = await fetch('/api/debris/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentDebris = result.debris;
+                    alert(`成功生成 ${result.debris.length} 个碎片`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('生成碎片出错');
+            }
+            
+            hideLoading();
+        }
+        
+        function toggleDebrisDisplay() {
+            if (!currentDebris || currentDebris.length === 0) {
+                alert('请先生成碎片');
+                return;
+            }
+            
+            if (debrisVisible) {
+                debrisEntities.forEach(e => viewer.entities.remove(e));
+                debrisEntities = [];
+                debrisVisible = false;
+            } else {
+                currentDebris.forEach(debris => {
+                    debrisEntities.push(createDebrisOrbit(debris));
+                    debrisEntities.push(createDebrisPoint(debris));
+                });
+                debrisVisible = true;
+            }
+        }
+        
+        async function calculateObstacleAvoidance() {
+            showLoading();
+            
+            try {
+                const data = {
+                    initial_orbit: {
+                        radius: parseFloat(document.getElementById('avoidInitialRadius').value)
+                    },
+                    target_orbit: {
+                        radius: parseFloat(document.getElementById('avoidTargetRadius').value)
+                    },
+                    debris: currentDebris,
+                    Isp: parseFloat(document.getElementById('avoidIsp').value),
+                    initial_mass: parseFloat(document.getElementById('avoidMass').value)
+                };
+                
+                const response = await fetch('/api/maneuver/avoid-obstacles', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    clearOrbits();
+                    
+                    const av = result.avoidance;
+                    
+                    createOrbitPolyline(av.initial_orbit_points, Cesium.Color.BLUE, '初始轨道');
+                    createOrbitPolyline(av.nominal_transfer, Cesium.Color.LIME, '标称转移');
+                    createOrbitPolyline(av.target_orbit_points, Cesium.Color.ORANGE, '目标轨道');
+                    
+                    if (!debrisVisible && currentDebris) {
+                        currentDebris.forEach(debris => {
+                            debrisEntities.push(createDebrisOrbit(debris));
+                            debrisEntities.push(createDebrisPoint(debris));
+                        });
+                        debrisVisible = true;
+                    }
+                    
+                    const content = document.getElementById('debris-result-content');
+                    content.innerHTML = `
+                        <h3 style="color:#ef4444;">⚠️ 碰撞风险检测</h3>
+                        <div class="result-item">
+                            <span class="result-label">检测到风险</span>
+                            <span class="result-value" style="color:${av.collision_risks.length > 0 ? '#ef4444' : '#22c55e'};">${av.collision_risks.length} 处</span>
+                        </div>
+                    `;
+                    
+                    if (av.collision_risks.length > 0) {
+                        content.innerHTML += `<div style="margin-top:10px;">`;
+                        av.collision_risks.forEach(risk => {
+                            content.innerHTML += `
+                                <div class="result-item" style="background:${risk.risk_level === 'HIGH' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)'};">
+                                    <span class="result-label">${risk.debris_id} (${risk.risk_level})</span>
+                                    <span class="result-value">${risk.distance.toFixed(2)} km</span>
+                                </div>
+                            `;
+                        });
+                        content.innerHTML += `</div>`;
+                        
+                        content.innerHTML += `
+                            <h3 style="margin-top:15px; color:#10b981;">🛡️ 规避机动</h3>
+                            <div class="result-item">
+                                <span class="result-label">规避次数</span>
+                                <span class="result-value">${av.avoidance_maneuvers.length} 次</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">规避Δv</span>
+                                <span class="result-value">${av.avoidance_delta_v.toFixed(2)} m/s</span>
+                            </div>
+                            <div class="highlight">
+                                <div class="result-item">
+                                    <span class="result-label">总Δv (含规避)</span>
+                                    <span class="result-value">${av.total_delta_v.toFixed(2)} m/s</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    content.innerHTML += `
+                        <h3 style="margin-top:15px;">⛽ 燃料消耗</h3>
+                        <div class="result-item">
+                            <span class="result-label">标称燃料</span>
+                            <span class="result-value">${av.nominal_fuel.fuel_mass.toFixed(2)} kg</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">含规避燃料</span>
+                            <span class="result-value">${av.total_fuel.fuel_mass.toFixed(2)} kg</span>
+                        </div>
+                    `;
+                    
+                    document.getElementById('debris-result').style.display = 'block';
+                    lastManeuverData = av;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('计算出错: ' + error.message);
+            }
+            
+            hideLoading();
+        }
+        
+        async function calculateGravityAssist() {
+            showLoading();
+            
+            try {
+                const data = {
+                    initial_radius: parseFloat(document.getElementById('gaInitialRadius').value),
+                    target_radius: parseFloat(document.getElementById('gaTargetRadius').value),
+                    assist_body: document.getElementById('assistBody').value,
+                    Isp: parseFloat(document.getElementById('gaIsp').value),
+                    initial_mass: parseFloat(document.getElementById('gaMass').value)
+                };
+                
+                const response = await fetch('/api/maneuver/gravity-assist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    clearOrbits();
+                    
+                    const ga = result.gravity_assist;
+                    
+                    createOrbitPolyline(result.initial_orbit_points, Cesium.Color.BLUE, '初始轨道');
+                    createTransferOrbit(result.transfer_orbit_points, Cesium.Color.LIME, '转移轨道');
+                    createOrbitPolyline(result.target_orbit_points, Cesium.Color.ORANGE, '目标轨道');
+                    
+                    const marker = result.assist_body_marker;
+                    const assistEntity = viewer.entities.add({
+                        name: marker.name,
+                        position: Cesium.Cartesian3.fromDegrees(
+                            Math.atan2(marker.y, marker.x) * 180 / Math.PI,
+                            Math.asin(marker.z / Math.sqrt(marker.x**2 + marker.y**2 + marker.z**2)) * 180 / Math.PI,
+                            Math.sqrt(marker.x**2 + marker.y**2 + marker.z**2) * 1000
+                        ),
+                        point: {
+                            pixelSize: 15,
+                            color: Cesium.Color.GOLD,
+                            outlineColor: Cesium.Color.WHITE,
+                            outlineWidth: 2
+                        },
+                        label: {
+                            text: marker.name,
+                            font: '14px sans-serif',
+                            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                            outlineWidth: 2,
+                            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                            pixelOffset: new Cesium.Cartesian2(0, -15)
+                        }
+                    });
+                    orbitEntities.push(assistEntity);
+                    
+                    const content = document.getElementById('gravity-result-content');
+                    const saving = ga.delta_v_saving;
+                    
+                    content.innerHTML = `
+                        <div class="result-item">
+                            <span class="result-label">辅助天体</span>
+                            <span class="result-value">${ga.assist_body === 'moon' ? '🌙 月球' : '☀️ 太阳'}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">近心点高度</span>
+                            <span class="result-value">${(ga.periapsis - ga.assist_radius).toFixed(0)} km</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">交会半径</span>
+                            <span class="result-value">${ga.encounter_radius.toFixed(0)} km</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">接近角</span>
+                            <span class="result-value">${ga.approach_angle.toFixed(2)}°</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">渐进速度</span>
+                            <span class="result-value">${ga.v_infinity.toFixed(2)} m/s</span>
+                        </div>
+                        <h3 style="margin-top:15px; color:#3b82f6;">🚀 Δv 预算</h3>
+                        <div class="result-item">
+                            <span class="result-label">出发Δv</span>
+                            <span class="result-value">${ga.delta_v1.toFixed(2)} m/s</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">圆化Δv</span>
+                            <span class="result-value">${ga.delta_v2.toFixed(2)} m/s</span>
+                        </div>
+                        <div class="highlight" style="background:rgba(251,191,36,0.1); border-color:rgba(251,191,36,0.3);">
+                            <div class="result-item">
+                                <span class="result-label">总Δv</span>
+                                <span class="result-value" style="color:#fbbf24;">${ga.total_delta_v.toFixed(2)} m/s</span>
+                            </div>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">与霍曼转移对比</span>
+                            <span class="result-value" style="color:${saving > 0 ? '#22c55e' : '#ef4444'};">
+                                ${saving > 0 ? '节省 ' : '增加 '}${Math.abs(saving).toFixed(2)} m/s
+                            </span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">转移时间</span>
+                            <span class="result-value">${ga.transfer_time.toFixed(2)} min</span>
+                        </div>
+                        <h3 style="margin-top:15px;">⛽ 燃料消耗</h3>
+                        <div class="result-item">
+                            <span class="result-label">燃料质量</span>
+                            <span class="result-value">${ga.fuel.fuel_mass.toFixed(2)} kg</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">最终质量</span>
+                            <span class="result-value">${ga.fuel.final_mass.toFixed(2)} kg</span>
+                        </div>
+                    `;
+                    
+                    document.getElementById('gravity-result').style.display = 'block';
+                    lastManeuverData = ga;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('计算出错: ' + error.message);
+            }
+            
+            hideLoading();
+        }
+        
+        function buildManeuverDataForExport() {
+            const type = document.getElementById('exportManeuverType').value;
+            const r1 = parseFloat(document.getElementById('expInitialRadius').value);
+            const r2 = parseFloat(document.getElementById('expTargetRadius').value);
+            const inc1 = parseFloat(document.getElementById('expInitialInc').value);
+            const inc2 = parseFloat(document.getElementById('expTargetInc').value);
+            
+            const hohmann = computeHohmannSimple(r1, r2);
+            
+            let data = {};
+            
+            switch(type) {
+                case 'hohmann':
+                    data = { hohmann: hohmann };
+                    break;
+                case 'inclined':
+                    const planeChange = computePlaneChangeSimple(r1, r2, inc1, inc2);
+                    data = { plane_change: planeChange };
+                    break;
+                case 'bielliptic':
+                    const bielliptic = computeBiellipticSimple(r1, r2);
+                    data = { transfer: bielliptic };
+                    break;
+                case 'lowthrust':
+                    data = {
+                        low_thrust: {
+                            thrust: 0.5,
+                            Isp: 3000,
+                            total_delta_v: hohmann.total_delta_v * 1.2,
+                            transfer_time: hohmann.transfer_time * 50,
+                            final_radius: r2,
+                            fuel_used: 500
+                        }
+                    };
+                    break;
+                case 'gravity_assist':
+                    data = {
+                        assist_body: 'moon',
+                        delta_v1: 3100,
+                        delta_v2: 1200,
+                        total_delta_v: 4300,
+                        transfer_time: 5000,
+                        periapsis: 2237,
+                        approach_angle: 45,
+                        delta_v_saving: 500
+                    };
+                    break;
+                case 'collision_avoidance':
+                    data = {
+                        hohmann: hohmann,
+                        avoidance_maneuvers: [
+                            {
+                                risk: { debris_id: 'DEB-0001', debris_size: 2.5 },
+                                maneuver: { time_to_encounter: 120, delta_v_magnitude: 5.5, direction: [0, 0, 1], miss_distance: 25 }
+                            }
+                        ]
+                    };
+                    break;
+            }
+            
+            return data;
+        }
+        
+        function computeHohmannSimple(r1, r2) {
+            const mu = 398600.4418;
+            const at = (r1 + r2) / 2;
+            const v1 = Math.sqrt(mu / r1);
+            const v2 = Math.sqrt(mu / r2);
+            const vp = Math.sqrt(mu * (2 / r1 - 1 / at));
+            const va = Math.sqrt(mu * (2 / r2 - 1 / at));
+            
+            return {
+                a_transfer: at,
+                delta_v1: (vp - v1) * 1000,
+                delta_v2: (v2 - va) * 1000,
+                total_delta_v: (vp - v1 + v2 - va) * 1000,
+                transfer_time: Math.PI * Math.sqrt(at**3 / mu) / 60
+            };
+        }
+        
+        function computePlaneChangeSimple(r1, r2, inc1, inc2) {
+            const mu = 398600.4418;
+            const delta_inc = Math.abs(inc2 - inc1);
+            const v = Math.sqrt(mu / r1);
+            const delta_v_inc = 2 * v * Math.sin(delta_inc * Math.PI / 180 / 2) * 1000;
+            
+            const hohmann = computeHohmannSimple(r1, r2);
+            
+            return {
+                initial_inc: inc1,
+                target_inc: inc2,
+                inclination_change: {
+                    delta_angle: delta_inc,
+                    delta_v: delta_v_inc
+                },
+                hohmann: hohmann,
+                total_delta_v: hohmann.total_delta_v + delta_v_inc
+            };
+        }
+        
+        function computeBiellipticSimple(r1, r2) {
+            const mu = 398600.4418;
+            const r_inter = r2 * 11.94;
+            
+            const a1 = (r1 + r_inter) / 2;
+            const a2 = (r_inter + r2) / 2;
+            
+            const v1 = Math.sqrt(mu / r1);
+            const v2 = Math.sqrt(mu / r2);
+            
+            const vp1 = Math.sqrt(mu * (2 / r1 - 1 / a1));
+            const va1 = Math.sqrt(mu * (2 / r_inter - 1 / a1));
+            const vp2 = Math.sqrt(mu * (2 / r_inter - 1 / a2));
+            const va2 = Math.sqrt(mu * (2 / r2 - 1 / a2));
+            
+            return {
+                r_intermediate: r_inter,
+                delta_v1: (vp1 - v1) * 1000,
+                delta_v2: (vp2 - va1) * 1000,
+                delta_v3: (v2 - va2) * 1000,
+                total_delta_v: (vp1 - v1 + vp2 - va1 + v2 - va2) * 1000,
+                transfer_time1: Math.PI * Math.sqrt(a1**3 / mu) / 60,
+                transfer_time2: Math.PI * Math.sqrt(a2**3 / mu) / 60,
+                total_transfer_time: Math.PI * (Math.sqrt(a1**3 / mu) + Math.sqrt(a2**3 / mu)) / 60
+            };
+        }
+        
+        async function previewCommands() {
+            showLoading();
+            
+            try {
+                const maneuverData = lastManeuverData || buildManeuverDataForExport();
+                const format = document.getElementById('exportFormat').value;
+                
+                const response = await fetch('/api/export/commands', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        maneuver_data: maneuverData,
+                        format: 'json'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const exp = result.export;
+                    
+                    document.getElementById('export-summary').innerHTML = `
+                        <div class="result-item">
+                            <span class="result-label">指令总数</span>
+                            <span class="result-value">${exp.summary.total_commands}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">总Δv需求</span>
+                            <span class="result-value">${exp.summary.total_delta_v_required.toFixed(2)} m/s</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">机动类型</span>
+                            <span class="result-value">${exp.summary.maneuver_types.join(', ')}</span>
+                        </div>
+                    `;
+                    
+                    const listEl = document.getElementById('export-commands-list');
+                    listEl.innerHTML = '';
+                    
+                    exp.commands.forEach((cmd, idx) => {
+                        const bgColor = idx % 2 === 0 ? 'rgba(30,41,59,0.3)' : 'transparent';
+                        listEl.innerHTML += `
+                            <div style="padding:8px; background:${bgColor}; border-radius:4px; margin-bottom:4px;">
+                                <strong style="color:#3b82f6;">[${cmd.time}]</strong>
+                                <span style="color:#fbbf24; margin:0 8px;">${cmd.type}</span>
+                                <span>${cmd.description}</span>
+                                ${cmd.delta_v ? `<span style="color:#22c55e; margin-left:8px;">Δv: ${cmd.delta_v.toFixed(2)} m/s</span>` : ''}
+                            </div>
+                        `;
+                    });
+                    
+                    document.getElementById('export-result').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('预览出错: ' + error.message);
+            }
+            
+            hideLoading();
+        }
+        
+        async function exportCommands() {
+            showLoading();
+            
+            try {
+                const maneuverData = lastManeuverData || buildManeuverDataForExport();
+                const format = document.getElementById('exportFormat').value;
+                
+                const response = await fetch('/api/export/commands', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        maneuver_data: maneuverData,
+                        format: format
+                    })
+                });
+                
+                if (format === 'csv') {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'maneuver_commands.csv';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    const result = await response.json();
+                    const dataStr = JSON.stringify(result.export, null, 2);
+                    const blob = new Blob([dataStr], { type: 'application/json' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'maneuver_commands.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                }
+                
+                alert('指令文件已导出');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('导出出错: ' + error.message);
+            }
+            
+            hideLoading();
+        }
+        
+        window.onload = function() {
+            initCesium();
+        };
+    </script>
+</body>
+</html>

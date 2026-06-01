@@ -1,0 +1,22 @@
+{
+  "name": "windows-security-log-monitor",
+  "version": "1.0.0",
+  "description": "Electron应用 - 实时监控Windows安全日志（登录/进程创建）",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": [
+    "electron",
+    "windows",
+    "security",
+    "etw",
+    "event-log"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}

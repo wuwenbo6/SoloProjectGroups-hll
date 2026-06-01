@@ -1,0 +1,14 @@
+{
+  "name": "sasl-proxy",
+  "version": "1.0.0",
+  "description": "SASL proxy with SCRAM-SHA-256 authentication for LDAP backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "crypto": "^1.0.1",
+    "express": "^4.22.2"
+  }
+}

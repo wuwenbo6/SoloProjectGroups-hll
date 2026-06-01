@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DICOM 编辑器</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f5f5;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .toolbar {
+      background: #2c3e50;
+      color: white;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .toolbar h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-right: 20px;
+    }
+
+    .btn {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background: #2980b9;
+    }
+
+    .btn:disabled {
+      background: #7f8c8d;
+      cursor: not-allowed;
+    }
+
+    .btn-save {
+      background: #27ae60;
+    }
+
+    .btn-save:hover {
+      background: #229954;
+    }
+
+    .btn-save:disabled {
+      background: #7f8c8d;
+    }
+
+    .btn-validate {
+      background: #9b59b6;
+    }
+
+    .btn-validate:hover {
+      background: #8e44ad;
+    }
+
+    .btn-export {
+      background: #16a085;
+    }
+
+    .btn-export:hover {
+      background: #138d75;
+    }
+
+    .btn-import {
+      background: #e67e22;
+    }
+
+    .btn-import:hover {
+      background: #d35400;
+    }
+
+    .btn-batch {
+      background: #c0392b;
+    }
+
+    .btn-batch:hover {
+      background: #a93226;
+    }
+
+    .file-info {
+      margin-left: auto;
+      font-size: 13px;
+      opacity: 0.9;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .file-info strong {
+      font-weight: 600;
+    }
+
+    .main-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .left-panel {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #ddd;
+    }
+
+    .right-panel {
+      width: 500px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: #ecf0f1;
+    }
+
+    .panel-header {
+      background: #34495e;
+      color: white;
+      padding: 10px 15px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .search-box {
+      padding: 10px 15px;
+      background: white;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: #3498db;
+    }
+
+    .tag-table-container {
+      flex: 1;
+      overflow: auto;
+      background: white;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background: #f8f9fa;
+      position: sticky;
+      top: 0;
+      font-weight: 600;
+      font-size: 13px;
+      color: #555;
+      z-index: 10;
+    }
+
+    tr:hover {
+      background: #f0f7ff;
+    }
+
+    td.tag {
+      font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+      color: #8e44ad;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    td.vr {
+      font-weight: 600;
+      color: #27ae60;
+      font-size: 13px;
+    }
+
+    td.value input {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      font-size: 13px;
+      background: transparent;
+    }
+
+    td.value input:hover {
+      background: #f8f9fa;
+      border-color: #ddd;
+    }
+
+    td.value input:focus {
+      outline: none;
+      background: white;
+      border-color: #3498db;
+      box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    }
+
+    td.value input:disabled {
+      background: #f0f0f0;
+      color: #999;
+      cursor: not-allowed;
+    }
+
+    td.description {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .modified {
+      background: #fff3cd !important;
+    }
+
+    .pixel-data-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 15px;
+      gap: 15px;
+      overflow: auto;
+    }
+
+    .canvas-wrapper {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #pixelCanvas {
+      border: 1px solid #ccc;
+      cursor: crosshair;
+      max-width: 100%;
+      max-height: 400px;
+    }
+
+    .roi-controls {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 15px;
+    }
+
+    .roi-controls h3 {
+      font-size: 14px;
+      margin-bottom: 12px;
+      color: #333;
+    }
+
+    .control-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .control-group label {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .control-group input {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .control-group input:focus {
+      outline: none;
+      border-color: #3498db;
+    }
+
+    .btn-apply {
+      width: 100%;
+      background: #e67e22;
+    }
+
+    .btn-apply:hover {
+      background: #d35400;
+    }
+
+    .pixel-info {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px 15px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .pixel-info span {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #999;
+      padding: 40px;
+    }
+
+    .empty-state svg {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .empty-state p {
+      font-size: 16px;
+    }
+
+    .notification {
+      position: fixed;
+      top: 70px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 4px;
+      color: white;
+      font-size: 14px;
+      z-index: 1000;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .notification.success {
+      background: #27ae60;
+    }
+
+    .notification.error {
+      background: #e74c3c;
+    }
+
+    .notification.info {
+      background: #3498db;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadeOut {
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0;
+      }
+    }
+
+    .validation-panel {
+      background: white;
+      border-bottom: 1px solid #ddd;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .validation-panel.active {
+      display: block;
+    }
+
+    .validation-summary {
+      padding: 10px 15px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #ddd;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .validation-summary .errors {
+      color: #e74c3c;
+      font-weight: 600;
+    }
+
+    .validation-summary .warnings {
+      color: #f39c12;
+      font-weight: 600;
+    }
+
+    .validation-item {
+      padding: 8px 15px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 13px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .validation-item.error {
+      border-left: 3px solid #e74c3c;
+    }
+
+    .validation-item.warning {
+      border-left: 3px solid #f39c12;
+    }
+
+    .validation-item .tag {
+      font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+      color: #8e44ad;
+      white-space: nowrap;
+      min-width: 100px;
+    }
+
+    .validation-item .name {
+      font-weight: 600;
+      min-width: 150px;
+    }
+
+    .validation-item .message {
+      color: #666;
+      flex: 1;
+    }
+
+    .validation-item .module {
+      color: #95a5a6;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 8px;
+      width: 600px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 15px 20px;
+      background: #2c3e50;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-footer {
+      padding: 15px 20px;
+      background: #f8f9fa;
+      border-top: 1px solid #ddd;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .batch-tag-item {
+      display: grid;
+      grid-template-columns: 1fr 2fr auto;
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+
+    .batch-tag-item input {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .batch-tag-item select {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .btn-remove {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .btn-remove:hover {
+      background: #c0392b;
+    }
+
+    .btn-add {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      margin-bottom: 15px;
+    }
+
+    .btn-add:hover {
+      background: #2980b9;
+    }
+
+    .batch-results {
+      margin-top: 15px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .batch-result-item {
+      padding: 5px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .batch-result-item.success {
+      color: #27ae60;
+    }
+
+    .batch-result-item.error {
+      color: #e74c3c;
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <h1>DICOM 编辑器</h1>
+    <button class="btn" id="btnLoad">加载 DICOM</button>
+    <button class="btn btn-save" id="btnSave" disabled>保存</button>
+    <button class="btn btn-validate" id="btnValidate" disabled>校验</button>
+    <button class="btn btn-export" id="btnExport" disabled>导出字典</button>
+    <button class="btn btn-import" id="btnImport">导入字典</button>
+    <button class="btn btn-batch" id="btnBatch">批量修改</button>
+    <div class="file-info" id="fileInfo">未加载文件</div>
+  </div>
+
+  <div class="validation-panel" id="validationPanel">
+    <div class="validation-summary" id="validationSummary"></div>
+    <div id="validationResults"></div>
+  </div>
+
+  <div class="main-container">
+    <div class="left-panel">
+      <div class="panel-header">DICOM Tags</div>
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="搜索 Tag、描述或值...">
+      </div>
+      <div class="tag-table-container" id="tagTableContainer">
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <p>请加载 DICOM 文件以查看 Tags</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="panel-header">像素数据编辑</div>
+      <div class="pixel-data-container" id="pixelDataContainer">
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+          <p>加载 DICOM 文件以查看像素数据</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+
+  <div class="modal-overlay" id="batchModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>批量修改 DICOM Tag</h2>
+        <button class="modal-close" id="batchModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: 15px;">
+          <p style="font-size: 13px; color: #666; margin-bottom: 10px;">
+          添加要修改的 Tag 和新值，然后选择多个 DICOM 文件进行批量修改。</p>
+        </div>
+        <button class="btn-add" id="btnAddTag">+ 添加 Tag</button>
+        <div id="batchTagList"></div>
+        <div class="batch-results" id="batchResults" style="display: none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="btnCancelBatch">取消</button>
+        <button class="btn btn-save" id="btnExecuteBatch">选择文件并执行</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

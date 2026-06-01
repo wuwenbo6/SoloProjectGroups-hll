@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZooKeeper 监控系统</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🐘 ZooKeeper 监控系统</h1>
+            <div class="header-actions">
+                <div class="ws-status">
+                    <span class="ws-dot" id="wsDot"></span>
+                    <span class="ws-label" id="wsLabel">连接中...</span>
+                </div>
+                <div class="refresh-section">
+                    <label>推送间隔:</label>
+                    <select id="pushInterval">
+                        <option value="2000">2秒</option>
+                        <option value="5000" selected>5秒</option>
+                        <option value="10000">10秒</option>
+                        <option value="30000">30秒</option>
+                    </select>
+                </div>
+                <button id="refreshBtn" class="btn btn-primary">手动刷新</button>
+                <button id="addNodeBtn" class="btn btn-success">添加节点</button>
+            </div>
+        </header>
+
+        <div id="lastUpdate">
+            上次更新: <span id="updateTime">--</span>
+        </div>
+
+        <div id="nodesContainer">
+            <div class="loading"><div class="spinner"></div>等待服务端推送...</div>
+        </div>
+
+        <div id="addNodeModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>添加 ZooKeeper 节点</h2>
+                <div class="form-group">
+                    <label>主机地址:</label>
+                    <input type="text" id="nodeHost" value="localhost" placeholder="例如: localhost">
+                </div>
+                <div class="form-group">
+                    <label>端口:</label>
+                    <input type="number" id="nodePort" value="2181" placeholder="例如: 2181">
+                </div>
+                <button id="confirmAddNode" class="btn btn-primary">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

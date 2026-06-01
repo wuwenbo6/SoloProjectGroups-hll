@@ -1,0 +1,30 @@
+{
+  "name": "dlna-media-server",
+  "version": "1.0.0",
+  "description": "DLNA Media Server with web interface for media library management",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "generate-icon": "node scripts/generateIcon.js",
+    "setup": "npm install && node scripts/generateIcon.js"
+  },
+  "keywords": [
+    "dlna",
+    "upnp",
+    "media-server",
+    "streaming"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "xmlbuilder2": "^3.1.1",
+    "mime-types": "^2.1.35",
+    "chokidar": "^3.5.3",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

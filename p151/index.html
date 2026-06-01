@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>自适应隐写术工具 - LSB 文本嵌入与提取</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    min-height: 100vh;
+    padding: 24px;
+    color: #333;
+  }
+
+  .container {
+    max-width: 1040px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    padding: 32px 40px;
+  }
+
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .header p {
+    font-size: 14px;
+    opacity: 0.85;
+  }
+
+  .content {
+    padding: 32px 40px;
+  }
+
+  .section {
+    margin-bottom: 32px;
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #1e3c72;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title::before {
+    content: '';
+    width: 4px;
+    height: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 2px;
+  }
+
+  .upload-area {
+    border: 2px dashed #cbd5e0;
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #f8fafc;
+  }
+
+  .upload-area:hover,
+  .upload-area.dragover {
+    border-color: #667eea;
+    background: #f0f4ff;
+  }
+
+  .upload-area svg {
+    width: 48px;
+    height: 48px;
+    fill: #a0aec0;
+    margin-bottom: 12px;
+  }
+
+  .upload-area p {
+    color: #718096;
+    font-size: 14px;
+  }
+
+  .upload-area .hint {
+    font-size: 12px;
+    color: #a0aec0;
+    margin-top: 4px;
+  }
+
+  .image-list {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .image-card {
+    width: 140px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .image-card .thumb {
+    width: 100%;
+    height: 100px;
+    background: #1a202c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .image-card .thumb canvas {
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .image-card .info {
+    padding: 8px;
+    font-size: 11px;
+    color: #4a5568;
+  }
+
+  .image-card .info .name {
+    font-weight: 600;
+    color: #2d3748;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .image-card .info .stats {
+    margin-top: 4px;
+    color: #718096;
+  }
+
+  .image-card .remove {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(245, 101, 101, 0.9);
+    color: #fff;
+    border: none;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .image-card:hover .remove {
+    opacity: 1;
+  }
+
+  .image-info {
+    background: #f0f4ff;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-top: 16px;
+    display: none;
+  }
+
+  .image-info.show {
+    display: block;
+  }
+
+  .image-info .info-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #4a5568;
+    margin-bottom: 6px;
+  }
+
+  .image-info .info-row span:last-child {
+    font-weight: 600;
+    color: #2d3748;
+  }
+
+  .preview-wrap {
+    margin-top: 16px;
+    text-align: center;
+    display: none;
+  }
+
+  .preview-wrap.show {
+    display: block;
+  }
+
+  .preview-wrap canvas {
+    max-width: 100%;
+    max-height: 320px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .textarea-group {
+    position: relative;
+  }
+
+  .textarea-group textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 14px 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+    resize: vertical;
+    transition: border-color 0.2s;
+    background: #f8fafc;
+  }
+
+  .textarea-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    background: #fff;
+  }
+
+  .textarea-group .char-count {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    font-size: 12px;
+    color: #a0aec0;
+  }
+
+  .options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .option-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .option-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #4a5568;
+  }
+
+  .option-group select,
+  .option-group input[type="number"] {
+    padding: 10px 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    background: #f8fafc;
+    transition: border-color 0.2s;
+  }
+
+  .option-group select:focus,
+  .option-group input[type="number"]:focus {
+    outline: none;
+    border-color: #667eea;
+    background: #fff;
+  }
+
+  .option-group .checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0;
+  }
+
+  .option-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+  }
+
+  .btn-group {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .btn {
+    padding: 12px 28px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+  }
+
+  .btn-secondary {
+    background: #edf2f7;
+    color: #4a5568;
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: #e2e8f0;
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .result-panel {
+    background: #f0f4ff;
+    border-left: 4px solid #667eea;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 16px;
+    display: none;
+  }
+
+  .result-panel.show {
+    display: block;
+  }
+
+  .result-panel.success {
+    background: #f0fff4;
+    border-left-color: #48bb78;
+  }
+
+  .result-panel.warning {
+    background: #fffaf0;
+    border-left-color: #ed8936;
+  }
+
+  .result-panel.error {
+    background: #fff5f5;
+    border-left-color: #f56565;
+  }
+
+  .result-panel .result-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .result-panel.success .result-title { color: #22543d; }
+  .result-panel.warning .result-title { color: #744210; }
+  .result-panel.error .result-title { color: #742a2a; }
+
+  .result-panel pre {
+    background: #fff;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+  }
+
+  .parity-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: #f0f4ff;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+
+  .parity-info .status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-dot.ok { background: #48bb78; box-shadow: 0 0 8px #48bb78; }
+  .status-dot.fail { background: #f56565; box-shadow: 0 0 8px #f56565; }
+
+  .hidden-input {
+    display: none;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    background: #f0f4ff;
+    padding: 4px;
+    border-radius: 10px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 12px 20px;
+    text-align: center;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #718096;
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    background: #fff;
+    color: #667eea;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  .file-info {
+    font-size: 12px;
+    color: #718096;
+    margin-top: 8px;
+  }
+
+  .toast {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    padding: 14px 24px;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+  }
+
+  .toast.show {
+    transform: translateX(0);
+  }
+
+  .toast.success { background: #48bb78; }
+  .toast.error { background: #f56565; }
+  .toast.info { background: #4299e1; }
+
+  .progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 12px;
+    display: none;
+  }
+
+  .progress-bar.show {
+    display: block;
+  }
+
+  .progress-bar .fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #667eea;
+    color: #fff;
+  }
+
+  .badge.success { background: #48bb78; }
+  .badge.warning { background: #ed8936; }
+
+  .complexity-legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #718096;
+    flex-wrap: wrap;
+  }
+
+  .complexity-legend .item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .complexity-legend .box {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>自适应隐写术工具</h1>
+    <p>自适应 LSB · 多载体分存 · MD5 分块校验 · BMP/PNG 双格式支持</p>
+  </div>
+
+  <div class="content">
+    <div class="tabs">
+      <div class="tab active" data-tab="embed">嵌入文本</div>
+      <div class="tab" data-tab="extract">提取文本</div>
+    </div>
+
+    <div class="tab-content active" id="tab-embed">
+      <div class="section">
+        <div class="section-title">1. 上传载体图片 <span class="badge">支持多张</span></div>
+        <div class="upload-area" id="uploadEmbed">
+          <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+          <p>点击或拖拽图片到此处（支持多张）</p>
+          <p class="hint">支持 24 位 BMP 和 PNG 格式</p>
+        </div>
+        <input type="file" id="fileInputEmbed" class="hidden-input" accept=".bmp,.png" multiple>
+
+        <div class="image-list" id="imageListEmbed"></div>
+
+        <div class="image-info" id="imageInfoEmbed">
+          <div class="info-row"><span>图片总数</span><span id="imageCount">0 张</span></div>
+          <div class="info-row"><span>总像素数</span><span id="totalPixels">-</span></div>
+          <div class="info-row"><span>最大可嵌入</span><span id="maxEmbed">-</span></div>
+          <div class="complexity-legend">
+            <div class="item"><div class="box" style="background:#48bb78;"></div>高复杂度区域（嵌入3位）</div>
+            <div class="item"><div class="box" style="background:#ecc94b;"></div>中复杂度区域（嵌入2位）</div>
+            <div class="item"><div class="box" style="background:#fc8181;"></div>低复杂度区域（嵌入1位）</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">2. 嵌入选项</div>
+        <div class="options-grid">
+          <div class="option-group">
+            <label>输出格式</label>
+            <select id="outputFormat">
+              <option value="png">PNG（推荐，无损压缩）</option>
+              <option value="bmp">BMP（原始格式）</option>
+            </select>
+          </div>
+          <div class="option-group">
+            <label>自适应嵌入深度</label>
+            <div class="checkbox">
+              <input type="checkbox" id="adaptiveMode" checked>
+              <label for="adaptiveMode">根据像素复杂度自动调整</label>
+            </div>
+          </div>
+          <div class="option-group">
+            <label>多载体分存</label>
+            <div class="checkbox">
+              <input type="checkbox" id="multiCarrier" checked>
+              <label for="multiCarrier">数据分散到多张图片</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">3. 输入要嵌入的文本</div>
+        <div class="textarea-group">
+          <textarea id="embedText" placeholder="在此输入要嵌入到图片中的文本..." maxlength="1000000"></textarea>
+          <span class="char-count"><span id="charCount">0</span> / <span id="maxChars">0</span> 字符</span>
+        </div>
+        <div class="parity-info" id="parityInfoEmbed" style="display:none;">
+          <div class="status-dot ok" id="parityDotEmbed"></div>
+          <span>MD5 分块校验已启用（每 1024 字节一个哈希）</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">4. 执行嵌入</div>
+        <div class="btn-group">
+          <button class="btn btn-primary" id="btnEmbed" disabled>
+            嵌入并下载
+          </button>
+          <button class="btn btn-secondary" id="btnResetEmbed">重置</button>
+        </div>
+        <div class="progress-bar" id="progressEmbed">
+          <div class="fill" id="progressFillEmbed"></div>
+        </div>
+      </div>
+
+      <div class="result-panel" id="resultEmbed"></div>
+    </div>
+
+    <div class="tab-content" id="tab-extract">
+      <div class="section">
+        <div class="section-title">1. 上传含隐藏文本的图片 <span class="badge">支持多张</span></div>
+        <div class="upload-area" id="uploadExtract">
+          <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+          <p>点击或拖拽含隐写文本的图片到此处（支持多张）</p>
+          <p class="hint">支持 BMP 和 PNG 格式</p>
+        </div>
+        <input type="file" id="fileInputExtract" class="hidden-input" accept=".bmp,.png" multiple>
+
+        <div class="image-list" id="imageListExtract"></div>
+
+        <div class="image-info" id="imageInfoExtract">
+          <div class="info-row"><span>图片总数</span><span id="imageCountE">0 张</span></div>
+          <div class="info-row"><span>总像素数</span><span id="totalPixelsE">-</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">2. 提取隐藏文本</div>
+        <div class="btn-group">
+          <button class="btn btn-primary" id="btnExtract" disabled>
+            提取文本
+          </button>
+          <button class="btn btn-secondary" id="btnResetExtract">重置</button>
+        </div>
+        <div class="progress-bar" id="progressExtract">
+          <div class="fill" id="progressFillExtract"></div>
+        </div>
+      </div>
+
+      <div class="result-panel" id="resultExtract"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  const MAGIC = [0x42, 0x4D, 0x53, 0x54, 0x45, 0x47];
+  const VERSION_BYTE = 0x03;
+  const HASH_TYPE_MD5 = 0x01;
+  const END_MARKER = [0x00, 0x00, 0x00, 0x00];
+  const CHUNK_SIZE = 1024;
+
+  let embedImages = [];
+  let extractImages = [];
+
+  const $ = id => document.getElementById(id);
+
+  function showToast(msg, type = 'info') {
+    const toast = $('toast');
+    toast.textContent = msg;
+    toast.className = 'toast show ' + type;
+    setTimeout(() => toast.className = 'toast ' + type, 2500);
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(2) + ' MB';
+  }
+
+  function readBMP(buffer) {
+    const view = new DataView(buffer);
+
+    if (view.getUint16(0, true) !== 0x4D42) {
+      throw new Error('不是有效的 BMP 文件');
+    }
+
+    const pixelDataOffset = view.getUint32(10, true);
+    const width = view.getInt32(18, true);
+    const height = view.getInt32(22, true);
+    const bitsPerPixel = view.getUint16(28, true);
+
+    if (bitsPerPixel !== 24) {
+      throw new Error('仅支持 24 位 BMP 图片');
+    }
+
+    const absHeight = Math.abs(height);
+    const rowSize = Math.floor((24 * width + 31) / 32) * 4;
+    const pixelDataSize = rowSize * absHeight;
+    const pixelData = new Uint8Array(buffer, pixelDataOffset, pixelDataSize);
+
+    const rgba = new Uint8ClampedArray(width * absHeight * 4);
+    for (let y = 0; y < absHeight; y++) {
+      const srcY = height > 0 ? (absHeight - 1 - y) : y;
+      const srcRow = srcY * rowSize;
+      for (let x = 0; x < width; x++) {
+        const src = srcRow + x * 3;
+        const dst = (y * width + x) * 4;
+        rgba[dst]     = pixelData[src + 2];
+        rgba[dst + 1] = pixelData[src + 1];
+        rgba[dst + 2] = pixelData[src];
+        rgba[dst + 3] = 255;
+      }
+    }
+
+    return {
+      type: 'bmp',
+      buffer,
+      width,
+      height: absHeight,
+      pixelDataOffset,
+      rowSize,
+      bitsPerPixel,
+      rgba
+    };
+  }
+
+  function readPNG(buffer) {
+    return new Promise((resolve, reject) => {
+      const blob = new Blob([buffer], { type: 'image/png' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const imgData = ctx.getImageData(0, 0, img.width, img.height);
+        URL.revokeObjectURL(url);
+        resolve({
+          type: 'png',
+          buffer,
+          width: img.width,
+          height: img.height,
+          rgba: imgData.data
+        });
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('PNG 解码失败'));
+      };
+      img.src = url;
+    });
+  }
+
+  async function readImage(file) {
+    const buffer = await file.arrayBuffer();
+    const ext = file.name.toLowerCase().split('.').pop();
+
+    if (ext === 'bmp') {
+      return { ...readBMP(buffer), name: file.name, fileSize: file.size };
+    } else if (ext === 'png') {
+      return { ...await readPNG(buffer), name: file.name, fileSize: file.size };
+    } else {
+      throw new Error('不支持的格式: ' + ext);
+    }
+  }
+
+  function imageToCanvas(img) {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.createImageData(img.width, img.height);
+    imgData.data.set(img.rgba);
+    ctx.putImageData(imgData, 0, 0);
+    return canvas;
+  }
+
+  function computePixelComplexity(rgba, width, height) {
+    const complexity = new Float32Array(width * height);
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+
+        let variance = 0;
+        let count = 0;
+
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = x + dx;
+            const ny = y + dy;
+            if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+
+            const nidx = (ny * width + nx) * 4;
+            const dr = rgba[idx] - rgba[nidx];
+            const dg = rgba[idx + 1] - rgba[nidx + 1];
+            const db = rgba[idx + 2] - rgba[nidx + 2];
+            variance += dr * dr + dg * dg + db * db;
+            count++;
+          }
+        }
+
+        const avgVar = count > 0 ? variance / count : 0;
+        complexity[y * width + x] = Math.sqrt(avgVar);
+      }
+    }
+
+    let maxVar = 0;
+    for (let i = 0; i < complexity.length; i++) {
+      if (complexity[i] > maxVar) maxVar = complexity[i];
+    }
+
+    const normalized = new Uint8Array(width * height);
+    const thresholdLow = maxVar * 0.15;
+    const thresholdHigh = maxVar * 0.45;
+
+    for (let i = 0; i < complexity.length; i++) {
+      if (complexity[i] >= thresholdHigh) {
+        normalized[i] = 3;
+      } else if (complexity[i] >= thresholdLow) {
+        normalized[i] = 2;
+      } else {
+        normalized[i] = 1;
+      }
+    }
+
+    return normalized;
+  }
+
+  function detectUTF8BOM(bytes) {
+    if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+      return { hasBOM: true, contentStart: 3 };
+    }
+    return { hasBOM: false, contentStart: 0 };
+  }
+
+  function strToUTF8Bytes(str) {
+    const encoder = new TextEncoder();
+    return encoder.encode(str);
+  }
+
+  function utf8BytesToStr(bytes) {
+    const decoder = new TextDecoder('utf-8');
+    return decoder.decode(bytes);
+  }
+
+  function md5Cycle(x, k, s, ac) {
+    const n = (x[k] + x[(k + 1) & 3] + x[(k + 2) & 3] + x[(k + 3) & 3] + ac) | 0;
+    x[k] = ((x[k] + n) << s) | ((x[k] + n) >>> (32 - s));
+    x[k] = (x[k] + x[(k + 1) & 3]) | 0;
+  }
+
+  function md5F(x, y, z) { return (x & y) | ((~x) & z); }
+  function md5G(x, y, z) { return (x & z) | (y & (~z)); }
+  function md5H(x, y, z) { return x ^ y ^ z; }
+  function md5I(x, y, z) { return y ^ (x | (~z)); }
+
+  function md5Transform(state, block) {
+    let a = state[0], b = state[1], c = state[2], d = state[3];
+    const x = new Uint32Array(16);
+
+    for (let i = 0; i < 16; i++) {
+      x[i] = block[i * 4] | (block[i * 4 + 1] << 8) | (block[i * 4 + 2] << 16) | (block[i * 4 + 3] << 24);
+    }
+
+    a = (a + md5F(b, c, d) + x[0] + 0xd76aa478) | 0; a = ((a << 7) | (a >>> 25)) + b | 0;
+    d = (d + md5F(a, b, c) + x[1] + 0xe8c7b756) | 0; d = ((d << 12) | (d >>> 20)) + a | 0;
+    c = (c + md5F(d, a, b) + x[2] + 0x242070db) | 0; c = ((c << 17) | (c >>> 15)) + d | 0;
+    b = (b + md5F(c, d, a) + x[3] + 0xc1bdceee) | 0; b = ((b << 22) | (b >>> 10)) + c | 0;
+    a = (a + md5F(b, c, d) + x[4] + 0xf57c0faf) | 0; a = ((a << 7) | (a >>> 25)) + b | 0;
+    d = (d + md5F(a, b, c) + x[5] + 0x4787c62a) | 0; d = ((d << 12) | (d >>> 20)) + a | 0;
+    c = (c + md5F(d, a, b) + x[6] + 0xa8304613) | 0; c = ((c << 17) | (c >>> 15)) + d | 0;
+    b = (b + md5F(c, d, a) + x[7] + 0xfd469501) | 0; b = ((b << 22) | (b >>> 10)) + c | 0;
+    a = (a + md5F(b, c, d) + x[8] + 0x698098d8) | 0; a = ((a << 7) | (a >>> 25)) + b | 0;
+    d = (d + md5F(a, b, c) + x[9] + 0x8b44f7af) | 0; d = ((d << 12) | (d >>> 20)) + a | 0;
+    c = (c + md5F(d, a, b) + x[10] + 0xffff5bb1) | 0; c = ((c << 17) | (c >>> 15)) + d | 0;
+    b = (b + md5F(c, d, a) + x[11] + 0x895cd7be) | 0; b = ((b << 22) | (b >>> 10)) + c | 0;
+    a = (a + md5F(b, c, d) + x[12] + 0x6b901122) | 0; a = ((a << 7) | (a >>> 25)) + b | 0;
+    d = (d + md5F(a, b, c) + x[13] + 0xfd987193) | 0; d = ((d << 12) | (d >>> 20)) + a | 0;
+    c = (c + md5F(d, a, b) + x[14] + 0xa679438e) | 0; c = ((c << 17) | (c >>> 15)) + d | 0;
+    b = (b + md5F(c, d, a) + x[15] + 0x49b40821) | 0; b = ((b << 22) | (b >>> 10)) + c | 0;
+
+    a = (a + md5G(b, c, d) + x[1] + 0xf61e2562) | 0; a = ((a << 5) | (a >>> 27)) + b | 0;
+    d = (d + md5G(a, b, c) + x[6] + 0xc040b340) | 0; d = ((d << 9) | (d >>> 23)) + a | 0;
+    c = (c + md5G(d, a, b) + x[11] + 0x265e5a51) | 0; c = ((c << 14) | (c >>> 18)) + d | 0;
+    b = (b + md5G(c, d, a) + x[0] + 0xe9b6c7aa) | 0; b = ((b << 20) | (b >>> 12)) + c | 0;
+    a = (a + md5G(b, c, d) + x[5] + 0xd62f105d) | 0; a = ((a << 5) | (a >>> 27)) + b | 0;
+    d = (d + md5G(a, b, c) + x[10] + 0x02441453) | 0; d = ((d << 9) | (d >>> 23)) + a | 0;
+    c = (c + md5G(d, a, b) + x[15] + 0xd8a1e681) | 0; c = ((c << 14) | (c >>> 18)) + d | 0;
+    b = (b + md5G(c, d, a) + x[4] + 0xe7d3fbc8) | 0; b = ((b << 20) | (b >>> 12)) + c | 0;
+    a = (a + md5G(b, c, d) + x[9] + 0x21e1cde6) | 0; a = ((a << 5) | (a >>> 27)) + b | 0;
+    d = (d + md5G(a, b, c) + x[14] + 0xc33707d6) | 0; d = ((d << 9) | (d >>> 23)) + a | 0;
+    c = (c + md5G(d, a, b) + x[3] + 0xf4d50d87) | 0; c = ((c << 14) | (c >>> 18)) + d | 0;
+    b = (b + md5G(c, d, a) + x[8] + 0x455a14ed) | 0; b = ((b << 20) | (b >>> 12)) + c | 0;
+    a = (a + md5G(b, c, d) + x[13] + 0xa9e3e905) | 0; a = ((a << 5) | (a >>> 27)) + b | 0;
+    d = (d + md5G(a, b, c) + x[2] + 0xfcefa3f8) | 0; d = ((d << 9) | (d >>> 23)) + a | 0;
+    c = (c + md5G(d, a, b) + x[7] + 0x676f02d9) | 0; c = ((c << 14) | (c >>> 18)) + d | 0;
+    b = (b + md5G(c, d, a) + x[12] + 0x8d2a4c8a) | 0; b = ((b << 20) | (b >>> 12)) + c | 0;
+
+    a = (a + md5H(b, c, d) + x[5] + 0xfffa3942) | 0; a = ((a << 4) | (a >>> 28)) + b | 0;
+    d = (d + md5H(a, b, c) + x[8] + 0x8771f681) | 0; d = ((d << 11) | (d >>> 21)) + a | 0;
+    c = (c + md5H(d, a, b) + x[11] + 0x6d9d6122) | 0; c = ((c << 16) | (c >>> 16)) + d | 0;
+    b = (b + md5H(c, d, a) + x[14] + 0xfde5380c) | 0; b = ((b << 23) | (b >>> 9)) + c | 0;
+    a = (a + md5H(b, c, d) + x[1] + 0xa4beea44) | 0; a = ((a << 4) | (a >>> 28)) + b | 0;
+    d = (d + md5H(a, b, c) + x[4] + 0x4bdecfa9) | 0; d = ((d << 11) | (d >>> 21)) + a | 0;
+    c = (c + md5H(d, a, b) + x[7] + 0xf6bb4b60) | 0; c = ((c << 16) | (c >>> 16)) + d | 0;
+    b = (b + md5H(c, d, a) + x[10] + 0xbebfbc70) | 0; b = ((b << 23) | (b >>> 9)) + c | 0;
+    a = (a + md5H(b, c, d) + x[13] + 0x289b7ec6) | 0; a = ((a << 4) | (a >>> 28)) + b | 0;
+    d = (d + md5H(a, b, c) + x[0] + 0xeaa127fa) | 0; d = ((d << 11) | (d >>> 21)) + a | 0;
+    c = (c + md5H(d, a, b) + x[3] + 0xd4ef3085) | 0; c = ((c << 16) | (c >>> 16)) + d | 0;
+    b = (b + md5H(c, d, a) + x[6] + 0x04881d05) | 0; b = ((b << 23) | (b >>> 9)) + c | 0;
+    a = (a + md5H(b, c, d) + x[9] + 0xd9d4d039) | 0; a = ((a << 4) | (a >>> 28)) + b | 0;
+    d = (d + md5H(a, b, c) + x[12] + 0xe6db99e5) | 0; d = ((d << 11) | (d >>> 21)) + a | 0;
+    c = (c + md5H(d, a, b) + x[15] + 0x1fa27cf8) | 0; c = ((c << 16) | (c >>> 16)) + d | 0;
+    b = (b + md5H(c, d, a) + x[2] + 0xc4ac5665) | 0; b = ((b << 23) | (b >>> 9)) + c | 0;
+
+    a = (a + md5I(b, c, d) + x[0] + 0xf4292244) | 0; a = ((a << 6) | (a >>> 26)) + b | 0;
+    d = (d + md5I(a, b, c) + x[7] + 0x432aff97) | 0; d = ((d << 10) | (d >>> 22)) + a | 0;
+    c = (c + md5I(d, a, b) + x[14] + 0xab9423a7) | 0; c = ((c << 15) | (c >>> 17)) + d | 0;
+    b = (b + md5I(c, d, a) + x[5] + 0xfc93a039) | 0; b = ((b << 21) | (b >>> 11)) + c | 0;
+    a = (a + md5I(b, c, d) + x[12] + 0x655b59c3) | 0; a = ((a << 6) | (a >>> 26)) + b | 0;
+    d = (d + md5I(a, b, c) + x[3] + 0x8f0ccc92) | 0; d = ((d << 10) | (d >>> 22)) + a | 0;
+    c = (c + md5I(d, a, b) + x[10] + 0xffeff47d) | 0; c = ((c << 15) | (c >>> 17)) + d | 0;
+    b = (b + md5I(c, d, a) + x[1] + 0x85845dd1) | 0; b = ((b << 21) | (b >>> 11)) + c | 0;
+    a = (a + md5I(b, c, d) + x[8] + 0x6fa87e4f) | 0; a = ((a << 6) | (a >>> 26)) + b | 0;
+    d = (d + md5I(a, b, c) + x[15] + 0xfe2ce6e0) | 0; d = ((d << 10) | (d >>> 22)) + a | 0;
+    c = (c + md5I(d, a, b) + x[6] + 0xa3014314) | 0; c = ((c << 15) | (c >>> 17)) + d | 0;
+    b = (b + md5I(c, d, a) + x[13] + 0x4e0811a1) | 0; b = ((b << 21) | (b >>> 11)) + c | 0;
+    a = (a + md5I(b, c, d) + x[4] + 0xf7537e82) | 0; a = ((a << 6) | (a >>> 26)) + b | 0;
+    d = (d + md5I(a, b, c) + x[11] + 0xbd3af235) | 0; d = ((d << 10) | (d >>> 22)) + a | 0;
+    c = (c + md5I(d, a, b) + x[2] + 0x2ad7d2bb) | 0; c = ((c << 15) | (c >>> 17)) + d | 0;
+    b = (b + md5I(c, d, a) + x[9] + 0xeb86d391) | 0; b = ((b << 21) | (b >>> 11)) + c | 0;
+
+    state[0] = (state[0] + a) | 0;
+    state[1] = (state[1] + b) | 0;
+    state[2] = (state[2] + c) | 0;
+    state[3] = (state[3] + d) | 0;
+  }
+
+  function md5(data) {
+    const state = new Uint32Array([0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476]);
+    const input = new Uint8Array(data);
+    const len = input.length;
+    const bitLen = len * 8;
+
+    const padLen = ((len + 8) >> 6) + 1;
+    const padded = new Uint8Array(padLen * 64);
+    padded.set(input);
+    padded[len] = 0x80;
+
+    const view = new DataView(padded.buffer);
+    view.setUint32((padLen * 64) - 8, bitLen & 0xffffffff, true);
+    view.setUint32((padLen * 64) - 4, (bitLen / 0x100000000) | 0, true);
+
+    for (let i = 0; i < padLen; i++) {
+      md5Transform(state, new Uint8Array(padded.buffer, i * 64, 64));
+    }
+
+    const result = new Uint8Array(16);
+    const resultView = new DataView(result.buffer);
+    resultView.setUint32(0, state[0], true);
+    resultView.setUint32(4, state[1], true);
+    resultView.setUint32(8, state[2], true);
+    resultView.setUint32(12, state[3], true);
+
+    return result;
+  }
+
+  function computeChunkHashes(textBytes) {
+    const numChunks = Math.ceil(textBytes.length / CHUNK_SIZE);
+    const hashes = [];
+    for (let i = 0; i < numChunks; i++) {
+      const start = i * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, textBytes.length);
+      hashes.push(md5(textBytes.subarray(start, end)));
+    }
+    return hashes;
+  }
+
+  function buildPayload(textBytes) {
+    const chunkHashes = computeChunkHashes(textBytes);
+    const numChunks = chunkHashes.length;
+    const payload = [];
+
+    for (let i = 0; i < MAGIC.length; i++) payload.push(MAGIC[i]);
+    payload.push(VERSION_BYTE);
+    payload.push(HASH_TYPE_MD5);
+    payload.push((textBytes.length >>> 24) & 0xFF);
+    payload.push((textBytes.length >>> 16) & 0xFF);
+    payload.push((textBytes.length >>> 8) & 0xFF);
+    payload.push(textBytes.length & 0xFF);
+    payload.push((numChunks >>> 8) & 0xFF);
+    payload.push(numChunks & 0xFF);
+
+    for (let i = 0; i < chunkHashes.length; i++) {
+      for (let j = 0; j < 16; j++) payload.push(chunkHashes[i][j]);
+    }
+
+    for (let i = 0; i < textBytes.length; i++) payload.push(textBytes[i]);
+    for (let i = 0; i < END_MARKER.length; i++) payload.push(END_MARKER[i]);
+
+    return new Uint8Array(payload);
+  }
+
+  function embedBitsToRGBA(rgba, complexity, payload, useAdaptive) {
+    const newRGBA = new Uint8ClampedArray(rgba);
+    const bitLen = payload.length * 8;
+    const totalPixels = rgba.length / 4;
+
+    let bitIdx = 0;
+    for (let px = 0; px < totalPixels && bitIdx < bitLen; px++) {
+      const depth = useAdaptive ? complexity[px] : 1;
+
+      for (let ch = 0; ch < 3 && bitIdx < bitLen; ch++) {
+        const idx = px * 4 + ch;
+        const bits = Math.min(depth, bitLen - bitIdx);
+
+        if (bits > 0) {
+          const bytePos = Math.floor(bitIdx / 8);
+          const bitPosInByte = 7 - (bitIdx % 8);
+          let bitVal = 0;
+          if (bytePos < payload.length) {
+            bitVal = (payload[bytePos] >> bitPosInByte) & 1;
+          }
+
+          if (bitVal === 1) {
+            newRGBA[idx] |= 1;
+          } else {
+            newRGBA[idx] &= 0xFE;
+          }
+          bitIdx++;
+        }
+      }
+    }
+
+    if (bitIdx < bitLen) {
+      throw new Error('图片容量不足，需要 ' + bitLen + ' 位，仅嵌入 ' + bitIdx + ' 位');
+    }
+
+    return newRGBA;
+  }
+
+  function extractBitsFromRGBA(rgba, complexity, useAdaptive, maxBits) {
+    const totalPixels = rgba.length / 4;
+    const bytes = [];
+    let currentByte = 0;
+    let bitPos = 0;
+    let bitsExtracted = 0;
+
+    for (let px = 0; px < totalPixels && bitsExtracted < maxBits; px++) {
+      const depth = useAdaptive ? complexity[px] : 1;
+
+      for (let ch = 0; ch < 3 && bitsExtracted < maxBits; ch++) {
+        const idx = px * 4 + ch;
+        const bits = Math.min(depth, maxBits - bitsExtracted);
+
+        if (bits > 0) {
+          const lsb = rgba[idx] & 1;
+          currentByte = (currentByte << 1) | lsb;
+          bitPos++;
+          bitsExtracted++;
+
+          if (bitPos === 8) {
+            bytes.push(currentByte);
+            currentByte = 0;
+            bitPos = 0;
+          }
+        }
+      }
+    }
+
+    if (bitPos > 0) {
+      currentByte <<= (8 - bitPos);
+      bytes.push(currentByte);
+    }
+
+    return new Uint8Array(bytes);
+  }
+
+  function parseExtractedBytes(byteArray) {
+    const arr = byteArray instanceof Uint8Array ? byteArray : new Uint8Array(byteArray);
+    let idx = 0;
+
+    if (arr.length < MAGIC.length + 2) {
+      return { error: '未检测到隐写标记' };
+    }
+
+    for (let i = 0; i < MAGIC.length; i++) {
+      if (arr[idx + i] !== MAGIC[i]) {
+        return { error: '未检测到隐写标记（MAGIC不匹配）' };
+      }
+    }
+    idx += MAGIC.length;
+
+    const version = arr[idx++];
+    const hashType = arr[idx++];
+
+    if (arr.length < idx + 6) {
+      return { error: '数据损坏：头部信息不完整' };
+    }
+
+    const textLen = (arr[idx] << 24) | (arr[idx + 1] << 16) | (arr[idx + 2] << 8) | arr[idx + 3];
+    idx += 4;
+    const numChunks = (arr[idx] << 8) | arr[idx + 1];
+    idx += 2;
+
+    if (textLen <= 0 || textLen > 50 * 1024 * 1024) {
+      return { error: '数据损坏：文本长度异常 (' + textLen + ')' };
+    }
+
+    const hashDataLen = numChunks * 16;
+    if (arr.length < idx + hashDataLen + textLen + END_MARKER.length) {
+      return { error: '数据损坏：数据长度不足' };
+    }
+
+    const storedHashes = [];
+    for (let i = 0; i < numChunks; i++) {
+      const hash = new Uint8Array(16);
+      for (let j = 0; j < 16; j++) hash[j] = arr[idx + i * 16 + j];
+      storedHashes.push(hash);
+    }
+    idx += hashDataLen;
+
+    const textBytes = new Uint8Array(textLen);
+    for (let i = 0; i < textLen; i++) textBytes[i] = arr[idx + i];
+    idx += textLen;
+
+    let endValid = true;
+    for (let i = 0; i < END_MARKER.length; i++) {
+      if (arr[idx + i] !== END_MARKER[i]) { endValid = false; break; }
+    }
+
+    const computedHashes = computeChunkHashes(textBytes);
+    const corruptChunks = [];
+    for (let i = 0; i < storedHashes.length; i++) {
+      let match = true;
+      for (let j = 0; j < 16; j++) {
+        if (storedHashes[i][j] !== computedHashes[i][j]) { match = false; break; }
+      }
+      if (!match) corruptChunks.push(i);
+    }
+
+    const bomInfo = detectUTF8BOM(textBytes);
+    const contentBytes = bomInfo.hasBOM ? textBytes.subarray(bomInfo.contentStart) : textBytes;
+    const text = utf8BytesToStr(contentBytes);
+
+    return {
+      text, textLength: textLen, hasBOM: bomInfo.hasBOM,
+      version, hashType, numChunks, corruptChunks,
+      corruptCount: corruptChunks.length, endMarkerValid: endValid
+    };
+  }
+
+  function downloadBlob(buffer, filename) {
+    const blob = new Blob([buffer], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  }
+
+  function canvasToPNG(canvas) {
+    return new Promise(resolve => {
+      canvas.toBlob(blob => blob.arrayBuffer().then(resolve), 'image/png');
+    });
+  }
+
+  function rgbaToBMP(rgba, width, height) {
+    const rowSize = Math.floor((24 * width + 31) / 32) * 4;
+    const pixelDataSize = rowSize * height;
+    const fileSize = 54 + pixelDataSize;
+    const buffer = new ArrayBuffer(fileSize);
+    const view = new DataView(buffer);
+    const bytes = new Uint8Array(buffer);
+
+    bytes[0] = 0x42; bytes[1] = 0x4D;
+    view.setUint32(2, fileSize, true);
+    view.setUint32(10, 54, true);
+    view.setUint32(14, 40, true);
+    view.setInt32(18, width, true);
+    view.setInt32(22, height, true);
+    view.setUint16(26, 1, true);
+    view.setUint16(28, 24, true);
+    view.setUint32(34, pixelDataSize, true);
+
+    for (let y = 0; y < height; y++) {
+      const srcY = height - 1 - y;
+      for (let x = 0; x < width; x++) {
+        const src = (srcY * width + x) * 4;
+        const dst = 54 + y * rowSize + x * 3;
+        bytes[dst]     = rgba[src + 2];
+        bytes[dst + 1] = rgba[src + 1];
+        bytes[dst + 2] = rgba[src];
+      }
+    }
+
+    return buffer;
+  }
+
+  function addImageCard(container, img, onRemove) {
+    const card = document.createElement('div');
+    card.className = 'image-card';
+    const canvas = imageToCanvas(img);
+    canvas.style.width = '100%';
+    canvas.style.height = '100px';
+    canvas.style.objectFit = 'cover';
+
+    card.innerHTML =
+      '<div class="thumb"></div>' +
+      '<div class="info">' +
+      '<div class="name">' + img.name + '</div>' +
+      '<div class="stats">' + img.width + '×' + img.height + ' · ' + formatSize(img.fileSize) + '</div>' +
+      '</div>' +
+      '<button class="remove">×</button>';
+
+    card.querySelector('.thumb').appendChild(canvas);
+    card.querySelector('.remove').addEventListener('click', (e) => {
+      e.stopPropagation();
+      onRemove();
+    });
+
+    container.appendChild(card);
+  }
+
+  function updateEmbedStats() {
+    const totalPixels = embedImages.reduce((sum, img) => sum + img.width * img.height, 0);
+    const useAdaptive = $('adaptiveMode').checked;
+    let maxBits;
+
+    if (useAdaptive) {
+      maxBits = Math.floor(totalPixels * 2 * 3);
+    } else {
+      maxBits = totalPixels * 3;
+    }
+
+    const maxBytes = Math.floor(maxBits / 8);
+    const overhead = MAGIC.length + 2 + 6 + 32 + END_MARKER.length;
+    const available = Math.max(0, maxBytes - overhead);
+
+    $('imageCount').textContent = embedImages.length + ' 张';
+    $('totalPixels').textContent = totalPixels.toLocaleString();
+    $('maxEmbed').textContent = formatSize(available) + '（约 ' + available.toLocaleString() + ' 字节）';
+    $('maxChars').textContent = available.toLocaleString();
+    $('charCount').textContent = $('embedText').value.length;
+    $('imageInfoEmbed').classList.toggle('show', embedImages.length > 0);
+    $('parityInfoEmbed').style.display = embedImages.length > 0 ? 'flex' : 'none';
+    $('btnEmbed').disabled = embedImages.length === 0 || $('embedText').value.length === 0;
+  }
+
+  function updateExtractStats() {
+    const totalPixels = extractImages.reduce((sum, img) => sum + img.width * img.height, 0);
+    $('imageCountE').textContent = extractImages.length + ' 张';
+    $('totalPixelsE').textContent = totalPixels.toLocaleString();
+    $('imageInfoExtract').classList.toggle('show', extractImages.length > 0);
+    $('btnExtract').disabled = extractImages.length === 0;
+  }
+
+  async function handleFiles(files, mode) {
+    for (const file of files) {
+      try {
+        const img = await readImage(file);
+        if (mode === 'embed') {
+          embedImages.push(img);
+          addImageCard($('imageListEmbed'), img, () => {
+            const idx = embedImages.indexOf(img);
+            if (idx >= 0) embedImages.splice(idx, 1);
+            $('imageListEmbed').innerHTML = '';
+            embedImages.forEach(im => addImageCard($('imageListEmbed'), im, () => {
+              const i = embedImages.indexOf(im);
+              if (i >= 0) embedImages.splice(i, 1);
+              $('imageListEmbed').innerHTML = '';
+              embedImages.forEach(x => addImageCard($('imageListEmbed'), x, null));
+              updateEmbedStats();
+            }));
+            updateEmbedStats();
+          });
+        } else {
+          extractImages.push(img);
+          addImageCard($('imageListExtract'), img, () => {
+            const idx = extractImages.indexOf(img);
+            if (idx >= 0) extractImages.splice(idx, 1);
+            $('imageListExtract').innerHTML = '';
+            extractImages.forEach(im => addImageCard($('imageListExtract'), im, () => {
+              const i = extractImages.indexOf(im);
+              if (i >= 0) extractImages.splice(i, 1);
+              $('imageListExtract').innerHTML = '';
+              extractImages.forEach(x => addImageCard($('imageListExtract'), x, null));
+              updateExtractStats();
+            }));
+            updateExtractStats();
+          });
+        }
+        showToast('已加载: ' + file.name, 'success');
+      } catch (err) {
+        showToast('加载失败: ' + file.name + ' - ' + err.message, 'error');
+      }
+    }
+
+    if (mode === 'embed') updateEmbedStats();
+    else updateExtractStats();
+  }
+
+  function setupDragDrop(area, input, mode) {
+    area.addEventListener('click', () => input.click());
+    area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('dragover'); });
+    area.addEventListener('dragleave', () => area.classList.remove('dragover'));
+    area.addEventListener('drop', e => {
+      e.preventDefault();
+      area.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files, mode);
+    });
+    input.addEventListener('change', e => {
+      if (e.target.files.length > 0) handleFiles(e.target.files, mode);
+    });
+  }
+
+  function setupTabs() {
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        $('tab-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+  }
+
+  async function doEmbed() {
+    if (embedImages.length === 0) return;
+
+    const text = $('embedText').value;
+    if (!text) {
+      showToast('请输入要嵌入的文本', 'error');
+      return;
+    }
+
+    try {
+      const textBytes = strToUTF8Bytes(text);
+      const useAdaptive = $('adaptiveMode').checked;
+      const multiCarrier = $('multiCarrier').checked;
+      const outputFormat = $('outputFormat').value;
+
+      const payload = buildPayload(textBytes);
+      const totalBitsNeeded = payload.length * 8;
+
+      const imageComplexities = [];
+      let totalCapacity = 0;
+
+      for (const img of embedImages) {
+        const comp = computePixelComplexity(img.rgba, img.width, img.height);
+        imageComplexities.push(comp);
+        for (let i = 0; i < comp.length; i++) {
+          totalCapacity += useAdaptive ? comp[i] : 1;
+        }
+      }
+
+      if (totalCapacity < totalBitsNeeded) {
+        showToast('容量不足！需要 ' + totalBitsNeeded + ' 位，可用 ' + totalCapacity + ' 位', 'error');
+        return;
+      }
+
+      $('progressEmbed').classList.add('show');
+      $('progressFillEmbed').style.width = '20%';
+
+      await new Promise(r => setTimeout(r, 50));
+
+      let bitOffset = 0;
+      const processedImages = [];
+
+      for (let i = 0; i < embedImages.length; i++) {
+        const img = embedImages[i];
+        const comp = imageComplexities[i];
+
+        let capacity = 0;
+        for (let j = 0; j < comp.length; j++) {
+          capacity += useAdaptive ? comp[j] : 1;
+        }
+
+        let bitsForThisImage;
+        if (multiCarrier) {
+          bitsForThisImage = Math.min(capacity, totalBitsNeeded - bitOffset);
+        } else {
+          bitsForThisImage = (i === 0) ? totalBitsNeeded : 0;
+        }
+
+        if (bitsForThisImage > 0) {
+          const byteOffset = Math.floor(bitOffset / 8);
+          const bitOffsetInByte = bitOffset % 8;
+          const subPayload = new Uint8Array(Math.ceil(bitsForThisImage / 8) + 1);
+
+          for (let b = 0; b < subPayload.length && byteOffset + b < payload.length; b++) {
+            let val = 0;
+            for (let bb = 0; bb < 8; bb++) {
+              const srcBit = b * 8 + bb;
+              const srcByte = byteOffset + Math.floor((bitOffsetInByte + srcBit) / 8);
+              const srcBitPos = 7 - ((bitOffsetInByte + srcBit) % 8);
+              if (srcByte < payload.length) {
+                val |= ((payload[srcByte] >> srcBitPos) & 1) << (7 - bb);
+              }
+            }
+            subPayload[b] = val;
+          }
+
+          const newRGBA = embedBitsToRGBA(img.rgba, comp, subPayload, useAdaptive);
+          processedImages.push({ ...img, rgba: newRGBA });
+          bitOffset += bitsForThisImage;
+        } else {
+          processedImages.push(img);
+        }
+
+        $('progressFillEmbed').style.width = (30 + (i + 1) / embedImages.length * 50) + '%';
+        await new Promise(r => setTimeout(r, 10));
+      }
+
+      const timestamp = Date.now();
+      for (let i = 0; i < processedImages.length; i++) {
+        const img = processedImages[i];
+        const canvas = imageToCanvas(img);
+        let buffer, ext;
+
+        if (outputFormat === 'png') {
+          buffer = await canvasToPNG(canvas);
+          ext = 'png';
+        } else {
+          buffer = rgbaToBMP(img.rgba, img.width, img.height);
+          ext = 'bmp';
+        }
+
+        const filename = processedImages.length > 1
+          ? 'stego_' + timestamp + '_part' + (i + 1) + '.' + ext
+          : 'stego_' + timestamp + '.' + ext;
+
+        downloadBlob(buffer, filename);
+      }
+
+      $('progressFillEmbed').style.width = '100%';
+      const numChunks = Math.ceil(textBytes.length / CHUNK_SIZE);
+
+      const panel = $('resultEmbed');
+      panel.className = 'result-panel show success';
+      panel.innerHTML =
+        '<div class="result-title">嵌入成功！</div>' +
+        '<div class="file-info">文本长度: ' + textBytes.length + ' 字节 (UTF-8)</div>' +
+        '<div class="file-info">分块哈希: ' + numChunks + ' 个 MD5 校验块</div>' +
+        '<div class="file-info">自适应模式: ' + (useAdaptive ? '启用' : '禁用') + '</div>' +
+        '<div class="file-info">多载体分存: ' + (multiCarrier ? '启用' : '禁用') + '</div>' +
+        '<div class="file-info">输出格式: ' + outputFormat.toUpperCase() + '</div>' +
+        '<div class="file-info">已下载: ' + processedImages.length + ' 个文件</div>';
+
+      showToast('嵌入完成，已下载 ' + processedImages.length + ' 个文件', 'success');
+
+      setTimeout(() => {
+        $('progressEmbed').classList.remove('show');
+        $('progressFillEmbed').style.width = '0%';
+      }, 800);
+
+    } catch (err) {
+      $('progressEmbed').classList.remove('show');
+      $('progressFillEmbed').style.width = '0%';
+      showToast(err.message, 'error');
+      const panel = $('resultEmbed');
+      panel.className = 'result-panel show error';
+      panel.innerHTML = '<div class="result-title">嵌入失败</div><pre>' + err.message + '</pre>';
+    }
+  }
+
+  async function doExtract() {
+    if (extractImages.length === 0) return;
+
+    try {
+      $('progressExtract').classList.add('show');
+      $('progressFillExtract').style.width = '20%';
+      await new Promise(r => setTimeout(r, 50));
+
+      const useAdaptive = true;
+      let combinedBytes = [];
+
+      for (let i = 0; i < extractImages.length; i++) {
+        const img = extractImages[i];
+        const comp = computePixelComplexity(img.rgba, img.width, img.height);
+        const maxBits = img.width * img.height * 3;
+        const bytes = extractBitsFromRGBA(img.rgba, comp, useAdaptive, maxBits);
+        combinedBytes.push(...bytes);
+
+        $('progressFillExtract').style.width = (30 + (i + 1) / extractImages.length * 40) + '%';
+        await new Promise(r => setTimeout(r, 10));
+      }
+
+      $('progressFillExtract').style.width = '80%';
+      const result = parseExtractedBytes(new Uint8Array(combinedBytes));
+      $('progressFillExtract').style.width = '100%';
+
+      const panel = $('resultExtract');
+      if (result.error) {
+        panel.className = 'result-panel show error';
+        panel.innerHTML = '<div class="result-title">提取失败</div><pre>' + result.error + '</pre>';
+        showToast(result.error, 'error');
+      } else {
+        let statusClass = 'success';
+        let statusTitle = '提取成功！';
+        let extraInfo = '';
+
+        if (result.corruptCount > 0) {
+          statusClass = 'warning';
+          statusTitle = '提取完成，但检测到篡改！';
+          extraInfo =
+            '<div class="file-info" style="color:#c05621;font-weight:600;">⚠ MD5 校验失败: ' +
+            result.corruptCount + ' / ' + result.numChunks + ' 个数据块被篡改</div>' +
+            '<div class="file-info" style="color:#c05621;">被篡改块索引: ' +
+            result.corruptChunks.slice(0, 20).join(', ') + (result.corruptChunks.length > 20 ? '...' : '') + '</div>';
+        } else {
+          extraInfo = '<div class="file-info" style="color:#22543d;font-weight:600;">✓ MD5 分块校验全部通过，数据完整</div>';
+        }
+
+        const displayText = result.text.length > 5000
+          ? result.text.substring(0, 5000) + '\n\n... (已截断，共 ' + result.text.length + ' 字符)'
+          : result.text;
+
+        panel.className = 'result-panel show ' + statusClass;
+        panel.innerHTML =
+          '<div class="result-title">' + statusTitle + '</div>' +
+          extraInfo +
+          '<div class="file-info">文本长度: ' + result.textLength + ' 字节</div>' +
+          '<div class="file-info">UTF-8 BOM: ' + (result.hasBOM ? '检测到' : '无') + '</div>' +
+          '<div class="file-info">版本: v' + result.version + '</div>' +
+          '<div class="file-info">哈希类型: MD5</div>' +
+          '<div class="file-info">分块数: ' + result.numChunks + '</div>' +
+          '<div class="file-info">结束标记: ' + (result.endMarkerValid ? '有效' : '异常') + '</div>' +
+          '<pre style="margin-top:10px;">' + displayText + '</pre>';
+
+        if (result.corruptCount > 0) {
+          showToast('检测到 ' + result.corruptCount + ' 个数据块被篡改', 'error');
+        } else {
+          showToast('文本提取成功', 'success');
+        }
+      }
+
+      setTimeout(() => {
+        $('progressExtract').classList.remove('show');
+        $('progressFillExtract').style.width = '0%';
+      }, 800);
+    } catch (err) {
+      $('progressExtract').classList.remove('show');
+      $('progressFillExtract').style.width = '0%';
+      showToast(err.message, 'error');
+      const panel = $('resultExtract');
+      panel.className = 'result-panel show error';
+      panel.innerHTML = '<div class="result-title">提取失败</div><pre>' + err.message + '</pre>';
+    }
+  }
+
+  function resetEmbed() {
+    embedImages = [];
+    $('imageListEmbed').innerHTML = '';
+    $('embedText').value = '';
+    $('fileInputEmbed').value = '';
+    $('imageInfoEmbed').classList.remove('show');
+    $('parityInfoEmbed').style.display = 'none';
+    $('progressEmbed').classList.remove('show');
+    $('charCount').textContent = '0';
+    $('btnEmbed').disabled = true;
+    $('resultEmbed').classList.remove('show');
+    $('resultEmbed').className = 'result-panel';
+  }
+
+  function resetExtract() {
+    extractImages = [];
+    $('imageListExtract').innerHTML = '';
+    $('fileInputExtract').value = '';
+    $('imageInfoExtract').classList.remove('show');
+    $('progressExtract').classList.remove('show');
+    $('btnExtract').disabled = true;
+    $('resultExtract').classList.remove('show');
+    $('resultExtract').className = 'result-panel';
+  }
+
+  setupDragDrop($('uploadEmbed'), $('fileInputEmbed'), 'embed');
+  setupDragDrop($('uploadExtract'), $('fileInputExtract'), 'extract');
+  setupTabs();
+
+  $('embedText').addEventListener('input', updateEmbedStats);
+  $('adaptiveMode').addEventListener('change', updateEmbedStats);
+  $('btnEmbed').addEventListener('click', doEmbed);
+  $('btnExtract').addEventListener('click', doExtract);
+  $('btnResetEmbed').addEventListener('click', resetEmbed);
+  $('btnResetExtract').addEventListener('click', resetExtract);
+
+})();
+</script>
+
+</body>
+</html>

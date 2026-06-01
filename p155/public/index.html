@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parrot 无人机控制台</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Parrot 无人机控制台</h1>
+            <div class="status-bar">
+                <span class="status-label">状态:</span>
+                <span id="status" class="status-disconnected">已断开</span>
+                <span class="separator">|</span>
+                <span class="status-label">电量:</span>
+                <span id="battery" class="battery-ok">--</span>
+                <span id="batteryPercent" class="battery-percent">--%</span>
+            </div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="control">手动控制</button>
+            <button class="tab-btn" data-tab="waypoints">航点规划</button>
+        </div>
+
+        <main>
+            <div id="tab-control" class="tab-content active">
+                <div class="video-section">
+                    <div class="video-container">
+                        <canvas id="videoCanvas" width="640" height="360"></canvas>
+                        <div class="video-overlay" id="videoOverlay">
+                            <p>等待视频流...</p>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <span>分辨率: 640x360</span>
+                        <span>编码: H.264</span>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <div class="control-panel">
+                        <h2>飞行控制</h2>
+
+                        <div class="flight-buttons">
+                            <button id="takeoffBtn" class="btn btn-primary btn-large">
+                                <span class="icon">🚀</span>
+                                <span>起飞</span>
+                            </button>
+                            <button id="landBtn" class="btn btn-success btn-large">
+                                <span class="icon">🪂</span>
+                                <span>降落</span>
+                            </button>
+                            <button id="emergencyBtn" class="btn btn-danger btn-large">
+                                <span class="icon">⚠️</span>
+                                <span>紧急停止</span>
+                            </button>
+                            <button id="calibrateBtn" class="btn btn-warning">
+                                <span class="icon">⚙️</span>
+                                <span>校准</span>
+                            </button>
+                        </div>
+
+                        <h2>运动控制</h2>
+
+                        <div class="slider-group">
+                            <div class="slider-container">
+                                <label>横滚 (Roll) <span class="hint">左右倾斜</span></label>
+                                <div class="slider-wrapper">
+                                    <input type="range" id="roll" min="-1" max="1" step="0.01" value="0" class="slider">
+                                    <span id="rollValue" class="value-display">0.00</span>
+                                </div>
+                            </div>
+
+                            <div class="slider-container">
+                                <label>俯仰 (Pitch) <span class="hint">前后倾斜</span></label>
+                                <div class="slider-wrapper">
+                                    <input type="range" id="pitch" min="-1" max="1" step="0.01" value="0" class="slider">
+                                    <span id="pitchValue" class="value-display">0.00</span>
+                                </div>
+                            </div>
+
+                            <div class="slider-container">
+                                <label>垂直 (Gaz) <span class="hint">上升/下降</span></label>
+                                <div class="slider-wrapper">
+                                    <input type="range" id="gaz" min="-1" max="1" step="0.01" value="0" class="slider">
+                                    <span id="gazValue" class="value-display">0.00</span>
+                                </div>
+                            </div>
+
+                            <div class="slider-container">
+                                <label>偏航 (Yaw) <span class="hint">左右旋转</span></label>
+                                <div class="slider-wrapper">
+                                    <input type="range" id="yaw" min="-1" max="1" step="0.01" value="0" class="slider">
+                                    <span id="yawValue" class="value-display">0.00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="resetBtn" class="btn btn-secondary btn-block">
+                            <span class="icon">🔄</span>
+                            <span>重置控制</span>
+                        </button>
+
+                        <div class="keyboard-hints">
+                            <h3>键盘快捷键</h3>
+                            <div class="hints-grid">
+                                <div class="hint-item">
+                                    <kbd>↑</kbd><kbd>↓</kbd> 前后
+                                </div>
+                                <div class="hint-item">
+                                    <kbd>←</kbd><kbd>→</kbd> 左右
+                                </div>
+                                <div class="hint-item">
+                                    <kbd>W</kbd><kbd>S</kbd> 升降
+                                </div>
+                                <div class="hint-item">
+                                    <kbd>A</kbd><kbd>D</kbd> 旋转
+                                </div>
+                                <div class="hint-item">
+                                    <kbd>空格</kbd> 起飞/降落
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-panel">
+                        <h2>飞行数据</h2>
+                        <div id="errorMessage" class="error-message"></div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">飞行状态</span>
+                                <span id="flyingStatus" class="info-value">地面</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">露天模式</span>
+                                <span id="outdoorMode" class="info-value">--</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">控制状态</span>
+                                <span id="controlState" class="info-value">--</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">电池</span>
+                                <span id="batteryInfo" class="info-value">--</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">电量</span>
+                                <span id="batteryVoltage" class="info-value">-- V</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">高度</span>
+                                <span id="altitude" class="info-value">0.00 m</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">速度</span>
+                                <span id="speed" class="info-value">0.00 m/s</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">飞行时间</span>
+                                <span id="flyTime" class="info-value">00:00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-waypoints" class="tab-content">
+                <div class="waypoint-section">
+                    <div class="map-container">
+                        <div id="map"></div>
+                        <div class="map-hint">点击地图添加航点，再次点击可删除</div>
+                    </div>
+
+                    <div class="waypoint-panel">
+                        <h2>航点规划</h2>
+
+                        <div class="waypoint-controls">
+                            <button id="startMissionBtn" class="btn btn-primary">
+                                <span class="icon">▶️</span>
+                                <span>开始任务</span>
+                            </button>
+                            <button id="pauseMissionBtn" class="btn btn-warning">
+                                <span class="icon">⏸️</span>
+                                <span>暂停</span>
+                            </button>
+                            <button id="stopMissionBtn" class="btn btn-danger">
+                                <span class="icon">⏹️</span>
+                                <span>停止</span>
+                            </button>
+                            <button id="clearWaypointsBtn" class="btn btn-secondary">
+                                <span class="icon">🗑️</span>
+                                <span>清除航点</span>
+                            </button>
+                        </div>
+
+                        <div class="mission-info">
+                            <div class="mission-status">
+                                <span class="status-label">任务状态:</span>
+                                <span id="missionStatus" class="status-idle">空闲</span>
+                            </div>
+                            <div class="mission-progress">
+                                <span class="status-label">进度:</span>
+                                <span id="missionProgress">0/0</span>
+                            </div>
+                        </div>
+
+                        <div class="waypoint-settings">
+                            <h3>航点设置</h3>
+                            <div class="settings-row">
+                                <label>飞行高度 (m)</label>
+                                <input type="number" id="waypointAltitude" value="2" min="0.5" max="10" step="0.5">
+                            </div>
+                            <div class="settings-row">
+                                <label>飞行速度 (m/s)</label>
+                                <input type="number" id="waypointSpeed" value="0.5" min="0.1" max="2" step="0.1">
+                            </div>
+                            <div class="settings-row">
+                                <label>到达停留 (s)</label>
+                                <input type="number" id="waypointDelay" value="1" min="0" max="10" step="0.5">
+                            </div>
+                        </div>
+
+                        <div class="waypoint-list">
+                            <h3>航点列表</h3>
+                            <div id="waypointList" class="waypoint-items">
+                                <p class="empty-hint">暂无航点，请在地图上点击添加</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Parrot Drone Web Controller | 确保已连接无人机WiFi</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

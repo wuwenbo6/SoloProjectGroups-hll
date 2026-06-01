@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分布式追踪系统</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-bar input {
+            flex: 1;
+            max-width: 400px;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .search-bar button {
+            padding: 10px 20px;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .search-bar button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: white;
+            padding: 0 40px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .nav-tab {
+            padding: 15px 25px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .nav-tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+
+        .nav-tab:hover {
+            color: #667eea;
+        }
+
+        .badge {
+            position: absolute;
+            top: 8px;
+            right: 5px;
+            background: #e53e3e;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 18px;
+            text-align: center;
+        }
+
+        .content {
+            padding: 30px 40px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #2d3748;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            color: #718096;
+            font-weight: 500;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            min-width: 150px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+
+        .btn-secondary {
+            background: #edf2f7;
+            color: #2d3748;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+        }
+
+        .btn-danger {
+            background: #fc8181;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #f56565;
+        }
+
+        .btn-small {
+            padding: 4px 12px;
+            font-size: 12px;
+        }
+
+        .trace-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .trace-item {
+            padding: 15px 20px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .trace-item:hover {
+            border-color: #667eea;
+            background: #f7f9fc;
+        }
+
+        .trace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .trace-id {
+            font-family: monospace;
+            font-size: 14px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .trace-duration {
+            font-size: 13px;
+            color: #718096;
+        }
+
+        .trace-services {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .service-tag {
+            padding: 4px 10px;
+            background: #edf2f7;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #4a5568;
+        }
+
+        .flamegraph-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .flame-svg {
+            min-width: 100%;
+        }
+
+        .flame-rect {
+            cursor: pointer;
+            stroke: white;
+            stroke-width: 1px;
+        }
+
+        .flame-rect:hover {
+            opacity: 0.8;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.85);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        .tooltip-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .dependecy-graph {
+            width: 100%;
+            height: 600px;
+        }
+
+        .node {
+            cursor: pointer;
+        }
+
+        .node circle {
+            stroke: #fff;
+            stroke-width: 2px;
+        }
+
+        .node text {
+            font-size: 12px;
+            fill: #2d3748;
+        }
+
+        .link {
+            stroke: #cbd5e0;
+            stroke-opacity: 0.6;
+            fill: none;
+        }
+
+        .link-label {
+            font-size: 10px;
+            fill: #718096;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .span-details {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f7f9fc;
+            border-radius: 8px;
+        }
+
+        .span-details h3 {
+            margin-bottom: 15px;
+            color: #2d3748;
+        }
+
+        .detail-row {
+            display: flex;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .detail-label {
+            width: 150px;
+            font-weight: 600;
+            color: #718096;
+        }
+
+        .detail-value {
+            flex: 1;
+            color: #2d3748;
+        }
+
+        .attributes {
+            margin-top: 15px;
+        }
+
+        .attribute-item {
+            padding: 5px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #718096;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .alert-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .alert-item {
+            padding: 15px 20px;
+            border-radius: 8px;
+            border-left: 4px solid;
+            background: #f7fafc;
+        }
+
+        .alert-item.warning {
+            border-left-color: #ed8936;
+            background: #fffaf0;
+        }
+
+        .alert-item.error {
+            border-left-color: #e53e3e;
+            background: #fff5f5;
+        }
+
+        .alert-item.critical {
+            border-left-color: #9b2c2c;
+            background: #fff5f5;
+        }
+
+        .alert-item.resolved {
+            opacity: 0.6;
+        }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .alert-type {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .alert-time {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .alert-message {
+            font-size: 13px;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+
+        .alert-trace {
+            font-family: monospace;
+            font-size: 12px;
+            color: #667eea;
+            cursor: pointer;
+        }
+
+        .alert-trace:hover {
+            text-decoration: underline;
+        }
+
+        .severity-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .severity-badge.warning {
+            background: #fbd38d;
+            color: #744210;
+        }
+
+        .severity-badge.error {
+            background: #fc8181;
+            color: #742a2a;
+        }
+
+        .severity-badge.critical {
+            background: #feb2b2;
+            color: #742a2a;
+        }
+
+        .config-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .config-label {
+            width: 250px;
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        .config-value {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .config-value input[type="number"] {
+            width: 150px;
+            padding: 6px 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+        }
+
+        .config-value input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .stat-card.secondary {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+
+        .stat-card.warning {
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .action-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 分布式追踪系统</h1>
+        <div class="search-bar">
+            <input type="text" id="traceIdInput" placeholder="输入 Trace ID 搜索...">
+            <button onclick="searchByTraceId()">搜索</button>
+        </div>
+    </div>
+
+    <div class="nav-tabs">
+        <div class="nav-tab active" onclick="switchTab('traces')">Trace 列表</div>
+        <div class="nav-tab" onclick="switchTab('flamegraph')">火焰图</div>
+        <div class="nav-tab" onclick="switchTab('dependencies')">服务依赖</div>
+        <div class="nav-tab" onclick="switchTab('alerts')">
+            报警中心
+            <span id="alertBadge" class="badge" style="display: none;">0</span>
+        </div>
+        <div class="nav-tab" onclick="switchTab('settings')">系统设置</div>
+    </div>
+
+    <div class="content">
+        <div id="traces-tab" class="tab-content active">
+            <div class="card">
+                <h2>筛选条件</h2>
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>服务名称</label>
+                        <select id="serviceFilter">
+                            <option value="">全部服务</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>操作名称</label>
+                        <select id="operationFilter">
+                            <option value="">全部操作</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>数量限制</label>
+                        <input type="number" id="limitInput" value="20" min="1" max="100">
+                    </div>
+                    <div class="filter-group" style="align-self: flex-end;">
+                        <button class="btn btn-primary" onclick="loadTraces()">查询</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>
+                    最近的 Traces
+                    <button class="btn btn-secondary btn-small" onclick="exportAllTraces()">导出 JSON</button>
+                </h2>
+                <div id="traceList" class="trace-list">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="flamegraph-tab" class="tab-content">
+            <div class="card">
+                <h2>
+                    火焰图
+                    <button class="btn btn-secondary btn-small" id="exportTraceBtn" onclick="exportCurrentTrace()" style="display: none;">导出 JSON</button>
+                </h2>
+                <div style="margin-bottom: 15px;">
+                    <span style="color: #718096; font-size: 14px;">当前 Trace ID: </span>
+                    <span id="currentTraceId" style="font-family: monospace; color: #667eea;">请先选择一个 Trace</span>
+                </div>
+                <div id="flamegraphContainer" class="flamegraph-container">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <p>请从 Trace 列表中选择一个 Trace 查看火焰图</p>
+                    </div>
+                </div>
+                <div id="spanDetails" class="span-details" style="display: none;">
+                    <h3>Span 详情</h3>
+                    <div id="spanDetailContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="dependencies-tab" class="tab-content">
+            <div class="card">
+                <h2>服务依赖图</h2>
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>开始时间</label>
+                        <input type="datetime-local" id="startTime">
+                    </div>
+                    <div class="filter-group">
+                        <label>结束时间</label>
+                        <input type="datetime-local" id="endTime">
+                    </div>
+                    <div class="filter-group" style="align-self: flex-end;">
+                        <button class="btn btn-primary" onclick="loadDependencies()">刷新</button>
+                    </div>
+                </div>
+                <div id="dependencyGraph" class="dependecy-graph"></div>
+            </div>
+        </div>
+
+        <div id="alerts-tab" class="tab-content">
+            <div class="card">
+                <h2>报警列表</h2>
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>状态</label>
+                        <select id="alertStatusFilter" onchange="loadAlerts()">
+                            <option value="">全部</option>
+                            <option value="false">未解决</option>
+                            <option value="true">已解决</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>类型</label>
+                        <select id="alertTypeFilter" onchange="loadAlerts()">
+                            <option value="">全部</option>
+                            <option value="slow_trace">慢 Trace</option>
+                            <option value="slow_span">慢 Span</option>
+                        </select>
+                    </div>
+                    <div class="filter-group" style="align-self: flex-end;">
+                        <button class="btn btn-primary" onclick="loadAlerts()">刷新</button>
+                    </div>
+                </div>
+                <div id="alertList" class="alert-list">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings-tab" class="tab-content">
+            <div class="card">
+                <h2>系统统计</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statQueueSize">0</div>
+                        <div class="stat-label">队列大小</div>
+                    </div>
+                    <div class="stat-card secondary">
+                        <div class="stat-value" id="statProcessed">0</div>
+                        <div class="stat-label">已处理</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-value" id="statDropped">0</div>
+                        <div class="stat-label">已丢弃</div>
+                    </div>
+                    <div class="stat-card secondary">
+                        <div class="stat-value" id="statSamplingRate">100%</div>
+                        <div class="stat-label">采样率</div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="loadStats()">刷新统计</button>
+            </div>
+
+            <div class="card">
+                <h2>报警配置</h2>
+                <div class="config-row">
+                    <div class="config-label">启用报警</div>
+                    <div class="config-value">
+                        <input type="checkbox" id="alertEnabled">
+                    </div>
+                </div>
+                <div class="config-row">
+                    <div class="config-label">慢 Trace 阈值 (ms)</div>
+                    <div class="config-value">
+                        <input type="number" id="slowTraceThreshold" value="1000" min="1">
+                    </div>
+                </div>
+                <div class="config-row">
+                    <div class="config-label">慢 Span 阈值 (ms)</div>
+                    <div class="config-value">
+                        <input type="number" id="slowSpanThreshold" value="500" min="1">
+                    </div>
+                </div>
+                <div class="config-row">
+                    <div class="config-label">每分钟最大报警数</div>
+                    <div class="config-value">
+                        <input type="number" id="maxAlertsPerMinute" value="60" min="1">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="saveAlertConfig()">保存报警配置</button>
+            </div>
+
+            <div class="card">
+                <h2>采样配置</h2>
+                <div class="config-row">
+                    <div class="config-label">启用采样</div>
+                    <div class="config-value">
+                        <input type="checkbox" id="samplingEnabled">
+                    </div>
+                </div>
+                <div class="config-row">
+                    <div class="config-label">采样率 (0-1)</div>
+                    <div class="config-value">
+                        <input type="number" id="samplingRate" value="1.0" min="0" max="1" step="0.1">
+                    </div>
+                </div>
+                <div class="config-row">
+                    <div class="config-label">慢 Trace 强制采样</div>
+                    <div class="config-value">
+                        <input type="checkbox" id="slowTraceAlwaysSample">
+                    </div>
+                </div>
+                <div class="config-row">
+                    <div class="config-label">错误 Trace 强制采样</div>
+                    <div class="config-value">
+                        <input type="checkbox" id="errorAlwaysSample">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="saveSamplingConfig()">保存采样配置</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tooltip" class="tooltip" style="display: none;"></div>
+
+    <script>
+        const API_BASE = '/api';
+        let currentTrace = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTimeFilters();
+            loadServices();
+            loadTraces();
+            loadStats();
+            loadConfigs();
+            
+            setInterval(() => {
+                loadAlertBadge();
+            }, 10000);
+        });
+
+        function initializeTimeFilters() {
+            const now = new Date();
+            const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            
+            document.getElementById('startTime').value = yesterday.toISOString().slice(0, 16);
+            document.getElementById('endTime').value = now.toISOString().slice(0, 16);
+        }
+
+        async function loadServices() {
+            try {
+                const response = await fetch(`${API_BASE}/services`);
+                const data = await response.json();
+                const select = document.getElementById('serviceFilter');
+                
+                select.innerHTML = '<option value="">全部服务</option>';
+                data.data.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service;
+                    option.textContent = service;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Failed to load services:', error);
+            }
+        }
+
+        async function loadTraces() {
+            const service = document.getElementById('serviceFilter').value;
+            const limit = document.getElementById('limitInput').value;
+            
+            const traceList = document.getElementById('traceList');
+            traceList.innerHTML = '<div class="loading">加载中...</div>';
+
+            try {
+                let url = `${API_BASE}/traces/recent?limit=${limit}`;
+                if (service) {
+                    url = `${API_BASE}/traces?service=${encodeURIComponent(service)}&limit=${limit}`;
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.data.length === 0) {
+                    traceList.innerHTML = `
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M8 12h8"/>
+                            </svg>
+                            <p>暂无 Trace 数据</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                traceList.innerHTML = data.data.map(trace => {
+                    const services = [...new Set(trace.spans.map(s => s.service_name))];
+                    const totalDuration = trace.spans.reduce((max, s) => Math.max(max, s.duration), 0);
+                    
+                    return `
+                        <div class="trace-item" onclick="selectTrace('${trace.trace_id}')">
+                            <div class="trace-header">
+                                <span class="trace-id">${trace.trace_id}</span>
+                                <span class="trace-duration">${formatDuration(totalDuration)}</span>
+                            </div>
+                            <div class="trace-services">
+                                ${services.map(s => `<span class="service-tag">${s}</span>`).join('')}
+                            </div>
+                            <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 12px; color: #718096;">${trace.spans.length} 个 spans</span>
+                                <button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); exportTrace('${trace.trace_id}')">导出</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                traceList.innerHTML = `<div class="error">加载失败: ${error.message}</div>`;
+            }
+        }
+
+        async function searchByTraceId() {
+            const traceId = document.getElementById('traceIdInput').value.trim();
+            if (!traceId) {
+                alert('请输入 Trace ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/trace/${traceId}`);
+                if (response.status === 404) {
+                    alert('未找到该 Trace');
+                    return;
+                }
+                
+                const trace = await response.json();
+                currentTrace = trace;
+                document.getElementById('currentTraceId').textContent = trace.trace_id;
+                document.getElementById('exportTraceBtn').style.display = 'inline-block';
+                switchTab('flamegraph');
+                renderFlamegraph(trace);
+            } catch (error) {
+                alert('搜索失败: ' + error.message);
+            }
+        }
+
+        async function selectTrace(traceId) {
+            try {
+                const response = await fetch(`${API_BASE}/trace/${traceId}`);
+                const trace = await response.json();
+                currentTrace = trace;
+                document.getElementById('currentTraceId').textContent = trace.trace_id;
+                document.getElementById('exportTraceBtn').style.display = 'inline-block';
+                switchTab('flamegraph');
+                renderFlamegraph(trace);
+            } catch (error) {
+                console.error('Failed to load trace:', error);
+            }
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+
+            if (tabName === 'dependencies') {
+                loadDependencies();
+            } else if (tabName === 'alerts') {
+                loadAlerts();
+            } else if (tabName === 'settings') {
+                loadStats();
+                loadConfigs();
+            }
+        }
+
+        function exportTrace(traceId) {
+            window.open(`${API_BASE}/trace/${traceId}/export?format=json`, '_blank');
+        }
+
+        function exportCurrentTrace() {
+            if (currentTrace) {
+                exportTrace(currentTrace.trace_id);
+            }
+        }
+
+        function exportAllTraces() {
+            const service = document.getElementById('serviceFilter').value;
+            const limit = document.getElementById('limitInput').value;
+            let url = `${API_BASE}/traces/export?format=json&limit=${limit}`;
+            if (service) {
+                url += `&service=${encodeURIComponent(service)}`;
+            }
+            window.open(url, '_blank');
+        }
+
+        function renderFlamegraph(trace) {
+            const container = document.getElementById('flamegraphContainer');
+            container.innerHTML = '';
+
+            const spans = trace.spans;
+            if (spans.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>该 Trace 没有 Span 数据</p></div>';
+                return;
+            }
+
+            const spanMap = new Map();
+            spans.forEach(span => spanMap.set(span.span_id, span));
+
+            const children = new Map();
+            spans.forEach(span => {
+                if (span.parent_span_id && spanMap.has(span.parent_span_id)) {
+                    if (!children.has(span.parent_span_id)) {
+                        children.set(span.parent_span_id, []);
+                    }
+                    children.get(span.parent_span_id).push(span);
+                }
+            });
+
+            const roots = spans.filter(s => !s.parent_span_id || !spanMap.has(s.parent_span_id));
+            
+            const minTime = Math.min(...spans.map(s => new Date(s.start_time).getTime()));
+            const maxTime = Math.max(...spans.map(s => new Date(s.end_time).getTime()));
+            const totalDuration = maxTime - minTime;
+
+            const width = Math.max(1200, container.clientWidth);
+            const rowHeight = 30;
+            const levelMap = new Map();
+            
+            function calculateLevel(spanId, level) {
+                levelMap.set(spanId, level);
+                const childSpans = children.get(spanId) || [];
+                childSpans.forEach(child => calculateLevel(child.span_id, level + 1));
+            }
+            roots.forEach(root => calculateLevel(root.span_id, 0));
+
+            const maxLevel = Math.max(...levelMap.values(), 0);
+            const height = (maxLevel + 2) * rowHeight;
+
+            const svg = d3.select(container)
+                .append('svg')
+                .attr('class', 'flame-svg')
+                .attr('width', width)
+                .attr('height', height);
+
+            const colors = [
+                '#667eea', '#764ba2', '#f093fb', '#f5576c',
+                '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
+                '#fa709a', '#fee140', '#30cfd0', '#330867'
+            ];
+
+            const serviceColors = new Map();
+            const services = [...new Set(spans.map(s => s.service_name))];
+            services.forEach((service, i) => {
+                serviceColors.set(service, colors[i % colors.length]);
+            });
+
+            function renderSpan(span) {
+                const level = levelMap.get(span.span_id) || 0;
+                const startTime = new Date(span.start_time).getTime();
+                const endTime = new Date(span.end_time).getTime();
+                const duration = endTime - startTime;
+
+                const x = ((startTime - minTime) / totalDuration) * (width - 100) + 50;
+                const y = level * rowHeight + 10;
+                const w = Math.max((duration / totalDuration) * (width - 100), 5);
+                const h = rowHeight - 5;
+
+                const g = svg.append('g')
+                    .attr('class', 'flame-bar')
+                    .style('cursor', 'pointer')
+                    .on('click', () => showSpanDetails(span))
+                    .on('mouseover', (event) => showTooltip(event, span))
+                    .on('mouseout', hideTooltip);
+
+                g.append('rect')
+                    .attr('class', 'flame-rect')
+                    .attr('x', x)
+                    .attr('y', y)
+                    .attr('width', w)
+                    .attr('height', h)
+                    .attr('fill', serviceColors.get(span.service_name) || '#667eea')
+                    .attr('rx', 3);
+
+                if (w > 50) {
+                    g.append('text')
+                        .attr('x', x + 5)
+                        .attr('y', y + h / 2 + 4)
+                        .attr('fill', 'white')
+                        .attr('font-size', '11px')
+                        .text(span.name.length > 20 ? span.name.substring(0, 20) + '...' : span.name);
+                }
+
+                const childSpans = children.get(span.span_id) || [];
+                childSpans.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+                childSpans.forEach(child => renderSpan(child));
+            }
+
+            roots.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+            roots.forEach(root => renderSpan(root));
+
+            const legend = svg.append('g').attr('transform', `translate(10, ${height - 30})`);
+            let legendX = 0;
+            services.forEach(service => {
+                legend.append('rect')
+                    .attr('x', legendX)
+                    .attr('y', 0)
+                    .attr('width', 15)
+                    .attr('height', 15)
+                    .attr('fill', serviceColors.get(service))
+                    .attr('rx', 3);
+                
+                legend.append('text')
+                    .attr('x', legendX + 20)
+                    .attr('y', 12)
+                    .attr('font-size', '12px')
+                    .attr('fill', '#4a5568')
+                    .text(service);
+                
+                legendX += 15 + 20 + service.length * 7 + 20;
+            });
+        }
+
+        function showTooltip(event, span) {
+            const tooltip = document.getElementById('tooltip');
+            const duration = new Date(span.end_time) - new Date(span.start_time);
+            
+            tooltip.innerHTML = `
+                <div class="tooltip-title">${span.name}</div>
+                <div>服务: ${span.service_name}</div>
+                <div>时长: ${formatDuration(span.duration)}</div>
+                <div>Span ID: ${span.span_id.substring(0, 16)}...</div>
+            `;
+            
+            tooltip.style.display = 'block';
+            tooltip.style.left = (event.pageX + 10) + 'px';
+            tooltip.style.top = (event.pageY + 10) + 'px';
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').style.display = 'none';
+        }
+
+        function showSpanDetails(span) {
+            const detailsDiv = document.getElementById('spanDetails');
+            const content = document.getElementById('spanDetailContent');
+            
+            const duration = new Date(span.end_time) - new Date(span.start_time);
+            
+            let attributesHtml = '';
+            if (span.attributes && Object.keys(span.attributes).length > 0) {
+                attributesHtml = `
+                    <div class="attributes">
+                        <strong>属性:</strong>
+                        ${Object.entries(span.attributes).map(([key, value]) => 
+                            `<div class="attribute-item">${key}: ${JSON.stringify(value)}</div>`
+                        ).join('')}
+                    </div>
+                `;
+            }
+
+            content.innerHTML = `
+                <div class="detail-row">
+                    <span class="detail-label">名称</span>
+                    <span class="detail-value">${span.name}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">服务</span>
+                    <span class="detail-value">${span.service_name}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Trace ID</span>
+                    <span class="detail-value" style="font-family: monospace;">${span.trace_id}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Span ID</span>
+                    <span class="detail-value" style="font-family: monospace;">${span.span_id}</span>
+                </div>
+                ${span.parent_span_id ? `
+                <div class="detail-row">
+                    <span class="detail-label">Parent Span ID</span>
+                    <span class="detail-value" style="font-family: monospace;">${span.parent_span_id}</span>
+                </div>
+                ` : ''}
+                <div class="detail-row">
+                    <span class="detail-label">类型</span>
+                    <span class="detail-value">${span.kind || 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">时长</span>
+                    <span class="detail-value">${formatDuration(span.duration)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">开始时间</span>
+                    <span class="detail-value">${new Date(span.start_time).toLocaleString()}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">状态</span>
+                    <span class="detail-value">${span.status?.code || 'N/A'}</span>
+                </div>
+                ${attributesHtml}
+            `;
+            
+            detailsDiv.style.display = 'block';
+        }
+
+        async function loadDependencies() {
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            
+            const container = document.getElementById('dependencyGraph');
+            container.innerHTML = '<div class="loading">加载中...</div>';
+
+            try {
+                const url = `${API_BASE}/dependencies?start_time=${encodeURIComponent(startTime)}&end_time=${encodeURIComponent(endTime)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.data.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state" style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M8 12h8"/>
+                            </svg>
+                            <p>暂无服务依赖数据</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                renderDependencyGraph(data.data);
+            } catch (error) {
+                container.innerHTML = `<div class="error">加载失败: ${error.message}</div>`;
+            }
+        }
+
+        function renderDependencyGraph(dependencies) {
+            const container = document.getElementById('dependencyGraph');
+            container.innerHTML = '';
+
+            const width = container.clientWidth;
+            const height = 550;
+
+            const nodes = new Map();
+            const links = [];
+
+            dependencies.forEach(dep => {
+                if (!nodes.has(dep.client)) {
+                    nodes.set(dep.client, { id: dep.client, name: dep.client });
+                }
+                if (!nodes.has(dep.server)) {
+                    nodes.set(dep.server, { id: dep.server, name: dep.server });
+                }
+                links.push({
+                    source: dep.client,
+                    target: dep.server,
+                    count: dep.count
+                });
+            });
+
+            const nodeArray = Array.from(nodes.values());
+
+            const svg = d3.select(container)
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
+
+            const simulation = d3.forceSimulation(nodeArray)
+                .force('link', d3.forceLink(links).id(d => d.id).distance(150))
+                .force('charge', d3.forceManyBody().strength(-400))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(50));
+
+            const colors = d3.scaleOrdinal(d3.schemeSet3);
+
+            const link = svg.append('g')
+                .selectAll('line')
+                .data(links)
+                .enter()
+                .append('line')
+                .attr('class', 'link')
+                .attr('stroke-width', d => Math.min(Math.sqrt(d.count) * 2, 8));
+
+            const linkLabel = svg.append('g')
+                .selectAll('text')
+                .data(links)
+                .enter()
+                .append('text')
+                .attr('class', 'link-label')
+                .text(d => d.count);
+
+            const node = svg.append('g')
+                .selectAll('g')
+                .data(nodeArray)
+                .enter()
+                .append('g')
+                .attr('class', 'node')
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+
+            node.append('circle')
+                .attr('r', 25)
+                .attr('fill', d => colors(d.id));
+
+            node.append('text')
+                .attr('dy', 40)
+                .attr('text-anchor', 'middle')
+                .text(d => d.name);
+
+            node.append('text')
+                .attr('dy', 5)
+                .attr('text-anchor', 'middle')
+                .attr('font-size', '10px')
+                .attr('fill', '#4a5568')
+                .text(d => d.name.substring(0, 2));
+
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                linkLabel
+                    .attr('x', d => (d.source.x + d.target.x) / 2)
+                    .attr('y', d => (d.source.y + d.target.y) / 2);
+
+                node.attr('transform', d => `translate(${d.x},${d.y})`);
+            });
+
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+        }
+
+        async function loadAlerts() {
+            const status = document.getElementById('alertStatusFilter').value;
+            const type = document.getElementById('alertTypeFilter').value;
+            
+            const alertList = document.getElementById('alertList');
+            alertList.innerHTML = '<div class="loading">加载中...</div>';
+
+            try {
+                let url = `${API_BASE}/alerts?limit=100`;
+                if (status !== '') url += `&resolved=${status}`;
+                if (type !== '') url += `&type=${type}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.data.length === 0) {
+                    alertList.innerHTML = `
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                            <p>暂无报警数据</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                alertList.innerHTML = data.data.map(alert => `
+                    <div class="alert-item ${alert.severity} ${alert.resolved ? 'resolved' : ''}">
+                        <div class="alert-header">
+                            <span class="alert-type">
+                                <span class="severity-badge ${alert.severity}">${alert.severity}</span>
+                                ${alert.type === 'slow_trace' ? '慢 Trace' : '慢 Span'}
+                            </span>
+                            <span class="alert-time">${new Date(alert.created_at).toLocaleString()}</span>
+                        </div>
+                        <div class="alert-message">${alert.message}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span class="alert-trace" onclick="selectTrace('${alert.trace_id}')">Trace: ${alert.trace_id.substring(0, 16)}...</span>
+                            ${!alert.resolved ? `<button class="btn btn-success btn-small" onclick="resolveAlert('${alert.id}')">标记已解决</button>` : '<span style="color: #48bb78; font-size: 12px;">✓ 已解决</span>'}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                alertList.innerHTML = `<div class="error">加载失败: ${error.message}</div>`;
+            }
+        }
+
+        async function resolveAlert(alertId) {
+            try {
+                await fetch(`${API_BASE}/alerts/${alertId}/resolve`, { method: 'POST' });
+                loadAlerts();
+                loadAlertBadge();
+            } catch (error) {
+                console.error('Failed to resolve alert:', error);
+            }
+        }
+
+        async function loadAlertBadge() {
+            try {
+                const response = await fetch(`${API_BASE}/alerts?resolved=false&limit=100`);
+                const data = await response.json();
+                const badge = document.getElementById('alertBadge');
+                if (data.total > 0) {
+                    badge.textContent = data.total > 99 ? '99+' : data.total;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Failed to load alert badge:', error);
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/stats`);
+                const data = await response.json();
+                if (data.stats) {
+                    document.getElementById('statQueueSize').textContent = `${data.stats.queue_size}/${data.stats.queue_capacity}`;
+                    document.getElementById('statProcessed').textContent = data.stats.total_processed.toLocaleString();
+                    document.getElementById('statDropped').textContent = data.stats.total_dropped.toLocaleString();
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        async function loadConfigs() {
+            try {
+                const alertConfigRes = await fetch(`${API_BASE}/alerts/config`);
+                const alertConfig = await alertConfigRes.json();
+                document.getElementById('alertEnabled').checked = alertConfig.enabled;
+                document.getElementById('slowTraceThreshold').value = alertConfig.slow_trace_threshold_ms;
+                document.getElementById('slowSpanThreshold').value = alertConfig.slow_span_threshold_ms;
+                document.getElementById('maxAlertsPerMinute').value = alertConfig.max_alerts_per_minute;
+            } catch (error) {
+                console.error('Failed to load alert config:', error);
+            }
+
+            try {
+                const samplingConfigRes = await fetch(`${API_BASE}/sampling/config`);
+                const samplingConfig = await samplingConfigRes.json();
+                document.getElementById('samplingEnabled').checked = samplingConfig.enabled;
+                document.getElementById('samplingRate').value = samplingConfig.sampling_rate;
+                document.getElementById('slowTraceAlwaysSample').checked = samplingConfig.slow_trace_always_sample;
+                document.getElementById('errorAlwaysSample').checked = samplingConfig.error_always_sample;
+                document.getElementById('statSamplingRate').textContent = Math.round(samplingConfig.sampling_rate * 100) + '%';
+            } catch (error) {
+                console.error('Failed to load sampling config:', error);
+            }
+        }
+
+        async function saveAlertConfig() {
+            const config = {
+                enabled: document.getElementById('alertEnabled').checked,
+                slow_trace_threshold_ms: parseInt(document.getElementById('slowTraceThreshold').value),
+                slow_span_threshold_ms: parseInt(document.getElementById('slowSpanThreshold').value),
+                max_alerts_per_minute: parseInt(document.getElementById('maxAlertsPerMinute').value)
+            };
+
+            try {
+                await fetch(`${API_BASE}/alerts/config`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                alert('报警配置已保存');
+            } catch (error) {
+                alert('保存失败: ' + error.message);
+            }
+        }
+
+        async function saveSamplingConfig() {
+            const config = {
+                enabled: document.getElementById('samplingEnabled').checked,
+                sampling_rate: parseFloat(document.getElementById('samplingRate').value),
+                slow_trace_always_sample: document.getElementById('slowTraceAlwaysSample').checked,
+                error_always_sample: document.getElementById('errorAlwaysSample').checked
+            };
+
+            try {
+                await fetch(`${API_BASE}/sampling/config`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                document.getElementById('statSamplingRate').textContent = Math.round(config.sampling_rate * 100) + '%';
+                alert('采样配置已保存');
+            } catch (error) {
+                alert('保存失败: ' + error.message);
+            }
+        }
+
+        function formatDuration(microseconds) {
+            if (microseconds < 1000) {
+                return `${microseconds}µs`;
+            } else if (microseconds < 1000000) {
+                return `${(microseconds / 1000).toFixed(2)}ms`;
+            } else {
+                return `${(microseconds / 1000000).toFixed(2)}s`;
+            }
+        }
+    </script>
+</body>
+</html>

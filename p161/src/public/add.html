@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>上传密钥 - HKP Keyserver</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>HKP Keyserver</h1>
+      <p>上传 OpenPGP 公钥</p>
+    </header>
+
+    <div class="main-card">
+      <a href="/" class="back-link">&larr; 返回搜索</a>
+      
+      <div id="alertContainer"></div>
+
+      <form id="addKeyForm">
+        <div class="form-group">
+          <label for="publicKey">公钥内容 (ASCII Armor 格式)</label>
+          <textarea 
+            id="publicKey" 
+            name="publicKey" 
+            placeholder="粘贴您的 PGP 公钥，以 -----BEGIN PGP PUBLIC KEY BLOCK----- 开头..."></textarea>
+        </div>
+
+        <div style="text-align: center;">
+          <button type="submit" class="btn-primary">上传公钥</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/add.js"></script>
+</body>
+</html>

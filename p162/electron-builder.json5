@@ -1,0 +1,23 @@
+{
+  appId: 'com.hartfsk.modem',
+  productName: 'HART FSK Modem',
+  directories: {
+    output: 'release/${version}'
+  },
+  files: [
+    'dist',
+    'dist-electron'
+  ],
+  mac: {
+    target: ['dmg', 'zip'],
+    icon: 'build/icon.png'
+  },
+  win: {
+    target: ['nsis', 'zip'],
+    icon: 'build/icon.png'
+  },
+  linux: {
+    target: ['AppImage', 'deb'],
+    icon: 'build/icon.png'
+  }
+}

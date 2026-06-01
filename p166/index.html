@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>I3C 总线分析仪</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="header-content">
+        <h1>📡 I3C 总线分析仪</h1>
+        <div class="header-actions">
+          <button id="btn-open-file" class="btn btn-primary">📂 打开 CSV 文件</button>
+          <button id="btn-load-sample" class="btn btn-secondary">📋 加载示例数据</button>
+          <button id="btn-export-json" class="btn btn-secondary" disabled>💾 导出 JSON</button>
+          <button id="btn-export-pcapng" class="btn btn-secondary" disabled>🔷 导出 PCAPNG</button>
+        </div>
+      </div>
+      <div id="file-info" class="file-info hidden">
+        <span class="file-name">文件名: </span>
+        <span id="current-file"></span>
+        <span id="file-size-info" class="file-size"></span>
+      </div>
+      <div id="progress-container" class="progress-container hidden">
+        <div class="progress-header">
+          <span id="progress-status">正在加载文件...</span>
+          <span id="progress-percent">0%</span>
+        </div>
+        <div class="progress-bar">
+          <div id="progress-fill" class="progress-fill"></div>
+        </div>
+        <div class="progress-details">
+          <span id="progress-bytes">0 MB / 0 MB</span>
+          <span id="progress-chunks">块: 0 / 0</span>
+          <span id="progress-lines">已解析: 0 行</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div id="empty-state" class="empty-state">
+        <div class="empty-icon">📊</div>
+        <h2>暂无数据</h2>
+        <p>请上传 Saleae 逻辑分析仪抓取的 I3C 总线 CSV 数据文件</p>
+        <p class="hint">支持格式: Time, SDA, SCL 或类似列名</p>
+      </div>
+
+      <div id="content-area" class="content-area hidden">
+        <div class="stats-panel">
+          <div class="stat-card">
+            <div class="stat-value" id="stat-transactions">0</div>
+            <div class="stat-label">传输次数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-bytes">0</div>
+            <div class="stat-label">数据字节</div>
+          </div>
+          <div class="stat-card stat-error">
+            <div class="stat-value" id="stat-errors">0</div>
+            <div class="stat-label">错误</div>
+          </div>
+          <div class="stat-card stat-warning">
+            <div class="stat-value" id="stat-warnings">0</div>
+            <div class="stat-label">警告</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-duration">0s</div>
+            <div class="stat-label">时长</div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="timing">⏱️ 时序图</button>
+          <button class="tab-btn" data-tab="transactions">📋 传输列表</button>
+          <button class="tab-btn" data-tab="errors">⚠️ 错误列表</button>
+          <button class="tab-btn" data-tab="raw">📄 原始数据</button>
+        </div>
+
+        <div class="tab-content">
+          <div id="tab-timing" class="tab-pane active">
+            <div class="timing-controls">
+              <div class="control-group">
+                <label>缩放: </label>
+                <input type="range" id="zoom-slider" min="1" max="100" value="10">
+                <span id="zoom-value">1x</span>
+              </div>
+              <div class="control-group">
+                <button id="btn-fit" class="btn btn-small">自适应宽度</button>
+                <button id="btn-zoom-in" class="btn btn-small">放大</button>
+                <button id="btn-zoom-out" class="btn btn-small">缩小</button>
+              </div>
+            </div>
+            <div class="timing-container" id="timing-container">
+              <div class="timing-labels">
+                <div class="signal-label scl">SCL</div>
+                <div class="signal-label sda">SDA</div>
+              </div>
+              <div class="timing-canvas-wrapper">
+                <canvas id="timing-canvas"></canvas>
+                <div id="timing-tooltip" class="timing-tooltip hidden"></div>
+              </div>
+            </div>
+            <div class="timing-ruler" id="timing-ruler"></div>
+          </div>
+
+          <div id="tab-transactions" class="tab-pane">
+            <div class="transaction-list" id="transaction-list"></div>
+          </div>
+
+          <div id="tab-raw" class="tab-pane">
+            <div class="raw-data-container">
+              <pre id="raw-data-content"></pre>
+            </div>
+          </div>
+
+          <div id="tab-errors" class="tab-pane">
+            <div class="errors-summary" id="errors-summary"></div>
+            <div class="error-list" id="error-list"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div id="transaction-detail-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modal-title">传输详情</h3>
+          <button class="modal-close" id="modal-close">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="i3c-parser.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

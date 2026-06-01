@@ -1,0 +1,18 @@
+{
+  "name": "zookeeper-monitor",
+  "version": "1.1.0",
+  "description": "ZooKeeper 监控系统 - 通过四字命令监控节点状态（WebSocket 实时推送）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "ws": "^8.16.0"
+  },
+  "keywords": ["zookeeper", "monitor", "4lw", "websocket"],
+  "author": "",
+  "license": "ISC"
+}

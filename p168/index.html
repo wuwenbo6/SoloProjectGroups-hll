@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UEFI Firmware Interface Simulator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>UEFI Firmware Variable Store</h1>
+      <div class="info-bar">
+        <span id="variable-count">Variables: 0</span>
+        <span id="protected-info" class="protected-badge">🔒 Protected Variables</span>
+        <button id="refresh-btn" class="btn">Refresh</button>
+        <button id="export-btn" class="btn">Export</button>
+        <button id="import-btn" class="btn">Import</button>
+        <input type="file" id="import-file" accept=".json" style="display: none;">
+      </div>
+    </header>
+
+    <div class="main-content">
+      <div class="panel">
+        <h2>Variable List</h2>
+        <div class="search-box">
+          <input type="text" id="search-input" placeholder="Search by name or GUID...">
+        </div>
+        <div class="variable-list" id="variable-list">
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Variable Details</h2>
+        <div id="variable-details" class="variable-details">
+          <p class="empty-state">Select a variable to view details</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Add / Modify Variable</h2>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="var-name">Variable Name</label>
+          <input type="text" id="var-name" placeholder="e.g., BootOrder">
+        </div>
+        <div class="form-group">
+          <label for="var-guid">Vendor GUID</label>
+          <input type="text" id="var-guid" placeholder="e.g., {8BE4DF61-93CA-11D2-AA0D-00E098032B8C}">
+        </div>
+        <div class="form-group full-width">
+          <label>Attributes</label>
+          <div class="checkbox-group">
+            <label>
+              <input type="checkbox" id="attr-non-volatile" checked>
+              <span>Non-Volatile</span>
+            </label>
+            <label>
+              <input type="checkbox" id="attr-bootservice" checked>
+              <span>Boot Service Access</span>
+            </label>
+            <label>
+              <input type="checkbox" id="attr-runtime" checked>
+              <span>Runtime Access</span>
+            </label>
+          </div>
+        </div>
+        <div class="form-group full-width">
+          <label for="var-data-type">Data Type</label>
+          <select id="var-data-type">
+            <option value="hex">Hex Bytes</option>
+            <option value="ascii">ASCII String</option>
+            <option value="utf16">UTF-16 String</option>
+            <option value="integer">Integer</option>
+          </select>
+        </div>
+        <div class="form-group full-width">
+          <label for="var-data">Data Value</label>
+          <textarea id="var-data" rows="4" placeholder="Enter data..."></textarea>
+        </div>
+        <div class="form-group full-width">
+          <div class="button-group">
+            <button id="set-variable-btn" class="btn btn-primary">Set Variable</button>
+            <button id="delete-variable-btn" class="btn btn-danger">Delete Variable</button>
+            <button id="clear-form-btn" class="btn">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>UEFI Runtime Services</h2>
+      <div class="api-test">
+        <div class="api-section">
+          <h3>GetVariable</h3>
+          <div class="api-inputs">
+            <input type="text" id="get-name" placeholder="Variable Name">
+            <input type="text" id="get-guid" placeholder="Vendor GUID">
+            <button id="get-variable-btn" class="btn">GetVariable</button>
+          </div>
+          <pre id="get-result" class="api-result"></pre>
+        </div>
+        <div class="api-section">
+          <h3>GetNextVariableName</h3>
+          <div class="api-inputs">
+            <input type="text" id="next-guid" placeholder="Vendor GUID (optional)">
+            <button id="next-variable-btn" class="btn">GetNext</button>
+          </div>
+          <pre id="next-result" class="api-result"></pre>
+        </div>
+        <div class="api-section">
+          <h3>QueryVariableInfo</h3>
+          <div class="api-inputs">
+            <button id="query-info-btn" class="btn">Query Info</button>
+          </div>
+          <pre id="query-result" class="api-result"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

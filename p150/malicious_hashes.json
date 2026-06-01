@@ -1,0 +1,188 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2024-01-15",
+  "description": "本地恶意进程哈希库 - 用于威胁情报匹配",
+  "hashes": {
+    "md5": {
+      "e99a18c428cb38d5f260853678922e03": {
+        "name": "calc.exe",
+        "threat": "Test Hash",
+        "severity": "low",
+        "description": "测试用哈希 - 计算器程序"
+      },
+      "0cc175b9c0f1b6a831c399e269772661": {
+        "name": "a.txt",
+        "threat": "Test File",
+        "severity": "info",
+        "description": "测试文件哈希"
+      },
+      "d41d8cd98f00b204e9800998ecf8427e": {
+        "name": "empty_file",
+        "threat": "Empty File",
+        "severity": "info",
+        "description": "空文件哈希"
+      },
+      "5f4dcc3b5aa765d61d8327deb882cf99": {
+        "name": "password",
+        "threat": "Known Weak Password",
+        "severity": "medium",
+        "description": "已知弱密码哈希"
+      },
+      "7c4a8d09ca3762af61e59520943dc26494f8941b": {
+        "name": "123456",
+        "threat": "Common Password Hash",
+        "severity": "medium",
+        "description": "常见密码SHA-1哈希"
+      }
+    },
+    "sha1": {
+      "5f4dcc3b5aa765d61d8327deb882cf99": {
+        "name": "password",
+        "threat": "Known Weak Password",
+        "severity": "medium",
+        "description": "测试用弱密码哈希"
+      }
+    },
+    "sha256": {
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
+        "name": "empty_file",
+        "threat": "Empty File",
+        "severity": "info",
+        "description": "空文件SHA-256哈希"
+      },
+      "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8": {
+        "name": "password",
+        "threat": "Known Weak Password",
+        "severity": "medium",
+        "description": "弱密码SHA-256哈希"
+      }
+    }
+  },
+  "processNames": {
+    "mimikatz.exe": {
+      "threat": "Credential Dumping Tool",
+      "severity": "critical",
+      "description": "Mimikatz - 凭证盗取工具"
+    },
+    "psexec.exe": {
+      "threat": "Remote Execution Tool",
+      "severity": "high",
+      "description": "PsExec - 远程执行工具，常用于横向移动"
+    },
+    "nc.exe": {
+      "threat": "Netcat",
+      "severity": "medium",
+      "description": "Netcat - 网络工具，常用于后门"
+    },
+    "ncat.exe": {
+      "threat": "Nmap Ncat",
+      "severity": "medium",
+      "description": "Ncat - 增强版Netcat"
+    },
+    "powershell.exe": {
+      "threat": "Suspicious PowerShell",
+      "severity": "low",
+      "description": "PowerShell执行 - 需要进一步分析"
+    },
+    "cmd.exe": {
+      "threat": "Command Execution",
+      "severity": "low",
+      "description": "命令行执行 - 需要进一步分析"
+    },
+    "wmic.exe": {
+      "threat": "WMI Execution",
+      "severity": "medium",
+      "description": "WMI命令行工具"
+    },
+    "rundll32.exe": {
+      "threat": "DLL Execution",
+      "severity": "medium",
+      "description": "RunDll32 - 常用于执行恶意代码"
+    },
+    "regsvr32.exe": {
+      "threat": "Scriptlet Execution",
+      "severity": "high",
+      "description": "RegSvr32 - 常用于绕过应用白名单"
+    },
+    "mshta.exe": {
+      "threat": "HTA Execution",
+      "severity": "high",
+      "description": "MSHTA - HTML应用程序执行"
+    },
+    "cscript.exe": {
+      "threat": "Script Execution",
+      "severity": "medium",
+      "description": "Windows脚本宿主"
+    },
+    "wscript.exe": {
+      "threat": "Script Execution",
+      "severity": "medium",
+      "description": "Windows脚本宿主"
+    },
+    "certutil.exe": {
+      "threat": "Certificate Utility",
+      "severity": "high",
+      "description": "Certutil - 常用于下载恶意文件"
+    },
+    "bitsadmin.exe": {
+      "threat": "BITS Transfer",
+      "severity": "medium",
+      "description": "BITS后台智能传输服务"
+    },
+    "schtasks.exe": {
+      "threat": "Scheduled Task",
+      "severity": "medium",
+      "description": "计划任务创建/修改"
+    },
+    "at.exe": {
+      "threat": "Scheduled Task",
+      "severity": "medium",
+      "description": "AT命令计划任务"
+    },
+    "sc.exe": {
+      "threat": "Service Modification",
+      "severity": "medium",
+      "description": "服务控制管理器"
+    },
+    "net.exe": {
+      "threat": "Network Enumeration",
+      "severity": "low",
+      "description": "网络命令"
+    },
+    "net1.exe": {
+      "threat": "Network Enumeration",
+      "severity": "low",
+      "description": "网络命令"
+    },
+    "whoami.exe": {
+      "threat": "System Enumeration",
+      "severity": "low",
+      "description": "系统信息收集"
+    },
+    "systeminfo.exe": {
+      "threat": "System Enumeration",
+      "severity": "low",
+      "description": "系统信息收集"
+    },
+    "ipconfig.exe": {
+      "threat": "Network Enumeration",
+      "severity": "low",
+      "description": "网络配置信息"
+    },
+    "tasklist.exe": {
+      "threat": "Process Enumeration",
+      "severity": "low",
+      "description": "进程列表枚举"
+    },
+    "qprocess.exe": {
+      "threat": "Process Enumeration",
+      "severity": "low",
+      "description": "进程查询"
+    },
+    "nslookup.exe": {
+      "threat": "DNS Query",
+      "severity": "low",
+      "description": "DNS查询工具"
+    }
+  }
+}

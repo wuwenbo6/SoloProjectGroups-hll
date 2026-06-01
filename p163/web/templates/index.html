@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCSI T10 PI - 数据完整性保护工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            padding: 30px 0;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+
+        input[type="text"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+        }
+
+        .file-upload {
+            border: 3px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9fa;
+            margin-bottom: 20px;
+        }
+
+        .file-upload:hover,
+        .file-upload.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .file-info {
+            background: #e8f5e9;
+            border: 1px solid #81c784;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(17, 153, 142, 0.4);
+        }
+
+        .btn-success:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .results-section {
+            grid-column: 1 / -1;
+        }
+
+        .result-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .result-card.success {
+            border-left-color: #38ef7d;
+            background: #f0fff4;
+        }
+
+        .result-card.error {
+            border-left-color: #f56565;
+            background: #fff5f5;
+        }
+
+        .result-card.warning {
+            border-left-color: #ed8936;
+            background: #fffaf0;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .result-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .result-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-pass {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .badge-fail {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .result-details {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .result-details pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .dif-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+        .dif-table th,
+        .dif-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .dif-table th {
+            background: #edf2f7;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .dif-table tr:hover {
+            background: #f7fafc;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            background: #f1f3f5;
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+        }
+
+        .info-box {
+            background: #ebf8ff;
+            border: 1px solid #63b3ed;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #2c5282;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .info-box strong {
+            color: #2b6cb0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ SCSI T10 PI 数据完整性保护工具</h1>
+            <p>支持 DIF (Guard Tag + Application Tag + Reference Tag) 写入与校验</p>
+        </header>
+
+        <div class="main-content">
+            <div class="card">
+                <h2>文件保护</h2>
+                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                    上传文件并添加 SCSI T10 PI 保护信息
+                </p>
+
+                <div class="file-upload" id="protectUpload">
+                    <input type="file" id="protectFile" accept="*/*">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">点击或拖拽文件到此处上传</div>
+                </div>
+
+                <div class="file-info" id="protectFileInfo"></div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="protectAppTag">Application Tag (应用标签)</label>
+                        <input type="text" id="protectAppTag" value="0x0000" placeholder="例如: 0x0000">
+                    </div>
+                    <div class="form-group">
+                        <label for="protectRefMode">Reference Tag 模式</label>
+                        <select id="protectRefMode">
+                            <option value="lba">LBA (逻辑块地址)</option>
+                            <option value="incremental">递增模式</option>
+                            <option value="fixed">固定值</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="protectGuardType">Guard Tag 类型</label>
+                    <select id="protectGuardType">
+                        <option value="crc16">CRC16 (T10 DIF 标准)</option>
+                        <option value="ip">IP 校验和</option>
+                    </select>
+                </div>
+
+                <div class="loading" id="protectLoading">
+                    <div class="spinner"></div>
+                    <p>正在处理文件...</p>
+                </div>
+
+                <button class="btn btn-primary" id="protectBtn" disabled>🔒 保护文件</button>
+            </div>
+
+            <div class="card">
+                <h2>文件校验</h2>
+                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                    上传已保护的文件进行完整性校验
+                </p>
+
+                <div class="file-upload" id="verifyUpload">
+                    <input type="file" id="verifyFile" accept=".bin,*/*">
+                    <div class="upload-icon">🔍</div>
+                    <div class="upload-text">点击或拖拽已保护的文件到此处</div>
+                </div>
+
+                <div class="file-info" id="verifyFileInfo"></div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="verifyAppTag">Application Tag (应用标签)</label>
+                        <input type="text" id="verifyAppTag" value="0x0000" placeholder="例如: 0x0000">
+                    </div>
+                    <div class="form-group">
+                        <label for="verifyRefMode">Reference Tag 模式</label>
+                        <select id="verifyRefMode">
+                            <option value="lba">LBA (逻辑块地址)</option>
+                            <option value="incremental">递增模式</option>
+                            <option value="fixed">固定值</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="verifyGuardType">Guard Tag 类型</label>
+                    <select id="verifyGuardType">
+                        <option value="crc16">CRC16 (T10 DIF 标准)</option>
+                        <option value="ip">IP 校验和</option>
+                    </select>
+                </div>
+
+                <div class="loading" id="verifyLoading">
+                    <div class="spinner"></div>
+                    <p>正在校验文件...</p>
+                </div>
+
+                <button class="btn btn-success" id="verifyBtn" disabled>✅ 校验完整性</button>
+            </div>
+
+            <div class="card results-section">
+                <h2>操作结果</h2>
+
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="protect">保护结果</button>
+                    <button class="tab-btn" data-tab="verify">校验结果</button>
+                    <button class="tab-btn" data-tab="inject">注入测试</button>
+                    <button class="tab-btn" data-tab="report">详细报告</button>
+                </div>
+
+                <div class="tab-content active" id="protectResults">
+                    <div id="protectResultsContent">
+                        <p style="color: #999; text-align: center; padding: 40px;">暂无操作记录</p>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="verifyResults">
+                    <div id="verifyResultsContent">
+                        <p style="color: #999; text-align: center; padding: 40px;">暂无操作记录</p>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="injectResults">
+                    <div id="injectResultsContent">
+                        <p style="color: #999; text-align: center; padding: 40px;">暂无操作记录</p>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="reportResults">
+                    <div id="reportResultsContent">
+                        <p style="color: #999; text-align: center; padding: 40px;">暂无操作记录</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>🧪 错误注入测试</h2>
+            <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                模拟错误注入以测试PI检测能力
+            </p>
+
+            <div class="file-upload" id="injectUpload">
+                <input type="file" id="injectFile" accept=".bin,*/*">
+                <div class="upload-icon">💥</div>
+                <div class="upload-text">点击或拖拽已保护的文件进行错误注入测试</div>
+            </div>
+
+            <div class="file-info" id="injectFileInfo"></div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="injectSector">扇区索引</label>
+                    <input type="number" id="injectSector" value="0" min="0" placeholder="扇区号">
+                </div>
+                <div class="form-group">
+                    <label for="injectErrorType">错误类型</label>
+                    <select id="injectErrorType">
+                        <option value="data">数据区域翻转</option>
+                        <option value="guard">Guard Tag 翻转</option>
+                        <option value="ref">Reference Tag 翻转</option>
+                        <option value="app">Application Tag 翻转</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="injectByteOffset">字节偏移</label>
+                    <input type="number" id="injectByteOffset" value="0" min="0" placeholder="0-511">
+                </div>
+                <div class="form-group">
+                    <label for="injectFlipMask">翻转掩码 (Hex)</label>
+                    <input type="text" id="injectFlipMask" value="0xFF" placeholder="例如: 0xFF">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <button class="btn btn-primary" id="injectBtn" disabled>💉 注入错误</button>
+                <button class="btn btn-success" id="injectVerifyBtn" disabled>🔍 校验注入后文件</button>
+            </div>
+
+            <div class="loading" id="injectLoading" style="margin-top: 20px;">
+                <div class="spinner"></div>
+                <p>正在处理...</p>
+            </div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>📊 详细报告</h2>
+            <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                生成包含每个损坏块详细信息的完整校验报告
+            </p>
+
+            <div class="file-upload" id="reportUpload">
+                <input type="file" id="reportFile" accept=".bin,*/*">
+                <div class="upload-icon">📋</div>
+                <div class="upload-text">点击或拖拽已保护的文件生成报告</div>
+            </div>
+
+            <div class="file-info" id="reportFileInfo"></div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="reportAppTag">Application Tag</label>
+                    <input type="text" id="reportAppTag" value="0x0000" placeholder="例如: 0x0000">
+                </div>
+                <div class="form-group">
+                    <label for="reportRefMode">Reference Tag 模式</label>
+                    <select id="reportRefMode">
+                        <option value="lba">LBA</option>
+                        <option value="incremental">递增</option>
+                        <option value="fixed">固定</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="reportIncludeIntact"> 包含完整块信息
+                </label>
+            </div>
+
+            <div class="form-row">
+                <button class="btn btn-primary" id="reportBtn" disabled>📄 生成报告</button>
+                <button class="btn btn-success" id="reportDownloadBtn" disabled>⬇️ 下载报告</button>
+            </div>
+
+            <div class="loading" id="reportLoading" style="margin-top: 20px;">
+                <div class="spinner"></div>
+                <p>正在生成报告...</p>
+            </div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>关于 SCSI T10 PI</h2>
+            <div class="info-box">
+                <p><strong>SCSI T10 PI (Protection Information)</strong> 是一种数据完整性标准，用于在存储设备传输过程中检测和防止数据损坏。</p>
+                <p style="margin-top: 10px;"><strong>DIF (Data Integrity Field)</strong> 每个 512 字节扇区附加 8 字节保护信息：</p>
+                <ul style="margin-top: 10px; padding-left: 20px;">
+                    <li><strong>Guard Tag (2字节)</strong>: CRC16 校验和，用于检测数据损坏</li>
+                    <li><strong>Application Tag (2字节)</strong>: 应用程序自定义标签</li>
+                    <li><strong>Reference Tag (4字节)</strong>: 参考标签，通常为逻辑块地址 (LBA)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let protectFileData = null;
+        let verifyFileData = null;
+
+        function setupFileUpload(uploadId, fileInputId, infoId, onFileSelect) {
+            const uploadArea = document.getElementById(uploadId);
+            const fileInput = document.getElementById(fileInputId);
+            const fileInfo = document.getElementById(infoId);
+
+            uploadArea.addEventListener('click', () => fileInput.click());
+
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileSelect(e.dataTransfer.files[0], fileInfo, onFileSelect);
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileSelect(e.target.files[0], fileInfo, onFileSelect);
+                }
+            });
+        }
+
+        function handleFileSelect(file, fileInfo, onFileSelect) {
+            const size = formatFileSize(file.size);
+            fileInfo.innerHTML = `
+                <strong>已选择文件:</strong> ${file.name}<br>
+                <strong>大小:</strong> ${size}
+            `;
+            fileInfo.classList.add('show');
+            onFileSelect(file);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        setupFileUpload('protectUpload', 'protectFile', 'protectFileInfo', (file) => {
+            protectFileData = file;
+            document.getElementById('protectBtn').disabled = false;
+        });
+
+        setupFileUpload('verifyUpload', 'verifyFile', 'verifyFileInfo', (file) => {
+            verifyFileData = file;
+            document.getElementById('verifyBtn').disabled = false;
+        });
+
+        document.getElementById('protectBtn').addEventListener('click', async () => {
+            if (!protectFileData) return;
+
+            const btn = document.getElementById('protectBtn');
+            const loading = document.getElementById('protectLoading');
+            btn.disabled = true;
+            loading.classList.add('show');
+
+            const formData = new FormData();
+            formData.append('file', protectFileData);
+            formData.append('app_tag', document.getElementById('protectAppTag').value);
+            formData.append('ref_mode', document.getElementById('protectRefMode').value);
+            formData.append('guard_type', document.getElementById('protectGuardType').value);
+
+            try {
+                const response = await fetch('/api/upload-protect-verify', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                displayProtectResult(result);
+            } catch (error) {
+                displayProtectResult({ success: false, error: error.message });
+            }
+
+            loading.classList.remove('show');
+            btn.disabled = false;
+        });
+
+        document.getElementById('verifyBtn').addEventListener('click', async () => {
+            if (!verifyFileData) return;
+
+            const btn = document.getElementById('verifyBtn');
+            const loading = document.getElementById('verifyLoading');
+            btn.disabled = true;
+            loading.classList.add('show');
+
+            const formData = new FormData();
+            formData.append('file', verifyFileData);
+            formData.append('app_tag', document.getElementById('verifyAppTag').value);
+            formData.append('ref_mode', document.getElementById('verifyRefMode').value);
+            formData.append('guard_type', document.getElementById('verifyGuardType').value);
+
+            try {
+                const response = await fetch('/api/upload-verify', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                displayVerifyResult(result);
+            } catch (error) {
+                displayVerifyResult({ success: false, error: error.message });
+            }
+
+            loading.classList.remove('show');
+            btn.disabled = false;
+        });
+
+        function displayProtectResult(result) {
+            const container = document.getElementById('protectResultsContent');
+
+            if (!result.success) {
+                container.innerHTML = `
+                    <div class="result-card error">
+                        <div class="result-header">
+                            <span class="result-title">❌ 操作失败</span>
+                            <span class="result-badge badge-fail">失败</span>
+                        </div>
+                        <div class="result-details">
+                            ${result.error || '未知错误'}
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const data = result.data;
+            const protect = data.protect_result;
+            const verify = data.verify_result;
+
+            container.innerHTML = `
+                <div class="result-card ${verify.verification_passed ? 'success' : 'error'}">
+                    <div class="result-header">
+                        <span class="result-title">📄 ${data.original_filename}</span>
+                        <span class="result-badge ${verify.verification_passed ? 'badge-pass' : 'badge-fail'}">
+                            ${verify.verification_passed ? '保护成功' : '校验失败'}
+                        </span>
+                    </div>
+                    <div class="result-details">
+                        <p><strong>原始大小:</strong> ${formatFileSize(protect.original_size)}</p>
+                        <p><strong>扇区数:</strong> ${protect.num_sectors} 个扇区 (每个 512 字节)</p>
+                        <p><strong>填充后大小:</strong> ${formatFileSize(protect.padded_size)}</p>
+                        <p><strong>保护后总大小:</strong> ${formatFileSize(protect.output_size)} (含 ${protect.num_sectors * 8} 字节 DIF)</p>
+                        <p><strong>Application Tag:</strong> ${protect.app_tag}</p>
+                        <p><strong>Guard 类型:</strong> ${protect.guard_type}</p>
+                        <p><strong>Ref Tag 模式:</strong> ${protect.ref_tag_mode}</p>
+                        ${verify.errors > 0 ? `
+                            <p style="color: #c53030; margin-top: 10px;"><strong>检测到 ${verify.errors} 个错误:</strong></p>
+                            <pre>${JSON.stringify(verify.error_details, null, 2)}</pre>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayVerifyResult(result) {
+            const container = document.getElementById('verifyResultsContent');
+
+            if (!result.success) {
+                container.innerHTML = `
+                    <div class="result-card error">
+                        <div class="result-header">
+                            <span class="result-title">❌ 操作失败</span>
+                            <span class="result-badge badge-fail">失败</span>
+                        </div>
+                        <div class="result-details">
+                            ${result.error || '未知错误'}
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const data = result.data;
+
+            if (data.error_type === 'alignment_error') {
+                container.innerHTML = `
+                    <div class="result-card warning">
+                        <div class="result-header">
+                            <span class="result-title">⚠️ 文件格式警告</span>
+                            <span class="result-badge badge-fail">格式错误</span>
+                        </div>
+                        <div class="result-details">
+                            <p><strong>文件名:</strong> ${data.original_filename || '未知'}</p>
+                            <p><strong>文件大小:</strong> ${formatFileSize(data.total_size)}</p>
+                            <p style="color: #c05621; margin-top: 10px;">${data.error}</p>
+                            <p style="margin-top: 10px; color: #666;">
+                                提示: PI 保护文件的大小应为 520 字节的倍数 (512 字节数据 + 8 字节 DIF)
+                            </p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="result-card ${data.verification_passed ? 'success' : 'error'}">
+                    <div class="result-header">
+                        <span class="result-title">🔍 ${data.original_filename || '校验结果'}</span>
+                        <span class="result-badge ${data.verification_passed ? 'badge-pass' : 'badge-fail'}">
+                            ${data.verification_passed ? '校验通过' : '校验失败'}
+                        </span>
+                    </div>
+                    <div class="result-details">
+                        <p><strong>总扇区数:</strong> ${data.num_sectors}</p>
+                        <p><strong>总大小:</strong> ${formatFileSize(data.total_size)}</p>
+                        <p><strong>数据区域:</strong> ${formatFileSize(data.data_size)}</p>
+                        <p><strong>DIF 区域:</strong> ${formatFileSize(data.dif_size)}</p>
+                        <p><strong>错误数:</strong> ${data.errors} 个</p>
+                        ${data.errors > 0 ? `
+                            <p style="color: #c53030; margin-top: 10px;"><strong>错误详情:</strong></p>
+                            <pre>${JSON.stringify(data.error_details, null, 2)}</pre>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        let injectFileData = null;
+        let reportFileData = null;
+        let lastInjectResult = null;
+        let lastReportResult = null;
+
+        setupFileUpload('injectUpload', 'injectFile', 'injectFileInfo', (file) => {
+            injectFileData = file;
+            document.getElementById('injectBtn').disabled = false;
+            document.getElementById('injectVerifyBtn').disabled = false;
+        });
+
+        setupFileUpload('reportUpload', 'reportFile', 'reportFileInfo', (file) => {
+            reportFileData = file;
+            document.getElementById('reportBtn').disabled = false;
+            document.getElementById('reportDownloadBtn').disabled = false;
+        });
+
+        document.getElementById('injectBtn').addEventListener('click', async () => {
+            if (!injectFileData) return;
+
+            const loading = document.getElementById('injectLoading');
+            loading.classList.add('show');
+
+            const formData = new FormData();
+            formData.append('file', injectFileData);
+            formData.append('app_tag', '0x0000');
+            formData.append('ref_mode', 'lba');
+            formData.append('guard_type', 'crc16');
+
+            try {
+                const response = await fetch('/api/upload-verify', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const uploadResult = await response.json();
+                if (!uploadResult.success) {
+                    throw new Error(uploadResult.error || 'Upload failed');
+                }
+
+                const fileId = uploadResult.data.file_id;
+                const originalFilename = injectFileData.name;
+
+                const injectResponse = await fetch('/api/inject', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        file_id: fileId,
+                        protected_filename: originalFilename,
+                        sector: parseInt(document.getElementById('injectSector').value),
+                        error_type: document.getElementById('injectErrorType').value,
+                        byte_offset: parseInt(document.getElementById('injectByteOffset').value),
+                        flip_mask: document.getElementById('injectFlipMask').value
+                    })
+                });
+
+                const injectResult = await injectResponse.json();
+                lastInjectResult = injectResult;
+
+                if (injectResult.success) {
+                    displayInjectResult(injectResult);
+                } else {
+                    displayInjectResult({ success: false, error: injectResult.error });
+                }
+            } catch (error) {
+                displayInjectResult({ success: false, error: error.message });
+            }
+
+            loading.classList.remove('show');
+        });
+
+        document.getElementById('injectVerifyBtn').addEventListener('click', async () => {
+            if (!injectFileData) return;
+
+            const loading = document.getElementById('injectLoading');
+            loading.classList.add('show');
+
+            const formData = new FormData();
+            formData.append('file', injectFileData);
+            formData.append('app_tag', '0x0000');
+            formData.append('ref_mode', 'lba');
+            formData.append('guard_type', 'crc16');
+
+            try {
+                const response = await fetch('/api/upload-verify', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const uploadResult = await response.json();
+                if (!uploadResult.success) {
+                    throw new Error(uploadResult.error || 'Upload failed');
+                }
+
+                const fileId = uploadResult.data.file_id;
+                const originalFilename = injectFileData.name;
+
+                const injectResponse = await fetch('/api/inject', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        file_id: fileId,
+                        protected_filename: originalFilename,
+                        sector: parseInt(document.getElementById('injectSector').value),
+                        error_type: document.getElementById('injectErrorType').value,
+                        byte_offset: parseInt(document.getElementById('injectByteOffset').value),
+                        flip_mask: document.getElementById('injectFlipMask').value
+                    })
+                });
+
+                const injectResult = await injectResponse.json();
+
+                if (!injectResult.success) {
+                    throw new Error(injectResult.error || 'Inject failed');
+                }
+
+                const corruptedFilename = injectResult.data.corrupted_filename;
+
+                const verifyResponse = await fetch('/api/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        file_id: fileId,
+                        protected_filename: corruptedFilename,
+                        app_tag: '0x0000',
+                        ref_mode: 'lba',
+                        guard_type: 'crc16'
+                    })
+                });
+
+                const verifyResult = await verifyResponse.json();
+                displayInjectVerifyResult(injectResult, verifyResult);
+            } catch (error) {
+                displayInjectResult({ success: false, error: error.message });
+            }
+
+            loading.classList.remove('show');
+        });
+
+        document.getElementById('reportBtn').addEventListener('click', async () => {
+            if (!reportFileData) return;
+
+            const loading = document.getElementById('reportLoading');
+            loading.classList.add('show');
+
+            const formData = new FormData();
+            formData.append('file', reportFileData);
+            formData.append('app_tag', document.getElementById('reportAppTag').value);
+            formData.append('ref_mode', document.getElementById('reportRefMode').value);
+            formData.append('guard_type', 'crc16');
+            formData.append('include_intact', document.getElementById('reportIncludeIntact').checked);
+
+            try {
+                const response = await fetch('/api/upload-report', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                lastReportResult = result;
+
+                if (result.success) {
+                    displayReportResult(result);
+                } else {
+                    displayReportResult({ success: false, error: result.error });
+                }
+            } catch (error) {
+                displayReportResult({ success: false, error: error.message });
+            }
+
+            loading.classList.remove('show');
+        });
+
+        document.getElementById('reportDownloadBtn').addEventListener('click', async () => {
+            if (!reportFileData) return;
+
+            const loading = document.getElementById('reportLoading');
+            loading.classList.add('show');
+
+            try {
+                const formData = new FormData();
+                formData.append('file', reportFileData);
+                formData.append('app_tag', document.getElementById('reportAppTag').value);
+                formData.append('ref_mode', document.getElementById('reportRefMode').value);
+                formData.append('guard_type', 'crc16');
+                formData.append('include_intact', document.getElementById('reportIncludeIntact').checked);
+
+                const uploadResponse = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const uploadResult = await uploadResponse.json();
+                if (!uploadResult.success) {
+                    throw new Error(uploadResult.error || 'Upload failed');
+                }
+
+                const fileId = uploadResult.file_id;
+                const originalFilename = reportFileData.name;
+
+                const downloadResponse = await fetch('/api/report/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        file_id: fileId,
+                        protected_filename: originalFilename,
+                        app_tag: document.getElementById('reportAppTag').value,
+                        ref_mode: document.getElementById('reportRefMode').value,
+                        guard_type: 'crc16',
+                        include_intact: document.getElementById('reportIncludeIntact').checked
+                    })
+                });
+
+                if (downloadResponse.ok) {
+                    const blob = await downloadResponse.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${reportFileData.name.replace(/\.[^/.]+$/, '') + '_report.json';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                }
+            } catch (error) {
+                alert('下载失败: ' + error.message);
+            }
+
+            loading.classList.remove('show');
+        });
+
+        function displayInjectResult(result) {
+            const container = document.getElementById('injectResultsContent');
+
+            if (!result.success) {
+                container.innerHTML = `
+                    <div class="result-card error">
+                        <div class="result-header">
+                            <span class="result-title">❌ 注入失败</span>
+                            <span class="result-badge badge-fail">失败</span>
+                        </div>
+                        <div class="result-details">${result.error || '未知错误'}</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const data = result.data;
+            container.innerHTML = `
+                <div class="result-card success">
+                    <div class="result-header">
+                        <span class="result-title">💉 错误注入成功</span>
+                        <span class="result-badge badge-pass">成功</span>
+                    </div>
+                    <div class="result-details">
+                        <p><strong>目标扇区:</strong> ${data.sector_index}</p>
+                        <p><strong>错误类型:</strong> ${data.error_type}</p>
+                        <p><strong>字节偏移:</strong> ${data.byte_offset}</p>
+                        <p><strong>翻转掩码:</strong> ${data.flip_mask}</p>
+                        <p><strong>总扇区数:</strong> ${data.total_sectors}</p>
+                        <p><strong>使用mmap:</strong> ${data.used_mmap ? '是' : '否'}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayInjectVerifyResult(injectResult, verifyResult) {
+            const container = document.getElementById('injectResultsContent');
+            const injectData = injectResult.data;
+            const verifyData = verifyResult.data;
+
+            container.innerHTML = `
+                <div class="result-card ${verifyData.verification_passed ? 'success' : 'error'}">
+                    <div class="result-header">
+                        <span class="result-title">🧪 注入并校验结果</span>
+                        <span class="result-badge ${verifyData.verification_passed ? 'badge-pass' : 'badge-fail'}">
+                            ${verifyData.verification_passed ? '校验通过' : '检测到错误'}
+                        </span>
+                    </div>
+                    <div class="result-details">
+                        <p><strong>注入扇区:</strong> ${injectData.sector_index}</p>
+                        <p><strong>错误类型:</strong> ${injectData.error_type}</p>
+                        <p><strong>总扇区数:</strong> ${verifyData.num_sectors}</p>
+                        <p><strong>损坏扇区数:</strong> ${verifyData.sectors_corrupted}</p>
+                        <p><strong>完整扇区数:</strong> ${verifyData.sectors_intact}</p>
+                        <p><strong>错误总数:</strong> ${verifyData.errors}</p>
+                        ${verifyData.errors > 0 && verifyData.corrupted_blocks ? `
+                            <p style="margin-top: 15px;"><strong>损坏块详情:</strong></p>
+                            <table class="dif-table">
+                                <thead>
+                                    <tr><th>扇区</th><th>偏移</th><th>期望Guard</th><th>实际Guard</th><th>错误类型</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${verifyData.corrupted_blocks.slice(0, 10).map(block => `
+                                        <tr>
+                                            <td>${block.sector}</td>
+                                            <td>0x${block.offset.toString(16)}</td>
+                                            <td>${block.expected_guard || '-'}</td>
+                                            <td>${block.actual_guard}</td>
+                                            <td>${block.error_types.join(', ')}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                            ${verifyData.corrupted_blocks.length > 10 ? `<p style="margin-top: 10px; color: #666;">... 还有 ${verifyData.corrupted_blocks.length - 10} 个损坏块</p>` : ''}
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayReportResult(result) {
+            const container = document.getElementById('reportResultsContent');
+
+            if (!result.success) {
+                container.innerHTML = `
+                    <div class="result-card error">
+                        <div class="result-header">
+                            <span class="result-title">❌ 报告生成失败</span>
+                            <span class="result-badge badge-fail">失败</span>
+                        </div>
+                        <div class="result-details">${result.error || '未知错误'}</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const data = result.data;
+            container.innerHTML = `
+                <div class="result-card ${data.verification_passed ? 'success' : 'error'}">
+                    <div class="result-header">
+                        <span class="result-title">📊 校验报告</span>
+                        <span class="result-badge ${data.verification_passed ? 'badge-pass' : 'badge-fail'}">
+                            ${data.verification_passed ? '完整' : '存在损坏'}
+                        </span>
+                    </div>
+                    <div class="result-details">
+                        <p><strong>文件名:</strong> ${data.original_filename}</p>
+                        <p><strong>文件大小:</strong> ${formatFileSize(data.file_size)}</p>
+                        <p><strong>总扇区数:</strong> ${data.total_sectors}</p>
+                        <p><strong>已校验扇区:</strong> ${data.sectors_verified}</p>
+                        <p><strong>损坏扇区数:</strong> ${data.sectors_corrupted}</p>
+                        <p><strong>完整扇区数:</strong> ${data.sectors_intact}</p>
+                        <p><strong>错误总数:</strong> ${data.summary.total_errors}</p>
+                        ${data.sectors_corrupted > 0 ? `
+                            <p style="margin-top: 15px;"><strong>损坏块详情:</strong></p>
+                            <table class="dif-table">
+                                <thead>
+                                    <tr><th>扇区</th><th>偏移</th><th>期望Guard</th><th>实际Guard</th><th>错误类型</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${data.corrupted_blocks.map(block => `
+                                        <tr>
+                                            <td>${block.sector}</td>
+                                            <td>0x${block.offset.toString(16)}</td>
+                                            <td>${block.expected_guard || '-'}</td>
+                                            <td>${block.actual_guard}</td>
+                                            <td>${block.error_types.join(', ')}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

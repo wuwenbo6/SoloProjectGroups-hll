@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PTP 主从时钟模拟器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e8e8e8;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #00d4ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #8892b0;
+            font-size: 1.1rem;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4757;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #2ed573;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.2);
+        }
+
+        .card h3 {
+            font-size: 0.85rem;
+            color: #8892b0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #00d4ff;
+            font-family: 'Courier New', monospace;
+        }
+
+        .card-value.filtered {
+            color: #00ff88;
+        }
+
+        .card-unit {
+            font-size: 0.9rem;
+            color: #8892b0;
+            margin-left: 5px;
+        }
+
+        .card-subtitle {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .pi-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .pi-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #00ff88);
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+
+        .timestamps {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .timestamps h3 {
+            margin-bottom: 15px;
+            color: #00d4ff;
+        }
+
+        .timestamp-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .timestamp-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 3px solid #00ff88;
+        }
+
+        .timestamp-label {
+            font-size: 0.8rem;
+            color: #8892b0;
+            margin-bottom: 5px;
+        }
+
+        .timestamp-value {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #e8e8e8;
+            word-break: break-all;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 900px) {
+            .charts-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .charts-container.triple {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chart-card h3 {
+            margin-bottom: 15px;
+            color: #00d4ff;
+            font-size: 1rem;
+        }
+
+        canvas {
+            width: 100%;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+
+        .diagram {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 25px;
+            margin-top: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .diagram h3 {
+            margin-bottom: 20px;
+            color: #00d4ff;
+        }
+
+        .diagram-content {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .clock-box {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            min-width: 180px;
+        }
+
+        .clock-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .clock-box.master .clock-title {
+            color: #00d4ff;
+        }
+
+        .clock-box.slave .clock-title {
+            color: #00ff88;
+        }
+
+        .clock-time {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #e8e8e8;
+            line-height: 1.6;
+        }
+
+        .arrow-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 20px 0;
+        }
+
+        .arrow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: #8892b0;
+        }
+
+        .arrow-line {
+            width: 80px;
+            height: 2px;
+            background: linear-gradient(90deg, #00d4ff, #00ff88);
+            position: relative;
+        }
+
+        .arrow-line::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: -4px;
+            border: 5px solid transparent;
+            border-left-color: #00ff88;
+        }
+
+        .arrow-line.reverse {
+            background: linear-gradient(90deg, #00ff88, #00d4ff);
+        }
+
+        .arrow-line.reverse::after {
+            right: auto;
+            left: -6px;
+            border-left-color: transparent;
+            border-right-color: #00d4ff;
+        }
+
+        .formula {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.8;
+            color: #8892b0;
+        }
+
+        .formula span {
+            color: #00ff88;
+        }
+
+        .logs {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+        }
+
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: #8892b0;
+        }
+
+        .log-entry.success {
+            color: #2ed573;
+        }
+
+        .log-entry.info {
+            color: #00d4ff;
+        }
+
+        .log-entry.warning {
+            color: #ffa502;
+        }
+
+        .filter-legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+            font-size: 0.8rem;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        .legend-dot.raw {
+            background: #00d4ff;
+        }
+
+        .legend-dot.filtered {
+            background: #00ff88;
+        }
+
+        .legend-dot.initial {
+            background: #ffa502;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #8892b0;
+            padding: 40px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⏱️ PTP 主从时钟模拟器</h1>
+            <p class="subtitle">一步时钟/两步时钟 + 透明时钟 + 延迟滤波 + PI控制器 - UDP传输</p>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot" id="wsStatus"></div>
+                <span id="wsStatusText">WebSocket 未连接</span>
+            </div>
+            <div class="status-item">
+                <span>时钟模式:</span>
+                <span id="clockMode" style="color: #00d4ff; font-weight: bold;">等待配置...</span>
+            </div>
+            <div class="status-item">
+                <span>TC状态:</span>
+                <span id="tcStatus" style="color: #8892b0;">未启用</span>
+            </div>
+            <div class="status-item">
+                <span>从时钟 ID:</span>
+                <span id="slaveId" style="font-family: 'Courier New', monospace; color: #00ff88;">等待连接...</span>
+            </div>
+            <div class="status-item">
+                <span>滤波窗口:</span>
+                <span id="filterWindow" style="color: #ffa502;">10 样本</span>
+            </div>
+            <div class="status-item">
+                <span>PI参数:</span>
+                <span id="piParams" style="color: #00d4ff;">Kp=0.15, Ki=0.02</span>
+            </div>
+            <div class="status-item">
+                <span>最后更新:</span>
+                <span id="lastUpdate" style="color: #8892b0;">--</span>
+            </div>
+        </div>
+
+        <div class="cards-grid">
+            <div class="card">
+                <h3>原始路径延迟</h3>
+                <div>
+                    <span class="card-value" id="pathDelay">--</span>
+                    <span class="card-unit">ms</span>
+                </div>
+            </div>
+            <div class="card">
+                <h3>滤波后延迟 (最小值)</h3>
+                <div>
+                    <span class="card-value filtered" id="filteredDelay">--</span>
+                    <span class="card-unit">ms</span>
+                </div>
+                <div class="filter-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot raw"></div>
+                        <span>原始值</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot filtered"></div>
+                        <span>滤波值</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <h3>原始时钟偏移</h3>
+                <div>
+                    <span class="card-value" id="clockOffset">--</span>
+                    <span class="card-unit">ms</span>
+                </div>
+            </div>
+            <div class="card">
+                <h3>滤波后偏移</h3>
+                <div>
+                    <span class="card-value filtered" id="filteredOffset">--</span>
+                    <span class="card-unit">ms</span>
+                </div>
+            </div>
+            <div class="card">
+                <h3>初始偏移</h3>
+                <div>
+                    <span class="card-value" id="initialOffset">--</span>
+                    <span class="card-unit">ms</span>
+                </div>
+            </div>
+            <div class="card">
+                <h3>当前修正后偏移</h3>
+                <div>
+                    <span class="card-value filtered" id="currentOffset">--</span>
+                    <span class="card-unit">ms</span>
+                </div>
+                <div class="pi-bar">
+                    <div class="pi-bar-fill" id="offsetBar" style="width: 50%"></div>
+                </div>
+            </div>
+            <div class="card">
+                <h3>PI 修正量</h3>
+                <div>
+                    <span class="card-value" id="piCorrection">--</span>
+                    <span class="card-unit">ms</span>
+                </div>
+                <div class="card-subtitle">P: 比例项, I: 积分项</div>
+            </div>
+            <div class="card">
+                <h3>PI 积分值</h3>
+                <div>
+                    <span class="card-value" id="piIntegral">--</span>
+                    <span class="card-unit">ms</span>
+                </div>
+                <div class="pi-bar">
+                    <div class="pi-bar-fill" id="integralBar" style="width: 50%"></div>
+                </div>
+            </div>
+            <div class="card">
+                <h3>TC 驻留时间</h3>
+                <div>
+                    <span class="card-value" id="correctionField">--</span>
+                    <span class="card-unit">ns</span>
+                </div>
+                <div class="card-subtitle">透明时钟累计延迟</div>
+            </div>
+            <div class="card">
+                <h3>TC 总转发数</h3>
+                <div>
+                    <span class="card-value" id="tcPacketCount">--</span>
+                    <span class="card-unit">包</span>
+                </div>
+                <div class="card-subtitle">TC处理的PTP消息数</div>
+            </div>
+        </div>
+
+        <div class="timestamps">
+            <h3>📊 时间戳 (Timestamps)</h3>
+            <div class="timestamp-grid">
+                <div class="timestamp-item">
+                    <div class="timestamp-label">t1 (Master 发送 Sync)</div>
+                    <div class="timestamp-value" id="t1">--</div>
+                </div>
+                <div class="timestamp-item">
+                    <div class="timestamp-label">t2 (Slave 接收 Sync)</div>
+                    <div class="timestamp-value" id="t2">--</div>
+                </div>
+                <div class="timestamp-item">
+                    <div class="timestamp-label">t3 (Slave 发送 Delay_Req)</div>
+                    <div class="timestamp-value" id="t3">--</div>
+                </div>
+                <div class="timestamp-item">
+                    <div class="timestamp-label">t4 (Master 接收 Delay_Req)</div>
+                    <div class="timestamp-value" id="t4">--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-container">
+            <div class="chart-card">
+                <h3>📈 延迟滤波对比 (Raw vs Filtered)</h3>
+                <canvas id="delayChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>📉 偏移变化 (含PI修正)</h3>
+                <canvas id="offsetChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>🎛️ PI控制器输出</h3>
+                <canvas id="piChart"></canvas>
+            </div>
+        </div>
+
+        <div class="diagram">
+            <h3>🔄 PTP + 滤波 + PI控制 流程</h3>
+            <div class="diagram-content">
+                <div class="clock-box master">
+                    <div class="clock-title">Master 主时钟</div>
+                    <div class="clock-time" id="masterTime">--</div>
+                </div>
+                <div class="arrow-container">
+                    <div class="arrow">
+                        <span>Sync</span>
+                        <div class="arrow-line"></div>
+                        <span>t1</span>
+                    </div>
+                    <div class="arrow">
+                        <span>Delay_Req</span>
+                        <div class="arrow-line reverse"></div>
+                        <span>t3</span>
+                    </div>
+                </div>
+                <div class="clock-box slave">
+                    <div class="clock-title">Slave 从时钟</div>
+                    <div class="clock-time" id="slaveTime">--</div>
+                </div>
+                <div class="arrow-container">
+                    <div class="arrow">
+                        <span>滤波</span>
+                        <div class="arrow-line"></div>
+                        <span>min(10)</span>
+                    </div>
+                    <div class="arrow">
+                        <span>PI控制</span>
+                        <div class="arrow-line"></div>
+                        <span>Kp+Ki</span>
+                    </div>
+                </div>
+                <div class="clock-box">
+                    <div class="clock-title" style="color: #ffa502;">时钟修正</div>
+                    <div class="clock-time" id="correctedTime">--</div>
+                </div>
+            </div>
+            <div class="formula">
+                <b>延迟滤波:</b> Filtered_Delay = <span>min(Raw_Delay[i-9..i])</span><br>
+                <b>PI控制器:</b> Correction = <span>Kp × Error + Ki × ∫(Error)dt</span><br>
+                <b>时钟修正:</b> Offset_New = <span>Offset_Old - Correction</span>
+            </div>
+        </div>
+
+        <div class="timestamps" style="margin-top: 25px;">
+            <h3>📝 事件日志</h3>
+            <div class="logs" id="logs">
+                <div class="log-entry info">等待从时钟连接...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const wsStatus = document.getElementById('wsStatus');
+        const wsStatusText = document.getElementById('wsStatusText');
+        const slaveIdEl = document.getElementById('slaveId');
+        const lastUpdateEl = document.getElementById('lastUpdate');
+        const clockModeEl = document.getElementById('clockMode');
+        const tcStatusEl = document.getElementById('tcStatus');
+        const pathDelayEl = document.getElementById('pathDelay');
+        const filteredDelayEl = document.getElementById('filteredDelay');
+        const clockOffsetEl = document.getElementById('clockOffset');
+        const filteredOffsetEl = document.getElementById('filteredOffset');
+        const initialOffsetEl = document.getElementById('initialOffset');
+        const currentOffsetEl = document.getElementById('currentOffset');
+        const piCorrectionEl = document.getElementById('piCorrection');
+        const piIntegralEl = document.getElementById('piIntegral');
+        const correctionFieldEl = document.getElementById('correctionField');
+        const tcPacketCountEl = document.getElementById('tcPacketCount');
+        const offsetBar = document.getElementById('offsetBar');
+        const integralBar = document.getElementById('integralBar');
+        const t1El = document.getElementById('t1');
+        const t2El = document.getElementById('t2');
+        const t3El = document.getElementById('t3');
+        const t4El = document.getElementById('t4');
+        const masterTimeEl = document.getElementById('masterTime');
+        const slaveTimeEl = document.getElementById('slaveTime');
+        const correctedTimeEl = document.getElementById('correctedTime');
+        const logsEl = document.getElementById('logs');
+
+        const delayCanvas = document.getElementById('delayChart');
+        const offsetCanvas = document.getElementById('offsetChart');
+        const piCanvas = document.getElementById('piChart');
+        const delayCtx = delayCanvas.getContext('2d');
+        const offsetCtx = offsetCanvas.getContext('2d');
+        const piCtx = piCanvas.getContext('2d');
+
+        const rawDelayHistory = [];
+        const filteredDelayHistory = [];
+        const rawOffsetHistory = [];
+        const filteredOffsetHistory = [];
+        const initialOffsetHistory = [];
+        const currentOffsetHistory = [];
+        const piCorrectionHistory = [];
+        const piIntegralHistory = [];
+        const maxHistory = 30;
+
+        let ws = null;
+
+        function addLog(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const time = new Date().toLocaleTimeString();
+            entry.textContent = `[${time}] ${message}`;
+            logsEl.insertBefore(entry, logsEl.firstChild);
+            if (logsEl.children.length > 50) {
+                logsEl.removeChild(logsEl.lastChild);
+            }
+        }
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}`);
+
+            ws.onopen = () => {
+                wsStatus.classList.add('connected');
+                wsStatusText.textContent = 'WebSocket 已连接';
+                addLog('WebSocket 连接成功', 'success');
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleMessage(data);
+                } catch (e) {
+                    console.error('Parse error:', e);
+                }
+            };
+
+            ws.onerror = (err) => {
+                console.error('WebSocket error:', err);
+                addLog('WebSocket 连接错误', 'info');
+            };
+
+            ws.onclose = () => {
+                wsStatus.classList.remove('connected');
+                wsStatusText.textContent = 'WebSocket 断开连接';
+                addLog('WebSocket 断开，正在重连...', 'info');
+                setTimeout(connectWebSocket, 2000);
+            };
+        }
+
+        function handleMessage(data) {
+            if (data.type === 'ptp_result') {
+                updateDisplay(data);
+                updateCharts(data);
+            } else if (data.type === 'sync') {
+                masterTimeEl.textContent = formatNanoTime(data.t1);
+            } else if (data.type === 'config') {
+                updateClockMode(data.clockMode);
+            } else if (data.type === 'tc_status') {
+                updateTcStatus(true, data.tcId);
+            } else if (data.type === 'tc_update') {
+                updateTcData(data);
+            }
+        }
+
+        function updateClockMode(mode) {
+            clockModeEl.textContent = mode === 'one-step' ? '一步时钟' : '两步时钟';
+            clockModeEl.style.color = mode === 'one-step' ? '#00ff88' : '#00d4ff';
+            addLog(`时钟模式: ${mode === 'one-step' ? '一步时钟' : '两步时钟'}`, 'info');
+        }
+
+        function updateTcStatus(active, tcId) {
+            if (active) {
+                tcStatusEl.textContent = `已连接 (ID: ${tcId})`;
+                tcStatusEl.style.color = '#2ed573';
+                addLog(`透明时钟已连接，ID: ${tcId}`, 'success');
+            } else {
+                tcStatusEl.textContent = '未启用';
+                tcStatusEl.style.color = '#8892b0';
+            }
+        }
+
+        function updateTcData(data) {
+            correctionFieldEl.textContent = data.correctionFieldAfter.toLocaleString();
+            if (data.packetCount !== undefined) {
+                tcPacketCountEl.textContent = data.packetCount;
+            }
+        }
+
+        function formatNanoTime(ns) {
+            if (!ns) return '--';
+            const ms = ns / 1e6;
+            return ms.toFixed(3) + ' ms';
+        }
+
+        function updateDisplay(data) {
+            slaveIdEl.textContent = data.slaveId;
+            lastUpdateEl.textContent = new Date(data.timestamp).toLocaleTimeString();
+            
+            pathDelayEl.textContent = data.pathDelay.toFixed(3);
+            filteredDelayEl.textContent = (data.filteredDelay || data.pathDelay).toFixed(3);
+            clockOffsetEl.textContent = data.offset.toFixed(3);
+            filteredOffsetEl.textContent = (data.filteredOffset !== undefined ? data.filteredOffset : data.offset).toFixed(3);
+            
+            if (data.initialOffset !== undefined) {
+                initialOffsetEl.textContent = data.initialOffset.toFixed(3);
+                initialOffsetHistory.push(data.initialOffset);
+                if (initialOffsetHistory.length > maxHistory) initialOffsetHistory.shift();
+            }
+            
+            if (data.currentOffset !== undefined) {
+                currentOffsetEl.textContent = data.currentOffset.toFixed(3);
+                const offsetPercent = Math.min(100, Math.max(0, 50 + data.currentOffset / 10));
+                offsetBar.style.width = offsetPercent + '%';
+            }
+
+            if (data.piCorrection !== undefined) {
+                piCorrectionEl.textContent = data.piCorrection.toFixed(3);
+            }
+
+            if (data.piIntegral !== undefined) {
+                piIntegralEl.textContent = data.piIntegral.toFixed(3);
+                const integralPercent = Math.min(100, Math.max(0, 50 + data.piIntegral / 100));
+                integralBar.style.width = integralPercent + '%';
+            }
+
+            if (data.correctionField !== undefined) {
+                correctionFieldEl.textContent = data.correctionField.toLocaleString();
+            }
+
+            if (data.useTc !== undefined) {
+                tcStatusEl.textContent = data.useTc ? '已启用' : '未启用';
+                tcStatusEl.style.color = data.useTc ? '#2ed573' : '#8892b0';
+            }
+
+            t1El.textContent = data.t1.toLocaleString() + ' ns';
+            t2El.textContent = data.t2.toLocaleString() + ' ns';
+            t3El.textContent = data.t3.toLocaleString() + ' ns';
+            t4El.textContent = data.t4.toLocaleString() + ' ns';
+
+            masterTimeEl.textContent = formatNanoTime(data.t1);
+            slaveTimeEl.textContent = formatNanoTime(data.t2);
+            correctedTimeEl.textContent = (data.currentOffset !== undefined ? data.currentOffset.toFixed(3) + ' ms' : '--');
+
+            const filterInfo = data.delayHistory ? `(${data.delayHistory.length}样本)` : '';
+            const tcInfo = data.useTc ? ' [TC]' : '';
+            addLog(`延迟:${data.pathDelay.toFixed(2)}→${(data.filteredDelay||data.pathDelay).toFixed(2)}ms 偏移:${data.offset.toFixed(2)}→${(data.filteredOffset||data.offset).toFixed(2)}ms ${filterInfo}${tcInfo}`, 'success');
+        }
+
+        function updateCharts(data) {
+            rawDelayHistory.push(data.pathDelay);
+            filteredDelayHistory.push(data.filteredDelay || data.pathDelay);
+            rawOffsetHistory.push(data.offset);
+            filteredOffsetHistory.push(data.filteredOffset !== undefined ? data.filteredOffset : data.offset);
+            currentOffsetHistory.push(data.currentOffset !== undefined ? data.currentOffset : data.offset);
+            piCorrectionHistory.push(data.piCorrection || 0);
+            piIntegralHistory.push(data.piIntegral || 0);
+
+            if (rawDelayHistory.length > maxHistory) {
+                rawDelayHistory.shift();
+                filteredDelayHistory.shift();
+                rawOffsetHistory.shift();
+                filteredOffsetHistory.shift();
+                currentOffsetHistory.shift();
+                piCorrectionHistory.shift();
+                piIntegralHistory.shift();
+            }
+
+            drawDualChart(delayCtx, delayCanvas, rawDelayHistory, filteredDelayHistory, '#00d4ff', '#00ff88', 'Delay (ms)', 'Raw', 'Filtered');
+            drawTripleChart(offsetCtx, offsetCanvas, rawOffsetHistory, filteredOffsetHistory, currentOffsetHistory, '#00d4ff', '#00ff88', '#ffa502', 'Offset (ms)', 'Raw', 'Filtered', 'After PI');
+            drawDualChart(piCtx, piCanvas, piCorrectionHistory, piIntegralHistory, '#ff6b6b', '#4ecdc4', 'PI Output', 'Correction', 'Integral');
+        }
+
+        function drawDualChart(ctx, canvas, data1, data2, color1, color2, label, label1, label2) {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+
+            const width = rect.width;
+            const height = rect.height;
+            const padding = 40;
+
+            ctx.clearRect(0, 0, width, height);
+
+            if (data1.length < 2) {
+                ctx.fillStyle = '#8892b0';
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('等待更多数据...', width / 2, height / 2);
+                return;
+            }
+
+            const allData = [...data1, ...data2];
+            const minVal = Math.min(...allData) * 0.9;
+            const maxVal = Math.max(...allData) * 1.1;
+            const range = maxVal - minVal || 1;
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = padding + (height - 2 * padding) * (i / 4);
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+                ctx.stroke();
+
+                ctx.fillStyle = '#8892b0';
+                ctx.font = '10px sans-serif';
+                ctx.textAlign = 'right';
+                const val = maxVal - (range * i / 4);
+                ctx.fillText(val.toFixed(2), padding - 5, y + 3);
+            }
+
+            ctx.beginPath();
+            data1.forEach((val, i) => {
+                const x = padding + (width - 2 * padding) * (i / (data1.length - 1));
+                const y = height - padding - ((val - minVal) / range) * (height - 2 * padding);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.strokeStyle = color1;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            data1.forEach((val, i) => {
+                const x = padding + (width - 2 * padding) * (i / (data1.length - 1));
+                const y = height - padding - ((val - minVal) / range) * (height - 2 * padding);
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = color1;
+                ctx.fill();
+            });
+
+            ctx.beginPath();
+            data2.forEach((val, i) => {
+                const x = padding + (width - 2 * padding) * (i / (data2.length - 1));
+                const y = height - padding - ((val - minVal) / range) * (height - 2 * padding);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.strokeStyle = color2;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            data2.forEach((val, i) => {
+                const x = padding + (width - 2 * padding) * (i / (data2.length - 1));
+                const y = height - padding - ((val - minVal) / range) * (height - 2 * padding);
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = color2;
+                ctx.fill();
+            });
+
+            ctx.fillStyle = color1;
+            ctx.fillRect(width - padding - 120, 10, 12, 3);
+            ctx.fillStyle = '#e8e8e8';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(label1, width - padding - 102, 14);
+
+            ctx.fillStyle = color2;
+            ctx.fillRect(width - padding - 120, 25, 12, 3);
+            ctx.fillText(label2, width - padding - 102, 29);
+
+            ctx.fillStyle = '#8892b0';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, width / 2, height - 8);
+        }
+
+        function drawTripleChart(ctx, canvas, data1, data2, data3, color1, color2, color3, label, label1, label2, label3) {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+
+            const width = rect.width;
+            const height = rect.height;
+            const padding = 40;
+
+            ctx.clearRect(0, 0, width, height);
+
+            if (data1.length < 2) {
+                ctx.fillStyle = '#8892b0';
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('等待更多数据...', width / 2, height / 2);
+                return;
+            }
+
+            const allData = [...data1, ...data2, ...data3];
+            const minVal = Math.min(...allData) * 1.1;
+            const maxVal = Math.max(...allData) * 1.1;
+            const range = maxVal - minVal || 1;
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = padding + (height - 2 * padding) * (i / 4);
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+                ctx.stroke();
+
+                ctx.fillStyle = '#8892b0';
+                ctx.font = '10px sans-serif';
+                ctx.textAlign = 'right';
+                const val = maxVal - (range * i / 4);
+                ctx.fillText(val.toFixed(2), padding - 5, y + 3);
+            }
+
+            function drawLine(data, color, dashed = false) {
+                ctx.beginPath();
+                data.forEach((val, i) => {
+                    const x = padding + (width - 2 * padding) * (i / (data.length - 1));
+                    const y = height - padding - ((val - minVal) / range) * (height - 2 * padding);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                if (dashed) ctx.setLineDash([4, 4]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                data.forEach((val, i) => {
+                    const x = padding + (width - 2 * padding) * (i / (data.length - 1));
+                    const y = height - padding - ((val - minVal) / range) * (height - 2 * padding);
+                    ctx.beginPath();
+                    ctx.arc(x, y, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                });
+            }
+
+            drawLine(data1, color1);
+            drawLine(data2, color2);
+            drawLine(data3, color3, true);
+
+            ctx.fillStyle = color1;
+            ctx.fillRect(width - padding - 140, 5, 12, 3);
+            ctx.fillStyle = '#e8e8e8';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(label1, width - padding - 122, 9);
+
+            ctx.fillStyle = color2;
+            ctx.fillRect(width - padding - 140, 18, 12, 3);
+            ctx.fillText(label2, width - padding - 122, 22);
+
+            ctx.fillStyle = color3;
+            ctx.fillRect(width - padding - 140, 31, 12, 3);
+            ctx.fillText(label3, width - padding - 122, 35);
+
+            ctx.fillStyle = '#8892b0';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, width / 2, height - 8);
+        }
+
+        window.addEventListener('resize', () => {
+            if (rawDelayHistory.length > 0) {
+                const lastData = {
+                    pathDelay: rawDelayHistory[rawDelayHistory.length - 1],
+                    filteredDelay: filteredDelayHistory[filteredDelayHistory.length - 1],
+                    offset: rawOffsetHistory[rawOffsetHistory.length - 1],
+                    filteredOffset: filteredOffsetHistory[filteredOffsetHistory.length - 1],
+                    currentOffset: currentOffsetHistory[currentOffsetHistory.length - 1],
+                    piCorrection: piCorrectionHistory[piCorrectionHistory.length - 1],
+                    piIntegral: piIntegralHistory[piIntegralHistory.length - 1]
+                };
+                updateCharts(lastData);
+            }
+        });
+
+        connectWebSocket();
+    </script>
+</body>
+</html>

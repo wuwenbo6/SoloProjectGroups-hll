@@ -1,0 +1,21 @@
+{
+  "name": "i3c-bus-analyzer",
+  "version": "1.0.0",
+  "description": "I3C Bus Analyzer - Parse and visualize Saleae logic analyzer I3C CSV data",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": [
+    "electron",
+    "i3c",
+    "logic-analyzer",
+    "saleae"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}

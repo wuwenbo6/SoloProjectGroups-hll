@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>WAV 重采样 &amp; 频谱对比</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: #111827;
+        --panel-2: #1e293b;
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --accent: #06b6d4;
+        --accent-2: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+        --border: #334155;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      header {
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      header h1 { font-size: 18px; margin: 0; }
+      main { padding: 20px; max-width: 1200px; margin: 0 auto; }
+      .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+      .tab {
+        padding: 10px 16px; background: var(--panel-2); border: 1px solid var(--border);
+        border-radius: 8px; cursor: pointer; color: var(--muted);
+      }
+      .tab.active { background: var(--accent); color: #0f172a; border-color: var(--accent); font-weight: 600; }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+      .field { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+      label { color: var(--muted); font-size: 12px; }
+      input, select {
+        background: var(--panel-2);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 14px;
+      }
+      button {
+        background: var(--accent);
+        color: #0f172a;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 16px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      button.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+      .meta { color: var(--muted); font-size: 12px; }
+      .error { color: var(--danger); margin-top: 8px; white-space: pre-wrap; }
+      .success { color: var(--accent-2); margin-top: 8px; }
+      .warning { color: var(--warning); margin-top: 4px; font-size: 12px; }
+      canvas { width: 100%; height: 180px; background: #0b1220; border-radius: 8px; display: block; }
+      canvas.spec { height: 220px; }
+      .wave-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin: 8px 0 4px; }
+      .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+      .hint { color: var(--muted); font-size: 12px; }
+      .spinner {
+        display: inline-block; width: 12px; height: 12px; border-radius: 50%;
+        border: 2px solid #0f172a; border-top-color: transparent;
+        animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 6px;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .hidden { display: none !important; }
+      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } }
+      .badge {
+        display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 6px;
+        background: var(--panel-2); color: var(--muted);
+      }
+      .badge.aa { background: #06b6d422; color: var(--accent); }
+      .badge.noaa { background: #f59e0b22; color: var(--warning); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>WAV 重采样 &amp; 频谱对比</h1>
+      <div class="meta" id="endpointMeta"></div>
+    </header>
+    <main>
+      <div class="tabs">
+        <div class="tab active" data-mode="single">单文件处理</div>
+        <div class="tab" data-mode="batch">批量处理 (ZIP)</div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <div class="field">
+            <label for="apiBase">API Base</label>
+            <input id="apiBase" type="text" value="http://127.0.0.1:8000" />
+          </div>
+          <div class="field" id="singleFileField">
+            <label for="file">WAV 文件（≤100MB）</label>
+            <input id="file" type="file" accept=".wav,audio/wav" />
+          </div>
+          <div class="field hidden" id="batchFileField">
+            <label for="zipFile">ZIP 包（含 WAV, ≤100MB）</label>
+            <input id="zipFile" type="file" accept=".zip,application/zip" />
+          </div>
+          <div class="field">
+            <label for="targetSr">目标采样率 (Hz)</label>
+            <select id="targetSr">
+              <option value="8000">8000</option>
+              <option value="16000" selected>16000</option>
+              <option value="22050">22050</option>
+              <option value="24000">24000</option>
+              <option value="32000">32000</option>
+              <option value="44100">44100</option>
+              <option value="48000">48000</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="algorithm">重采样算法</label>
+            <select id="algorithm">
+              <option value="soxr_hq">soxr HQ（高质量抗混叠,推荐）<span class="badge aa">抗混叠</span></option>
+              <option value="soxr_vhq">soxr VHQ（最高质量抗混叠）<span class="badge aa">抗混叠</span></option>
+              <option value="soxr_mq">soxr MQ（中等质量）<span class="badge aa">抗混叠</span></option>
+              <option value="soxr_lq">soxr LQ（快速）<span class="badge aa">抗混叠</span></option>
+              <option value="fft">FFT 重采样<span class="badge aa">抗混叠</span></option>
+              <option value="cubic">三次插值<span class="badge noaa">无抗混叠</span></option>
+              <option value="linear">线性插值<span class="badge noaa">无抗混叠</span></option>
+            </select>
+          </div>
+          <button id="resampleBtn">重采样</button>
+        </div>
+        <div id="status" class="meta" style="margin-top:10px;"></div>
+        <div id="err" class="error"></div>
+        <div id="ok" class="success"></div>
+      </div>
+
+      <div id="singleResults">
+        <div class="card">
+          <div class="wave-label">
+            <span>原始波形 <span class="hint" id="origPreviewInfo"></span></span>
+            <span id="origMeta" class="hint"></span>
+          </div>
+          <canvas id="origCanvas"></canvas>
+          <div id="origWarn" class="warning" style="display:none;"></div>
+          <div class="actions">
+            <audio id="origAudio" controls style="width:100%"></audio>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="wave-label">
+            <span>原始频谱（前 10s）</span>
+          </div>
+          <canvas id="origSpec" class="spec"></canvas>
+        </div>
+
+        <div class="card">
+          <div class="wave-label">
+            <span>重采样后波形 <span class="hint" id="rsPreviewInfo"></span></span>
+            <span id="rsMeta" class="hint"></span>
+          </div>
+          <canvas id="rsCanvas"></canvas>
+          <div id="rsWarn" class="warning" style="display:none;"></div>
+          <div class="actions">
+            <audio id="rsAudio" controls style="width:100%"></audio>
+            <a id="downloadLink" style="text-decoration:none" download>
+              <button class="secondary">下载 WAV</button>
+            </a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="wave-label">
+            <span>重采样后频谱（前 10s）</span>
+          </div>
+          <canvas id="rsSpec" class="spec"></canvas>
+          <div class="hint" style="margin-top:8px;">
+            注：波形与频谱预览仅显示前 10 秒，防止大文件浏览器崩溃；音频播放与下载为完整内容。
+          </div>
+        </div>
+      </div>
+
+      <div id="batchResults" class="hidden">
+        <div class="card">
+          <div class="wave-label">
+            <span>批量处理结果</span>
+          </div>
+          <div id="batchList" style="margin-top:12px; max-height: 400px; overflow-y: auto;"></div>
+          <div class="actions" style="margin-top:16px;">
+            <a id="batchDownloadLink" style="text-decoration:none" download>
+              <button class="secondary">下载批量结果 ZIP</button>
+            </a>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      const PREVIEW_SECONDS = 10;
+
+      const apiBase = document.getElementById('apiBase');
+      document.getElementById('endpointMeta').textContent = apiBase.value;
+      apiBase.addEventListener('change', () => {
+        document.getElementById('endpointMeta').textContent = apiBase.value;
+      });
+
+      const tabs = document.querySelectorAll('.tab');
+      const singleFileField = document.getElementById('singleFileField');
+      const batchFileField = document.getElementById('batchFileField');
+      const singleResults = document.getElementById('singleResults');
+      const batchResults = document.getElementById('batchResults');
+      const fileInput = document.getElementById('file');
+      const zipInput = document.getElementById('zipFile');
+      const targetSrSel = document.getElementById('targetSr');
+      const algorithmSel = document.getElementById('algorithm');
+      const resampleBtn = document.getElementById('resampleBtn');
+      const statusEl = document.getElementById('status');
+      const errEl = document.getElementById('err');
+      const okEl = document.getElementById('ok');
+      const origCanvas = document.getElementById('origCanvas');
+      const rsCanvas = document.getElementById('rsCanvas');
+      const origSpec = document.getElementById('origSpec');
+      const rsSpec = document.getElementById('rsSpec');
+      const origAudio = document.getElementById('origAudio');
+      const rsAudio = document.getElementById('rsAudio');
+      const origMeta = document.getElementById('origMeta');
+      const rsMeta = document.getElementById('rsMeta');
+      const origPreviewInfo = document.getElementById('origPreviewInfo');
+      const rsPreviewInfo = document.getElementById('rsPreviewInfo');
+      const origWarn = document.getElementById('origWarn');
+      const rsWarn = document.getElementById('rsWarn');
+      const downloadLink = document.getElementById('downloadLink');
+      const batchList = document.getElementById('batchList');
+      const batchDownloadLink = document.getElementById('batchDownloadLink');
+
+      let mode = 'single';
+      resampleBtn.disabled = true;
+      downloadLink.style.display = 'none';
+      batchDownloadLink.style.display = 'none';
+
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          mode = tab.dataset.mode;
+          if (mode === 'single') {
+            singleFileField.classList.remove('hidden');
+            batchFileField.classList.add('hidden');
+            singleResults.classList.remove('hidden');
+            batchResults.classList.add('hidden');
+            resampleBtn.disabled = !fileInput.files[0];
+          } else {
+            singleFileField.classList.add('hidden');
+            batchFileField.classList.remove('hidden');
+            singleResults.classList.add('hidden');
+            batchResults.classList.remove('hidden');
+            resampleBtn.disabled = !zipInput.files[0];
+          }
+          clearMsgs();
+        });
+      });
+
+      function setStatus(text, busy) {
+        statusEl.innerHTML = busy ? `<span class="spinner"></span>${text}` : text;
+      }
+      function clearMsgs() { errEl.textContent = ''; okEl.textContent = ''; }
+
+      fileInput.addEventListener('change', () => {
+        const f = fileInput.files[0];
+        if (mode === 'single') resampleBtn.disabled = !f;
+        if (!f) return;
+        if (f.size > 100 * 1024 * 1024) {
+          errEl.textContent = '文件超过 100MB 限制。';
+          resampleBtn.disabled = true;
+          return;
+        }
+        clearMsgs();
+        setStatus(`已选择：${f.name} (${(f.size / 1024 / 1024).toFixed(2)} MB)`);
+      });
+
+      zipInput.addEventListener('change', () => {
+        const f = zipInput.files[0];
+        if (mode === 'batch') resampleBtn.disabled = !f;
+        if (!f) return;
+        if (f.size > 100 * 1024 * 1024) {
+          errEl.textContent = 'ZIP 超过 100MB 限制。';
+          resampleBtn.disabled = true;
+          return;
+        }
+        clearMsgs();
+        setStatus(`已选择：${f.name} (${(f.size / 1024 / 1024).toFixed(2)} MB)`);
+      });
+
+      function setupCanvas(canvas) {
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return { ctx, w, h };
+      }
+
+      function computeEnvelope(samples, targetBars) {
+        const total = samples.length;
+        const barCount = Math.min(targetBars, Math.max(100, Math.floor(total / 4)));
+        const blockSize = Math.max(1, Math.floor(total / barCount));
+        const mins = new Float32Array(barCount);
+        const maxs = new Float32Array(barCount);
+        for (let i = 0; i < barCount; i++) {
+          const start = i * blockSize;
+          const end = Math.min(start + blockSize, total);
+          let mn = Infinity, mx = -Infinity;
+          for (let j = start; j < end; j++) {
+            const v = samples[j];
+            if (v < mn) mn = v;
+            if (v > mx) mx = v;
+          }
+          if (!isFinite(mn)) { mn = 0; mx = 0; }
+          mins[i] = mn;
+          maxs[i] = mx;
+        }
+        return { mins, maxs, barCount };
+      }
+
+      function drawWave(canvas, buffer, color, warnEl, previewInfoEl) {
+        const { ctx, w, h } = setupCanvas(canvas);
+        ctx.clearRect(0, 0, w, h);
+        ctx.strokeStyle = '#1f2937';
+        ctx.beginPath();
+        ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();
+
+        const fullSamples = buffer.getChannelData(0);
+        const maxPreviewSamples = Math.floor(buffer.sampleRate * PREVIEW_SECONDS);
+        const truncated = fullSamples.length > maxPreviewSamples;
+        const samples = truncated ? fullSamples.subarray(0, maxPreviewSamples) : fullSamples;
+
+        if (truncated) {
+          warnEl.textContent = `文件时长 ${buffer.duration.toFixed(2)}s 超过 ${PREVIEW_SECONDS}s，仅预览前 ${PREVIEW_SECONDS} 秒。完整内容可通过播放/下载获取。`;
+          warnEl.style.display = 'block';
+          previewInfoEl.textContent = `（前 ${PREVIEW_SECONDS}s 预览）`;
+        } else {
+          warnEl.style.display = 'none';
+          previewInfoEl.textContent = '';
+        }
+
+        const { mins, maxs, barCount } = computeEnvelope(samples, Math.min(4000, w * 2));
+        const mid = h / 2;
+        const scale = Math.min(mid, h * 0.45);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 0; i < barCount; i++) {
+          const x = (i / barCount) * w;
+          const y1 = mid - maxs[i] * scale;
+          const y2 = mid - mins[i] * scale;
+          ctx.moveTo(x, y1);
+          ctx.lineTo(x, y2);
+        }
+        ctx.stroke();
+      }
+
+      function drawSpectrum(canvas, spec) {
+        const { ctx, w, h } = setupCanvas(canvas);
+        ctx.clearRect(0, 0, w, h);
+        const data = spec.data;
+        const nFrames = data.length;
+        const nBins = data[0].length;
+        const imgData = ctx.createImageData(w, h);
+        for (let y = 0; y < h; y++) {
+          const bin = Math.floor((1 - y / h) * (nBins - 1));
+          for (let x = 0; x < w; x++) {
+            const t = Math.floor((x / w) * (nFrames - 1));
+            const val = data[t][bin];
+            const idx = (y * w + x) * 4;
+            const r = Math.min(255, Math.floor(val * 255));
+            const g = Math.min(255, Math.floor(Math.max(0, val - 0.3) * 350));
+            const b = Math.min(255, Math.floor(Math.max(0, val - 0.6) * 500));
+            imgData.data[idx] = r;
+            imgData.data[idx + 1] = g;
+            imgData.data[idx + 2] = b;
+            imgData.data[idx + 3] = 255;
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '10px monospace';
+        ctx.fillText(`0 Hz`, 4, h - 4);
+        ctx.fillText(`${(spec.max_freq / 1000).toFixed(1)} kHz`, 4, 12);
+      }
+
+      function hexToUint8Array(hex) {
+        const bytes = new Uint8Array(hex.length / 2);
+        for (let i = 0; i < hex.length; i += 2) {
+          bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+        }
+        return bytes;
+      }
+
+      async function decodeLocal(file) {
+        const arr = await file.arrayBuffer();
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        return ctx.decodeAudioData(arr.slice(0));
+      }
+
+      async function decodeRemote(blob) {
+        const arr = await blob.arrayBuffer();
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        return ctx.decodeAudioData(arr.slice(0));
+      }
+
+      resampleBtn.addEventListener('click', async () => {
+        const targetSr = parseInt(targetSrSel.value, 10);
+        const algorithm = algorithmSel.value;
+        clearMsgs();
+        resampleBtn.disabled = true;
+
+        if (mode === 'single') {
+          const file = fileInput.files[0];
+          if (!file) return;
+          if (file.size > 100 * 1024 * 1024) {
+            errEl.textContent = '文件超过 100MB 限制。';
+            resampleBtn.disabled = false;
+            return;
+          }
+          setStatus('正在解码原始波形…', true);
+
+          try {
+            const origBuffer = await decodeLocal(file);
+            drawWave(origCanvas, origBuffer, '#06b6d4', origWarn, origPreviewInfo);
+            origAudio.src = URL.createObjectURL(file);
+            origMeta.textContent = `sr=${origBuffer.sampleRate} Hz, ${origBuffer.duration.toFixed(2)}s, ${origBuffer.numberOfChannels}ch`;
+
+            setStatus(`上传并重采样到 ${targetSr} Hz (${algorithm})…`, true);
+
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('target_sr', String(targetSr));
+            fd.append('algorithm', algorithm);
+
+            const resp = await fetch(`${apiBase.value.replace(/\/$/, '')}/api/resample-with-spectrum`, {
+              method: 'POST',
+              body: fd,
+            });
+            if (!resp.ok) {
+              let msg = `HTTP ${resp.status}`;
+              try { msg += ': ' + (await resp.json()).detail; } catch {}
+              throw new Error(msg);
+            }
+
+            const json = await resp.json();
+            const wavBytes = hexToUint8Array(json.wav_base64);
+            const blob = new Blob([wavBytes], { type: 'audio/wav' });
+
+            setStatus('解码重采样后波形…', true);
+            const rsBuffer = await decodeRemote(blob);
+
+            drawWave(rsCanvas, rsBuffer, '#10b981', rsWarn, rsPreviewInfo);
+            drawSpectrum(origSpec, json.spectrum_orig);
+            drawSpectrum(rsSpec, json.spectrum_rs);
+
+            rsAudio.src = URL.createObjectURL(blob);
+            rsMeta.textContent = `sr=${json.target_sr} Hz, ${rsBuffer.duration.toFixed(2)}s, ${rsBuffer.numberOfChannels}ch (${json.algorithm})`;
+
+            const outName = `resampled_sr${json.target_sr}_${json.algorithm}.wav`;
+            downloadLink.href = URL.createObjectURL(blob);
+            downloadLink.download = outName;
+            downloadLink.style.display = 'inline-block';
+
+            okEl.textContent = `完成：${json.orig_sr} Hz → ${json.target_sr} Hz (${json.algorithm})，已生成频谱对比。`;
+            setStatus('完成');
+          } catch (err) {
+            errEl.textContent = err.message || String(err);
+            setStatus('失败');
+          } finally {
+            resampleBtn.disabled = false;
+          }
+        } else {
+          const zipFile = zipInput.files[0];
+          if (!zipFile) return;
+          if (zipFile.size > 100 * 1024 * 1024) {
+            errEl.textContent = 'ZIP 超过 100MB 限制。';
+            resampleBtn.disabled = false;
+            return;
+          }
+          setStatus(`批量重采样中… (${algorithm})`, true);
+
+          try {
+            const fd = new FormData();
+            fd.append('file', zipFile);
+            fd.append('target_sr', String(targetSr));
+            fd.append('algorithm', algorithm);
+
+            const resp = await fetch(`${apiBase.value.replace(/\/$/, '')}/api/batch-resample`, {
+              method: 'POST',
+              body: fd,
+            });
+            if (!resp.ok) {
+              let msg = `HTTP ${resp.status}`;
+              try { msg += ': ' + (await resp.json()).detail; } catch {}
+              throw new Error(msg);
+            }
+
+            const blob = await resp.blob();
+            const cd = resp.headers.get('Content-Disposition') || '';
+            const m = cd.match(/filename="?([^"]+)"?/);
+            const outName = m ? m[1] : `batch_resampled_sr${targetSr}.zip`;
+
+            batchDownloadLink.href = URL.createObjectURL(blob);
+            batchDownloadLink.download = outName;
+            batchDownloadLink.style.display = 'inline-block';
+
+            batchList.innerHTML = `
+              <div style="padding: 8px 12px; background: var(--panel-2); border-radius: 8px;">
+                <div style="color: var(--accent-2); font-weight: 600;">批量处理完成</div>
+                <div style="color: var(--muted); font-size: 12px; margin-top: 4px;">
+                  目标采样率：${targetSr} Hz | 算法：${algorithm} | 输出文件：${outName}
+                </div>
+                <div style="color: var(--muted); font-size: 12px; margin-top: 8px;">
+                  请点击下方按钮下载包含重采样后 WAV 的 ZIP 包。
+                </div>
+              </div>
+            `;
+
+            okEl.textContent = `批量处理完成：${targetSr} Hz (${algorithm})`;
+            setStatus('完成');
+          } catch (err) {
+            errEl.textContent = err.message || String(err);
+            setStatus('失败');
+          } finally {
+            resampleBtn.disabled = false;
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

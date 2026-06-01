@@ -1,0 +1,14 @@
+{
+  "name": "parrot-drone-web",
+  "version": "1.0.0",
+  "description": "Web application to control Parrot drone via WiFi - send AT commands and receive H.264 video stream",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.16.0"
+  }
+}

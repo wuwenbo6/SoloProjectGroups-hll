@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Remote PCAP - 远程抓包工具</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>🔍 Remote PCAP</h1>
+      <div class="connection-status">
+        <span id="connectionStatus" class="status disconnected"></span>
+        <span id="connectionText">未连接</span>
+      </div>
+    </header>
+
+    <div class="session-panel" id="sessionPanel">
+      <div class="panel-section">
+        <h2>新建会话</h2>
+        <div class="form-group">
+          <label for="interfaceSelect">网络接口</label>
+          <select id="interfaceSelect"></select>
+        </div>
+        <div class="form-group">
+          <label for="filterInput">BPF 过滤器</label>
+          <input type="text" id="filterInput" placeholder="例如: tcp port 80 或 udp">
+          <div id="filterHint" class="filter-hint hidden">
+            <h4>💡 常用过滤器示例</h4>
+            <div><code>tcp port 80</code> - HTTP 流量</div>
+            <div><code>udp port 53</code> - DNS 查询</div>
+            <div><code>host 192.168.1.1</code> - 指定主机</div>
+            <div><code>(tcp port 443) and (host 10.0.0.1)</code> - 组合条件</div>
+          </div>
+          <div id="filterError" class="hidden" style="color: #f44336; font-size: 12px; margin-top: 8px;"></div>
+        </div>
+        <button id="startBtn" class="btn btn-primary">开始抓包</button>
+      </div>
+
+      <div class="panel-section">
+        <h2>加入已有会话</h2>
+        <div class="form-group">
+          <label for="sessionIdInput">会话 ID</label>
+          <input type="text" id="sessionIdInput" placeholder="输入会话 ID 加入">
+        </div>
+        <button id="joinBtn" class="btn btn-secondary">加入会话</button>
+      </div>
+    </div>
+
+    <div class="capture-panel hidden" id="capturePanel">
+      <div class="capture-header">
+        <div class="session-info">
+          <span class="label">会话:</span>
+          <span id="sessionId" class="value">-</span>
+          <span class="label">接口:</span>
+          <span id="captureInterface" class="value">-</span>
+          <span class="label">过滤器:</span>
+          <span id="captureFilter" class="value">-</span>
+          <span class="label">包数:</span>
+          <span id="packetCount" class="value">0</span>
+          <span class="label">在线用户:</span>
+          <span id="clientCount" class="value">0</span>
+        </div>
+        <div class="capture-actions">
+          <button id="pauseBtn" class="btn btn-warning">暂停</button>
+          <button id="exportBtn" class="btn btn-secondary">导出 PCAPNG</button>
+          <button id="clearBtn" class="btn btn-danger">停止</button>
+          <button id="shareBtn" class="btn btn-info">复制会话ID</button>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="packets">📦 数据包</button>
+        <button class="tab-btn" data-tab="streams">🔗 TCP 流</button>
+        <button class="tab-btn" data-tab="expert">⚠️ 专家信息 <span id="expertBadge" class="badge hidden">0</span></button>
+      </div>
+
+      <div class="capture-content">
+        <div class="tab-panel active" id="tab-packets">
+          <div class="packet-list-container">
+            <div class="list-header">
+              <div class="col-no">#</div>
+              <div class="col-time">时间</div>
+              <div class="col-src">源</div>
+              <div class="col-dst">目的</div>
+              <div class="col-proto">协议</div>
+              <div class="col-len">长度</div>
+            </div>
+            <div class="packet-list" id="packetList"></div>
+          </div>
+
+          <div class="packet-detail-container" id="packetDetail">
+            <div class="detail-placeholder">选择一个数据包查看详情</div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-streams">
+          <div class="stream-list-container">
+            <div class="list-header">
+              <div class="col-no">#</div>
+              <div class="col-src">源 → 目的</div>
+              <div class="col-packets">包数</div>
+              <div class="col-bytes">字节</div>
+              <div class="col-status">状态</div>
+            </div>
+            <div class="stream-list" id="streamList">
+              <div class="detail-placeholder">暂无 TCP 流数据</div>
+            </div>
+          </div>
+
+          <div class="stream-detail-container" id="streamDetail">
+            <div class="detail-placeholder">选择一个 TCP 流查看详情</div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-expert">
+          <div class="expert-list-container">
+            <div class="list-header">
+              <div class="col-severity">级别</div>
+              <div class="col-time">时间</div>
+              <div class="col-type">类型</div>
+              <div class="col-msg">消息</div>
+            </div>
+            <div class="expert-list" id="expertList">
+              <div class="detail-placeholder">暂无专家信息</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

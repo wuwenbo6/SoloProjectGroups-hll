@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SASL 多机制登录演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            width: 100%;
+            max-width: 520px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #555;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .flow-steps {
+            margin-top: 20px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .flow-steps.visible {
+            display: block;
+        }
+
+        .flow-steps h3 {
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .step {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            border-left: 3px solid #667eea;
+        }
+
+        .step.error {
+            border-left-color: #dc3545;
+        }
+
+        .step.success {
+            border-left-color: #28a745;
+        }
+
+        .test-users {
+            margin-top: 20px;
+            padding: 16px;
+            background: #fff3cd;
+            border-radius: 8px;
+            border: 1px solid #ffeeba;
+        }
+
+        .test-users h3 {
+            color: #856404;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .test-users ul {
+            color: #856404;
+            font-size: 13px;
+            padding-left: 20px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .mechanism-info {
+            margin-top: 8px;
+            padding: 10px;
+            background: #e7f3ff;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #0066cc;
+            display: none;
+        }
+
+        .mechanism-info.visible {
+            display: block;
+        }
+
+        .stats-panel {
+            margin-top: 20px;
+            padding: 16px;
+            background: #f0f4ff;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .stats-panel.visible {
+            display: block;
+        }
+
+        .stats-panel h3 {
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 13px;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #666;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .stat-value.success {
+            color: #28a745;
+        }
+
+        .stat-value.failed {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SASL 代理登录</h1>
+            <p>多机制认证演示 (PLAIN / SCRAM-SHA-1 / SCRAM-SHA-256)</p>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="mechanism">认证机制</label>
+                <select id="mechanism" name="mechanism">
+                    <option value="SCRAM-SHA-256">SCRAM-SHA-256 (推荐)</option>
+                    <option value="SCRAM-SHA-1">SCRAM-SHA-1</option>
+                    <option value="PLAIN">PLAIN (简单模式)</option>
+                </select>
+                <div id="mechanismInfo" class="mechanism-info"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" placeholder="请输入用户名" autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" placeholder="请输入密码" autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">
+                登录
+            </button>
+        </form>
+
+        <div id="result" class="result"></div>
+
+        <div id="flowSteps" class="flow-steps">
+            <h3>认证流程</h3>
+            <div id="stepsContainer"></div>
+        </div>
+
+        <div id="statsPanel" class="stats-panel">
+            <h3>认证统计</h3>
+            <div id="statsContainer"></div>
+        </div>
+
+        <div class="test-users">
+            <h3>测试账号</h3>
+            <ul>
+                <li>admin / admin123</li>
+                <li>user / user123</li>
+                <li>test / test123</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        class SCRAMClient {
+            constructor(algorithm = 'SHA-256') {
+                this.hashAlg = algorithm;
+            }
+
+            async hmac(key, data) {
+                const cryptoKey = await crypto.subtle.importKey(
+                    'raw', key, { name: 'HMAC', hash: this.hashAlg }, false, ['sign']
+                );
+                return new Uint8Array(await crypto.subtle.sign('HMAC', cryptoKey, data));
+            }
+
+            async hash(data) {
+                return new Uint8Array(await crypto.subtle.digest(this.hashAlg, data));
+            }
+
+            xor(a, b) {
+                const result = new Uint8Array(a.length);
+                for (let i = 0; i < a.length; i++) {
+                    result[i] = a[i] ^ b[i];
+                }
+                return result;
+            }
+
+            async hi(password, salt, iterations) {
+                const saltBuffer = new Uint8Array(salt.length + 4);
+                saltBuffer.set(salt, 0);
+                saltBuffer[salt.length] = 0;
+                saltBuffer[salt.length + 1] = 0;
+                saltBuffer[salt.length + 2] = 0;
+                saltBuffer[salt.length + 3] = 1;
+
+                let result = await this.hmac(password, saltBuffer);
+                let prev = result;
+
+                for (let i = 1; i < iterations; i++) {
+                    prev = await this.hmac(password, prev);
+                    result = this.xor(result, prev);
+                }
+
+                return result;
+            }
+
+            generateNonce() {
+                const array = new Uint8Array(16);
+                crypto.getRandomValues(array);
+                return btoa(String.fromCharCode.apply(null, array));
+            }
+
+            parseServerFirst(message) {
+                const parts = message.split(',');
+                const result = {};
+                for (const part of parts) {
+                    if (part.startsWith('r=')) {
+                        result.nonce = part.substring(2);
+                    } else if (part.startsWith('s=')) {
+                        result.salt = part.substring(2);
+                    } else if (part.startsWith('i=')) {
+                        result.iterations = parseInt(part.substring(2));
+                    }
+                }
+                return result;
+            }
+
+            base64Decode(str) {
+                const binary = atob(str);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                }
+                return bytes;
+            }
+
+            base64Encode(bytes) {
+                return btoa(String.fromCharCode.apply(null, bytes));
+            }
+
+            stringToBytes(str) {
+                return new TextEncoder().encode(str);
+            }
+
+            async authenticate(username, password, onStep) {
+                const clientNonce = this.generateNonce();
+                const clientFirstMessageBare = `n=${username},r=${clientNonce}`;
+                const clientFirstMessage = `n,,${clientFirstMessageBare}`;
+
+                if (onStep) {
+                    onStep('client-first', clientFirstMessage);
+                }
+
+                const mechanism = this.hashAlg === 'SHA-1' ? 'SCRAM-SHA-1' : 'SCRAM-SHA-256';
+
+                const response1 = await fetch('/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        step: 1,
+                        mechanism: mechanism,
+                        clientFirstMessage: clientFirstMessageBare
+                    })
+                });
+
+                const data1 = await response1.json();
+
+                if (!data1.success) {
+                    if (onStep) onStep('error', data1.error);
+                    throw new Error(data1.error);
+                }
+
+                if (onStep) {
+                    onStep('server-first', data1.serverFirstMessage);
+                }
+
+                const sessionId = data1.sessionId;
+                const serverFirst = this.parseServerFirst(data1.serverFirstMessage);
+
+                const channelBinding = 'biws';
+                const clientFinalWithoutProof = `c=${channelBinding},r=${serverFirst.nonce}`;
+
+                const authMessage = `${clientFirstMessageBare},${data1.serverFirstMessage},${clientFinalWithoutProof}`;
+
+                const passwordBytes = this.stringToBytes(password);
+                const saltBytes = this.base64Decode(serverFirst.salt);
+
+                const saltedPassword = await this.hi(
+                    passwordBytes,
+                    saltBytes,
+                    serverFirst.iterations
+                );
+
+                const clientKey = await this.hmac(saltedPassword, this.stringToBytes('Client Key'));
+                const storedKey = await this.hash(clientKey);
+                const clientSignature = await this.hmac(storedKey, this.stringToBytes(authMessage));
+                const clientProof = this.xor(clientKey, clientSignature);
+
+                const clientFinalMessage = `${clientFinalWithoutProof},p=${this.base64Encode(clientProof)}`;
+
+                if (onStep) {
+                    onStep('client-final', clientFinalMessage);
+                }
+
+                const response2 = await fetch('/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        step: 2,
+                        sessionId: sessionId,
+                        clientFinalMessage: clientFinalMessage,
+                        password: password
+                    })
+                });
+
+                const data2 = await response2.json();
+
+                if (!data2.success) {
+                    if (onStep) onStep('error', data2.error);
+                    throw new Error(data2.error);
+                }
+
+                if (onStep) {
+                    onStep('server-final', data2.serverFinalMessage);
+                }
+
+                const serverKey = await this.hmac(saltedPassword, this.stringToBytes('Server Key'));
+                const expectedServerSignature = await this.hmac(serverKey, this.stringToBytes(authMessage));
+                const expectedSignatureBase64 = this.base64Encode(expectedServerSignature);
+
+                const serverSignatureMatch = data2.serverFinalMessage.includes(`v=${expectedSignatureBase64}`);
+
+                if (serverSignatureMatch) {
+                    if (onStep) onStep('success', '服务器签名验证通过');
+                } else {
+                    if (onStep) onStep('error', '服务器签名验证失败');
+                }
+
+                return data2;
+            }
+        }
+
+        const mechanismDescriptions = {
+            'PLAIN': '简单明文传输模式，密码直接发送（不推荐用于生产环境）',
+            'SCRAM-SHA-1': '基于SHA-1哈希的挑战-响应认证机制',
+            'SCRAM-SHA-256': '基于SHA-256哈希的挑战-响应认证机制（推荐，安全性更高）'
+        };
+
+        let currentMechanism = 'SCRAM-SHA-256';
+
+        document.getElementById('mechanism').addEventListener('change', (e) => {
+            currentMechanism = e.target.value;
+            const infoDiv = document.getElementById('mechanismInfo');
+            infoDiv.textContent = mechanismDescriptions[currentMechanism];
+            infoDiv.classList.add('visible');
+            clearFlow();
+        });
+
+        document.getElementById('mechanism').dispatchEvent(new Event('change'));
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const resultDiv = document.getElementById('result');
+
+            if (!username || !password) {
+                showResult('请输入用户名和密码', false);
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loading"></span>认证中...';
+            resultDiv.className = 'result';
+            resultDiv.textContent = '';
+            clearFlow();
+
+            try {
+                if (currentMechanism === 'PLAIN') {
+                    const response = await fetch('/auth', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            step: 0,
+                            username: username,
+                            password: password
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showResult(`登录成功！用户: ${data.user.username} (${data.user.dn})<br>机制: ${data.mechanism}`, true);
+                    } else {
+                        showResult(data.error, false);
+                    }
+                } else {
+                    const alg = currentMechanism === 'SCRAM-SHA-1' ? 'SHA-1' : 'SHA-256';
+                    const scramClient = new SCRAMClient(alg);
+                    const result = await scramClient.authenticate(username, password, addStep);
+                    showResult(`登录成功！用户: ${result.user.username} (${result.user.dn})<br>机制: ${result.mechanism}`, true);
+                }
+
+                await updateStats();
+
+            } catch (err) {
+                showResult(err.message || '认证失败', false);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '登录';
+            }
+        });
+
+        function showResult(message, success) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = message;
+            resultDiv.className = success ? 'result success' : 'result error';
+        }
+
+        function addStep(type, message) {
+            const stepsContainer = document.getElementById('stepsContainer');
+            const flowSteps = document.getElementById('flowSteps');
+            flowSteps.classList.add('visible');
+
+            const stepDiv = document.createElement('div');
+            stepDiv.className = 'step';
+
+            let label = '';
+            switch (type) {
+                case 'client-first':
+                    label = '客户端 -> 服务器 (第一步)';
+                    break;
+                case 'server-first':
+                    label = '服务器 -> 客户端 (第一步响应)';
+                    break;
+                case 'client-final':
+                    label = '客户端 -> 服务器 (第二步)';
+                    break;
+                case 'server-final':
+                    label = '服务器 -> 客户端 (第二步响应)';
+                    break;
+                case 'success':
+                    label = '✓ 认证成功';
+                    stepDiv.classList.add('success');
+                    break;
+                case 'error':
+                    label = '✗ 认证失败';
+                    stepDiv.classList.add('error');
+                    break;
+            }
+
+            stepDiv.innerHTML = `<strong>${label}:</strong><br>${message}`;
+            stepsContainer.appendChild(stepDiv);
+        }
+
+        function clearFlow() {
+            document.getElementById('stepsContainer').innerHTML = '';
+            document.getElementById('flowSteps').classList.remove('visible');
+        }
+
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+
+                if (data.success) {
+                    const stats = data.stats;
+                    const statsPanel = document.getElementById('statsPanel');
+                    const statsContainer = document.getElementById('statsContainer');
+
+                    let html = `
+                        <div class="stat-item">
+                            <span class="stat-label">总认证次数</span>
+                            <span class="stat-value">${stats.total}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">成功次数</span>
+                            <span class="stat-value success">${stats.success}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">失败次数</span>
+                            <span class="stat-value failed">${stats.failed}</span>
+                        </div>
+                    `;
+
+                    if (Object.keys(stats.byMechanism).length > 0) {
+                        html += '<div class="stat-item" style="margin-top: 10px; padding-top: 10px; border-top: 2px solid #d0d0d0;"><strong>按机制统计</strong></div>';
+                        for (const [mech, data] of Object.entries(stats.byMechanism)) {
+                            html += `
+                                <div class="stat-item">
+                                    <span class="stat-label">${mech}</span>
+                                    <span class="stat-value">成功 ${data.success} / 失败 ${data.failed}</span>
+                                </div>
+                            `;
+                        }
+                    }
+
+                    statsContainer.innerHTML = html;
+                    statsPanel.classList.add('visible');
+                }
+            } catch (err) {
+                console.error('Failed to fetch stats:', err);
+            }
+        }
+
+        updateStats();
+    </script>
+</body>
+</html>

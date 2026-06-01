@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ISO15745Profile xmlns="http://www.profibus.com/GSDML/2007/07/DeviceProfile" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.profibus.com/GSDML/2007/07/DeviceProfile GSDML-Schema-v2.4.xsd">
+  <ProfileHeader>
+    <ProfileIdentification ProfileRevision="2" ProfileName="PROFINET Device GSDML v2.4 Example" ProfileDate="2024-01-15" ProfileAuthor="Sample Vendor" ProfileEditor="GSDML Editor v2.4"/>
+  </ProfileHeader>
+  <ProfileBody DeviceAccessPoint="DAP1">
+    <DeviceIdentity VendorID="0x002B" DeviceID="0x1234" InstanceID="0x00000000">
+      <VendorName Value="Sample Automation GmbH"/>
+      <DeviceName Value="PROFINET IO Device v2.4"/>
+      <DeviceInfoValue Value="Sample PROFINET Device with GSDML v2.4"/>
+      <OrderNumber Value="SAMPLE-1234-V2"/>
+      <HardwareRelease Value="2.0"/>
+      <SoftwareRelease Value="3.1"/>
+      <RevisionNumber Revision="2"/>
+      <FamilyName Value="Modular IO Devices"/>
+      <ProductID Value="SAMPLE-PN-002"/>
+    </DeviceIdentity>
+    <DeviceFunction>
+      <Family MainFamily="I/O">
+        <ProfileIdentifier ProfileIdentNumber="0x0001"/>
+      </Family>
+      <ApplicationRelations>
+        <ApplicationRelationsItem ARType="RT_CLASS_1">
+          <RT_Properties>
+            <RT_CLASS_1/>
+          </RT_Properties>
+        </ApplicationRelationsItem>
+        <ApplicationRelationsItem ARType="RT_CLASS_3">
+          <RT_Properties>
+            <RT_CLASS_3/>
+          </RT_Properties>
+        </ApplicationRelationsItem>
+      </ApplicationRelations>
+      
+      <SlotDefList>
+        <SlotDef ID="0x0000" SlotNumber="0" Fixed="true">
+          <Name TextId="Slot_0_Name" Value="Interface Slot"/>
+          <Description TextId="Slot_0_Desc" Value="Fixed interface slot"/>
+          <AllowedModuleList>
+            <AllowedModule ModuleIDRef="0x00000080"/>
+          </AllowedModuleList>
+          <SubslotDefList>
+            <SubslotDef ID="0x0001" SubslotNumber="1">
+              <Name TextId="Subslot_0_1_Name" Value="Port 1"/>
+              <AllowedSubmoduleList>
+                <AllowedSubmodule SubmoduleIDRef="0x00000001"/>
+              </AllowedSubmoduleList>
+            </SubslotDef>
+            <SubslotDef ID="0x0002" SubslotNumber="2">
+              <Name TextId="Subslot_0_2_Name" Value="Port 2"/>
+              <AllowedSubmoduleList>
+                <AllowedSubmodule SubmoduleIDRef="0x00000001"/>
+              </AllowedSubmoduleList>
+            </SubslotDef>
+          </SubslotDefList>
+        </SlotDef>
+        <SlotDef ID="0x0001" SlotNumber="1" Plugable="true">
+          <Name TextId="Slot_1_Name" Value="Expansion Slot 1"/>
+          <Description TextId="Slot_1_Desc" Value="First expansion slot for I/O modules"/>
+          <AllowedModuleList>
+            <AllowedModule ModuleIDRef="0x00000001"/>
+            <AllowedModule ModuleIDRef="0x00000002"/>
+            <AllowedModule ModuleIDRef="0x00000003"/>
+            <AllowedModule ModuleIDRef="0x00000004"/>
+            <AllowedModule ModuleIDRef="0x00000005"/>
+          </AllowedModuleList>
+        </SlotDef>
+        <SlotDef ID="0x0002" SlotNumber="2" Plugable="true">
+          <Name TextId="Slot_2_Name" Value="Expansion Slot 2"/>
+          <Description TextId="Slot_2_Desc" Value="Second expansion slot for I/O modules"/>
+          <AllowedModuleList>
+            <AllowedModule ModuleIDRef="0x00000001"/>
+            <AllowedModule ModuleIDRef="0x00000002"/>
+            <AllowedModule ModuleIDRef="0x00000003"/>
+            <AllowedModule ModuleIDRef="0x00000004"/>
+            <AllowedModule ModuleIDRef="0x00000005"/>
+          </AllowedModuleList>
+        </SlotDef>
+        <SlotDef ID="0x0003" SlotNumber="3" Plugable="true">
+          <Name TextId="Slot_3_Name" Value="Expansion Slot 3"/>
+          <AllowedModuleList>
+            <AllowedModule ModuleIDRef="0x00000001"/>
+            <AllowedModule ModuleIDRef="0x00000002"/>
+            <AllowedModule ModuleIDRef="0x00000003"/>
+            <AllowedModule ModuleIDRef="0x00000004"/>
+            <AllowedModule ModuleIDRef="0x00000005"/>
+          </AllowedModuleList>
+        </SlotDef>
+      </SlotDefList>
+
+      <VirtualSubmoduleList>
+        <VirtualSubmodule ID="0x00008000">
+          <Name TextId="Virtual_DIAG_Name" Value="Diagnostic Virtual Submodule"/>
+          <InfoText TextId="Virtual_DIAG_Info" Value="Virtual submodule for device diagnostics"/>
+          <IOData>
+            <Input>
+              <DataItem ID="DIAG_STATUS" Name="Diagnostic Status" Length="16" DataType="Unsigned16"/>
+              <DataItem ID="DIAG_CODE" Name="Diagnostic Code" Length="16" DataType="Unsigned16"/>
+            </Input>
+          </IOData>
+        </VirtualSubmodule>
+        <VirtualSubmodule ID="0x00008001">
+          <Name TextId="Virtual_STATUS_Name" Value="Status Virtual Submodule"/>
+          <InfoText TextId="Virtual_STATUS_Info" Value="Virtual submodule for device status"/>
+          <IOData>
+            <Input>
+              <DataItem ID="DEV_STATUS" Name="Device Status" Length="8" DataType="Unsigned8"/>
+              <DataItem ID="PORT_STATUS" Name="Port Status" Length="8" DataType="Unsigned8"/>
+            </Input>
+          </IOData>
+        </VirtualSubmodule>
+      </VirtualSubmoduleList>
+
+      <ModuleList>
+        <Module ID="0x00000080" Category="InterfaceModule">
+          <Name TextId="Module_IF_Name" Value="PROFINET Interface Module"/>
+          <InfoText TextId="Module_IF_Info" Value="2-port PROFINET interface module"/>
+          <SubmoduleList>
+            <Submodule ID="0x00000001">
+              <Name TextId="Submod_PORT_Name" Value="Ethernet Port"/>
+              <InfoText TextId="Submod_PORT_Info" Value="10/100 Mbps Ethernet port"/>
+              <IOData>
+                <Input>
+                  <DataItem ID="PORT_LINK_STATUS" Name="Link Status" Length="1" ByteOffset="0" BitOffset="0"/>
+                  <DataItem ID="PORT_SPEED" Name="Port Speed" Length="2" ByteOffset="0" BitOffset="1"/>
+                </Input>
+              </IOData>
+            </Submodule>
+          </SubmoduleList>
+        </Module>
+        
+        <Module ID="0x00000001" Category="DigitalInput">
+          <Name TextId="Module_DI8_Name" Value="Digital Input Module 8 Channel"/>
+          <InfoText TextId="Module_DI8_Info" Value="8-channel digital input module, 24V DC"/>
+          <SubmoduleList>
+            <Submodule ID="0x00000001">
+              <Name TextId="Submod_DI8_Name" Value="DI 8x24V DC"/>
+              <IOData>
+                <Input>
+                  <DataItem ID="DI_01" Name="Input 1" Length="1" ByteOffset="0" BitOffset="0"/>
+                  <DataItem ID="DI_02" Name="Input 2" Length="1" ByteOffset="0" BitOffset="1"/>
+                  <DataItem ID="DI_03" Name="Input 3" Length="1" ByteOffset="0" BitOffset="2"/>
+                  <DataItem ID="DI_04" Name="Input 4" Length="1" ByteOffset="0" BitOffset="3"/>
+                  <DataItem ID="DI_05" Name="Input 5" Length="1" ByteOffset="0" BitOffset="4"/>
+                  <DataItem ID="DI_06" Name="Input 6" Length="1" ByteOffset="0" BitOffset="5"/>
+                  <DataItem ID="DI_07" Name="Input 7" Length="1" ByteOffset="0" BitOffset="6"/>
+                  <DataItem ID="DI_08" Name="Input 8" Length="1" ByteOffset="0" BitOffset="7"/>
+                </Input>
+              </IOData>
+            </Submodule>
+          </SubmoduleList>
+        </Module>
+        
+        <Module ID="0x00000002" Category="DigitalOutput">
+          <Name TextId="Module_DO8_Name" Value="Digital Output Module 8 Channel"/>
+          <InfoText TextId="Module_DO8_Info" Value="8-channel digital output module, 24V DC"/>
+          <SubmoduleList>
+            <Submodule ID="0x00000002">
+              <Name TextId="Submod_DO8_Name" Value="DO 8x24V DC"/>
+              <IOData>
+                <Output>
+                  <DataItem ID="DO_01" Name="Output 1" Length="1" ByteOffset="0" BitOffset="0"/>
+                  <DataItem ID="DO_02" Name="Output 2" Length="1" ByteOffset="0" BitOffset="1"/>
+                  <DataItem ID="DO_03" Name="Output 3" Length="1" ByteOffset="0" BitOffset="2"/>
+                  <DataItem ID="DO_04" Name="Output 4" Length="1" ByteOffset="0" BitOffset="3"/>
+                  <DataItem ID="DO_05" Name="Output 5" Length="1" ByteOffset="0" BitOffset="4"/>
+                  <DataItem ID="DO_06" Name="Output 6" Length="1" ByteOffset="0" BitOffset="5"/>
+                  <DataItem ID="DO_07" Name="Output 7" Length="1" ByteOffset="0" BitOffset="6"/>
+                  <DataItem ID="DO_08" Name="Output 8" Length="1" ByteOffset="0" BitOffset="7"/>
+                </Output>
+              </IOData>
+            </Submodule>
+          </SubmoduleList>
+        </Module>
+        
+        <Module ID="0x00000003" Category="AnalogInput">
+          <Name TextId="Module_AI4_Name" Value="Analog Input Module 4 Channel"/>
+          <InfoText TextId="Module_AI4_Info" Value="4-channel analog input module, 0-10V"/>
+          <SubmoduleList>
+            <Submodule ID="0x00000003">
+              <Name TextId="Submod_AI4_Name" Value="AI 4x0-10V"/>
+              <IOData>
+                <Input>
+                  <DataItem ID="AI_01" Name="Analog Input 1" Length="16" ByteOffset="0" DataType="Integer16"/>
+                  <DataItem ID="AI_02" Name="Analog Input 2" Length="16" ByteOffset="2" DataType="Integer16"/>
+                  <DataItem ID="AI_03" Name="Analog Input 3" Length="16" ByteOffset="4" DataType="Integer16"/>
+                  <DataItem ID="AI_04" Name="Analog Input 4" Length="16" ByteOffset="6" DataType="Integer16"/>
+                </Input>
+              </IOData>
+            </Submodule>
+          </SubmoduleList>
+        </Module>
+        
+        <Module ID="0x00000004" Category="AnalogOutput">
+          <Name TextId="Module_AO2_Name" Value="Analog Output Module 2 Channel"/>
+          <InfoText TextId="Module_AO2_Info" Value="2-channel analog output module, 4-20mA"/>
+          <SubmoduleList>
+            <Submodule ID="0x00000004">
+              <Name TextId="Submod_AO2_Name" Value="AO 2x4-20mA"/>
+              <IOData>
+                <Output>
+                  <DataItem ID="AO_01" Name="Analog Output 1" Length="16" ByteOffset="0" DataType="Integer16"/>
+                  <DataItem ID="AO_02" Name="Analog Output 2" Length="16" ByteOffset="2" DataType="Integer16"/>
+                </Output>
+              </IOData>
+            </Submodule>
+          </SubmoduleList>
+        </Module>
+        
+        <Module ID="0x00000005" Category="Temperature">
+          <Name TextId="Module_TEMP_Name" Value="Temperature Sensor Module"/>
+          <InfoText TextId="Module_TEMP_Info" Value="8-channel PT100 temperature sensor module"/>
+          <SubmoduleList>
+            <Submodule ID="0x00000005">
+              <Name TextId="Submod_TEMP_Name" Value="Temp 8xPT100"/>
+              <IOData>
+                <Input>
+                  <DataItem ID="TEMP_01" Name="Temperature 1" Length="16" ByteOffset="0" Unit="°C" DataType="Float16"/>
+                  <DataItem ID="TEMP_02" Name="Temperature 2" Length="16" ByteOffset="2" Unit="°C" DataType="Float16"/>
+                  <DataItem ID="TEMP_03" Name="Temperature 3" Length="16" ByteOffset="4" Unit="°C" DataType="Float16"/>
+                  <DataItem ID="TEMP_04" Name="Temperature 4" Length="16" ByteOffset="6" Unit="°C" DataType="Float16"/>
+                  <DataItem ID="TEMP_05" Name="Temperature 5" Length="16" ByteOffset="8" Unit="°C" DataType="Float16"/>
+                  <DataItem ID="TEMP_06" Name="Temperature 6" Length="16" ByteOffset="10" Unit="°C" DataType="Float16"/>
+                  <DataItem ID="TEMP_07" Name="Temperature 7" Length="16" ByteOffset="12" Unit="°C" DataType="Float16"/>
+                  <DataItem ID="TEMP_08" Name="Temperature 8" Length="16" ByteOffset="14" Unit="°C" DataType="Float16"/>
+                </Input>
+              </IOData>
+            </Submodule>
+          </SubmoduleList>
+        </Module>
+      </ModuleList>
+      
+      <LogBookEntryList/>
+      <DiagnosticItemList/>
+    </DeviceFunction>
+  </ProfileBody>
+</ISO15745Profile>

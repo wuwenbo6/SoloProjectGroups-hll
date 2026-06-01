@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Windows安全日志监控</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔐 Windows安全日志监控</h1>
+      <div class="status-bar">
+        <span id="status" class="status-indicator status-stopped">未运行</span>
+        <span id="event-count">事件总数: 0</span>
+        <span id="platform-info"></span>
+      </div>
+    </header>
+
+    <div class="controls">
+      <button id="startBtn" class="btn btn-primary">开始监控</button>
+      <button id="stopBtn" class="btn btn-danger" disabled>停止监控</button>
+      <button id="clearBtn" class="btn btn-secondary">清空日志</button>
+      
+      <div class="filter-group">
+        <label for="eventIdFilter">按事件ID过滤:</label>
+        <select id="eventIdFilter" class="filter-select">
+          <option value="">全部事件</option>
+          <option value="4624">4624 - 登录成功</option>
+          <option value="4625">4625 - 登录失败</option>
+          <option value="4634">4634 - 注销</option>
+          <option value="4647">4647 - 用户发起注销</option>
+          <option value="4688">4688 - 进程创建</option>
+          <option value="4689">4689 - 进程退出</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="levelFilter">按级别过滤:</label>
+        <select id="levelFilter" class="filter-select">
+          <option value="">全部级别</option>
+          <option value="信息">信息</option>
+          <option value="警告">警告</option>
+          <option value="错误">错误</option>
+          <option value="严重">严重</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="event-stats">
+      <div class="stat-card">
+        <span class="stat-number" id="stat-login-success">0</span>
+        <span class="stat-label">登录成功</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number" id="stat-login-fail">0</span>
+        <span class="stat-label">登录失败</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number" id="stat-process-create">0</span>
+        <span class="stat-label">进程创建</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number" id="stat-logout">0</span>
+        <span class="stat-label">注销</span>
+      </div>
+      <div class="stat-card stat-threat stat-threat-warning">
+        <span class="stat-number" id="stat-threat-medium">0</span>
+        <span class="stat-label">⚠️ 中等威胁</span>
+      </div>
+      <div class="stat-card stat-threat stat-threat-danger">
+        <span class="stat-number" id="stat-threat-high">0</span>
+        <span class="stat-label">🚨 严重威胁</span>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table id="eventsTable">
+        <thead>
+          <tr>
+            <th>时间</th>
+            <th>计数</th>
+            <th>事件ID</th>
+            <th>级别</th>
+            <th>威胁</th>
+            <th>事件类型</th>
+            <th>描述</th>
+            <th>计算机</th>
+          </tr>
+        </thead>
+        <tbody id="eventsBody">
+          <tr class="empty-row">
+            <td colspan="8" class="empty-cell">
+            <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <p>点击"开始监控"按钮开始接收安全日志事件</p>
+            <p class="empty-hint">支持登录事件 (4624/4625) 和进程创建 (4688) 等安全事件</p>
+          </div>
+          </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="eventModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modalTitle">事件详情</h3>
+          <button id="closeModal" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

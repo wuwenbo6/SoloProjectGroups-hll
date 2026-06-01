@@ -1,0 +1,3 @@
+[2026-05-27T02:11:23.444Z] 127.0.0.1 - PLAIN - admin - SUCCESS - Authentication successful
+[2026-05-27T02:11:23.522Z] 127.0.0.1 - SCRAM-SHA-1 - admin - SUCCESS - Authentication successful
+[2026-05-27T02:11:23.627Z] 127.0.0.1 - SCRAM-SHA-256 - admin - SUCCESS - Authentication successful

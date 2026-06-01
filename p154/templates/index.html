@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e4e4e4;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00d4ff 0%, #00ff88 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 1.1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+            margin-bottom: 12px;
+        }
+
+        .card-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .card-value.small {
+            font-size: 1.8rem;
+        }
+
+        .hit-rate-container {
+            grid-column: span 2;
+            text-align: center;
+            padding: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .hit-rate-container {
+                grid-column: span 1;
+            }
+        }
+
+        .hit-rate-circle {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.5s ease;
+            transform-origin: 50% 50%;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+
+        .progress-label {
+            color: #00ff88;
+            font-size: 1.2rem;
+            margin-top: 10px;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #00d4ff;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .detail-label {
+            color: #888;
+        }
+
+        .detail-value {
+            font-weight: 500;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00ff88;
+            animation: pulse 2s infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .bar-chart {
+            margin-top: 20px;
+        }
+
+        .bar-item {
+            margin-bottom: 15px;
+        }
+
+        .bar-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .bar-bg {
+            height: 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff 0%, #00ff88 100%);
+            border-radius: 12px;
+            transition: width 0.5s ease;
+        }
+
+        .bar-fill.hits {
+            background: linear-gradient(90deg, #00d4ff 0%, #00ff88 100%);
+        }
+
+        .bar-fill.misses {
+            background: linear-gradient(90deg, #ff6b6b 0%, #ffd93d 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>DNS Proxy Dashboard</h1>
+            <p class="subtitle"><span class="status-dot"></span>服务运行中</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="card">
+                <div class="card-title">UDP 查询</div>
+                <div class="card-value" id="udp-queries">0</div>
+            </div>
+            <div class="card">
+                <div class="card-title">TCP 查询</div>
+                <div class="card-value" id="tcp-queries">0</div>
+            </div>
+            <div class="card">
+                <div class="card-title">错误数</div>
+                <div class="card-value" id="errors" style="color: #ff6b6b;">0</div>
+            </div>
+            <div class="card">
+                <div class="card-title">截断响应</div>
+                <div class="card-value" id="truncated" style="color: #ffd93d;">0</div>
+            </div>
+            <div class="card">
+                <div class="card-title">缓存条目</div>
+                <div class="card-value small" id="cache-size">0 / 0</div>
+            </div>
+            <div class="card">
+                <div class="card-title">缓存淘汰</div>
+                <div class="card-value" id="evictions" style="color: #ff9f43;">0</div>
+            </div>
+        </div>
+
+        <div class="card hit-rate-container">
+            <div class="card-title">缓存命中率</div>
+            <div style="display: flex; justify-content: center; gap: 60px; flex-wrap: wrap;">
+                <div>
+                    <div class="hit-rate-circle">
+                        <svg class="progress-ring" width="180" height="180">
+                            <circle
+                                stroke="rgba(255,255,255,0.1)"
+                                stroke-width="10"
+                                fill="transparent"
+                                r="80"
+                                cx="90"
+                                cy="90"
+                            />
+                            <circle
+                                class="progress-ring-circle"
+                                stroke="url(#gradient)"
+                                stroke-width="10"
+                                stroke-linecap="round"
+                                fill="transparent"
+                                r="80"
+                                cx="90"
+                                cy="90"
+                                stroke-dasharray="502.65"
+                                stroke-dashoffset="502.65"
+                                id="progress-circle"
+                            />
+                            <defs>
+                                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#00d4ff" />
+                                    <stop offset="100%" style="stop-color:#00ff88" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <div class="progress-text" id="hit-rate-text" style="font-size: 2rem;">0%</div>
+                    </div>
+                    <div class="progress-label">总命中率</div>
+                    <div id="hit-rate-detail" style="margin-top: 8px; font-size: 0.9rem; color: #888;">0 / 0 次</div>
+                </div>
+                <div>
+                    <div class="hit-rate-circle">
+                        <svg class="progress-ring" width="180" height="180">
+                            <circle
+                                stroke="rgba(255,255,255,0.1)"
+                                stroke-width="10"
+                                fill="transparent"
+                                r="80"
+                                cx="90"
+                                cy="90"
+                            />
+                            <circle
+                                class="progress-ring-circle"
+                                stroke="url(#gradient2)"
+                                stroke-width="10"
+                                stroke-linecap="round"
+                                fill="transparent"
+                                r="80"
+                                cx="90"
+                                cy="90"
+                                stroke-dasharray="502.65"
+                                stroke-dashoffset="502.65"
+                                id="effective-circle"
+                            />
+                            <defs>
+                                <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#a855f7" />
+                                    <stop offset="100%" style="stop-color:#ec4899" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <div class="progress-text" id="effective-text" style="font-size: 2rem;">0%</div>
+                    </div>
+                    <div class="progress-label" style="color: #a855f7;">潜在命中率</div>
+                    <div style="margin-top: 8px; font-size: 0.9rem; color: #888;">含过期命中</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">缓存统计详情</div>
+            <div class="bar-chart">
+                <div class="bar-item">
+                    <div class="bar-header">
+                        <span>缓存命中</span>
+                        <span id="hits-count">0</span>
+                    </div>
+                    <div class="bar-bg">
+                        <div class="bar-fill hits" id="hits-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="bar-item">
+                    <div class="bar-header">
+                        <span>缓存未命中</span>
+                        <span id="misses-count">0</span>
+                    </div>
+                    <div class="bar-bg">
+                        <div class="bar-fill misses" id="misses-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="detail-grid" style="margin-top: 30px;">
+                <div class="detail-item">
+                    <span class="detail-label">缓存淘汰次数</span>
+                    <span class="detail-value" id="evictions">0</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">总查询次数</span>
+                    <span class="detail-value" id="total-queries">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">上游服务器状态</div>
+            <div id="upstreams-container">
+                <div style="text-align: center; color: #888; padding: 20px;">加载中...</div>
+            </div>
+        </div>
+
+        <footer>
+            <p>DNS Proxy - 传统 DNS 转 DoH 代理服务</p>
+            <p style="margin-top: 8px;">使用 Cloudflare DoH 提供加密 DNS 查询</p>
+        </footer>
+    </div>
+
+    <script>
+        const SMALL_CIRCUMFERENCE = 2 * Math.PI * 80;
+
+        function formatNumber(num) {
+            return num.toLocaleString();
+        }
+
+        function updateProgress(elementId, textId, percent) {
+            const offset = SMALL_CIRCUMFERENCE - (percent / 100) * SMALL_CIRCUMFERENCE;
+            document.getElementById(elementId).style.strokeDashoffset = offset;
+            document.getElementById(textId).textContent = percent.toFixed(2) + '%';
+        }
+
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+
+                document.getElementById('udp-queries').textContent = formatNumber(data.udp_queries);
+                document.getElementById('tcp-queries').textContent = formatNumber(data.tcp_queries);
+                document.getElementById('errors').textContent = formatNumber(data.errors);
+                document.getElementById('truncated').textContent = formatNumber(data.truncated);
+                document.getElementById('cache-size').textContent = formatNumber(data.cache.Size) + ' / ' + formatNumber(data.cache.MaxSize);
+                document.getElementById('evictions').textContent = formatNumber(data.cache.Evictions);
+
+                const total = data.cache.Hits + data.cache.Misses;
+                const totalRequests = data.cache.TotalRequests || total;
+                document.getElementById('hits-count').textContent = formatNumber(data.cache.Hits);
+                document.getElementById('misses-count').textContent = formatNumber(data.cache.Misses);
+                document.getElementById('total-queries').textContent = formatNumber(totalRequests);
+                document.getElementById('hit-rate-detail').textContent = formatNumber(data.cache.Hits) + ' / ' + formatNumber(totalRequests) + ' 次查询';
+
+                if (data.cache.ExpiredHits !== undefined) {
+                    const expiredElem = document.getElementById('expired-hits');
+                    if (!expiredElem) {
+                        const detailGrid = document.querySelector('.detail-grid');
+                        const newItem = document.createElement('div');
+                        newItem.className = 'detail-item';
+                        newItem.innerHTML = '<span class="detail-label">过期命中</span><span class="detail-value" id="expired-hits">0</span>';
+                        detailGrid.insertBefore(newItem, detailGrid.firstChild);
+                    }
+                    document.getElementById('expired-hits').textContent = formatNumber(data.cache.ExpiredHits);
+                }
+
+                if (total > 0) {
+                    const hitPercent = (data.cache.Hits / total) * 100;
+                    const missPercent = (data.cache.Misses / total) * 100;
+                    document.getElementById('hits-bar').style.width = hitPercent + '%';
+                    document.getElementById('misses-bar').style.width = missPercent + '%';
+                }
+
+                updateProgress('progress-circle', 'hit-rate-text', data.hit_rate);
+                updateProgress('effective-circle', 'effective-text', data.effective_hit_rate || data.hit_rate);
+
+                if (data.upstreams) {
+                    renderUpstreams(data.upstreams);
+                }
+            } catch (error) {
+                console.error('Failed to fetch stats:', error);
+            }
+        }
+
+        function renderUpstreams(upstreams) {
+            const container = document.getElementById('upstreams-container');
+            if (!upstreams || upstreams.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">无上游服务器配置</div>';
+                return;
+            }
+
+            let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 15px;">';
+
+            upstreams.forEach(up => {
+                const statusColor = up.healthy ? '#00ff88' : '#ff6b6b';
+                const statusText = up.healthy ? '正常' : '异常';
+                const errorRate = up.success + up.errors > 0
+                    ? ((up.errors / (up.success + up.errors)) * 100).toFixed(1)
+                    : '0.0';
+
+                html += `
+                    <div style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 20px; border: 1px solid rgba(255,255,255,0.08);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                            <div>
+                                <div style="font-size: 1.1rem; font-weight: 600;">${escapeHtml(up.name)}</div>
+                                <div style="font-size: 0.85rem; color: #888; margin-top: 2px;">${escapeHtml(up.type)}</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="width: 10px; height: 10px; border-radius: 50%; background: ${statusColor}; ${up.healthy ? 'animation: pulse 2s infinite;' : ''}"></span>
+                                <span style="color: ${statusColor}; font-size: 0.9rem;">${statusText}</span>
+                            </div>
+                        </div>
+                        <div class="detail-grid" style="gap: 10px;">
+                            <div class="detail-item" style="padding: 6px 0;">
+                                <span class="detail-label">成功请求</span>
+                                <span class="detail-value" style="color: #00ff88;">${formatNumber(up.success)}</span>
+                            </div>
+                            <div class="detail-item" style="padding: 6px 0;">
+                                <span class="detail-label">失败请求</span>
+                                <span class="detail-value" style="color: #ff6b6b;">${formatNumber(up.errors)}</span>
+                            </div>
+                            <div class="detail-item" style="padding: 6px 0;">
+                                <span class="detail-label">错误率</span>
+                                <span class="detail-value">${errorRate}%</span>
+                            </div>
+                            <div class="detail-item" style="padding: 6px 0;">
+                                <span class="detail-label">平均延迟</span>
+                                <span class="detail-value">${escapeHtml(up.avg_latency)}</span>
+                            </div>
+                        </div>
+                        ${up.last_error ? `<div style="margin-top: 12px; padding: 10px; background: rgba(255,107,107,0.1); border-radius: 8px; font-size: 0.85rem; color: #ff6b6b; word-break: break-all;">错误: ${escapeHtml(up.last_error)}</div>` : ''}
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        fetchStats();
+        setInterval(fetchStats, 2000);
+    </script>
+</body>
+</html>

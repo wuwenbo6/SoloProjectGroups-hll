@@ -1,0 +1,125 @@
+0 verbose cli /usr/local/bin/node /usr/local/bin/npm
+1 info using npm@11.6.2
+2 info using node@v24.12.0
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/wuwenbo/Documents/trae_projects/SoloProjects-hll/p152/.npmrc
+5 silly config load:file:/Users/wuwenbo/.npmrc
+6 verbose config error loading user config Error: EACCES: permission denied, open '/Users/wuwenbo/.npmrc'
+6 verbose config     at async open (node:internal/fs/promises:642:25)
+6 verbose config     at async readFile (node:internal/fs/promises:1279:14)
+6 verbose config     at async #loadFile (/usr/local/lib/node_modules/npm/node_modules/@npmcli/config/lib/index.js:635:5)
+6 verbose config     at async Config.load (/usr/local/lib/node_modules/npm/node_modules/@npmcli/config/lib/index.js:259:5)
+6 verbose config     at async #load (/usr/local/lib/node_modules/npm/lib/npm.js:99:5)
+6 verbose config     at async Npm.load (/usr/local/lib/node_modules/npm/lib/npm.js:81:14)
+6 verbose config     at async module.exports (/usr/local/lib/node_modules/npm/lib/cli/entry.js:35:37) {
+6 verbose config   errno: -13,
+6 verbose config   code: 'EACCES',
+6 verbose config   syscall: 'open',
+6 verbose config   path: '/Users/wuwenbo/.npmrc'
+6 verbose config }
+7 silly config load:file:/usr/local/etc/npmrc
+8 verbose title npm install
+9 verbose argv "install" "--cache" "./.npm-cache"
+10 verbose logfile logs-max:10 dir:/Users/wuwenbo/Documents/trae_projects/SoloProjects-hll/p152/.npm-cache/_logs/2026-05-26T12_53_43_006Z-
+11 verbose logfile /Users/wuwenbo/Documents/trae_projects/SoloProjects-hll/p152/.npm-cache/_logs/2026-05-26T12_53_43_006Z-debug-0.log
+12 silly logfile done cleaning log files
+13 silly packumentCache heap:4496293888 maxSize:1124073472 maxEntrySize:562036736
+14 silly idealTree buildDeps
+15 silly fetch manifest ws@^8.16.0
+16 silly packumentCache full:https://registry.npmjs.org/ws cache-miss
+17 http fetch GET 200 https://registry.npmjs.org/ws 1877ms (cache miss)
+18 silly packumentCache full:https://registry.npmjs.org/ws set size:undefined disposed:false
+19 silly fetch manifest bufferutil@^4.0.1
+20 silly packumentCache full:https://registry.npmjs.org/bufferutil cache-miss
+21 http fetch GET 200 https://registry.npmjs.org/bufferutil 416ms (cache miss)
+22 silly packumentCache full:https://registry.npmjs.org/bufferutil set size:undefined disposed:false
+23 silly fetch manifest utf-8-validate@>=5.0.2
+24 silly packumentCache full:https://registry.npmjs.org/utf-8-validate cache-miss
+25 http fetch GET 200 https://registry.npmjs.org/utf-8-validate 423ms (cache miss)
+26 silly packumentCache full:https://registry.npmjs.org/utf-8-validate set size:undefined disposed:false
+27 silly placeDep ROOT ws@8.21.0 OK for: zookeeper-monitor@1.1.0 want: ^8.16.0
+28 silly reify moves {}
+29 silly audit bulk request {
+29 silly audit   accepts: [ '1.3.8' ],
+29 silly audit   'array-flatten': [ '1.1.1' ],
+29 silly audit   'body-parser': [ '1.20.5' ],
+29 silly audit   bytes: [ '3.1.2' ],
+29 silly audit   'call-bind-apply-helpers': [ '1.0.2' ],
+29 silly audit   'call-bound': [ '1.0.4' ],
+29 silly audit   'content-disposition': [ '0.5.4' ],
+29 silly audit   'content-type': [ '1.0.5' ],
+29 silly audit   cookie: [ '0.7.2' ],
+29 silly audit   'cookie-signature': [ '1.0.7' ],
+29 silly audit   cors: [ '2.8.6' ],
+29 silly audit   debug: [ '2.6.9' ],
+29 silly audit   depd: [ '2.0.0' ],
+29 silly audit   destroy: [ '1.2.0' ],
+29 silly audit   'dunder-proto': [ '1.0.1' ],
+29 silly audit   'ee-first': [ '1.1.1' ],
+29 silly audit   encodeurl: [ '2.0.0' ],
+29 silly audit   'es-define-property': [ '1.0.1' ],
+29 silly audit   'es-errors': [ '1.3.0' ],
+29 silly audit   'es-object-atoms': [ '1.1.2' ],
+29 silly audit   'escape-html': [ '1.0.3' ],
+29 silly audit   etag: [ '1.8.1' ],
+29 silly audit   express: [ '4.22.2' ],
+29 silly audit   finalhandler: [ '1.3.2' ],
+29 silly audit   forwarded: [ '0.2.0' ],
+29 silly audit   fresh: [ '0.5.2' ],
+29 silly audit   'function-bind': [ '1.1.2' ],
+29 silly audit   'get-intrinsic': [ '1.3.0' ],
+29 silly audit   'get-proto': [ '1.0.1' ],
+29 silly audit   gopd: [ '1.2.0' ],
+29 silly audit   'has-symbols': [ '1.1.0' ],
+29 silly audit   hasown: [ '2.0.3' ],
+29 silly audit   'http-errors': [ '2.0.1' ],
+29 silly audit   'iconv-lite': [ '0.4.24' ],
+29 silly audit   inherits: [ '2.0.4' ],
+29 silly audit   'ipaddr.js': [ '1.9.1' ],
+29 silly audit   'math-intrinsics': [ '1.1.0' ],
+29 silly audit   'media-typer': [ '0.3.0' ],
+29 silly audit   'merge-descriptors': [ '1.0.3' ],
+29 silly audit   methods: [ '1.1.2' ],
+29 silly audit   mime: [ '1.6.0' ],
+29 silly audit   'mime-db': [ '1.52.0' ],
+29 silly audit   'mime-types': [ '2.1.35' ],
+29 silly audit   ms: [ '2.0.0', '2.1.3' ],
+29 silly audit   negotiator: [ '0.6.3' ],
+29 silly audit   'object-assign': [ '4.1.1' ],
+29 silly audit   'object-inspect': [ '1.13.4' ],
+29 silly audit   'on-finished': [ '2.4.1' ],
+29 silly audit   parseurl: [ '1.3.3' ],
+29 silly audit   'path-to-regexp': [ '0.1.13' ],
+29 silly audit   'proxy-addr': [ '2.0.7' ],
+29 silly audit   qs: [ '6.15.2' ],
+29 silly audit   'range-parser': [ '1.2.1' ],
+29 silly audit   'raw-body': [ '2.5.3' ],
+29 silly audit   'safe-buffer': [ '5.2.1' ],
+29 silly audit   'safer-buffer': [ '2.1.2' ],
+29 silly audit   send: [ '0.19.2' ],
+29 silly audit   'serve-static': [ '1.16.3' ],
+29 silly audit   setprototypeof: [ '1.2.0' ],
+29 silly audit   'side-channel': [ '1.1.0' ],
+29 silly audit   'side-channel-list': [ '1.0.1' ],
+29 silly audit   'side-channel-map': [ '1.0.1' ],
+29 silly audit   'side-channel-weakmap': [ '1.0.2' ],
+29 silly audit   statuses: [ '2.0.2' ],
+29 silly audit   toidentifier: [ '1.0.1' ],
+29 silly audit   'type-is': [ '1.6.18' ],
+29 silly audit   unpipe: [ '1.0.0' ],
+29 silly audit   'utils-merge': [ '1.0.1' ],
+29 silly audit   vary: [ '1.1.2' ],
+29 silly audit   ws: [ '8.21.0' ]
+29 silly audit }
+30 http cache ws@https://registry.npmjs.org/ws/-/ws-8.21.0.tgz 0ms (cache hit)
+31 silly tarball no local data for ws@https://registry.npmjs.org/ws/-/ws-8.21.0.tgz. Extracting by manifest.
+32 http fetch POST 200 https://registry.npmjs.org/-/npm/v1/security/advisories/bulk 1075ms
+33 silly audit report {}
+34 http fetch GET 200 https://registry.npmjs.org/ws/-/ws-8.21.0.tgz 3384ms (cache miss)
+35 silly ADD node_modules/ws
+36 verbose cwd /Users/wuwenbo/Documents/trae_projects/SoloProjects-hll/p152
+37 verbose os Darwin 23.5.0
+38 verbose node v24.12.0
+39 verbose npm  v11.6.2
+40 verbose exit 0
+41 info ok

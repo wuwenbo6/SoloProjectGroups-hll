@@ -1,0 +1,17 @@
+{
+  "name": "ptp-clock-simulator",
+  "version": "2.0.0",
+  "description": "PTP Master-Slave Clock Simulator with One-Step, Two-Step and Transparent Clock support",
+  "main": "master.js",
+  "scripts": {
+    "start": "node master.js",
+    "start:one-step": "CLOCK_MODE=one-step node master.js",
+    "start:two-step": "CLOCK_MODE=two-step node master.js",
+    "tc": "node transparent-clock.js",
+    "slave": "node slave.js",
+    "slave:tc": "USE_TC=true node slave.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.0"
+  }
+}
