@@ -1,0 +1,15 @@
+# 忽略 Electron 框架二进制文件
+Framework.framework/
+**/Electron Framework
+**/Electron.app/
+
+# 忽略 node_modules 目录（如果是 Node.js/Electron 项目）
+node_modules/
+
+# 忽略打包输出
+dist/
+out/
+*.app
+
+# 忽略 macOS 系统文件
+.DS_Store
