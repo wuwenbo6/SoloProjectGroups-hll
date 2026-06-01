@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LL-DASH 低延迟流媒体播放器</title>
+  <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      color: #fff;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .header {
+      text-align: center;
+      padding: 30px 0;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header p {
+      color: #8892b0;
+      font-size: 1.1rem;
+    }
+
+    .header-badges {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(0, 212, 255, 0.2);
+      color: #00d4ff;
+      border: 1px solid rgba(0, 212, 255, 0.3);
+    }
+
+    .badge.success {
+      background: rgba(46, 204, 113, 0.2);
+      color: #2ecc71;
+      border-color: rgba(46, 204, 113, 0.3);
+    }
+
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 1024px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .player-section {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .video-container {
+      position: relative;
+      width: 100%;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    video {
+      width: 100%;
+      height: auto;
+      display: block;
+      background: #000;
+    }
+
+    .ad-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: none;
+      z-index: 10;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .ad-overlay.active {
+      display: flex;
+    }
+
+    .ad-content {
+      text-align: center;
+      max-width: 90%;
+    }
+
+    .ad-content img {
+      max-width: 100%;
+      max-height: 80vh;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    .ad-content h3 {
+      color: #f1c40f;
+      margin-bottom: 10px;
+      font-size: 1.5rem;
+    }
+
+    .ad-content p {
+      color: #bdc3c7;
+      margin-bottom: 10px;
+    }
+
+    .ad-timer {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      color: #f1c40f;
+      border: 2px solid #f1c40f;
+    }
+
+    .ad-skip-btn {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 2px solid #fff;
+      color: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .ad-skip-btn:hover:not(:disabled) {
+      background: #fff;
+      color: #000;
+    }
+
+    .ad-skip-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .input-group {
+      flex: 1;
+      min-width: 250px;
+      display: flex;
+      gap: 10px;
+    }
+
+    input[type="text"], select {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    input[type="text"]:focus, select:focus {
+      border-color: #00d4ff;
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
+    }
+
+    input[type="text"]::placeholder {
+      color: #8892b0;
+    }
+
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    button.secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    button.danger {
+      background: linear-gradient(90deg, #e74c3c, #c0392b);
+    }
+
+    button.success {
+      background: linear-gradient(90deg, #2ecc71, #27ae60);
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    .status-panel {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+    }
+
+    .panel-title {
+      font-size: 1.2rem;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #8892b0;
+    }
+
+    .status-indicator.live {
+      background: #e74c3c;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .info-item {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    .info-label {
+      font-size: 12px;
+      color: #8892b0;
+      margin-bottom: 4px;
+    }
+
+    .info-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #00d4ff;
+    }
+
+    .info-value.success {
+      color: #2ecc71;
+    }
+
+    .quality-control {
+      margin-top: 20px;
+    }
+
+    .quality-control label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: #8892b0;
+    }
+
+    .buffer-bar {
+      margin-top: 20px;
+    }
+
+    .buffer-bar label {
+      display: block;
+      font-size: 12px;
+      color: #8892b0;
+      margin-bottom: 6px;
+    }
+
+    .progress-container {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    .progress-fill.low {
+      background: linear-gradient(90deg, #e74c3c, #c0392b);
+    }
+
+    .active-streams {
+      margin-top: 20px;
+    }
+
+    .stream-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .stream-item {
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+    }
+
+    .stream-item:hover {
+      background: rgba(0, 212, 255, 0.1);
+      border-color: rgba(0, 212, 255, 0.3);
+    }
+
+    .stream-item.active {
+      background: rgba(0, 212, 255, 0.15);
+      border-color: #00d4ff;
+    }
+
+    .stream-name {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .stream-meta {
+      font-size: 12px;
+      color: #8892b0;
+    }
+
+    .logs {
+      margin-top: 20px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 12px;
+    }
+
+    .log-line {
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .log-line:last-child {
+      border-bottom: none;
+    }
+
+    .log-time {
+      color: #8892b0;
+      margin-right: 8px;
+    }
+
+    .log-info {
+      color: #00d4ff;
+    }
+
+    .log-warn {
+      color: #f1c40f;
+    }
+
+    .log-error {
+      color: #e74c3c;
+    }
+
+    .log-success {
+      color: #2ecc71;
+    }
+
+    .bitrate-history {
+      margin-top: 20px;
+    }
+
+    .chart-container {
+      height: 100px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+    }
+
+    .chart-bar {
+      flex: 1;
+      background: linear-gradient(to top, #00d4ff, #7b2cbf);
+      border-radius: 2px 2px 0 0;
+      min-height: 2px;
+      transition: height 0.3s ease;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 5px;
+      margin: 20px 0 15px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 5px;
+      border-radius: 8px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      background: transparent;
+      border: none;
+      color: #8892b0;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+
+    .tab-btn:hover {
+      color: #fff;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+      color: #fff;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .stats-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .stat-card h4 {
+      color: #8892b0;
+      font-size: 12px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-card .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #00d4ff;
+    }
+
+    .stat-card .stat-value.success {
+      color: #2ecc71;
+    }
+
+    .stat-card .stat-value.warn {
+      color: #f1c40f;
+    }
+
+    .stat-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .quality-bar {
+      margin-bottom: 10px;
+    }
+
+    .quality-bar:last-child {
+      margin-bottom: 0;
+    }
+
+    .quality-bar-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .quality-bar-fill {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .quality-bar-inner {
+      height: 100%;
+      background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+
+    .ad-break-indicator {
+      background: rgba(241, 196, 15, 0.2);
+      border: 1px solid rgba(241, 196, 15, 0.3);
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    .ad-break-indicator h4 {
+      color: #f1c40f;
+      margin-bottom: 5px;
+    }
+
+    .ad-break-indicator p {
+      color: #8892b0;
+      font-size: 12px;
+    }
+
+    .latency-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      font-size: 12px;
+    }
+
+    .latency-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #2ecc71;
+    }
+
+    .latency-dot.warning {
+      background: #f1c40f;
+    }
+
+    .latency-dot.danger {
+      background: #e74c3c;
+    }
+
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #1a1a2e;
+      padding: 30px;
+      border-radius: 16px;
+      max-width: 500px;
+      width: 90%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .modal-content h3 {
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #8892b0;
+      font-size: 13px;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      justify-content: flex-end;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>LL-DASH 低延迟流媒体</h1>
+      <p>实时自适应码率 · 广告插入 · 数据统计</p>
+      <div class="header-badges">
+        <span class="badge">LL-DASH</span>
+        <span class="badge">≤2.5s 延迟</span>
+        <span class="badge success">自动切换</span>
+        <span class="badge">广告系统</span>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="player-section">
+        <div class="video-container">
+          <video id="videoPlayer" controls autoplay playsinline muted></video>
+          <div class="ad-overlay" id="adOverlay">
+            <div class="ad-timer" id="adTimer">15s</div>
+            <div class="ad-content" id="adContent">
+              <h3>🎬 广告时间</h3>
+              <p>直播内容即将继续</p>
+            </div>
+            <button class="ad-skip-btn" id="adSkipBtn" disabled>跳过广告</button>
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="input-group">
+            <input type="text" id="streamKeyInput" placeholder="输入流密钥 (Stream Key)">
+            <select id="qualitySelect">
+              <option value="auto">自动 (自适应)</option>
+            </select>
+          </div>
+          <button id="playBtn">播放</button>
+          <button id="stopBtn" disabled>停止</button>
+        </div>
+
+        <div class="action-buttons">
+          <button class="secondary" id="statsBtn">📊 查看统计</button>
+          <button class="success" id="exportCsvBtn" disabled>📥 导出 CSV</button>
+          <button class="success" id="exportJsonBtn" disabled>📥 导出 JSON</button>
+          <button class="secondary" id="insertAdBtn" disabled>📢 插入广告</button>
+          <button class="secondary" id="refreshBtn">🔄 刷新</button>
+        </div>
+
+        <div class="latency-indicator">
+          <span class="latency-dot" id="latencyDot"></span>
+          <span>端到端延迟: <strong id="latencyValue">-</strong>s (目标 ≤2.5s)</span>
+        </div>
+
+        <div class="ad-break-indicator" id="adBreakIndicator" style="display: none;">
+          <h4>📢 广告排期</h4>
+          <p id="nextAdInfo">下次广告: 300s 后 | 间隔: 300s</p>
+        </div>
+
+        <div class="active-streams">
+          <h3 class="panel-title">
+            <span class="status-indicator" id="streamsIndicator"></span>
+            可用直播流
+          </h3>
+          <div class="stream-list" id="streamList">
+            <div style="color: #8892b0; text-align: center; padding: 20px;">
+              暂无直播流
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="status-panel">
+        <h3 class="panel-title">
+          <span class="status-indicator" id="playerIndicator"></span>
+          播放状态
+        </h3>
+
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="status">状态</button>
+          <button class="tab-btn" data-tab="stats">统计</button>
+          <button class="tab-btn" data-tab="ads">广告</button>
+        </div>
+
+        <div class="tab-content active" id="tab-status">
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">当前码率</div>
+              <div class="info-value" id="bitrateValue">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">分辨率</div>
+              <div class="info-value" id="resolutionValue">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">缓冲区</div>
+              <div class="info-value" id="bufferValue">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">观看人数</div>
+              <div class="info-value" id="viewerCount">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">观看时长</div>
+              <div class="info-value" id="watchTime">0s</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">LL-DASH</div>
+              <div class="info-value success" id="lldashStatus">-</div>
+            </div>
+          </div>
+
+          <div class="buffer-bar">
+            <label>缓冲区水平</label>
+            <div class="progress-container">
+              <div class="progress-fill" id="bufferFill" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div class="bitrate-history">
+            <label style="display: block; font-size: 12px; color: #8892b0; margin-bottom: 6px;">码率切换历史</label>
+            <div class="chart-container" id="bitrateChart"></div>
+          </div>
+
+          <div class="quality-control">
+            <label>画质选择</label>
+            <select id="qualitySelect2">
+              <option value="auto">自动 (自适应)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tab-stats">
+          <div class="stats-grid">
+            <div class="stat-grid-2">
+              <div class="stat-card">
+                <h4>总观看人次</h4>
+                <div class="stat-value" id="totalViewers">-</div>
+              </div>
+              <div class="stat-card">
+                <h4>平均观看时长</h4>
+                <div class="stat-value" id="avgWatchTime">-</div>
+              </div>
+              <div class="stat-card">
+                <h4>码率切换次数</h4>
+                <div class="stat-value" id="qualitySwitches">-</div>
+              </div>
+              <div class="stat-card">
+                <h4>广告曝光</h4>
+                <div class="stat-value warn" id="adImpressions">-</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <h4>画质分布</h4>
+              <div id="qualityDistribution"></div>
+            </div>
+
+            <div class="stat-card">
+              <h4>广告表现</h4>
+              <div id="adPerformance">-</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tab-ads">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <h4>已插入广告</h4>
+              <div class="stat-value" id="adsInserted">-</div>
+            </div>
+            <div class="stat-card">
+              <h4>下次广告</h4>
+              <div class="stat-value warn" id="nextAd">-</div>
+            </div>
+            <div class="stat-card">
+              <h4>广告间隔</h4>
+              <div class="stat-value" id="adInterval">-</div>
+            </div>
+
+            <div class="stat-card">
+              <h4>广告列表</h4>
+              <div id="adList">
+                <p style="color: #8892b0; font-size: 13px;">暂无广告</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="logs">
+          <div class="log-line">
+            <span class="log-time">[系统]</span>
+            <span class="log-info">播放器已就绪</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="adModal">
+    <div class="modal-content">
+      <h3>插入广告</h3>
+      <div class="form-group">
+        <label>广告图片 URL</label>
+        <input type="text" id="adUrlInput" placeholder="https://example.com/ad.jpg">
+      </div>
+      <div class="form-group">
+        <label>广告时长 (秒)</label>
+        <input type="number" id="adDurationInput" value="10" min="1" max="60">
+      </div>
+      <div class="form-group">
+        <label>插入位置 (秒，可选，留空则立即插入)</label>
+        <input type="number" id="adPositionInput" placeholder="300" min="0">
+      </div>
+      <div class="modal-buttons">
+        <button class="secondary" id="cancelAdBtn">取消</button>
+        <button class="success" id="confirmAdBtn">插入广告</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="statsModal">
+    <div class="modal-content">
+      <h3>播放统计</h3>
+      <div id="statsModalContent">
+        <p style="color: #8892b0;">加载中...</p>
+      </div>
+      <div class="modal-buttons">
+        <button class="secondary" id="closeStatsBtn">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let player = null;
+    let viewerId = null;
+    let currentSessionId = null;
+    let bitrateHistory = [];
+    let statsInterval = null;
+    let streamsInterval = null;
+    let watchTimeInterval = null;
+    let adPollingInterval = null;
+    let currentAd = null;
+    let adTimer = null;
+    let watchSeconds = 0;
+    let estimatedLatency = 0;
+
+    const videoElement = document.getElementById('videoPlayer');
+    const streamKeyInput = document.getElementById('streamKeyInput');
+    const qualitySelect = document.getElementById('qualitySelect');
+    const qualitySelect2 = document.getElementById('qualitySelect2');
+    const playBtn = document.getElementById('playBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const streamList = document.getElementById('streamList');
+    const logsContainer = document.querySelector('.logs');
+    const adOverlay = document.getElementById('adOverlay');
+    const adContent = document.getElementById('adContent');
+    const adTimerDisplay = document.getElementById('adTimer');
+    const adSkipBtn = document.getElementById('adSkipBtn');
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const streamFromUrl = urlParams.get('s');
+    if (streamFromUrl) {
+      streamKeyInput.value = streamFromUrl;
+    }
+
+    function log(message, type = 'info') {
+      const now = new Date();
+      const time = now.toLocaleTimeString('zh-CN', { hour12: false });
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      line.innerHTML = `<span class="log-time">[${time}]</span><span class="log-${type}">${message}</span>`;
+      logsContainer.appendChild(line);
+      logsContainer.scrollTop = logsContainer.scrollHeight;
+      
+      while (logsContainer.children.length > 50) {
+        logsContainer.removeChild(logsContainer.firstChild);
+      }
+    }
+
+    function updateBitrateChart() {
+      const chart = document.getElementById('bitrateChart');
+      chart.innerHTML = '';
+      const maxBitrate = Math.max(...bitrateHistory, 1);
+      
+      bitrateHistory.forEach(bitrate => {
+        const bar = document.createElement('div');
+        bar.className = 'chart-bar';
+        const height = (bitrate / maxBitrate) * 100;
+        bar.style.height = Math.max(height, 5) + '%';
+        bar.title = (bitrate / 1000).toFixed(1) + ' kbps';
+        chart.appendChild(bar);
+      });
+    }
+
+    function estimateLatency() {
+      if (!player) return;
+      
+      const bufferLevel = player.getBufferLength('video') || 0;
+      const videoTime = player.time();
+      estimatedLatency = bufferLevel + 1.5;
+      
+      document.getElementById('latencyValue').textContent = estimatedLatency.toFixed(1);
+      
+      const dot = document.getElementById('latencyDot');
+      dot.className = 'latency-dot';
+      if (estimatedLatency <= 2.5) {
+        dot.classList.add('');
+      } else if (estimatedLatency <= 4) {
+        dot.classList.add('warning');
+      } else {
+        dot.classList.add('danger');
+      }
+    }
+
+    async function initPlayer(url) {
+      if (player) {
+        player.reset();
+        player.destroy();
+        player = null;
+      }
+
+      player = dashjs.MediaPlayer().create();
+      
+      let serverConfig = {};
+      try {
+        const res = await fetch('/api/config');
+        serverConfig = await res.json();
+      } catch (e) {
+        console.warn('Could not fetch server config');
+      }
+
+      document.getElementById('lldashStatus').textContent = serverConfig.llDashEnabled ? '已启用' : '已禁用';
+
+      const playerSettings = {
+        streaming: {
+          abr: {
+            autoSwitchBitrate: {
+              video: true,
+              audio: true
+            },
+            switchUpScaleFactor: 0.5,
+            switchDownScaleFactor: 1.2,
+            fastSwitchEnabled: true,
+            useDefaultABRRules: true
+          },
+          buffer: {
+            stableBufferTime: serverConfig.targetLatency || 2.5,
+            bufferTimeAtTopQuality: (serverConfig.targetLatency || 2.5) + 1,
+            bufferTimeAtTopQualityLongForm: (serverConfig.targetLatency || 2.5) + 2,
+            longFormContentDurationThreshold: 600,
+            fastSwitchEnabled: true
+          },
+          text: {
+            defaultEnabled: false
+          },
+          liveDelay: serverConfig.targetLatency || 2.5,
+          lowLatencyEnabled: serverConfig.llDashEnabled,
+          keepFragmentedMP4InMemory: true,
+          useSuggestedPresentationDelay: true,
+          catchup: {
+            enabled: true,
+            mode: 'looper',
+            seekToCatchup: false
+          }
+        },
+        debug: {
+          logLevel: dashjs.Debug.LOG_LEVEL_WARNING
+        }
+      };
+
+      player.updateSettings(playerSettings);
+      player.initialize(videoElement, url, true);
+
+      player.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, () => {
+        log('LL-DASH 流初始化完成', 'success');
+        updateQualityOptions();
+        document.getElementById('playerIndicator').classList.add('live');
+        document.getElementById('exportCsvBtn').disabled = false;
+        document.getElementById('exportJsonBtn').disabled = false;
+        document.getElementById('insertAdBtn').disabled = false;
+        document.getElementById('adBreakIndicator').style.display = 'block';
+        
+        if (serverConfig.llDashEnabled) {
+          log(`低延迟模式已启用，目标延迟: ${serverConfig.targetLatency}s`, 'success');
+        }
+
+        recordEvent('stream_initialized', { llDash: serverConfig.llDashEnabled });
+      });
+
+      player.on(dashjs.MediaPlayer.events.QUALITY_CHANGE_RENDERED, (e) => {
+        if (e.mediaType === 'video') {
+          const bitrate = e.bitrateInfo.bitrate;
+          const width = e.bitrateInfo.width;
+          const height = e.bitrateInfo.height;
+          
+          document.getElementById('bitrateValue').textContent = (bitrate / 1000).toFixed(1) + ' kbps';
+          document.getElementById('resolutionValue').textContent = width + 'x' + height;
+          
+          bitrateHistory.push(bitrate);
+          if (bitrateHistory.length > 30) bitrateHistory.shift();
+          updateBitrateChart();
+          
+          log(`切换画质: ${width}x${height} @ ${(bitrate/1000).toFixed(0)}kbps`, 'info');
+          
+          if (viewerId) {
+            fetch('/api/viewer/quality', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ viewerId, quality: `${width}x${height}`, bitrate: bitrate })
+            });
+            
+            recordEvent('quality_switch', { quality: `${width}x${height}`, bitrate });
+          }
+        }
+      });
+
+      player.on(dashjs.MediaPlayer.events.BUFFER_LEVEL_UPDATED, (e) => {
+        if (e.mediaType === 'video') {
+          const bufferLevel = e.bufferLevel.toFixed(1);
+          document.getElementById('bufferValue').textContent = bufferLevel + ' s';
+          const percentage = Math.min((e.bufferLevel / 10) * 100, 100);
+          const fill = document.getElementById('bufferFill');
+          fill.style.width = percentage + '%';
+          fill.classList.toggle('low', percentage < 30);
+          
+          estimateLatency();
+        }
+      });
+
+      player.on(dashjs.MediaPlayer.events.ERROR, (e) => {
+        log('播放错误: ' + e.error.message, 'error');
+        recordEvent('playback_error', { error: e.error.message });
+      });
+
+      player.on(dashjs.MediaPlayer.events.PLAYBACK_ENDED, () => {
+        log('播放结束', 'warn');
+        document.getElementById('playerIndicator').classList.remove('live');
+      });
+    }
+
+    function updateQualityOptions() {
+      if (!player) return;
+      
+      const qualities = player.getBitrateInfoListFor('video');
+      const options = '<option value="auto">自动 (自适应)</option>' +
+        qualities.map((q, index) => 
+          `<option value="${index}">${q.width}x${q.height} (${(q.bitrate/1000).toFixed(0)}kbps)</option>`
+        ).join('');
+      
+      qualitySelect.innerHTML = options;
+      qualitySelect2.innerHTML = options;
+    }
+
+    async function joinSession(sessionId) {
+      try {
+        const res = await fetch('/api/viewer/join', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId })
+        });
+        
+        const data = await res.json();
+        viewerId = data.viewerId;
+        currentSessionId = sessionId;
+        log(`加入会话成功，Viewer ID: ${viewerId.slice(0, 8)}...`, 'success');
+        return data.mpdUrl;
+      } catch (err) {
+        log('加入会话失败: ' + err.message, 'error');
+        return null;
+      }
+    }
+
+    async function leaveSession() {
+      if (viewerId) {
+        await fetch('/api/viewer/leave', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ viewerId })
+        });
+        log('已离开会话', 'warn');
+        viewerId = null;
+        currentSessionId = null;
+      }
+    }
+
+    async function recordEvent(eventType, eventData = null) {
+      if (!currentSessionId) return;
+      try {
+        await fetch('/api/events/record', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: currentSessionId,
+            viewerId,
+            eventType,
+            eventData
+          })
+        });
+      } catch (e) {
+        console.debug('Could not record event');
+      }
+    }
+
+    async function loadActiveStreams() {
+      try {
+        const res = await fetch('/api/streams/active');
+        const streams = await res.json();
+        
+        if (streams.length === 0) {
+          streamList.innerHTML = '<div style="color: #8892b0; text-align: center; padding: 20px;">暂无直播流</div>';
+          document.getElementById('streamsIndicator').classList.remove('live');
+          return;
+        }
+
+        document.getElementById('streamsIndicator').classList.add('live');
+        
+        streamList.innerHTML = '';
+        streams.forEach(stream => {
+          const item = document.createElement('div');
+          item.className = 'stream-item' + (stream.session_id === currentSessionId ? ' active' : '');
+          item.innerHTML = `
+            <div class="stream-name">${stream.stream_key}</div>
+            <div class="stream-meta">
+              开始时间: ${new Date(stream.start_time).toLocaleString('zh-CN')}
+              | IP: ${stream.client_ip || '未知'}
+            </div>
+          `;
+          item.onclick = () => {
+            streamKeyInput.value = stream.stream_key;
+            startPlayback();
+          };
+          streamList.appendChild(item);
+        });
+      } catch (err) {
+        console.error('Failed to load streams:', err);
+      }
+    }
+
+    async function updateViewerCount() {
+      if (!currentSessionId) return;
+      try {
+        const res = await fetch(`/api/stats/viewers/${currentSessionId}`);
+        const data = await res.json();
+        document.getElementById('viewerCount').textContent = data.viewerCount;
+      } catch (err) {
+        console.error('Failed to get viewer count:', err);
+      }
+    }
+
+    function updateWatchTime() {
+      if (!videoElement.paused && currentSessionId) {
+        watchSeconds++;
+        document.getElementById('watchTime').textContent = formatTime(watchSeconds);
+        
+        if (watchSeconds % 10 === 0 && viewerId) {
+          fetch('/api/viewer/watchtime', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ viewerId, seconds: 10 })
+          });
+        }
+      }
+    }
+
+    function formatTime(seconds) {
+      if (seconds < 60) return seconds + 's';
+      if (seconds < 3600) return Math.floor(seconds / 60) + 'm ' + (seconds % 60) + 's';
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      return h + 'h ' + m + 'm';
+    }
+
+    async function pollAdBreaks() {
+      if (!currentSessionId) return;
+      try {
+        const res = await fetch(`/api/ads/${currentSessionId}`);
+        const data = await res.json();
+        
+        document.getElementById('adsInserted').textContent = data.adsInserted || 0;
+        
+        if (data.nextAdPosition) {
+          const elapsed = (Date.now() - (data.streamStartTime || Date.now())) / 1000;
+          const nextAdIn = Math.max(0, data.nextAdPosition - elapsed);
+          document.getElementById('nextAd').textContent = nextAdIn.toFixed(0) + 's';
+          document.getElementById('nextAdInfo').textContent = 
+            `下次广告: ${nextAdIn.toFixed(0)}s 后 | 间隔: ${data.interval || 300}s`;
+        }
+        
+        document.getElementById('adInterval').textContent = (data.interval || 300) + 's';
+        
+        if (data.ads && data.ads.length > 0) {
+          const adList = document.getElementById('adList');
+          adList.innerHTML = data.ads.slice(-5).reverse().map(ad => `
+            <div style="padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px; margin-bottom: 8px;">
+              <div style="font-size: 13px; margin-bottom: 4px;">
+                <strong>位置:</strong> ${ad.position || ad.position_seconds}s
+                <span style="color: #8892b0; margin-left: 10px;">时长: ${ad.duration || ad.ad_duration}s</span>
+              </div>
+              <div style="font-size: 11px; color: #8892b0; word-break: break-all;">
+                ${ad.adUrl || ad.ad_url}
+              </div>
+            </div>
+          `).join('');
+        }
+        
+        if (data.ads && data.ads.length > 0) {
+          const latestAd = data.ads[data.ads.length - 1];
+          const adId = latestAd.id || latestAd.ad_id;
+          if (adId && !document.getElementById(`ad-${adId}`)) {
+            checkAndPlayAd(latestAd);
+          }
+        }
+      } catch (err) {
+        console.debug('Ad polling error');
+      }
+    }
+
+    function checkAndPlayAd(adData) {
+      if (!currentAd && !adOverlay.classList.contains('active')) {
+        const adUrl = adData.adUrl || adData.ad_url;
+        const adDuration = adData.duration || adData.ad_duration || 10;
+        const adId = adData.id || adData.ad_id;
+        
+        showAd(adId, adUrl, adDuration);
+      }
+    }
+
+    function showAd(adId, adUrl, duration) {
+      currentAd = { adId, adUrl, duration, startTime: Date.now() };
+      
+      adContent.innerHTML = `
+        <img src="${adUrl}" alt="Advertisement" onerror="this.style.display='none'">
+        <h3>🎬 广告时间</h3>
+        <p>感谢您的支持，直播即将继续</p>
+      `;
+      
+      adOverlay.classList.add('active');
+      
+      if (player) {
+        player.pause();
+      }
+      
+      fetch('/api/ads/playback/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adId, viewerId, sessionId: currentSessionId })
+      });
+      
+      let remaining = duration;
+      adTimerDisplay.textContent = remaining + 's';
+      adSkipBtn.disabled = true;
+      adSkipBtn.textContent = '跳过广告 (' + Math.min(5, remaining) + 's)';
+      
+      adTimer = setInterval(() => {
+        remaining--;
+        adTimerDisplay.textContent = remaining + 's';
+        
+        if (remaining <= Math.max(0, duration - 5)) {
+          adSkipBtn.disabled = false;
+          adSkipBtn.textContent = '跳过广告';
+        }
+        
+        if (remaining <= 0) {
+          completeAd(100);
+        }
+      }, 1000);
+      
+      log(`广告开始播放，ID: ${adId.slice(0, 8)}...`, 'warn');
+      recordEvent('ad_start', { adId, duration });
+    }
+
+    function completeAd(percentage = 100, clicked = false) {
+      if (!currentAd) return;
+      
+      clearInterval(adTimer);
+      
+      fetch('/api/ads/playback/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          adId: currentAd.adId, 
+          viewerId, 
+          completionPercentage: percentage,
+          clicked 
+        })
+      });
+      
+      adOverlay.classList.remove('active');
+      adContent.innerHTML = '';
+      
+      if (player) {
+        player.play();
+      }
+      
+      log(`广告播放完成，完成率: ${percentage}%`, 'success');
+      recordEvent('ad_complete', { adId: currentAd.adId, percentage, clicked });
+      
+      const adEl = document.createElement('div');
+      adEl.id = `ad-${currentAd.adId}`;
+      adEl.style.display = 'none';
+      document.body.appendChild(adEl);
+      
+      currentAd = null;
+    }
+
+    async function loadStatistics() {
+      if (!currentSessionId) return;
+      try {
+        const res = await fetch(`/api/streams/${currentSessionId}/stats`);
+        const stats = await res.json();
+        
+        document.getElementById('totalViewers').textContent = stats.viewers?.total_viewers || 0;
+        document.getElementById('avgWatchTime').textContent = 
+          stats.viewers?.avg_watch_time ? (stats.viewers.avg_watch_time / 60).toFixed(1) + 'm' : '-';
+        
+        const totalSwitches = (stats.qualityDistribution || []).reduce((sum, q) => sum + q.switch_count, 0);
+        document.getElementById('qualitySwitches').textContent = totalSwitches;
+        
+        const totalImpressions = (stats.adPerformance || []).reduce((sum, a) => sum + a.impressions, 0);
+        document.getElementById('adImpressions').textContent = totalImpressions;
+        
+        const qualityDist = document.getElementById('qualityDistribution');
+        if (stats.qualityDistribution && stats.qualityDistribution.length > 0) {
+          const maxBytes = Math.max(...stats.qualityDistribution.map(q => q.total_bytes || 0), 1);
+          qualityDist.innerHTML = stats.qualityDistribution.map(q => `
+            <div class="quality-bar">
+              <div class="quality-bar-header">
+                <span>${q.quality}</span>
+                <span>${q.switch_count} 次 | ${formatBytes(q.total_bytes || 0)}</span>
+              </div>
+              <div class="quality-bar-fill">
+                <div class="quality-bar-inner" style="width: ${((q.total_bytes || 0) / maxBytes) * 100}%"></div>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          qualityDist.innerHTML = '<p style="color: #8892b0; font-size: 13px;">暂无数据</p>';
+        }
+        
+        const adPerf = document.getElementById('adPerformance');
+        if (stats.adPerformance && stats.adPerformance.length > 0) {
+          adPerf.innerHTML = stats.adPerformance.map(a => `
+            <div class="quality-bar">
+              <div class="quality-bar-header">
+                <span>广告 ${a.ad_id?.slice(0, 8) || 'N/A'}</span>
+                <span>${a.impressions} 曝光 | ${a.clicks || 0} 点击</span>
+              </div>
+              <div class="quality-bar-fill">
+                <div class="quality-bar-inner" style="width: ${a.avg_completion || 0}%"></div>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          adPerf.innerHTML = '<p style="color: #8892b0; font-size: 13px;">暂无广告数据</p>';
+        }
+      } catch (err) {
+        console.error('Failed to load stats:', err);
+      }
+    }
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+      return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+    }
+
+    async function startPlayback() {
+      const streamKey = streamKeyInput.value.trim();
+      if (!streamKey) {
+        log('请输入流密钥', 'warn');
+        return;
+      }
+
+      log(`正在连接流: ${streamKey}`, 'info');
+      playBtn.disabled = true;
+      watchSeconds = 0;
+
+      const mpdUrl = await joinSession(streamKey);
+      if (!mpdUrl) {
+        playBtn.disabled = false;
+        return;
+      }
+
+      log('正在加载 LL-DASH 清单: ' + mpdUrl, 'info');
+      
+      try {
+        initPlayer(mpdUrl);
+        stopBtn.disabled = false;
+        log('低延迟播放已开始', 'success');
+        
+        if (statsInterval) clearInterval(statsInterval);
+        statsInterval = setInterval(updateViewerCount, 5000);
+        
+        if (watchTimeInterval) clearInterval(watchTimeInterval);
+        watchTimeInterval = setInterval(updateWatchTime, 1000);
+        
+        if (adPollingInterval) clearInterval(adPollingInterval);
+        adPollingInterval = setInterval(pollAdBreaks, 2000);
+        
+        setInterval(loadStatistics, 10000);
+        
+      } catch (err) {
+        log('播放失败: ' + err.message, 'error');
+        playBtn.disabled = false;
+        leaveSession();
+      }
+    }
+
+    function stopPlayback() {
+      if (currentAd) {
+        completeAd(Math.min(100, ((Date.now() - currentAd.startTime) / 1000 / currentAd.duration) * 100));
+      }
+      
+      if (player) {
+        player.reset();
+        player.destroy();
+        player = null;
+      }
+      videoElement.pause();
+      videoElement.src = '';
+      
+      if (statsInterval) {
+        clearInterval(statsInterval);
+        statsInterval = null;
+      }
+      
+      if (watchTimeInterval) {
+        clearInterval(watchTimeInterval);
+        watchTimeInterval = null;
+      }
+      
+      if (adPollingInterval) {
+        clearInterval(adPollingInterval);
+        adPollingInterval = null;
+      }
+      
+      leaveSession();
+      
+      document.getElementById('playerIndicator').classList.remove('live');
+      document.getElementById('bitrateValue').textContent = '-';
+      document.getElementById('resolutionValue').textContent = '-';
+      document.getElementById('bufferValue').textContent = '-';
+      document.getElementById('viewerCount').textContent = '-';
+      document.getElementById('watchTime').textContent = '0s';
+      document.getElementById('lldashStatus').textContent = '-';
+      document.getElementById('latencyValue').textContent = '-';
+      document.getElementById('bufferFill').style.width = '0%';
+      document.getElementById('adBreakIndicator').style.display = 'none';
+      
+      qualitySelect.innerHTML = '<option value="auto">自动 (自适应)</option>';
+      qualitySelect2.innerHTML = '<option value="auto">自动 (自适应)</option>';
+      
+      bitrateHistory = [];
+      updateBitrateChart();
+      
+      playBtn.disabled = false;
+      stopBtn.disabled = true;
+      document.getElementById('exportCsvBtn').disabled = true;
+      document.getElementById('exportJsonBtn').disabled = true;
+      document.getElementById('insertAdBtn').disabled = true;
+      
+      log('播放已停止', 'warn');
+    }
+
+    playBtn.onclick = startPlayback;
+    stopBtn.onclick = stopPlayback;
+
+    function handleQualityChange(select) {
+      if (!player) return;
+      const value = select.value;
+      if (value === 'auto') {
+        player.updateSettings({
+          'streaming.abr.autoSwitchBitrate.video': true
+        });
+        log('已切换为自动码率', 'info');
+      } else {
+        const index = parseInt(value);
+        player.updateSettings({
+          'streaming.abr.autoSwitchBitrate.video': false
+        });
+        player.setQualityFor('video', index);
+        log('已锁定指定画质', 'info');
+      }
+    }
+
+    qualitySelect.onchange = () => handleQualityChange(qualitySelect);
+    qualitySelect2.onchange = () => handleQualityChange(qualitySelect2);
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.onclick = () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + tab).classList.add('active');
+        
+        if (tab === 'stats') {
+          loadStatistics();
+        }
+        if (tab === 'ads') {
+          pollAdBreaks();
+        }
+      };
+    });
+
+    document.getElementById('refreshBtn').onclick = () => {
+      loadActiveStreams();
+      log('已刷新直播流列表', 'info');
+    };
+
+    document.getElementById('exportCsvBtn').onclick = () => {
+      if (!currentSessionId) return;
+      window.open(`/api/streams/${currentSessionId}/export/csv`, '_blank');
+      log('正在导出 CSV 统计...', 'info');
+    };
+
+    document.getElementById('exportJsonBtn').onclick = () => {
+      if (!currentSessionId) return;
+      window.open(`/api/streams/${currentSessionId}/export/json`, '_blank');
+      log('正在导出 JSON 统计...', 'info');
+    };
+
+    document.getElementById('insertAdBtn').onclick = () => {
+      document.getElementById('adModal').classList.add('active');
+    };
+
+    document.getElementById('cancelAdBtn').onclick = () => {
+      document.getElementById('adModal').classList.remove('active');
+    };
+
+    document.getElementById('confirmAdBtn').onclick = async () => {
+      const adUrl = document.getElementById('adUrlInput').value;
+      const duration = parseInt(document.getElementById('adDurationInput').value) || 10;
+      const position = document.getElementById('adPositionInput').value;
+      
+      if (!adUrl) {
+        alert('请输入广告图片 URL');
+        return;
+      }
+      
+      try {
+        const body = { adUrl, duration };
+        if (position) body.positionSeconds = parseInt(position);
+        
+        const res = await fetch(`/api/ads/${currentSessionId}/insert`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        
+        const data = await res.json();
+        document.getElementById('adModal').classList.remove('active');
+        log(`广告已插入，ID: ${data.id?.slice(0, 8)}...`, 'success');
+        
+        pollAdBreaks();
+      } catch (err) {
+        log('插入广告失败: ' + err.message, 'error');
+      }
+    };
+
+    document.getElementById('statsBtn').onclick = async () => {
+      if (!currentSessionId) return;
+      
+      try {
+        const res = await fetch(`/api/streams/${currentSessionId}/stats`);
+        const stats = await res.json();
+        
+        document.getElementById('statsModalContent').innerHTML = `
+          <div style="max-height: 400px; overflow-y: auto;">
+            <pre style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; font-size: 12px; overflow-x: auto;">
+${JSON.stringify(stats, null, 2)}
+            </pre>
+          </div>
+        `;
+        document.getElementById('statsModal').classList.add('active');
+      } catch (err) {
+        log('加载统计失败: ' + err.message, 'error');
+      }
+    };
+
+    document.getElementById('closeStatsBtn').onclick = () => {
+      document.getElementById('statsModal').classList.remove('active');
+    };
+
+    adSkipBtn.onclick = () => {
+      const watched = (Date.now() - currentAd.startTime) / 1000;
+      const percentage = Math.min(100, (watched / currentAd.duration) * 100);
+      completeAd(percentage, true);
+    };
+
+    adOverlay.onclick = (e) => {
+      if (e.target === adContent || e.target === adContent.querySelector('img')) {
+        completeAd(100, true);
+        window.open('https://example.com', '_blank');
+      }
+    };
+
+    loadActiveStreams();
+    streamsInterval = setInterval(loadActiveStreams, 5000);
+
+    window.addEventListener('beforeunload', () => {
+      leaveSession();
+      if (statsInterval) clearInterval(statsInterval);
+      if (streamsInterval) clearInterval(streamsInterval);
+      if (watchTimeInterval) clearInterval(watchTimeInterval);
+      if (adPollingInterval) clearInterval(adPollingInterval);
+    });
+
+    if (streamFromUrl) {
+      setTimeout(startPlayback, 500);
+    }
+  </script>
+</body>
+</html>

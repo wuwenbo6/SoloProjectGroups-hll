@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIP 信令分析器</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .search-section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            transition: border-color 0.3s;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .search-btn {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: #f5f5f5;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .tab:hover:not(.active) {
+            background: #e0e0e0;
+        }
+        
+        .tab .badge {
+            background: #ef4444;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75em;
+        }
+        
+        .tab.active .badge {
+            background: white;
+            color: #667eea;
+        }
+        
+        .results-section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .calls-list {
+            list-style: none;
+        }
+        
+        .call-item {
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 4px solid #ccc;
+        }
+        
+        .call-item:hover {
+            background: #f0f0f0;
+            transform: translateX(5px);
+        }
+        
+        .call-item.completed {
+            border-left-color: #10b981;
+        }
+        
+        .call-item.answered {
+            border-left-color: #3b82f6;
+        }
+        
+        .call-item.in_progress {
+            border-left-color: #f59e0b;
+        }
+        
+        .call-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .call-participants {
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        
+        .call-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .status-completed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-answered {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .status-in_progress {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .call-meta {
+            display: flex;
+            gap: 20px;
+            color: #666;
+            font-size: 0.9em;
+            flex-wrap: wrap;
+        }
+        
+        .call-meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .mos-badge {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.85em;
+        }
+        
+        .mos-excellent {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .mos-good {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .mos-fair {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .mos-poor {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .detail-section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: none;
+        }
+        
+        .detail-section.active {
+            display: block;
+        }
+        
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .detail-title {
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+        
+        .detail-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            padding: 8px 16px;
+            background: #f5f5f5;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .action-btn:hover {
+            background: #e0e0e0;
+        }
+        
+        .action-btn.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .action-btn.primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .back-btn {
+            padding: 8px 16px;
+            background: #f5f5f5;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .back-btn:hover {
+            background: #e0e0e0;
+        }
+        
+        .info-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .info-card {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .info-card.mos {
+            border-left-color: #10b981;
+        }
+        
+        .info-card.loss {
+            border-left-color: #f59e0b;
+        }
+        
+        .info-card.jitter {
+            border-left-color: #ef4444;
+        }
+        
+        .info-card-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .info-card-value {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .flow-diagram {
+            background: #fafafa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        
+        .rtp-streams {
+            background: #fafafa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .rtp-stream {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .rtp-stream-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .rtp-stream-info {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .rtp-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+        }
+        
+        .rtp-metric {
+            text-align: center;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        
+        .rtp-metric-label {
+            font-size: 0.75em;
+            color: #666;
+            margin-bottom: 3px;
+        }
+        
+        .rtp-metric-value {
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+        
+        .messages-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .message-item {
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .message-method {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .message-time {
+            color: #999;
+            font-size: 0.9em;
+        }
+        
+        .message-raw {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85em;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .alerts-list {
+            list-style: none;
+        }
+        
+        .alert-item {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid;
+            background: #f9f9f9;
+        }
+        
+        .alert-item.critical {
+            border-left-color: #dc2626;
+            background: #fef2f2;
+        }
+        
+        .alert-item.high {
+            border-left-color: #ea580c;
+            background: #fff7ed;
+        }
+        
+        .alert-item.medium {
+            border-left-color: #d97706;
+            background: #fefce8;
+        }
+        
+        .alert-item.low {
+            border-left-color: #2563eb;
+            background: #eff6ff;
+        }
+        
+        .alert-item.acknowledged {
+            opacity: 0.6;
+        }
+        
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .alert-type {
+            font-weight: 600;
+            font-size: 1.05em;
+        }
+        
+        .alert-severity {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .severity-critical {
+            background: #dc2626;
+            color: white;
+        }
+        
+        .severity-high {
+            background: #ea580c;
+            color: white;
+        }
+        
+        .severity-medium {
+            background: #d97706;
+            color: white;
+        }
+        
+        .severity-low {
+            background: #2563eb;
+            color: white;
+        }
+        
+        .alert-message {
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .alert-meta {
+            display: flex;
+            gap: 15px;
+            color: #666;
+            font-size: 0.85em;
+            flex-wrap: wrap;
+        }
+        
+        .alert-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .ack-btn {
+            padding: 4px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8em;
+            cursor: pointer;
+            background: #667eea;
+            color: white;
+        }
+        
+        .ack-btn:hover {
+            background: #5a67d8;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .mermaid {
+            text-align: center;
+        }
+        
+        .section-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📞 SIP 信令分析器</h1>
+            <p>实时捕获和分析SIP呼叫信令 · RTP质量监控 · 智能告警</p>
+        </div>
+        
+        <div class="search-section">
+            <div class="search-box">
+                <input type="text" class="search-input" id="searchInput" placeholder="输入Call-ID、主叫或被叫号码进行搜索...">
+                <button class="search-btn" onclick="searchCalls()">搜索</button>
+            </div>
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('recent')">📞 最近通话</button>
+                <button class="tab" onclick="switchTab('search')">🔍 搜索结果</button>
+                <button class="tab" onclick="switchTab('alerts')">
+                    ⚠️ 实时告警
+                    <span class="badge" id="alertBadge" style="display:none;">0</span>
+                </button>
+            </div>
+        </div>
+        
+        <div class="results-section" id="resultsSection">
+            <div class="loading" id="loadingState">
+                <div class="spinner"></div>
+                <p>加载中...</p>
+            </div>
+            <div class="calls-list" id="callsList" style="display:none;"></div>
+            <div class="alerts-list" id="alertsList" style="display:none;"></div>
+            <div class="empty-state" id="emptyState" style="display:none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
+                </svg>
+                <p id="emptyText">暂无数据</p>
+            </div>
+        </div>
+        
+        <div class="detail-section" id="detailSection">
+            <div class="detail-header">
+                <span class="detail-title" id="detailTitle">呼叫详情</span>
+                <div class="detail-actions">
+                    <button class="action-btn primary" onclick="downloadPCAP()">
+                        📥 导出PCAP
+                    </button>
+                    <button class="back-btn" onclick="showResults()">← 返回列表</button>
+                </div>
+            </div>
+            
+            <div class="info-cards" id="infoCards"></div>
+            
+            <div class="flow-diagram">
+                <h3 class="section-title">📊 呼叫流程图</h3>
+                <div class="mermaid" id="flowDiagram"></div>
+            </div>
+            
+            <div class="rtp-streams" id="rtpStreamsSection" style="display:none;">
+                <h3 class="section-title">🎙️ RTP 媒体流质量</h3>
+                <div id="rtpStreamsList"></div>
+            </div>
+            
+            <div>
+                <h3 class="section-title">📋 SIP 消息列表</h3>
+                <div class="messages-list" id="messagesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const statusCodeTexts = {
+            100: 'Trying',
+            180: 'Ringing',
+            181: 'Call Is Being Forwarded',
+            182: 'Queued',
+            183: 'Session Progress',
+            200: 'OK',
+            202: 'Accepted',
+            300: 'Multiple Choices',
+            301: 'Moved Permanently',
+            302: 'Moved Temporarily',
+            305: 'Use Proxy',
+            400: 'Bad Request',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not Found',
+            407: 'Proxy Authentication Required',
+            408: 'Request Timeout',
+            480: 'Temporarily Unavailable',
+            481: 'Call/Transaction Does Not Exist',
+            486: 'Busy Here',
+            487: 'Request Terminated',
+            488: 'Not Acceptable Here',
+            500: 'Server Internal Error',
+            503: 'Service Unavailable',
+            600: 'Busy Everywhere',
+            603: 'Decline'
+        };
+        
+        function getSIPStatusText(code) {
+            return statusCodeTexts[code] || code.toString();
+        }
+        
+        function formatSIPMethod(msg) {
+            if (msg.status_code && msg.status_code > 0) {
+                return `${msg.status_code} ${getSIPStatusText(msg.status_code)}`;
+            }
+            return msg.method || 'UNKNOWN';
+        }
+        
+        function getMOSClass(mos) {
+            if (mos >= 4.0) return 'mos-excellent';
+            if (mos >= 3.5) return 'mos-good';
+            if (mos >= 3.0) return 'mos-fair';
+            return 'mos-poor';
+        }
+        
+        function getMOSText(mos) {
+            if (mos >= 4.0) return '优秀';
+            if (mos >= 3.5) return '良好';
+            if (mos >= 3.0) return '一般';
+            return '较差';
+        }
+        
+        function formatDuration(ms) {
+            if (!ms) return '0秒';
+            const seconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            if (minutes > 0) {
+                return `${minutes}分${secs}秒`;
+            }
+            return `${secs}秒`;
+        }
+        
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'default',
+            sequence: {
+                showSequenceNumbers: true,
+                wrap: true
+            }
+        });
+        
+        const API_BASE = 'http://localhost:8080/api';
+        let currentTab = 'recent';
+        let currentCallId = null;
+        let alertRefreshInterval = null;
+        
+        async function fetchRecentCalls() {
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE}/calls?limit=50`);
+                const data = await response.json();
+                displayCalls(data.calls);
+            } catch (error) {
+                console.error('Error fetching calls:', error);
+                showEmpty('暂无通话记录');
+            }
+        }
+        
+        async function fetchAlerts() {
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE}/alerts?limit=100`);
+                const data = await response.json();
+                displayAlerts(data.alerts);
+                updateAlertBadge(data.alerts);
+            } catch (error) {
+                console.error('Error fetching alerts:', error);
+                showEmpty('暂无告警信息');
+            }
+        }
+        
+        function updateAlertBadge(alerts) {
+            const unacknowledged = alerts.filter(a => !a.acknowledged).length;
+            const badge = document.getElementById('alertBadge');
+            if (unacknowledged > 0) {
+                badge.style.display = 'inline-block';
+                badge.textContent = unacknowledged;
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        
+        async function searchCalls() {
+            const keyword = document.getElementById('searchInput').value.trim();
+            if (!keyword) {
+                fetchRecentCalls();
+                return;
+            }
+            
+            showLoading();
+            switchTab('search');
+            
+            try {
+                const response = await fetch(`${API_BASE}/calls/search?keyword=${encodeURIComponent(keyword)}&limit=50`);
+                const data = await response.json();
+                displayCalls(data.calls);
+            } catch (error) {
+                console.error('Error searching calls:', error);
+                showEmpty('未找到匹配的通话记录');
+            }
+        }
+        
+        function displayCalls(calls) {
+            const listEl = document.getElementById('callsList');
+            const alertsEl = document.getElementById('alertsList');
+            const emptyEl = document.getElementById('emptyState');
+            const loadingEl = document.getElementById('loadingState');
+            
+            loadingEl.style.display = 'none';
+            alertsEl.style.display = 'none';
+            
+            if (!calls || calls.length === 0) {
+                listEl.style.display = 'none';
+                showEmpty('暂无通话记录');
+                return;
+            }
+            
+            emptyEl.style.display = 'none';
+            listEl.style.display = 'block';
+            
+            listEl.innerHTML = calls.map(call => {
+                let mosHtml = '';
+                if (call.avg_mos !== undefined && call.avg_mos !== null) {
+                    const mos = parseFloat(call.avg_mos);
+                    mosHtml = `<span class="mos-badge ${getMOSClass(mos)}">📶 MOS: ${mos.toFixed(2)} (${getMOSText(mos)})</span>`;
+                }
+                return `
+                <li class="call-item ${call.status}" onclick="showCallDetail('${call.call_id}')">
+                    <div class="call-header">
+                        <span class="call-participants">${call.from_user || '未知'} → ${call.to_user || '未知'}</span>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            ${mosHtml}
+                            <span class="call-status status-${call.status}">${getStatusText(call.status)}</span>
+                        </div>
+                    </div>
+                    <div class="call-meta">
+                        <span>📞 Call-ID: ${call.call_id.substring(0, 20)}...</span>
+                        <span>🕐 ${formatTime(call.start_time)}</span>
+                        <span>📨 ${call.message_count} 条消息</span>
+                        ${call.duration_ms ? `<span>⏱️ ${formatDuration(call.duration_ms)}</span>` : ''}
+                    </div>
+                </li>
+            `}).join('');
+        }
+        
+        function displayAlerts(alerts) {
+            const listEl = document.getElementById('callsList');
+            const alertsEl = document.getElementById('alertsList');
+            const emptyEl = document.getElementById('emptyState');
+            const loadingEl = document.getElementById('loadingState');
+            
+            loadingEl.style.display = 'none';
+            listEl.style.display = 'none';
+            
+            if (!alerts || alerts.length === 0) {
+                alertsEl.style.display = 'none';
+                showEmpty('暂无告警信息');
+                return;
+            }
+            
+            emptyEl.style.display = 'none';
+            alertsEl.style.display = 'block';
+            
+            alertsEl.innerHTML = alerts.map(alert => `
+                <div class="alert-item ${alert.severity} ${alert.acknowledged ? 'acknowledged' : ''}" data-alert-id="${alert.id}">
+                    <div class="alert-header">
+                        <span class="alert-type">${getAlertTypeText(alert.alert_type)}</span>
+                        <div class="alert-actions">
+                            <span class="alert-severity severity-${alert.severity}">${getSeverityText(alert.severity)}</span>
+                            ${!alert.acknowledged ? `<button class="ack-btn" onclick="acknowledgeAlert(${alert.id}, event)">确认</button>` : '<span style="color:#666; font-size:0.85em;">✓ 已确认</span>'}
+                        </div>
+                    </div>
+                    <div class="alert-message">${alert.message}</div>
+                    <div class="alert-meta">
+                        ${alert.source_ip ? `<span>📍 IP: ${alert.source_ip}</span>` : ''}
+                        ${alert.user ? `<span>👤 用户: ${alert.user}</span>` : ''}
+                        ${alert.call_id ? `<span>📞 Call-ID: ${alert.call_id}</span>` : ''}
+                        ${alert.count > 1 ? `<span>🔢 次数: ${alert.count}</span>` : ''}
+                        <span>🕐 ${formatTime(alert.timestamp)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function getAlertTypeText(type) {
+            const map = {
+                'registration_flood': '⚠️ 注册洪泛攻击',
+                'call_flood': '⚠️ 呼叫洪泛攻击',
+                'failed_call': '❌ 呼叫失败',
+                'high_loss_rate': '📉 高丢包率',
+                'high_jitter': '📊 高抖动',
+                'low_mos': '📶 MOS分过低',
+                'long_call': '⏱️ 超长通话'
+            };
+            return map[type] || type;
+        }
+        
+        function getSeverityText(severity) {
+            const map = {
+                'critical': '严重',
+                'high': '高危',
+                'medium': '中危',
+                'low': '低危'
+            };
+            return map[severity] || severity;
+        }
+        
+        async function acknowledgeAlert(id, event) {
+            event.stopPropagation();
+            try {
+                const response = await fetch(`${API_BASE}/alerts/${id}/acknowledge`, {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    if (currentTab === 'alerts') {
+                        fetchAlerts();
+                    }
+                }
+            } catch (error) {
+                console.error('Error acknowledging alert:', error);
+            }
+        }
+        
+        function getStatusText(status) {
+            const statusMap = {
+                'completed': '已结束',
+                'answered': '已接听',
+                'in_progress': '进行中'
+            };
+            return statusMap[status] || status;
+        }
+        
+        function formatTime(timeStr) {
+            if (!timeStr) return '未知';
+            const date = new Date(timeStr);
+            return date.toLocaleString('zh-CN');
+        }
+        
+        async function showCallDetail(callId) {
+            currentCallId = callId;
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('detailSection').classList.add('active');
+            document.getElementById('detailTitle').textContent = `呼叫详情: ${callId}`;
+            
+            try {
+                const response = await fetch(`${API_BASE}/calls/${encodeURIComponent(callId)}`);
+                const data = await response.json();
+                
+                displayInfoCards(data);
+                displayRTPStreams(data.rtp_streams);
+                displayMessages(data.messages);
+                await displayFlowDiagram(callId);
+            } catch (error) {
+                console.error('Error fetching call detail:', error);
+                document.getElementById('messagesList').innerHTML = '<p>加载详情失败</p>';
+            }
+        }
+        
+        function displayInfoCards(data) {
+            const cardsEl = document.getElementById('infoCards');
+            let cards = '';
+            
+            cards += `
+                <div class="info-card">
+                    <div class="info-card-label">主叫</div>
+                    <div class="info-card-value">${data.from_user || '未知'}</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-label">被叫</div>
+                    <div class="info-card-value">${data.to_user || '未知'}</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-label">状态</div>
+                    <div class="info-card-value">${getStatusText(data.status)}</div>
+                </div>
+            `;
+            
+            if (data.avg_mos !== undefined && data.avg_mos !== null) {
+                const mos = parseFloat(data.avg_mos);
+                cards += `
+                    <div class="info-card mos">
+                        <div class="info-card-label">MOS 评分</div>
+                        <div class="info-card-value" style="color: ${mos >= 3.5 ? '#065f46' : mos >= 3.0 ? '#92400e' : '#991b1b'}">${mos.toFixed(2)}</div>
+                    </div>
+                `;
+            }
+            
+            if (data.rtp_streams && data.rtp_streams.length > 0) {
+                const totalLoss = data.rtp_streams.reduce((sum, s) => sum + s.loss_rate, 0) / data.rtp_streams.length;
+                const maxJitter = Math.max(...data.rtp_streams.map(s => s.max_jitter_ms || 0));
+                
+                cards += `
+                    <div class="info-card loss">
+                        <div class="info-card-label">平均丢包率</div>
+                        <div class="info-card-value">${totalLoss.toFixed(2)}%</div>
+                    </div>
+                    <div class="info-card jitter">
+                        <div class="info-card-label">最大抖动</div>
+                        <div class="info-card-value">${maxJitter.toFixed(1)}ms</div>
+                    </div>
+                `;
+            }
+            
+            cards += `
+                <div class="info-card">
+                    <div class="info-card-label">消息数</div>
+                    <div class="info-card-value">${data.message_count}</div>
+                </div>
+            `;
+            
+            if (data.start_time) {
+                cards += `
+                    <div class="info-card">
+                        <div class="info-card-label">开始时间</div>
+                        <div class="info-card-value" style="font-size:0.9em;">${formatTime(data.start_time)}</div>
+                    </div>
+                `;
+            }
+            
+            cardsEl.innerHTML = cards;
+        }
+        
+        function displayRTPStreams(streams) {
+            const section = document.getElementById('rtpStreamsSection');
+            const list = document.getElementById('rtpStreamsList');
+            
+            if (!streams || streams.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            section.style.display = 'block';
+            
+            list.innerHTML = streams.map(stream => `
+                <div class="rtp-stream">
+                    <div class="rtp-stream-header">
+                        <span class="rtp-stream-info">
+                            📡 SSRC: ${stream.ssrc} (${stream.codec || '未知编码'})
+                            <span style="color:#666; font-weight:normal; margin-left:10px;">
+                                ${stream.source_ip}:${stream.source_port} → ${stream.dest_ip}:${stream.dest_port}
+                            </span>
+                        </span>
+                        <span class="mos-badge ${getMOSClass(stream.mos_score)}">
+                            MOS: ${stream.mos_score ? stream.mos_score.toFixed(2) : 'N/A'}
+                        </span>
+                    </div>
+                    <div class="rtp-metrics">
+                        <div class="rtp-metric">
+                            <div class="rtp-metric-label">总包数</div>
+                            <div class="rtp-metric-value">${stream.total_packets}</div>
+                        </div>
+                        <div class="rtp-metric">
+                            <div class="rtp-metric-label">丢包数</div>
+                            <div class="rtp-metric-value" style="color: ${stream.lost_packets > 0 ? '#dc2626' : '#065f46'}">${stream.lost_packets}</div>
+                        </div>
+                        <div class="rtp-metric">
+                            <div class="rtp-metric-label">丢包率</div>
+                            <div class="rtp-metric-value" style="color: ${stream.loss_rate > 5 ? '#dc2626' : stream.loss_rate > 1 ? '#d97706' : '#065f46'}">${stream.loss_rate.toFixed(2)}%</div>
+                        </div>
+                        <div class="rtp-metric">
+                            <div class="rtp-metric-label">平均抖动</div>
+                            <div class="rtp-metric-value" style="color: ${stream.avg_jitter_ms > 30 ? '#dc2626' : stream.avg_jitter_ms > 10 ? '#d97706' : '#065f46'}">${stream.avg_jitter_ms.toFixed(1)}ms</div>
+                        </div>
+                        <div class="rtp-metric">
+                            <div class="rtp-metric-label">最大抖动</div>
+                            <div class="rtp-metric-value" style="color: ${stream.max_jitter_ms > 50 ? '#dc2626' : stream.max_jitter_ms > 20 ? '#d97706' : '#065f46'}">${stream.max_jitter_ms.toFixed(1)}ms</div>
+                        </div>
+                        <div class="rtp-metric">
+                            <div class="rtp-metric-label">通话时长</div>
+                            <div class="rtp-metric-value">${formatDuration(stream.duration_ms)}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function downloadPCAP() {
+            if (!currentCallId) return;
+            
+            const link = document.createElement('a');
+            link.href = `${API_BASE}/calls/${encodeURIComponent(currentCallId)}/pcap`;
+            link.download = `${currentCallId}.pcap`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        function displayMessages(messages) {
+            const listEl = document.getElementById('messagesList');
+            listEl.innerHTML = messages.map((msg, idx) => `
+                <div class="message-item">
+                    <div class="message-header">
+                        <span class="message-method">#${idx + 1} ${formatSIPMethod(msg)} - ${msg.from_user || ''} → ${msg.to_user || ''}</span>
+                        <span class="message-time">${new Date(msg.timestamp).toLocaleString('zh-CN')}</span>
+                    </div>
+                    <div style="margin: 8px 0; color: #666; font-size: 0.9em;">
+                        ${msg.source_ip}:${msg.source_port} → ${msg.dest_ip}:${msg.dest_port}
+                    </div>
+                    <details>
+                        <summary style="cursor: pointer; color: #667eea; margin-bottom: 8px;">查看原始SIP消息</summary>
+                        <pre class="message-raw">${escapeHtml(msg.raw_message)}</pre>
+                    </details>
+                </div>
+            `).join('');
+        }
+        
+        async function displayFlowDiagram(callId) {
+            try {
+                const response = await fetch(`${API_BASE}/calls/${encodeURIComponent(callId)}/flow`);
+                const data = await response.json();
+                
+                const participants = data.participants;
+                const flow = data.flow;
+                
+                if (participants.length < 2) {
+                    document.getElementById('flowDiagram').innerHTML = '<p style="color:#999;">参与方信息不足，无法生成流程图</p>';
+                    return;
+                }
+                
+                const participantMap = {};
+                participants.forEach((p, i) => {
+                    participantMap[p] = `P${i + 1}`;
+                });
+                
+                let mermaidCode = `sequenceDiagram\n`;
+                participants.forEach((p, i) => {
+                    mermaidCode += `    participant P${i + 1} as ${p}\n`;
+                });
+                
+                flow.forEach(step => {
+                    const from = participantMap[step.from] || 'P1';
+                    const to = participantMap[step.to] || 'P2';
+                    const isResponse = !step.method && step.status_code;
+                    const arrow = isResponse ? '-->>' : '->>';
+                    const label = isResponse ? `${step.status_code} ${getSIPStatusText(step.status_code)}` : (step.method || 'UNKNOWN');
+                    
+                    mermaidCode += `    ${from}${arrow}${to}: ${label}\n`;
+                });
+                
+                document.getElementById('flowDiagram').innerHTML = '';
+                const { svg } = await mermaid.render('flowSvg', mermaidCode);
+                document.getElementById('flowDiagram').innerHTML = svg;
+                
+            } catch (error) {
+                console.error('Error generating flow diagram:', error);
+                document.getElementById('flowDiagram').innerHTML = '<p style="color:#999;">生成流程图失败</p>';
+            }
+        }
+        
+        function showResults() {
+            currentCallId = null;
+            document.getElementById('detailSection').classList.remove('active');
+            document.getElementById('resultsSection').style.display = 'block';
+            if (currentTab === 'recent') {
+                fetchRecentCalls();
+            } else if (currentTab === 'alerts') {
+                fetchAlerts();
+            }
+        }
+        
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            stopAlertRefresh();
+            
+            if (tab === 'recent') {
+                fetchRecentCalls();
+            } else if (tab === 'alerts') {
+                fetchAlerts();
+                startAlertRefresh();
+            }
+        }
+        
+        function startAlertRefresh() {
+            alertRefreshInterval = setInterval(() => {
+                if (currentTab === 'alerts' && !document.getElementById('detailSection').classList.contains('active')) {
+                    fetchAlerts();
+                }
+            }, 5000);
+        }
+        
+        function stopAlertRefresh() {
+            if (alertRefreshInterval) {
+                clearInterval(alertRefreshInterval);
+                alertRefreshInterval = null;
+            }
+        }
+        
+        function showLoading() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('callsList').style.display = 'none';
+            document.getElementById('alertsList').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'none';
+        }
+        
+        function showEmpty(text) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('callsList').style.display = 'none';
+            document.getElementById('alertsList').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'block';
+            document.getElementById('emptyText').textContent = text || '暂无数据';
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchCalls();
+            }
+        });
+        
+        fetchRecentCalls();
+        setInterval(() => {
+            if (currentTab === 'recent' && !document.getElementById('detailSection').classList.contains('active')) {
+                fetchRecentCalls();
+            }
+        }, 10000);
+    </script>
+</body>
+</html>

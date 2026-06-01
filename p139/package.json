@@ -1,0 +1,41 @@
+{
+  "name": "instrument-control-app",
+  "version": "1.0.0",
+  "description": "Electron app for instrument control via USBTMC/GPIB-USB with SCPI commands",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "keywords": [
+    "electron",
+    "instrument",
+    "scpi",
+    "usbtmc",
+    "gpib"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "sqlite3": "^5.1.6",
+    "python-shell": "^5.0.0"
+  },
+  "build": {
+    "appId": "com.instrument.control",
+    "mac": {
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "deb"
+    }
+  }
+}

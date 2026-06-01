@@ -1,0 +1,52 @@
+
+import { ObjectDictionaryItem, DataType } from '../types';
+
+export const objectDictionary: ObjectDictionaryItem[] = [
+  { index: 0x6000, subIndex: 0x01, name: 'Digital Input 1', dataType: DataType.BOOL, description: 'Digital input channel 1' },
+  { index: 0x6000, subIndex: 0x02, name: 'Digital Input 2', dataType: DataType.BOOL, description: 'Digital input channel 2' },
+  { index: 0x6000, subIndex: 0x03, name: 'Digital Input 3', dataType: DataType.BOOL, description: 'Digital input channel 3' },
+  { index: 0x6000, subIndex: 0x04, name: 'Digital Input 4', dataType: DataType.BOOL, description: 'Digital input channel 4' },
+  { index: 0x6000, subIndex: 0x05, name: 'Digital Input 5', dataType: DataType.BOOL, description: 'Digital input channel 5' },
+  { index: 0x6000, subIndex: 0x06, name: 'Digital Input 6', dataType: DataType.BOOL, description: 'Digital input channel 6' },
+  { index: 0x6000, subIndex: 0x07, name: 'Digital Input 7', dataType: DataType.BOOL, description: 'Digital input channel 7' },
+  { index: 0x6000, subIndex: 0x08, name: 'Digital Input 8', dataType: DataType.BOOL, description: 'Digital input channel 8' },
+  { index: 0x6010, subIndex: 0x01, name: 'Digital Output 1', dataType: DataType.BOOL, description: 'Digital output channel 1' },
+  { index: 0x6010, subIndex: 0x02, name: 'Digital Output 2', dataType: DataType.BOOL, description: 'Digital output channel 2' },
+  { index: 0x6010, subIndex: 0x03, name: 'Digital Output 3', dataType: DataType.BOOL, description: 'Digital output channel 3' },
+  { index: 0x6010, subIndex: 0x04, name: 'Digital Output 4', dataType: DataType.BOOL, description: 'Digital output channel 4' },
+  { index: 0x6010, subIndex: 0x05, name: 'Digital Output 5', dataType: DataType.BOOL, description: 'Digital output channel 5' },
+  { index: 0x6010, subIndex: 0x06, name: 'Digital Output 6', dataType: DataType.BOOL, description: 'Digital output channel 6' },
+  { index: 0x6010, subIndex: 0x07, name: 'Digital Output 7', dataType: DataType.BOOL, description: 'Digital output channel 7' },
+  { index: 0x6010, subIndex: 0x08, name: 'Digital Output 8', dataType: DataType.BOOL, description: 'Digital output channel 8' },
+  { index: 0x6020, subIndex: 0x01, name: 'Analog Input 1', dataType: DataType.INT16, description: 'Analog input channel 1 (16-bit)' },
+  { index: 0x6020, subIndex: 0x02, name: 'Analog Input 2', dataType: DataType.INT16, description: 'Analog input channel 2 (16-bit)' },
+  { index: 0x6020, subIndex: 0x03, name: 'Analog Input 3', dataType: DataType.INT16, description: 'Analog input channel 3 (16-bit)' },
+  { index: 0x6020, subIndex: 0x04, name: 'Analog Input 4', dataType: DataType.INT16, description: 'Analog input channel 4 (16-bit)' },
+  { index: 0x6030, subIndex: 0x01, name: 'Analog Output 1', dataType: DataType.INT16, description: 'Analog output channel 1 (16-bit)' },
+  { index: 0x6030, subIndex: 0x02, name: 'Analog Output 2', dataType: DataType.INT16, description: 'Analog output channel 2 (16-bit)' },
+  { index: 0x6040, subIndex: 0x00, name: 'Control Word', dataType: DataType.UINT16, description: 'CiA 402 Control Word' },
+  { index: 0x6041, subIndex: 0x00, name: 'Status Word', dataType: DataType.UINT16, description: 'CiA 402 Status Word' },
+  { index: 0x6060, subIndex: 0x00, name: 'Modes of Operation', dataType: DataType.INT8, description: 'CiA 402 Operation Mode' },
+  { index: 0x6061, subIndex: 0x00, name: 'Modes of Operation Display', dataType: DataType.INT8, description: 'CiA 402 Current Mode Display' },
+  { index: 0x6064, subIndex: 0x00, name: 'Position Actual Value', dataType: DataType.INT32, description: 'Current position value' },
+  { index: 0x6062, subIndex: 0x00, name: 'Position Demand Value', dataType: DataType.INT32, description: 'Position demand setpoint' },
+  { index: 0x607A, subIndex: 0x00, name: 'Target Position', dataType: DataType.INT32, description: 'Target position for profile position mode' },
+  { index: 0x60FF, subIndex: 0x00, name: 'Target Velocity', dataType: DataType.INT32, description: 'Target velocity for velocity mode' },
+  { index: 0x6081, subIndex: 0x00, name: 'Profile Velocity', dataType: DataType.UINT32, description: 'Profile velocity' },
+  { index: 0x6083, subIndex: 0x00, name: 'Profile Acceleration', dataType: DataType.UINT32, description: 'Profile acceleration' },
+  { index: 0x6084, subIndex: 0x00, name: 'Profile Deceleration', dataType: DataType.UINT32, description: 'Profile deceleration' },
+  { index: 0x60C5, subIndex: 0x00, name: 'Max Acceleration', dataType: DataType.UINT32, description: 'Maximum allowed acceleration' },
+  { index: 0x60C6, subIndex: 0x00, name: 'Max Deceleration', dataType: DataType.UINT32, description: 'Maximum allowed deceleration' },
+  { index: 0x6071, subIndex: 0x00, name: 'Target Torque', dataType: DataType.INT16, description: 'Target torque for torque mode' },
+  { index: 0x6077, subIndex: 0x00, name: 'Torque Actual Value', dataType: DataType.INT16, description: 'Actual torque value' },
+  { index: 0x606C, subIndex: 0x00, name: 'Velocity Actual Value', dataType: DataType.INT32, description: 'Actual velocity value' },
+  { index: 0x1000, subIndex: 0x00, name: 'Device Type', dataType: DataType.UINT32, description: 'Device type identifier' },
+  { index: 0x1001, subIndex: 0x00, name: 'Error Register', dataType: DataType.UINT8, description: 'Error register' },
+  { index: 0x1008, subIndex: 0x00, name: 'Manufacturer Device Name', dataType: DataType.STRING, description: 'Manufacturer device name' },
+  { index: 0x1009, subIndex: 0x00, name: 'Manufacturer Hardware Version', dataType: DataType.STRING, description: 'Hardware version' },
+  { index: 0x100A, subIndex: 0x00, name: 'Manufacturer Software Version', dataType: DataType.STRING, description: 'Software version' },
+];
+
+export const objectDictionaryByIndex: Map<string, ObjectDictionaryItem> = new Map(
+  objectDictionary.map((item) => [`${item.index.toString(16).padStart(4, '0')}:${item.subIndex.toString(16).padStart(2, '0')}`, item])
+);

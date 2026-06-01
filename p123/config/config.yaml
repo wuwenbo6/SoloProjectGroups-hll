@@ -1,0 +1,27 @@
+server:
+  http_port: 8080
+  websocket_path: "/websockify"
+
+vnc:
+  host: "localhost"
+  port: 5900
+  password: ""
+  max_viewers: 10
+  encoding: "tight"
+  compression_level: 6
+  quality_level: 8
+
+database:
+  path: "./data/vnc.db"
+
+recording:
+  enabled: true
+  output_dir: "./recordings"
+  fps: 30
+  quality: "high"
+  export_mp4: true
+  ffmpeg_path: "ffmpeg"
+
+session:
+  timeout: 3600
+  enable_suspend: true

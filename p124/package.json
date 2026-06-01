@@ -1,0 +1,29 @@
+{
+  "name": "soil-water-retention-analyzer",
+  "version": "1.0.0",
+  "description": "土壤水势测试仪 - 串口采集、Van Genuchten模型拟合、曲线展示与报告导出",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "postinstall": "node -e \"console.log('Dependencies installed successfully')\""
+  },
+  "keywords": [
+    "soil",
+    "water",
+    "retention",
+    "van-genuchten",
+    "electron",
+    "serial-port"
+  ],
+  "author": "Soil Science Lab",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.0.0"
+  },
+  "dependencies": {
+    "serialport": "^12.0.0",
+    "sql.js": "^1.10.3",
+    "mathjs": "^14.0.0"
+  }
+}

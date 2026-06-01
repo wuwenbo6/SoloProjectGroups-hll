@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instrument Control Studio</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <h1>🔬 Instrument Control Studio</h1>
+      <div class="header-actions">
+        <select id="deviceSelector" class="device-select">
+          <option value="">Select device...</option>
+        </select>
+        <button id="refreshDevices" class="btn btn-secondary">🔄 Refresh</button>
+        <button id="connectBtn" class="btn btn-primary">Connect</button>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <aside class="sidebar left-sidebar">
+        <div class="sidebar-section">
+          <h3>📋 Command Library</h3>
+          <div class="command-list" id="commandList"></div>
+        </div>
+      </aside>
+
+      <main class="center-panel">
+        <div class="panel-tabs">
+          <button class="tab-btn active" data-tab="editor">📝 Editor</button>
+          <button class="tab-btn" data-tab="dashboard">📊 Dashboard</button>
+          <button class="tab-btn" data-tab="testruns">📋 Test Runs</button>
+        </div>
+        
+        <div id="editorTab" class="tab-content active">
+          <div class="editor-container">
+            <div class="editor-toolbar">
+              <select id="languageSelect" class="language-select">
+                <option value="javascript">JavaScript</option>
+                <option value="python">Python</option>
+              </select>
+              <div class="spacer"></div>
+              <input type="text" id="testRunName" placeholder="Test name (for recording)" class="test-name-input">
+              <button id="runBtn" class="btn btn-success">▶ Run</button>
+              <button id="runWithTestBtn" class="btn btn-primary">▶ Run & Record</button>
+              <button id="stopBtn" class="btn btn-danger" disabled>⏹ Stop</button>
+              <button id="saveSeqBtn" class="btn btn-secondary">💾 Save</button>
+            </div>
+            <div id="editor" class="code-editor"></div>
+          </div>
+        </div>
+
+        <div id="dashboardTab" class="tab-content">
+          <div class="dashboard">
+            <div class="dashboard-header">
+              <h3>📊 Real-time Dashboard</h3>
+              <div class="dashboard-controls">
+                <button id="refreshDashboard" class="btn btn-small btn-secondary">🔄 Refresh</button>
+              </div>
+            </div>
+            <div class="gauges-grid" id="gaugesGrid"></div>
+            <div class="chart-container">
+              <h4>📈 Measurement History</h4>
+              <canvas id="historyChart" width="800" height="200"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div id="testRunsTab" class="tab-content">
+          <div class="test-runs-container">
+            <div class="test-runs-header">
+              <h3>📋 Test History</h3>
+              <button id="refreshTestRuns" class="btn btn-small btn-secondary">🔄 Refresh</button>
+            </div>
+            <div class="test-runs-list" id="testRunsList"></div>
+          </div>
+        </div>
+
+        <div class="output-container">
+          <div class="output-header">
+            <h3>📤 Output Console</h3>
+            <button id="clearOutput" class="btn btn-small">Clear</button>
+          </div>
+          <div id="output" class="output-panel"></div>
+        </div>
+      </main>
+
+      <aside class="sidebar right-sidebar">
+        <div class="sidebar-section">
+          <h3>🧪 Test Sequences</h3>
+          <div class="sequence-list" id="sequenceList"></div>
+          <div style="display: flex; gap: 6px; margin-top: 8px;">
+            <button id="newSeqBtn" class="btn btn-small btn-primary" style="flex: 1;">+ New</button>
+            <button id="batchTemplateBtn" class="btn btn-small btn-secondary" style="flex: 1;">⚡ Multi-Device</button>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>⌨️ Quick Command</h3>
+          <div class="quick-command">
+            <input type="text" id="quickCommand" placeholder="Enter SCPI command..." class="quick-input">
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <input type="number" id="quickTimeout" value="5000" min="100" step="100" class="quick-input timeout-input" title="Timeout (ms)">
+              <span style="font-size: 11px; color: #7f849c;">ms</span>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button id="sendBtn" class="btn btn-small" style="flex: 1;">Send</button>
+              <button id="queryBtn" class="btn btn-small btn-primary" style="flex: 1;">Query</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div id="saveModal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Save Test Sequence</h3>
+      <input type="text" id="seqName" placeholder="Sequence name" class="modal-input">
+      <input type="text" id="seqDesc" placeholder="Description (optional)" class="modal-input">
+      <div class="modal-actions">
+        <button id="cancelSave" class="btn btn-secondary">Cancel</button>
+        <button id="confirmSave" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

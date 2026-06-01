@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IFC 模型查看器 - 碰撞检测</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <h1>IFC 查看器</h1>
+            </div>
+
+            <div class="panel">
+                <h2>上传模型</h2>
+                <div class="upload-area">
+                    <input type="file" id="fileInput" accept=".ifc,.ifczip">
+                    <label for="fileInput" class="btn-upload">选择 IFC 文件</label>
+                    <span id="fileName">未选择文件</span>
+                </div>
+                <input type="text" id="modelName" placeholder="模型名称（可选）">
+                <div class="quality-group">
+                    <label>解析精度:</label>
+                    <select id="qualitySelect">
+                        <option value="low">低（快速）</option>
+                        <option value="medium">中</option>
+                        <option value="high" selected>高（默认）</option>
+                        <option value="ultra">超高（慢）</option>
+                    </select>
+                    <p class="help-text">更高精度保留更多曲面特征（如圆弧墙）</p>
+                </div>
+                <button id="uploadBtn" class="btn-primary">上传并解析</button>
+            </div>
+
+            <div class="panel">
+                <h2>模型列表</h2>
+                <div id="modelList" class="model-list"></div>
+            </div>
+
+            <div class="panel" id="modelPanel" style="display:none;">
+                <h2>模型操作</h2>
+                <div class="model-info" id="modelInfo"></div>
+                <div class="action-buttons">
+                    <button id="mergeBtn" class="btn-secondary">合并同类型构件</button>
+                    <div class="simplify-group">
+                        <label>简化比例: <span id="ratioValue">0.5</span></label>
+                        <input type="range" id="simplifyRatio" min="0.1" max="0.9" step="0.05" value="0.5">
+                        <button id="simplifyBtn" class="btn-secondary">简化几何</button>
+                    </div>
+                    <div class="collision-options">
+                        <label>碰撞检测模式:</label>
+                        <select id="collisionMode">
+                            <option value="aabb">仅 AABB</option>
+                            <option value="obb">AABB + OBB</option>
+                            <option value="precise" selected>精确（三角面相交）</option>
+                        </select>
+                        <p class="help-text">精确模式可消除相邻构件误报</p>
+                        <div class="tolerance-group">
+                            <label>AABB 容差: <span id="aabbTolValue">0.001</span>m</label>
+                            <input type="range" id="aabbTolerance" min="0" max="0.01" step="0.001" value="0.001">
+                        </div>
+                    </div>
+                    <button id="collisionBtn" class="btn-warning">检测碰撞</button>
+                    <button id="deleteBtn" class="btn-danger">删除模型</button>
+                </div>
+            </div>
+
+            <div class="panel" id="collisionPanel" style="display:none;">
+                <h2>碰撞结果 <span id="collisionStats" class="stats"></span></h2>
+                <div id="collisionList" class="collision-list"></div>
+                <button id="exportBcfBtn" class="btn-secondary" style="margin-top:10px;">导出 BCF 报告</button>
+            </div>
+
+            <div class="panel" id="pipeOptPanel" style="display:none;">
+                <h2>管线综合优化</h2>
+                <div class="help-text">自动检测管线碰撞并生成避让方案</div>
+                <div class="tolerance-group">
+                    <label>净距要求: <span id="clearanceValue">0.1</span>m</label>
+                    <input type="range" id="clearanceSlider" min="0.05" max="0.5" step="0.01" value="0.1">
+                </div>
+                <button id="optimizePipesBtn" class="btn-primary">自动避让优化</button>
+                <div id="pipeOptResults" class="optimize-results"></div>
+            </div>
+
+            <div class="panel" id="sunlightPanel" style="display:none;">
+                <h2>日照分析</h2>
+                <div class="sunlight-options">
+                    <label>地理位置:</label>
+                    <select id="citySelect">
+                        <option value="31.23,121.47">上海</option>
+                        <option value="39.90,116.40">北京</option>
+                        <option value="23.13,113.26">广州</option>
+                        <option value="22.54,114.06">深圳</option>
+                        <option value="30.57,104.06">成都</option>
+                        <option value="custom">自定义</option>
+                    </select>
+                    <div id="customCoords" style="display:none;">
+                        <input type="number" id="latitude" step="0.01" placeholder="纬度" value="31.23" style="width:48%;">
+                        <input type="number" id="longitude" step="0.01" placeholder="经度" value="121.47" style="width:48%;">
+                    </div>
+                </div>
+                <div class="sunlight-options">
+                    <label>分析日期:</label>
+                    <select id="daySelect">
+                        <option value="80">春分 (3/21)</option>
+                        <option value="172" selected>夏至 (6/21)</option>
+                        <option value="266">秋分 (9/23)</option>
+                        <option value="355">冬至 (12/21)</option>
+                    </select>
+                </div>
+                <div class="sunlight-options">
+                    <label>时段: <span id="timeRange">6:00 - 18:00</span></label>
+                    <div style="display:flex;gap:8px;">
+                        <input type="number" id="startHour" min="0" max="24" value="6" style="width:48%;">
+                        <input type="number" id="endHour" min="0" max="24" value="18" style="width:48%;">
+                    </div>
+                </div>
+                <button id="analyzeSunlightBtn" class="btn-primary">开始日照分析</button>
+                <div id="sunlightResults" class="sunlight-results"></div>
+                <button id="showSunPathBtn" class="btn-secondary" style="display:none; margin-top:10px;">显示太阳轨迹</button>
+                <button id="clearSunlightBtn" class="btn-secondary" style="display:none; margin-top:5px;">清除日照分析</button>
+            </div>
+
+            <div class="panel">
+                <h2>视图控制</h2>
+                <div class="view-controls">
+                    <button id="resetView" class="btn-secondary">重置视角</button>
+                    <button id="toggleWireframe" class="btn-secondary">切换线框</button>
+                    <button id="toggleAxes" class="btn-secondary">切换坐标轴</button>
+                </div>
+            </div>
+        </aside>
+
+        <main id="viewer">
+            <div id="canvas-container"></div>
+            <div id="info-overlay">
+                <span id="infoText">请上传 IFC 文件开始</span>
+            </div>
+            <div id="loading-overlay" class="hidden">
+                <div class="spinner"></div>
+                <span id="loadingText">加载中...</span>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="js/viewer.js"></script>
+    <script src="js/collision.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

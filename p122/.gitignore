@@ -1,0 +1,13 @@
+.flaskenv
+__pycache__/
+*.pyc
+*.db
+data/
+uploads/
+*.pcd
+*.ply
+*.las
+*.laz
+node_modules/
+.venv/
+venv/

@@ -1,0 +1,14 @@
+{
+  "name": "piano-trainer",
+  "version": "1.0.0",
+  "description": "Web MIDI Piano Trainer with real-time feedback and practice tracking",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node server/server.js",
+    "install:all": "npm install && cd server && npm install"
+  },
+  "keywords": ["midi", "piano", "music", "training"],
+  "author": "",
+  "license": "MIT"
+}

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CEC Monitor - HDMI CEC消息监控工具</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="header-left">
+        <h1>CEC Monitor</h1>
+        <span class="subtitle">HDMI-CEC消息监控与分析工具</span>
+      </div>
+      <div class="header-right">
+        <div id="connectionStatus" class="status-badge disconnected">
+          <span class="status-dot"></span>
+          <span class="status-text">未连接</span>
+        </div>
+        <button id="connectBtn" class="btn btn-primary">连接适配器</button>
+        <button id="disconnectBtn" class="btn btn-secondary" disabled>断开连接</button>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <h3>设备列表</h3>
+          <div id="deviceList" class="device-list"></div>
+        </div>
+        <div class="sidebar-section">
+          <h3>消息分类</h3>
+          <div id="categoryFilter" class="category-filter">
+            <label class="filter-item">
+              <input type="checkbox" value="power" checked> 电源控制
+            </label>
+            <label class="filter-item">
+              <input type="checkbox" value="playback" checked> 播放控制
+            </label>
+            <label class="filter-item">
+              <input type="checkbox" value="remote" checked> 遥控器
+            </label>
+            <label class="filter-item">
+              <input type="checkbox" value="audio" checked> 音频
+            </label>
+            <label class="filter-item">
+              <input type="checkbox" value="status" checked> 状态
+            </label>
+            <label class="filter-item">
+              <input type="checkbox" value="info" checked> 信息
+            </label>
+            <label class="filter-item">
+              <input type="checkbox" value="other" checked> 其他
+            </label>
+          </div>
+        </div>
+      </aside>
+
+      <section class="content-area">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>消息时序图</h2>
+            <div class="panel-actions">
+              <button id="clearTimelineBtn" class="btn btn-small">清空</button>
+              <button id="autoScrollBtn" class="btn btn-small active">自动滚动</button>
+            </div>
+          </div>
+          <div id="timelineContainer" class="timeline-container">
+            <svg id="timelineSvg" class="timeline-svg"></svg>
+          </div>
+        </div>
+
+        <div class="panel stats-panel">
+          <div class="panel-header">
+            <h2>运行统计</h2>
+            <div class="panel-actions">
+              <button id="resetStatsBtn" class="btn btn-small">重置统计</button>
+            </div>
+          </div>
+          <div id="statsDisplay" class="stats-display">
+            <span class="stat-item"><span class="stat-label">消息总数:</span> <span class="stat-value">0</span></span>
+            <span class="stat-item"><span class="stat-label">已过滤重复:</span> <span class="stat-value">0</span></span>
+            <span class="stat-item"><span class="stat-label">已发送:</span> <span class="stat-value">0</span></span>
+            <span class="stat-item"><span class="stat-label">仲裁重试:</span> <span class="stat-value">0</span></span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>EDID解析</h2>
+            <div class="panel-actions">
+              <button id="detectEDIDBtn" class="btn btn-small">自动检测</button>
+            </div>
+          </div>
+          <div class="edid-section">
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>EDID数据 (十六进制)</label>
+                <textarea id="edidInput" rows="3" placeholder="粘贴EDID十六进制数据..."></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button id="parseEDIDBtn" class="btn btn-primary">解析EDID</button>
+            </div>
+            <div id="edidInfo" class="edid-info hidden">
+              <div class="info-grid">
+                <div class="info-item"><span class="info-label">显示器名称:</span><span class="info-value" id="edidName">-</span></div>
+                <div class="info-item"><span class="info-label">厂商ID:</span><span class="info-value" id="edidMfr">-</span></div>
+                <div class="info-item"><span class="info-label">产品ID:</span><span class="info-value" id="edidProd">-</span></div>
+                <div class="info-item"><span class="info-label">制造年份:</span><span class="info-value" id="edidYear">-</span></div>
+                <div class="info-item"><span class="info-label">最大尺寸:</span><span class="info-value" id="edidSize">-</span></div>
+                <div class="info-item"><span class="info-label">Gamma:</span><span class="info-value" id="edidGamma">-</span></div>
+                <div class="info-item"><span class="info-label">视频输入:</span><span class="info-value" id="edidVideoInput">-</span></div>
+                <div class="info-item"><span class="info-label">EDID版本:</span><span class="info-value" id="edidVer">-</span></div>
+              </div>
+              <div class="info-section">
+                <div class="info-title">支持分辨率:</div>
+                <div id="edidResolutions" class="resolutions"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>信号源自动切换规则</h2>
+            <div class="panel-actions">
+              <button id="addRuleBtn" class="btn btn-small">添加规则</button>
+            </div>
+          </div>
+          <div id="rulesList" class="rules-list"></div>
+          <div id="ruleEditor" class="rule-editor hidden">
+            <div class="form-row">
+              <div class="form-group">
+                <label>规则名称</label>
+                <input type="text" id="ruleName" placeholder="例如: 游戏机优先">
+              </div>
+              <div class="form-group">
+                <label>优先级</label>
+                <input type="number" id="rulePriority" value="1" min="1" max="10">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>信号源设备</label>
+                <select id="ruleSource"></select>
+              </div>
+              <div class="form-group">
+                <label>目标设备</label>
+                <select id="ruleTarget"></select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button id="saveRuleBtn" class="btn btn-primary">保存规则</button>
+              <button id="cancelRuleBtn" class="btn btn-secondary">取消</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>导出消息记录</h2>
+          </div>
+          <div class="export-section">
+            <p class="export-info">当前缓存 <span id="exportCount">0</span> 条消息</p>
+            <div class="form-actions">
+              <button id="exportJsonBtn" class="btn btn-primary">导出 JSON</button>
+              <button id="exportCsvBtn" class="btn btn-secondary">导出 CSV</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>发送自定义命令</h2>
+          </div>
+          <div class="command-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label>发送设备 (Initiator)</label>
+                <select id="initiatorSelect"></select>
+              </div>
+              <div class="form-group">
+                <label>目标设备 (Destination)</label>
+                <select id="destinationSelect"></select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>操作码 (Opcode)</label>
+                <select id="opcodeSelect"></select>
+              </div>
+              <div class="form-group">
+                <label>参数 (十六进制，空格分隔)</label>
+                <input type="text" id="paramsInput" placeholder="例如: 00 15 82">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>原始消息 (十六进制)</label>
+                <input type="text" id="rawMessageInput" placeholder="例如: 4F82">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button id="sendRawBtn" class="btn btn-primary">发送原始消息</button>
+              <button id="sendCustomBtn" class="btn btn-secondary">发送自定义命令</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>快速命令</h2>
+          </div>
+          <div class="quick-commands">
+            <button class="quick-btn" data-opcode="04" data-name="电源开机 (Image View On)">
+              <span class="quick-btn-icon">📺</span>
+              <span class="quick-btn-label">电源开机</span>
+            </button>
+            <button class="quick-btn" data-opcode="36" data-name="电源待机 (Standby)">
+              <span class="quick-btn-icon">⏸️</span>
+              <span class="quick-btn-label">电源待机</span>
+            </button>
+            <button class="quick-btn" data-opcode="6B" data-name="一键播放 (Play)">
+              <span class="quick-btn-icon">▶️</span>
+              <span class="quick-btn-label">一键播放</span>
+            </button>
+            <button class="quick-btn" data-opcode="41" data-params="30" data-name="电源按键 (Power)">
+              <span class="quick-btn-icon">🔘</span>
+              <span class="quick-btn-label">电源按键</span>
+            </button>
+            <button class="quick-btn" data-opcode="41" data-params="20" data-name="音量+">
+              <span class="quick-btn-icon">🔊</span>
+              <span class="quick-btn-label">音量+</span>
+            </button>
+            <button class="quick-btn" data-opcode="41" data-params="21" data-name="音量-">
+              <span class="quick-btn-icon">🔉</span>
+              <span class="quick-btn-label">音量-</span>
+            </button>
+            <button class="quick-btn" data-opcode="41" data-params="22" data-name="静音">
+              <span class="quick-btn-icon">🔇</span>
+              <span class="quick-btn-label">静音</span>
+            </button>
+            <button class="quick-btn" data-opcode="82" data-name="激活源 (Active Source)">
+              <span class="quick-btn-icon">📡</span>
+              <span class="quick-btn-label">激活源</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>消息日志</h2>
+            <div class="panel-actions">
+              <button id="clearLogBtn" class="btn btn-small">清空日志</button>
+            </div>
+          </div>
+          <div id="messageLog" class="message-log"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

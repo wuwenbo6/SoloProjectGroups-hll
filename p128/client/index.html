@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>钢琴练习助手 - Piano Trainer</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>🎹 钢琴练习助手</h1>
+            <div class="status-bar">
+                <div id="midi-status" class="status-item status-disconnected">
+                    <span class="status-dot"></span>
+                    <span>MIDI: 未连接</span>
+                </div>
+                <div id="sustain-status" class="status-item status-sustain-off">
+                    <span class="status-dot"></span>
+                    <span>延音踏板: 关</span>
+                </div>
+                <div id="device-selector" class="device-selector hidden">
+                    <label for="midi-devices">选择设备:</label>
+                    <select id="midi-devices"></select>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="control-panel">
+                <div class="sheet-selector">
+                    <label for="sheet-music">选择曲谱:</label>
+                    <select id="sheet-music">
+                        <option value="">-- 请选择曲谱 --</option>
+                    </select>
+                </div>
+                <div class="practice-controls">
+                    <button id="start-btn" class="btn btn-primary">开始练习</button>
+                    <button id="stop-btn" class="btn btn-secondary" disabled>停止</button>
+                    <button id="camera-btn" class="btn btn-camera">📷 手型检测</button>
+                    <button id="export-btn" class="btn btn-export">📄 导出报告</button>
+                    <button id="history-btn" class="btn btn-info">练习历史</button>
+                </div>
+                <div class="practice-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">正确率:</span>
+                        <span id="accuracy" class="stat-value">0%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">已弹音符:</span>
+                        <span id="notes-played" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">当前小节:</span>
+                        <span id="current-measure" class="stat-value">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sheet-display">
+                <h3>当前曲谱</h3>
+                <div id="sheet-info" class="sheet-info">
+                    <p class="sheet-title">请选择曲谱开始练习</p>
+                </div>
+                <div class="progress-section">
+                    <div class="progress-label">
+                        <span>练习进度</span>
+                        <span id="progress-text">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                </div>
+                <div id="notes-preview" class="notes-preview">
+                    <div class="expected-notes">
+                        <h4>期望音符</h4>
+                        <div id="expected-notes-list" class="notes-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="main-panel">
+                <div class="left-panel">
+                    <div class="piano-section">
+                        <div class="piano-container">
+                            <div id="piano-keyboard" class="piano-keyboard"></div>
+                        </div>
+                        <div class="finger-suggestions">
+                            <h4>💡 指法建议</h4>
+                            <div id="finger-tips" class="finger-tips">
+                                <p class="tip-placeholder">选择曲谱并开始练习后显示指法建议</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="right-panel">
+                    <div id="camera-panel" class="camera-panel hidden">
+                        <h4>📷 手型检测</h4>
+                        <div class="camera-container">
+                            <video id="camera-feed" autoplay playsinline></video>
+                            <canvas id="hand-overlay" class="hand-overlay"></canvas>
+                        </div>
+                        <div class="hand-stats">
+                            <div class="hand-stat-item">
+                                <span class="stat-label">左手姿态:</span>
+                                <span id="left-hand-status" class="stat-value">--</span>
+                            </div>
+                            <div class="hand-stat-item">
+                                <span class="stat-label">右手姿态:</span>
+                                <span id="right-hand-status" class="stat-value">--</span>
+                            </div>
+                            <div class="hand-stat-item">
+                                <span class="stat-label">手腕高度:</span>
+                                <span id="wrist-height" class="stat-value">--</span>
+                            </div>
+                        </div>
+                        <div id="hand-tips" class="hand-tips">
+                            <p class="tip-placeholder">启动摄像头后显示手型建议</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feedback-panel">
+                <h4>📊 实时反馈</h4>
+                <div id="feedback-log" class="feedback-log">
+                    <p class="log-placeholder">开始练习后显示弹奏反馈...</p>
+                </div>
+            </div>
+        </main>
+
+        <div id="history-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>📚 练习历史记录</h2>
+                    <button id="close-modal" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="history-list" class="history-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="report-modal" class="modal hidden">
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h2>📄 练习报告</h2>
+                    <button id="close-report-modal" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="report-content" class="report-content">
+                        <div class="report-header">
+                            <h1>🎹 钢琴练习报告</h1>
+                            <p id="report-date" class="report-date"></p>
+                        </div>
+                        <div class="report-summary">
+                            <div class="report-stat">
+                                <span class="report-stat-value" id="report-accuracy">0%</span>
+                                <span class="report-stat-label">正确率</span>
+                            </div>
+                            <div class="report-stat">
+                                <span class="report-stat-value" id="report-notes">0</span>
+                                <span class="report-stat-label">弹奏音符</span>
+                            </div>
+                            <div class="report-stat">
+                                <span class="report-stat-value" id="report-duration">0:00</span>
+                                <span class="report-stat-label">练习时长</span>
+                            </div>
+                            <div class="report-stat">
+                                <span class="report-stat-value" id="report-speed">0</span>
+                                <span class="report-stat-label">平均速度(Note/min)</span>
+                            </div>
+                        </div>
+                        <div class="report-section">
+                            <h3>📊 曲谱信息</h3>
+                            <div id="report-sheet-info" class="report-info"></div>
+                        </div>
+                        <div class="report-section">
+                            <h3>📈 错误分析</h3>
+                            <div id="report-mistakes" class="report-mistakes"></div>
+                        </div>
+                        <div class="report-section">
+                            <h3>💡 改进建议</h3>
+                            <ul id="report-suggestions" class="report-suggestions"></ul>
+                        </div>
+                    </div>
+                    <div class="report-actions">
+                        <button id="export-pdf-btn" class="btn btn-primary">📥 导出 PDF</button>
+                        <button id="export-image-btn" class="btn btn-secondary">🖼️ 导出图片</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/midi.js"></script>
+    <script src="js/piano.js"></script>
+    <script src="js/sheetMusic.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

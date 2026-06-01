@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NDT 点云配准系统 | LiDAR Point Cloud Registration</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app-container">
+    <header class="app-header">
+        <h1>NDT 点云配准系统</h1>
+        <p class="subtitle">多站 LiDAR 点云自动配准 · 正态分布变换 · 重叠区域热力图</p>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <div class="panel">
+                <h2>配准控制</h2>
+                <div class="control-group">
+                    <label>上传点云文件</label>
+                    <input type="file" id="fileInput" multiple accept=".pcd,.ply,.las,.laz,.xyz">
+                    <div id="fileList" class="file-list"></div>
+                </div>
+
+                <div class="control-group">
+                    <label>任务名称</label>
+                    <input type="text" id="taskName" placeholder="例如: Building_Scan_01">
+                </div>
+
+                <div class="control-group">
+                    <label>体素大小 (Voxel Size)</label>
+                    <input type="number" id="voxelSize" value="0.1" step="0.01" min="0.001">
+                </div>
+
+                <div class="control-group">
+                    <label>距离阈值</label>
+                    <input type="number" id="distanceThreshold" value="0.5" step="0.01" min="0.001">
+                </div>
+
+                <div class="control-group">
+                    <label>最大迭代次数</label>
+                    <input type="number" id="maxIterations" value="30" step="5" min="1">
+                </div>
+
+                <div class="control-group">
+                    <label>收敛容差</label>
+                    <input type="number" id="tolerance" value="0.000001" step="0.000001" min="0">
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="useNDT" checked> 使用 NDT 精配准
+                    </label>
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="useLoopClosure" checked> 启用闭环检测
+                    </label>
+                </div>
+
+                <div class="control-group">
+                    <label>闭环阈值</label>
+                    <input type="number" id="loopClosureThreshold" value="0.3" step="0.05" min="0.05">
+                </div>
+
+                <button id="registerBtn" class="btn-primary">开始配准</button>
+                <button id="demoBtn" class="btn-secondary">运行演示</button>
+                <button id="demoLoopBtn" class="btn-secondary">闭环演示</button>
+            </div>
+
+            <div class="panel">
+                <h2>历史任务</h2>
+                <div id="taskList" class="task-list"></div>
+                <button id="refreshTasksBtn" class="btn-link">刷新列表</button>
+            </div>
+
+            <div class="panel" id="resultPanel" style="display:none;">
+                <h2>配准结果</h2>
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <span class="metric-label">Fitness</span>
+                        <span class="metric-value" id="fitnessValue">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">RMSE</span>
+                        <span class="metric-value" id="rmseValue">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">对应点</span>
+                        <span class="metric-value" id="corrValue">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">源点数</span>
+                        <span class="metric-value" id="sourcePoints">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">目标点数</span>
+                        <span class="metric-value" id="targetPoints">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">合并点数</span>
+                        <span class="metric-value" id="mergedPoints">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">配准前重叠</span>
+                        <span class="metric-value" id="overlapBefore">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">配准后重叠</span>
+                        <span class="metric-value" id="overlapAfter">-</span>
+                    </div>
+                </div>
+
+                <div id="warningsPanel" class="warnings-panel" style="display:none;">
+                    <h3>⚠️ 配准警告</h3>
+                    <ul id="warningsList"></ul>
+                </div>
+
+                <div id="registrationHistory" style="display:none;">
+                    <h3>配准过程</h3>
+                    <div id="historyList" class="history-list"></div>
+                </div>
+
+                <div id="loopClosurePanel" style="display:none;">
+                    <h3>🔗 闭环检测</h3>
+                    <div id="loopClosureInfo" class="loop-closure-info"></div>
+                </div>
+
+                <div id="qualityPanel" style="display:none;">
+                    <h3>📊 配准质量评估</h3>
+                    <div id="qualityInfo" class="quality-info"></div>
+                </div>
+
+                <div class="export-panel">
+                    <h3>💾 导出点云</h3>
+                    <div class="export-controls">
+                        <select id="exportFormat">
+                            <option value="ply">PLY 格式</option>
+                            <option value="pcd">PCD 格式</option>
+                        </select>
+                        <label>
+                            <input type="checkbox" id="exportAscii"> ASCII模式
+                        </label>
+                        <label>
+                            <input type="checkbox" id="exportDownsample"> 下采样
+                        </label>
+                        <button id="exportBtn" class="btn-secondary" disabled>导出</button>
+                    </div>
+                    <div id="exportStatus" class="export-status"></div>
+                </div>
+
+                <div class="transformation-display">
+                    <h3>变换矩阵</h3>
+                    <div id="transformationMatrix" class="matrix-display">-</div>
+                </div>
+            </div>
+
+            <div class="panel" id="heatmapPanel" style="display:none;">
+                <h2>重叠热力图</h2>
+                <canvas id="heatmapCanvas" width="300" height="300"></canvas>
+                <div class="heatmap-legend">
+                    <span>低重叠</span>
+                    <div class="legend-bar"></div>
+                    <span>高重叠</span>
+                </div>
+                <div class="heatmap-info">
+                    <span>最小重叠: <b id="minOverlap">-</b></span>
+                    <span>最大重叠: <b id="maxOverlap">-</b></span>
+                </div>
+            </div>
+        </aside>
+
+        <main class="viewer-container">
+            <div class="viewer-toolbar">
+                <button class="view-btn" data-view="source" id="viewSource">仅源点云</button>
+                <button class="view-btn" data-view="target" id="viewTarget">仅目标点云</button>
+                <button class="view-btn active" data-view="both" id="viewBoth">双点云</button>
+                <button class="view-btn" data-view="merged" id="viewMerged">合并结果</button>
+                <button class="view-btn" data-view="heatmap" id="viewHeatmap">热力图叠加</button>
+                <div class="toolbar-spacer"></div>
+                <button id="resetViewBtn" class="btn-small">重置视角</button>
+                <button id="toggleHeatmapOverlay" class="btn-small">切换热力图</button>
+            </div>
+            <div id="threeContainer" class="three-canvas"></div>
+            <div id="loadingOverlay" class="loading-overlay" style="display:none;">
+                <div class="loading-content">
+                    <div class="spinner"></div>
+                    <p id="loadingText">正在加载...</p>
+                </div>
+            </div>
+            <div id="statusBar" class="status-bar">
+                <span id="statusText">就绪</span>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+<script src="js/viewer.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VNC 多用户共享系统</title>
+    <script src="/novnc/core/rfb.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .header {
+            background: #16213e;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #0f3460;
+        }
+        .header h1 {
+            font-size: 18px;
+            color: #e94560;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #e94560;
+            color: white;
+        }
+        .btn-primary:hover { background: #c73650; }
+        .btn-secondary {
+            background: #0f3460;
+            color: white;
+        }
+        .btn-secondary:hover { background: #1a4a7a; }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-viewer { background: #2d3436; color: #74b9ff; }
+        .status-controller { background: #00b894; color: white; }
+        .vnc-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #0a0a15;
+            padding: 20px;
+        }
+        #screen {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .viewer-panel {
+            background: #16213e;
+            padding: 12px 20px;
+            border-top: 2px solid #0f3460;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .viewer-list {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .viewer-item {
+            background: #0f3460;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        .viewer-item.controller {
+            background: #e94560;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: #16213e;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: #e94560;
+        }
+        .modal-content input {
+            padding: 12px;
+            border: 2px solid #0f3460;
+            border-radius: 8px;
+            background: #1a1a2e;
+            color: white;
+            margin-bottom: 15px;
+            width: 250px;
+        }
+        .modal-content input:focus {
+            outline: none;
+            border-color: #e94560;
+        }
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background: #16213e;
+            min-width: 200px;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+        .dropdown.active .dropdown-content {
+            display: block;
+        }
+        .quality-item {
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+        }
+        .quality-item:hover {
+            background: #0f3460;
+        }
+        .quality-item.active {
+            background: #e94560;
+        }
+        .quality-slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+        .slider-container {
+            padding: 10px 0;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #0f3460;
+        }
+        .tab {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-size: 13px;
+        }
+        .tab.active {
+            border-bottom-color: #e94560;
+            color: #e94560;
+        }
+        .recording-item {
+            padding: 12px;
+            background: #0f3460;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .recording-info {
+            flex: 1;
+        }
+        .recording-info h4 {
+            color: #e94560;
+            margin-bottom: 4px;
+        }
+        .recording-info small {
+            color: #888;
+        }
+        .action-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>VNC 多用户共享系统</h1>
+        <div class="controls">
+            <span id="statusBadge" class="status-badge status-viewer">观看者</span>
+            <button id="requestControl" class="btn btn-primary" disabled>请求控制</button>
+            <button id="releaseControl" class="btn btn-secondary" style="display:none;">释放控制</button>
+            <button id="suspendBtn" class="btn btn-secondary">挂起</button>
+            <div class="dropdown" id="qualityDropdown">
+                <button class="btn btn-secondary" id="qualityBtn">画质</button>
+                <div class="dropdown-content">
+                    <div class="tabs">
+                        <div class="tab active" data-tab="presets">预设</div>
+                        <div class="tab" data-tab="custom">自定义</div>
+                    </div>
+                    <div id="presetsTab">
+                    </div>
+                    <div id="customTab" style="display:none;">
+                        <div class="slider-container">
+                            <div class="slider-label">
+                                <span>压缩级别</span>
+                                <span id="compressionValue">6</span>
+                            </div>
+                            <input type="range" id="compressionSlider" class="quality-slider" min="0" max="9" value="6">
+                        </div>
+                        <div class="slider-container">
+                            <div class="slider-label">
+                                <span>质量级别</span>
+                                <span id="qualityValue">8</span>
+                            </div>
+                            <input type="range" id="qualitySlider" class="quality-slider" min="0" max="9" value="8">
+                        </div>
+                        <button class="btn btn-primary" style="width:100%;" id="applyCustomQuality">应用</button>
+                    </div>
+                </div>
+            </div>
+            <div class="dropdown" id="recordingsDropdown">
+                <button class="btn btn-secondary" id="recordingsBtn">录制</button>
+                <div class="dropdown-content" style="min-width: 350px; max-height: 400px; overflow-y: auto;">
+                    <div id="recordingsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="vnc-container">
+        <div id="screen"></div>
+    </div>
+
+    <div class="viewer-panel">
+        <div>
+            <strong>在线用户:</strong>
+            <span id="viewerCount">0</span>
+        </div>
+        <div id="viewerList" class="viewer-list"></div>
+    </div>
+
+    <div id="loginModal" class="modal active">
+        <div class="modal-content">
+            <h2>加入VNC会话</h2>
+            <input type="text" id="username" placeholder="请输入您的名称" maxlength="20">
+            <br>
+            <div id="suspendedSessions" style="margin: 15px 0; text-align: left;">
+            </div>
+            <button id="joinBtn" class="btn btn-primary">加入</button>
+        </div>
+    </div>
+
+    <div id="suspendModal" class="modal">
+        <div class="modal-content">
+            <h2>确认挂起</h2>
+            <p style="margin-bottom: 15px; color: #aaa;">
+                挂起后您的会话将被保存，下次可用相同名称恢复。
+            </p>
+            <button id="confirmSuspend" class="btn btn-primary">确认挂起</button>
+            <button id="cancelSuspend" class="btn btn-secondary" style="margin-left: 10px;">取消</button>
+        </div>
+    </div>
+
+    <script>
+        let rfb = null;
+        let username = '';
+        let sessionId = '';
+        let isController = false;
+        let currentQuality = null;
+
+        const loginModal = document.getElementById('loginModal');
+        const suspendModal = document.getElementById('suspendModal');
+        const usernameInput = document.getElementById('username');
+        const joinBtn = document.getElementById('joinBtn');
+        const screen = document.getElementById('screen');
+        const statusBadge = document.getElementById('statusBadge');
+        const requestControlBtn = document.getElementById('requestControl');
+        const releaseControlBtn = document.getElementById('releaseControl');
+        const suspendBtn = document.getElementById('suspendBtn');
+        const confirmSuspendBtn = document.getElementById('confirmSuspend');
+        const cancelSuspendBtn = document.getElementById('cancelSuspend');
+        const viewerList = document.getElementById('viewerList');
+        const viewerCount = document.getElementById('viewerCount');
+        const qualityBtn = document.getElementById('qualityBtn');
+        const qualityDropdown = document.getElementById('qualityDropdown');
+        const recordingsBtn = document.getElementById('recordingsBtn');
+        const recordingsDropdown = document.getElementById('recordingsDropdown');
+
+        joinBtn.addEventListener('click', joinSession);
+        usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') joinSession();
+        });
+
+        qualityBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            recordingsDropdown.classList.remove('active');
+            qualityDropdown.classList.toggle('active');
+            if (qualityDropdown.classList.contains('active')) {
+                loadQualityPresets();
+            }
+        });
+
+        recordingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            qualityDropdown.classList.remove('active');
+            recordingsDropdown.classList.toggle('active');
+            if (recordingsDropdown.classList.contains('active')) {
+                loadRecordings();
+            }
+        });
+
+        document.addEventListener('click', () => {
+            qualityDropdown.classList.remove('active');
+            recordingsDropdown.classList.remove('active');
+        });
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                const tabName = tab.dataset.tab;
+                document.getElementById('presetsTab').style.display = tabName === 'presets' ? 'block' : 'none';
+                document.getElementById('customTab').style.display = tabName === 'custom' ? 'block' : 'none';
+            });
+        });
+
+        suspendBtn.addEventListener('click', () => {
+            suspendModal.classList.add('active');
+        });
+
+        cancelSuspendBtn.addEventListener('click', () => {
+            suspendModal.classList.remove('active');
+        });
+
+        confirmSuspendBtn.addEventListener('click', () => {
+            suspendSession();
+        });
+
+        document.getElementById('compressionSlider').addEventListener('input', (e) => {
+            document.getElementById('compressionValue').textContent = e.target.value;
+        });
+
+        document.getElementById('qualitySlider').addEventListener('input', (e) => {
+            document.getElementById('qualityValue').textContent = e.target.value;
+        });
+
+        document.getElementById('applyCustomQuality').addEventListener('click', () => {
+            const compression = parseInt(document.getElementById('compressionSlider').value);
+            const quality = parseInt(document.getElementById('qualitySlider').value);
+            setQuality(null, compression, quality);
+        });
+
+        async function loadSuspendedSessions() {
+            try {
+                const res = await fetch('/api/sessions/suspended');
+                const data = await res.json();
+                const container = document.getElementById('suspendedSessions');
+                if (data.data && data.data.sessions && data.data.sessions.length > 0) {
+                    container.innerHTML = '<h4 style="margin-bottom: 8px; color: #e94560;">可恢复的会话：</h4>';
+                    data.data.sessions.forEach(s => {
+                        const div = document.createElement('div');
+                        div.className = 'quality-item';
+                        div.innerHTML = `
+                            <strong>${s.session.user_name}</strong>
+                            <br><small>挂起于 ${new Date(s.suspended_at).toLocaleString()}</small>
+                        `;
+                        div.addEventListener('click', () => {
+                            usernameInput.value = s.session.user_name;
+                            resumeSession(s.session.id);
+                        });
+                        container.appendChild(div);
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to load suspended sessions:', e);
+            }
+        }
+
+        loadSuspendedSessions();
+
+        function resumeSession(id) {
+            alert('会话已恢复，请点击加入继续');
+        }
+
+        function joinSession() {
+            username = usernameInput.value.trim();
+            if (!username) {
+                alert('请输入您的名称');
+                return;
+            }
+            loginModal.classList.remove('active');
+            connectVNC();
+            startStatusPolling();
+        }
+
+        function connectVNC() {
+            const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            const url = `${protocol}://${window.location.host}/websockify?username=${encodeURIComponent(username)}`;
+
+            try {
+                rfb = new RFB(screen, url);
+
+                rfb.addEventListener("connect", () => {
+                    console.log("已连接到VNC服务器");
+                    requestControlBtn.disabled = false;
+                });
+
+                rfb.addEventListener("disconnect", () => {
+                    console.log("已断开VNC连接");
+                    requestControlBtn.disabled = true;
+                });
+
+                rfb.scaleViewport = true;
+                rfb.resizeSession = true;
+
+            } catch (e) {
+                console.error("VNC连接失败:", e);
+                alert("VNC连接失败，请检查服务器状态");
+            }
+        }
+
+        requestControlBtn.addEventListener('click', () => {
+            fetch('/api/control/request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    isController = true;
+                    updateControlStatus();
+                } else {
+                    alert(data.message || '无法获取控制权');
+                }
+            });
+        });
+
+        releaseControlBtn.addEventListener('click', () => {
+            fetch('/api/control/release', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    isController = false;
+                    updateControlStatus();
+                }
+            });
+        });
+
+        async function suspendSession() {
+            try {
+                const sessionsRes = await fetch('/api/sessions');
+                const sessionsData = await sessionsRes.json();
+                const currentSession = sessionsData.data.sessions.find(s => s.user_name === username);
+                if (currentSession) {
+                    sessionId = currentSession.id;
+                    const res = await fetch(`/api/sessions/${sessionId}/suspend`, {
+                        method: 'POST'
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        suspendModal.classList.remove('active');
+                        if (rfb) rfb.disconnect();
+                        setTimeout(() => {
+                            alert('会话已挂起，下次可用相同名称恢复');
+                            window.location.reload();
+                        }, 500);
+                    } else {
+                        alert(data.message || '挂起失败');
+                    }
+                }
+            } catch (e) {
+                console.error('Suspend failed:', e);
+                alert('挂起失败');
+            }
+        }
+
+        async function loadQualityPresets() {
+            try {
+                const res = await fetch('/api/quality');
+                const data = await res.json();
+                if (data.success) {
+                    currentQuality = data.data.quality;
+                    const presets = data.data.presets;
+                    const container = document.getElementById('presetsTab');
+                    container.innerHTML = '';
+                    presets.forEach(p => {
+                        const div = document.createElement('div');
+                        div.className = 'quality-item';
+                        if (currentQuality.compression_level === p.compression &&
+                            currentQuality.quality_level === p.quality) {
+                            div.classList.add('active');
+                        }
+                        div.innerHTML = `
+                            <strong>${p.name}</strong>
+                            <br><small>${p.description}</small>
+                        `;
+                        div.addEventListener('click', () => {
+                            setQuality(p.name);
+                        });
+                        container.appendChild(div);
+                    });
+
+                    document.getElementById('compressionSlider').value = currentQuality.compression_level;
+                    document.getElementById('compressionValue').textContent = currentQuality.compression_level;
+                    document.getElementById('qualitySlider').value = currentQuality.quality_level;
+                    document.getElementById('qualityValue').textContent = currentQuality.quality_level;
+                }
+            } catch (e) {
+                console.error('Failed to load quality:', e);
+            }
+        }
+
+        async function setQuality(preset, compression, quality) {
+            const body = {};
+            if (preset) {
+                body.preset = preset;
+            } else {
+                body.compression_level = compression;
+                body.quality_level = quality;
+            }
+
+            try {
+                const res = await fetch('/api/quality', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    qualityDropdown.classList.remove('active');
+                    loadQualityPresets();
+                } else {
+                    alert(data.message || '设置失败');
+                }
+            } catch (e) {
+                console.error('Failed to set quality:', e);
+                alert('设置失败');
+            }
+        }
+
+        async function loadRecordings() {
+            try {
+                const res = await fetch('/api/recordings');
+                const data = await res.json();
+                const container = document.getElementById('recordingsList');
+                if (data.data && data.data.recordings && data.data.recordings.length > 0) {
+                    container.innerHTML = '';
+                    data.data.recordings.forEach(r => {
+                        const div = document.createElement('div');
+                        div.className = 'recording-item';
+                        const startTime = new Date(r.start_time).toLocaleString();
+                        const duration = Math.round((new Date(r.end_time) - new Date(r.start_time)) / 1000);
+                        const sizeMB = (r.file_size / 1024 / 1024).toFixed(2);
+                        div.innerHTML = `
+                            <div class="recording-info">
+                                <h4>${startTime}</h4>
+                                <small>${r.resolution} | ${duration}秒 | ${sizeMB}MB</small>
+                            </div>
+                            <div>
+                                <button class="btn btn-secondary action-btn" onclick="downloadH264('${r.id}')">下载H264</button>
+                                <button class="btn btn-primary action-btn" onclick="exportMP4('${r.id}', this)">导出MP4</button>
+                            </div>
+                        `;
+                        container.appendChild(div);
+                    });
+                } else {
+                    container.innerHTML = '<p style="text-align: center; color: #888; padding: 20px;">暂无录制文件</p>';
+                }
+            } catch (e) {
+                console.error('Failed to load recordings:', e);
+                document.getElementById('recordingsList').innerHTML = '<p style="color: #888;">加载失败</p>';
+            }
+        }
+
+        window.downloadH264 = function(id) {
+            window.open(`/api/recordings/${id}`, '_blank');
+        };
+
+        window.exportMP4 = async function(id, btn) {
+            btn.disabled = true;
+            btn.textContent = '导出中...';
+            try {
+                const res = await fetch(`/api/recordings/${id}/export`, {
+                    method: 'POST'
+                });
+                const data = await res.json();
+                if (data.success) {
+                    btn.textContent = '下载MP4';
+                    btn.onclick = () => {
+                        window.open(data.data.download_url, '_blank');
+                    };
+                    btn.disabled = false;
+                } else {
+                    alert(data.message || '导出失败');
+                    btn.textContent = '导出MP4';
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                console.error('Export failed:', e);
+                alert('导出失败');
+                btn.textContent = '导出MP4';
+                btn.disabled = false;
+            }
+        };
+
+        function updateControlStatus() {
+            if (isController) {
+                statusBadge.textContent = '控制者';
+                statusBadge.className = 'status-badge status-controller';
+                requestControlBtn.style.display = 'none';
+                releaseControlBtn.style.display = 'block';
+            } else {
+                statusBadge.textContent = '观看者';
+                statusBadge.className = 'status-badge status-viewer';
+                requestControlBtn.style.display = 'block';
+                releaseControlBtn.style.display = 'none';
+            }
+        }
+
+        function startStatusPolling() {
+            setInterval(() => {
+                fetch('/api/sessions')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.data && data.data.sessions) {
+                            updateViewerList(data.data.sessions);
+                            const currentSession = data.data.sessions.find(s => s.user_name === username);
+                            if (currentSession) {
+                                sessionId = currentSession.id;
+                                isController = currentSession.is_controller;
+                                updateControlStatus();
+                            }
+                        }
+                    })
+                    .catch(() => {});
+            }, 2000);
+        }
+
+        function updateViewerList(sessions) {
+            viewerCount.textContent = sessions.length;
+            viewerList.innerHTML = '';
+            sessions.forEach(s => {
+                const item = document.createElement('span');
+                item.className = 'viewer-item' + (s.is_controller ? ' controller' : '');
+                item.textContent = s.user_name + (s.is_controller ? ' (控制)' : '');
+                viewerList.appendChild(item);
+            });
+        }
+    </script>
+</body>
+</html>

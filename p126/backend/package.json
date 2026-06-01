@@ -1,0 +1,16 @@
+{
+  "name": "circuit-simulator-backend",
+  "version": "1.0.0",
+  "description": "Backend for circuit simulator with Ngspice",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "sqlite3": "^5.1.6",
+    "uuid": "^9.0.0"
+  }
+}

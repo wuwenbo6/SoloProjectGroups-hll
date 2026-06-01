@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STM32 Pin 配置工具</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="app-header">
+        <div class="logo">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <rect x="2" y="4" width="24" height="20" rx="2" stroke="#4FC3F7" stroke-width="2"/>
+                <rect x="6" y="8" width="16" height="12" rx="1" fill="#4FC3F7" opacity="0.3"/>
+                <line x1="0" y1="10" x2="2" y2="10" stroke="#4FC3F7" stroke-width="2"/>
+                <line x1="0" y1="14" x2="2" y2="14" stroke="#4FC3F7" stroke-width="2"/>
+                <line x1="0" y1="18" x2="2" y2="18" stroke="#4FC3F7" stroke-width="2"/>
+                <line x1="26" y1="10" x2="28" y2="10" stroke="#4FC3F7" stroke-width="2"/>
+                <line x1="26" y1="14" x2="28" y2="14" stroke="#4FC3F7" stroke-width="2"/>
+                <line x1="26" y1="18" x2="28" y2="18" stroke="#4FC3F7" stroke-width="2"/>
+            </svg>
+            <h1>STM32 Config</h1>
+        </div>
+        <div class="header-actions">
+            <select id="family-select">
+                <option value="STM32F4">STM32F4</option>
+                <option value="STM32F1">STM32F1</option>
+                <option value="STM32G4">STM32G4</option>
+            </select>
+            <input type="text" id="part-number" value="STM32F407VGT6" placeholder="Part Number">
+            <select id="ide-select">
+                <option value="Keil">Keil</option>
+                <option value="IAR">IAR</option>
+                <option value="Makefile">Makefile</option>
+            </select>
+            <button class="btn-primary" id="export-btn">导出工程</button>
+        </div>
+    </header>
+
+    <nav class="tabs">
+        <button class="tab-btn active" data-tab="pins">引脚复用</button>
+        <button class="tab-btn" data-tab="clock">时钟树</button>
+        <button class="tab-btn" data-tab="peripherals">外设配置</button>
+        <button class="tab-btn" data-tab="freertos">FreeRTOS</button>
+        <button class="tab-btn" data-tab="lowpower">低功耗</button>
+    </nav>
+
+    <main class="content">
+        <section id="tab-pins" class="tab-content active">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>GPIO / 引脚复用配置</h2>
+                    <button class="btn-secondary" id="add-pin-btn">+ 添加引脚</button>
+                </div>
+                <div class="pin-filter">
+                    <input type="text" id="pin-filter-input" placeholder="过滤引脚...">
+                </div>
+                <div class="pin-table-wrapper">
+                    <table class="pin-table" id="pin-table">
+                        <thead>
+                            <tr>
+                                <th>引脚</th>
+                                <th>复用功能 (AF)</th>
+                                <th>模式</th>
+                                <th>上拉/下拉</th>
+                                <th>速度</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pin-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>引脚详情</h2>
+                </div>
+                <div class="pin-detail" id="pin-detail">
+                    <p class="hint">选择或添加一个引脚以查看详情</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-clock" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>时钟树配置</h2>
+                </div>
+                <div class="clock-diagram">
+                    <div class="clock-source">
+                        <h3>时钟源</h3>
+                        <div class="clock-row">
+                            <label>HSE 频率 (Hz)</label>
+                            <input type="number" id="clock-hse" value="8000000" step="1000000">
+                        </div>
+                        <div class="clock-row">
+                            <label>HSI 频率 (Hz)</label>
+                            <input type="number" id="clock-hsi" value="16000000" step="1000000">
+                        </div>
+                        <div class="clock-row">
+                            <label>LSE 频率 (Hz)</label>
+                            <input type="number" id="clock-lse" value="32768" step="1024">
+                        </div>
+                        <div class="clock-row">
+                            <label>HSE 旁路</label>
+                            <input type="checkbox" id="clock-hse-bypass">
+                        </div>
+                    </div>
+
+                    <div class="arrow-down">▼</div>
+
+                    <div class="pll-block">
+                        <h3>PLL 配置</h3>
+                        <div class="pll-row">
+                            <div class="pll-item">
+                                <label>/M</label>
+                                <input type="number" id="pll-m" value="8" min="1" max="63">
+                            </div>
+                            <div class="pll-item">
+                                <label>×N</label>
+                                <input type="number" id="pll-n" value="360" min="2" max="432">
+                            </div>
+                            <div class="pll-item">
+                                <label>/P</label>
+                                <select id="pll-p">
+                                    <option value="2">2</option>
+                                    <option value="4">4</option>
+                                    <option value="6">6</option>
+                                    <option value="8">8</option>
+                                </select>
+                            </div>
+                            <div class="pll-item">
+                                <label>/Q</label>
+                                <input type="number" id="pll-q" value="8" min="2" max="15">
+                            </div>
+                            <div class="pll-item">
+                                <label>/R</label>
+                                <input type="number" id="pll-r" value="2" min="2" max="7">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="arrow-down">▼</div>
+
+                    <div class="sysclk-block">
+                        <h3>系统时钟</h3>
+                        <div class="clock-row">
+                            <label>SYSCLK 源</label>
+                            <select id="sysclk-src">
+                                <option value="HSI">HSI</option>
+                                <option value="HSE">HSE</option>
+                                <option value="PLL" selected>PLL</option>
+                            </select>
+                        </div>
+                        <div class="clock-row">
+                            <label>AHB 预分频器</label>
+                            <select id="ahb-prescaler">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="4">4</option>
+                                <option value="8">8</option>
+                                <option value="16">16</option>
+                                <option value="64">64</option>
+                                <option value="128">128</option>
+                                <option value="256">256</option>
+                                <option value="512">512</option>
+                            </select>
+                        </div>
+                        <div class="clock-row">
+                            <label>APB1 预分频器</label>
+                            <select id="apb1-prescaler">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="4" selected>4</option>
+                                <option value="8">8</option>
+                                <option value="16">16</option>
+                            </select>
+                        </div>
+                        <div class="clock-row">
+                            <label>APB2 预分频器</label>
+                            <select id="apb2-prescaler">
+                                <option value="1">1</option>
+                                <option value="2" selected>2</option>
+                                <option value="4">4</option>
+                                <option value="8">8</option>
+                                <option value="16">16</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="clock-output">
+                        <h3>时钟输出频率</h3>
+                        <div class="freq-display">
+                            <div class="freq-item">
+                                <span class="freq-label">SYSCLK</span>
+                                <span class="freq-value" id="freq-sysclk">--</span>
+                            </div>
+                            <div class="freq-item">
+                                <span class="freq-label">HCLK</span>
+                                <span class="freq-value" id="freq-hclk">--</span>
+                            </div>
+                            <div class="freq-item">
+                                <span class="freq-label">APB1</span>
+                                <span class="freq-value" id="freq-apb1">--</span>
+                            </div>
+                            <div class="freq-item">
+                                <span class="freq-label">APB2</span>
+                                <span class="freq-value" id="freq-apb2">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-peripherals" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>外设配置</h2>
+                    <div class="periph-buttons">
+                        <button class="btn-secondary add-periph" data-type="USART">+ USART</button>
+                        <button class="btn-secondary add-periph" data-type="I2C">+ I2C</button>
+                        <button class="btn-secondary add-periph" data-type="SPI">+ SPI</button>
+                    </div>
+                </div>
+                <div class="periph-list" id="periph-list">
+                    <p class="hint">点击上方按钮添加外设</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-freertos" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>FreeRTOS 配置</h2>
+                    <label class="switch">
+                        <input type="checkbox" id="freertos-enable">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="freertos-config" id="freertos-config" style="opacity:0.5;pointer-events:none;">
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <label>内核版本</label>
+                            <select id="freertos-kernel">
+                                <option value="CMSIS_V1">CMSIS-RTOS V1</option>
+                                <option value="CMSIS_V2" selected>CMSIS-RTOS V2</option>
+                                <option value="Native">Native FreeRTOS</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>堆大小 (bytes)</label>
+                            <input type="number" id="freertos-heap" value="3072" min="1024" step="512">
+                        </div>
+                        <div class="config-item">
+                            <label>最小栈大小 (words)</label>
+                            <input type="number" id="freertos-min-stack" value="128" min="64" step="32">
+                        </div>
+                        <div class="config-item">
+                            <label>最大任务优先级</label>
+                            <input type="number" id="freertos-max-prio" value="32" min="8" max="256">
+                        </div>
+                        <div class="config-item">
+                            <label>时钟节拍频率 (Hz)</label>
+                            <input type="number" id="freertos-tick-rate" value="1000" min="100" max="10000">
+                        </div>
+                        <div class="config-item">
+                            <label>使用抢占式调度</label>
+                            <select id="freertos-preempt">
+                                <option value="1" selected>是</option>
+                                <option value="0">否</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>使用时间片</label>
+                            <select id="freertos-timeslice">
+                                <option value="1" selected>是</option>
+                                <option value="0">否</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>使用互斥量</label>
+                            <select id="freertos-mutex">
+                                <option value="1" selected>是</option>
+                                <option value="0">否</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>使用计数信号量</label>
+                            <select id="freertos-counting">
+                                <option value="1" selected>是</option>
+                                <option value="0">否</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>使用软件定时器</label>
+                            <select id="freertos-timers">
+                                <option value="1">是</option>
+                                <option value="0" selected>否</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>Tickless Idle</label>
+                            <select id="freertos-tickless">
+                                <option value="0" selected>禁用</option>
+                                <option value="1">低功耗模式</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>任务配置</h2>
+                    <button class="btn-secondary" id="add-task-btn">+ 添加任务</button>
+                </div>
+                <div class="task-list" id="task-list">
+                    <p class="hint">点击上方按钮添加任务</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-lowpower" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>低功耗模式配置</h2>
+                </div>
+                <div class="lowpower-config">
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <label>低功耗模式</label>
+                            <select id="lp-mode">
+                                <option value="none" selected>禁用</option>
+                                <option value="sleep">Sleep</option>
+                                <option value="stop">Stop</option>
+                                <option value="standby">Standby</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>PVD 使能</label>
+                            <select id="lp-pvd">
+                                <option value="0" selected>禁用</option>
+                                <option value="1">使能</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>PVD 阈值</label>
+                            <select id="lp-pvd-level">
+                                <option value="PWR_PVDLEVEL_0">0 (1.9V)</option>
+                                <option value="PWR_PVDLEVEL_1">1 (2.1V)</option>
+                                <option value="PWR_PVDLEVEL_2" selected>2 (2.3V)</option>
+                                <option value="PWR_PVDLEVEL_3">3 (2.5V)</option>
+                                <option value="PWR_PVDLEVEL_4">4 (2.7V)</option>
+                                <option value="PWR_PVDLEVEL_5">5 (2.9V)</option>
+                                <option value="PWR_PVDLEVEL_6">6 (3.1V)</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>Wakeup 引脚</label>
+                            <select id="lp-wakeup-pin">
+                                <option value="" selected>无</option>
+                                <option value="PA0">PA0 (WKUP1)</option>
+                                <option value="PC13">PC13 (WKUP2)</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>RTC 唤醒</label>
+                            <select id="lp-rtc-wakeup">
+                                <option value="0" selected>禁用</option>
+                                <option value="1">使能</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>RTC 唤醒时间 (ms)</label>
+                            <input type="number" id="lp-rtc-time" value="0" min="0">
+                        </div>
+                    </div>
+                    <div class="lp-info">
+                        <h3>低功耗说明</h3>
+                        <ul>
+                            <li><strong>Sleep:</strong> CPU 停止，外设运行，任意中断唤醒</li>
+                            <li><strong>Stop:</strong> 1.5V 域停止，HSI/HSE 关闭，EXTI/RTC 唤醒</li>
+                            <li><strong>Standby:</strong> 1.2V 域断电，SRAM 丢失，WKUP/RTC 唤醒</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="pin-modal-overlay">
+        <div class="modal" id="pin-modal">
+            <div class="modal-header">
+                <h3>添加引脚</h3>
+                <button class="modal-close" id="pin-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-field">
+                    <label>引脚</label>
+                    <select id="new-pin-name"></select>
+                </div>
+                <div class="modal-field">
+                    <label>复用功能</label>
+                    <select id="new-pin-af"></select>
+                </div>
+                <div class="modal-field">
+                    <label>模式</label>
+                    <select id="new-pin-mode"></select>
+                </div>
+                <div class="modal-field">
+                    <label>上拉/下拉</label>
+                    <select id="new-pin-pull"></select>
+                </div>
+                <div class="modal-field">
+                    <label>速度</label>
+                    <select id="new-pin-speed"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="pin-modal-cancel">取消</button>
+                <button class="btn-primary" id="pin-modal-confirm">确认添加</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="periph-modal-overlay">
+        <div class="modal" id="periph-modal">
+            <div class="modal-header">
+                <h3 id="periph-modal-title">配置外设</h3>
+                <button class="modal-close" id="periph-modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="periph-modal-body">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="periph-modal-cancel">取消</button>
+                <button class="btn-primary" id="periph-modal-confirm">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="task-modal-overlay">
+        <div class="modal" id="task-modal">
+            <div class="modal-header">
+                <h3 id="task-modal-title">配置任务</h3>
+                <button class="modal-close" id="task-modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="task-modal-body">
+                <div class="modal-field">
+                    <label>任务名称</label>
+                    <input type="text" id="task-name" placeholder="TaskName">
+                </div>
+                <div class="modal-field">
+                    <label>栈大小 (words)</label>
+                    <input type="number" id="task-stack" value="128" min="64" step="32">
+                </div>
+                <div class="modal-field">
+                    <label>优先级</label>
+                    <input type="number" id="task-priority" value="1" min="0" max="31">
+                </div>
+                <div class="modal-field">
+                    <label>任务类型</label>
+                    <select id="task-type">
+                        <option value="default">默认任务</option>
+                        <option value="producer">生产者任务</option>
+                        <option value="consumer">消费者任务</option>
+                        <option value="periodic">周期性任务</option>
+                        <option value="uart_handler">UART 处理</option>
+                        <option value="i2c_handler">I2C 处理</option>
+                        <option value="spi_handler">SPI 处理</option>
+                    </select>
+                </div>
+                <div class="modal-field">
+                    <label>周期 (ms, 仅周期性任务)</label>
+                    <input type="number" id="task-period" value="1000" min="1">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="task-modal-cancel">取消</button>
+                <button class="btn-primary" id="task-modal-confirm">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
