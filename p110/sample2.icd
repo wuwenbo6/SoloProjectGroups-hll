@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SCL xmlns="http://www.iec.ch/61850/2003/SCL" version="2007" revision="B" release="2">
+    <Header id="SampleIED2" nameStructure="IEC61850_6">
+        <History>
+            <Hitem version="1.0" revision="A" when="2024-01-01" who="System" what="Created"/>
+        </History>
+    </Header>
+    <Communication>
+        <SubNetwork name="StationBus" type="8-MMS">
+            <ConnectedAP iedName="SampleIED2" apName="S1">
+                <Address>
+                    <P type="IP">192.168.1.101</P>
+                    <P type="IP-SUBNET">255.255.255.0</P>
+                </Address>
+            </ConnectedAP>
+        </SubNetwork>
+        <SubNetwork name="ProcessBus" type="8-GOOSE">
+            <ConnectedAP iedName="SampleIED2" apName="M1">
+                <Address>
+                    <P type="MAC">01-0C-CD-01-00-03</P>
+                    <P type="APPID">0x0003</P>
+                    <P type="VLAN-ID">0</P>
+                    <P type="VLAN-PRIORITY">4</P>
+                </Address>
+            </ConnectedAP>
+        </SubNetwork>
+    </Communication>
+    <IED name="SampleIED2" type="BAY" manufacturer="SampleManufacturer" desc="Bay Control Unit">
+        <Services>
+            <AccessPoint name="S1">
+                <Server>
+                    <LDevice inst="LDevice1" ldName="SampleIED2/CTRL">
+                        <LN0 prefix="" lnClass="LLN0" inst="" lnType="LLN0" desc="Logical Node Zero">
+                            <DOI name="Mod" desc="Mode">
+                                <DAI name="stVal"><Val>on</Val></DAI>
+                            </DOI>
+                            <DOI name="Health" desc="Health">
+                                <DAI name="stVal"><Val>ok</Val></DAI>
+                            </DOI>
+                        </LN0>
+                        <LN prefix="" lnClass="CSWI" inst="1" lnType="CSWI" desc="Switch Controller">
+                            <DOI name="Pos" desc="Position">
+                                <DAI name="stVal"><Val>intermediate</Val></DAI>
+                            </DOI>
+                            <DOI name="OpOpn" desc="Open Operation">
+                                <DAI name="general"><Val>false</Val></DAI>
+                            </DOI>
+                            <DOI name="OpCls" desc="Close Operation">
+                                <DAI name="general"><Val>false</Val></DAI>
+                            </DOI>
+                        </LN>
+                        <LN prefix="" lnClass="XCBR" inst="1" lnType="XCBR" desc="Circuit Breaker">
+                            <DOI name="Pos" desc="Position">
+                                <DAI name="stVal"><Val>false</Val></DAI>
+                            </DOI>
+                        </LN>
+                        <LN prefix="" lnClass="GGIO" inst="1" lnType="GGIO" desc="Generic I/O">
+                            <DOI name="Ind1" desc="Indicator 1">
+                                <DAI name="stVal"><Val>false</Val></DAI>
+                            </DOI>
+                        </LN>
+                    </LDevice>
+                </Server>
+            </AccessPoint>
+        </Services>
+    </IED>
+    <DataTypeTemplates>
+        <LNodeType id="LLN0" lnClass="LLN0">
+            <DO name="Mod" type="INC" desc="Mode"/>
+            <DO name="Health" type="INS" desc="Health"/>
+        </LNodeType>
+        <LNodeType id="CSWI" lnClass="CSWI">
+            <DO name="Pos" type="DPC" desc="Position"/>
+            <DO name="OpOpn" type="SPC" desc="Open Operation"/>
+            <DO name="OpCls" type="SPC" desc="Close Operation"/>
+        </LNodeType>
+        <LNodeType id="XCBR" lnClass="XCBR">
+            <DO name="Pos" type="SPC" desc="Position"/>
+        </LNodeType>
+        <LNodeType id="GGIO" lnClass="GGIO">
+            <DO name="Ind1" type="SPS" desc="Indicator 1"/>
+        </LNodeType>
+        <DOType id="INC" cdc="INC">
+            <DA name="stVal" bType="INT32" fc="ST"/>
+        </DOType>
+        <DOType id="INS" cdc="INS">
+            <DA name="stVal" bType="INT32" fc="ST"/>
+        </DOType>
+        <DOType id="SPC" cdc="SPC">
+            <DA name="stVal" bType="BOOLEAN" fc="ST"/>
+        </DOType>
+        <DOType id="DPC" cdc="DPC">
+            <DA name="stVal" bType="INT32" fc="ST"/>
+        </DOType>
+        <DOType id="SPS" cdc="SPS">
+            <DA name="stVal" bType="BOOLEAN" fc="ST"/>
+        </DOType>
+    </DataTypeTemplates>
+</SCL>

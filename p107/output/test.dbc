@@ -1,0 +1,85 @@
+VERSION ""
+
+NS_ :
+
+BS_:
+
+BU_: Vector__XXX
+
+BO_ 1024 Message_0x400: 8 Vector__XXX
+ SG_ Signal_1 : 0|11@0+ (1.0,0.0) [46.0|47.0] "" Vector__XXX
+ SG_ Signal_2 : 11|1@0+ (1.0,0.0) [0.0|1.0] "" Vector__XXX
+ SG_ Signal_3 : 12|11@0+ (1.0,0.0) [800.0|1113.0] "" Vector__XXX
+ SG_ Signal_4 : 23|1@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+ SG_ Signal_5 : 24|7@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+ SG_ Signal_6 : 31|33@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+
+BO_ 256 Message_0x100: 8 Vector__XXX
+ SG_ Signal_1 : 0|8@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+ SG_ Signal_2 : 8|1@0+ (1.0,0.0) [0.0|1.0] "" Vector__XXX
+ SG_ Signal_3 : 9|6@0+ (1.0,0.0) [25.0|38.0] "" Vector__XXX
+ SG_ Signal_4 : 15|3@0+ (1.0,0.0) [0.0|6.0] "" Vector__XXX
+ SG_ Signal_5 : 18|8@0+ (1.0,0.0) [0.0|193.0] "" Vector__XXX
+ SG_ Signal_6 : 26|1@0+ (1.0,0.0) [0.0|1.0] "" Vector__XXX
+ SG_ Signal_7 : 27|5@0+ (1.0,0.0) [0.0|31.0] "" Vector__XXX
+ SG_ Signal_8 : 32|1@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+ SG_ Signal_9 : 33|31@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+
+BO_ 512 Message_0x200: 8 Vector__XXX
+ SG_ Signal_1 : 0|6@0+ (1.0,0.0) [16.0|35.0] "" Vector__XXX
+ SG_ Signal_2 : 6|1@0+ (1.0,0.0) [1.0|1.0] "" Vector__XXX
+ SG_ Signal_3 : 7|9@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+ SG_ Signal_4 : 16|1@0+ (1.0,0.0) [0.0|1.0] "" Vector__XXX
+ SG_ Signal_5 : 17|1@0+ (1.0,0.0) [0.0|1.0] "" Vector__XXX
+ SG_ Signal_6 : 18|1@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+ SG_ Signal_7 : 19|7@0+ (1.0,0.0) [1.0|65.0] "" Vector__XXX
+ SG_ Signal_8 : 26|1@0+ (1.0,0.0) [0.0|1.0] "" Vector__XXX
+ SG_ Signal_9 : 27|5@0+ (1.0,0.0) [1.0|31.0] "" Vector__XXX
+ SG_ Signal_10 : 32|1@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+ SG_ Signal_11 : 33|31@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+
+BO_ 768 Message_0x300: 8 Vector__XXX
+ SG_ Signal_1 : 0|1@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+ SG_ Signal_2 : 1|1@0+ (1.0,0.0) [0.0|1.0] "" Vector__XXX
+ SG_ Signal_3 : 2|4@0+ (1.0,0.0) [0.0|12.0] "" Vector__XXX
+ SG_ Signal_4 : 6|1@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+ SG_ Signal_5 : 7|1@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+ SG_ Signal_6 : 8|1@0+ (1.0,0.0) [0.0|1.0] "" Vector__XXX
+ SG_ Signal_7 : 9|4@0+ (1.0,0.0) [0.0|14.0] "" Vector__XXX
+ SG_ Signal_8 : 13|1@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+ SG_ Signal_9 : 14|23@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+ SG_ Signal_10 : 37|27@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+
+BO_ 1574 Message_0x626: 6 Vector__XXX
+
+BO_ 1280 Message_0x500: 8 Vector__XXX
+ SG_ Signal_1 : 0|1@0+ (1.0,0.0) [0.0|1.0] "" Vector__XXX
+ SG_ Signal_2 : 1|2@0+ (1.0,0.0) [0.0|1.0] "" Vector__XXX
+ SG_ Signal_3 : 3|5@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+ SG_ Signal_4 : 8|2@0+ (1.0,0.0) [0.0|3.0] "" Vector__XXX
+ SG_ Signal_5 : 10|23@0+ (1.0,0.0) [0.0|4.0] "" Vector__XXX
+ SG_ Signal_6 : 33|31@0+ (1.0,0.0) [0.0|0.0] "" Vector__XXX
+
+BO_ 1845 Message_0x735: 7 Vector__XXX
+
+BO_ 1936 Message_0x790: 5 Vector__XXX
+
+BO_ 1667 Message_0x683: 5 Vector__XXX
+
+BO_ 1864 Message_0x748: 4 Vector__XXX
+
+BO_ 1710 Message_0x6AE: 6 Vector__XXX
+
+BO_ 1610 Message_0x64A: 7 Vector__XXX
+
+BO_ 1740 Message_0x6CC: 7 Vector__XXX
+
+BO_ 1905 Message_0x771: 5 Vector__XXX
+
+BO_ 1858 Message_0x742: 7 Vector__XXX
+
+BO_ 1755 Message_0x6DB: 6 Vector__XXX
+
+BO_ 1618 Message_0x652: 7 Vector__XXX
+
+BO_ 1939 Message_0x793: 8 Vector__XXX

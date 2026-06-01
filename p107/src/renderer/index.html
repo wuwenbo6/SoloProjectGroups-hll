@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAN Analyzer - CAN报文分析工具</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>CAN Analyzer</h1>
+            <div class="header-actions">
+                <select id="project-select">
+                    <option value="">-- 选择项目 --</option>
+                </select>
+                <button id="new-project-btn" class="btn btn-primary">新建项目</button>
+                <button id="delete-project-btn" class="btn btn-danger" disabled>删除项目</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h3>数据采集</h3>
+                    <div class="control-group">
+                        <label>
+                            <input type="checkbox" id="use-virtual" checked>
+                            使用虚拟设备
+                        </label>
+                    </div>
+                    <div class="control-group">
+                        <label>PCAN通道:</label>
+                        <input type="text" id="pcan-channel" value="PCAN_USBBUS1">
+                    </div>
+                    <div class="button-group">
+                        <button id="start-capture-btn" class="btn btn-success">开始采集</button>
+                        <button id="stop-capture-btn" class="btn btn-warning" disabled>停止采集</button>
+                    </div>
+                    <div id="capture-status" class="status-info">状态: 空闲</div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>信号分析</h3>
+                    <button id="analyze-btn" class="btn btn-info" disabled>分析信号</button>
+                    <button id="generate-dbc-btn" class="btn btn-secondary" disabled>生成DBC</button>
+                    <button id="export-excel-btn" class="btn btn-secondary" disabled>导出Excel</button>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>CANoe仿真</h3>
+                    <div class="control-group">
+                        <label>接口类型:</label>
+                        <select id="canoe-interface">
+                            <option value="simulated">仿真模式</option>
+                            <option value="com">COM接口</option>
+                            <option value="rest">REST API</option>
+                        </select>
+                    </div>
+                    <div class="button-group">
+                        <button id="connect-canoe-btn" class="btn btn-primary">连接CANoe</button>
+                        <button id="disconnect-canoe-btn" class="btn btn-danger" disabled>断开连接</button>
+                        <button id="start-canoe-btn" class="btn btn-success" disabled>开始测量</button>
+                        <button id="stop-canoe-btn" class="btn btn-warning" disabled>停止测量</button>
+                    </div>
+                    <div id="canoe-status" class="status-info">状态: 未连接</div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>触发录制</h3>
+                    <div class="button-group">
+                        <button id="add-trigger-btn" class="btn btn-primary">添加触发</button>
+                        <button id="start-trigger-btn" class="btn btn-success" disabled>开始录制</button>
+                        <button id="stop-trigger-btn" class="btn btn-warning" disabled>停止录制</button>
+                    </div>
+                    <div id="trigger-list" class="trigger-list">
+                        <div class="empty-message">暂无触发器</div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>CAN ID列表</h3>
+                    <div id="can-id-list" class="can-id-list">
+                        <div class="empty-message">暂无数据</div>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="content-area">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="messages">报文列表</button>
+                    <button class="tab-btn" data-tab="signals">信号分析</button>
+                    <button class="tab-btn" data-tab="chart">信号曲线</button>
+                </div>
+
+                <div class="tab-content">
+                    <div id="messages-tab" class="tab-pane active">
+                        <div class="toolbar">
+                            <input type="text" id="message-filter" placeholder="过滤CAN ID...">
+                            <span id="message-count">共 0 条报文</span>
+                        </div>
+                        <div class="table-container">
+                            <table id="messages-table">
+                                <thead>
+                                    <tr>
+                                        <th>时间戳</th>
+                                        <th>CAN ID</th>
+                                        <th>DLC</th>
+                                        <th>数据</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="messages-tbody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="signals-tab" class="tab-pane">
+                        <div class="signals-container">
+                            <div class="signal-header">
+                                <h3 id="selected-can-id-title">选择CAN ID查看信号</h3>
+                                <button id="add-signal-btn" class="btn btn-primary" disabled>手动添加信号</button>
+                            </div>
+                            <div id="signals-list" class="signals-list">
+                                <div class="empty-message">请先分析信号</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="chart-tab" class="tab-pane">
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <h3>信号曲线</h3>
+                                <select id="signal-select" disabled>
+                                    <option value="">-- 选择信号 --</option>
+                                </select>
+                            </div>
+                            <canvas id="signal-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div id="project-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>新建项目</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>项目名称:</label>
+                    <input type="text" id="project-name" placeholder="输入项目名称">
+                </div>
+                <div class="form-group">
+                    <label>项目描述:</label>
+                    <textarea id="project-desc" placeholder="输入项目描述"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancel-project-btn" class="btn btn-secondary">取消</button>
+                <button id="confirm-project-btn" class="btn btn-primary">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="signal-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加/编辑信号</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>信号名称:</label>
+                    <input type="text" id="signal-name" placeholder="Signal_1">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>起始位:</label>
+                        <input type="number" id="signal-start" min="0" max="63" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>位长度:</label>
+                        <input type="number" id="signal-length" min="1" max="64" value="8">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="signal-signed">
+                            有符号
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="signal-big-endian">
+                            大端序
+                        </label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>比例系数:</label>
+                        <input type="number" id="signal-scale" step="0.001" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label>偏移量:</label>
+                        <input type="number" id="signal-offset" step="0.001" value="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>单位:</label>
+                    <input type="text" id="signal-unit" placeholder="">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancel-signal-btn" class="btn btn-secondary">取消</button>
+                <button id="confirm-signal-btn" class="btn btn-primary">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="trigger-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加触发器</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>触发类型:</label>
+                    <select id="trigger-type">
+                        <option value="can_id">CAN ID触发</option>
+                        <option value="data_pattern">数据模式触发</option>
+                        <option value="signal_value">信号值触发</option>
+                        <option value="change">信号变化触发</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>CAN ID (十六进制,如 0x100):</label>
+                    <input type="text" id="trigger-can-id" placeholder="0x100">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>字节偏移:</label>
+                        <input type="number" id="trigger-byte-offset" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>位偏移:</label>
+                        <input type="number" id="trigger-bit-offset" min="0" max="7" value="0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>位长度:</label>
+                        <input type="number" id="trigger-bit-length" min="1" max="64" value="8">
+                    </div>
+                    <div class="form-group">
+                        <label>比较条件:</label>
+                        <select id="trigger-condition">
+                            <option value="==">等于 (==)</option>
+                            <option value="!=">不等于 (!=)</option>
+                            <option value=">">大于 (>)</option>
+                            <option value="<">小于 (<)</option>
+                            <option value=">=">大于等于 (>=)</option>
+                            <option value="<=">小于等于 (<=)</option>
+                            <option value="change">值变化</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>触发值:</label>
+                    <input type="text" id="trigger-value" placeholder="0">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>触发前采样:</label>
+                        <input type="number" id="trigger-pre" min="0" value="100">
+                    </div>
+                    <div class="form-group">
+                        <label>触发后采样:</label>
+                        <input type="number" id="trigger-post" min="0" value="100">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>描述:</label>
+                    <input type="text" id="trigger-desc" placeholder="触发器描述">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancel-trigger-btn" class="btn btn-secondary">取消</button>
+                <button id="confirm-trigger-btn" class="btn btn-primary">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../node_modules/chart.js/dist/chart.umd.js"></script>
+    <script src="renderer.js"></script>
+</body>
+</html>

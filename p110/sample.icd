@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SCL xmlns="http://www.iec.ch/61850/2003/SCL" version="2007" revision="B" release="2">
+    <Header id="SampleIED" nameStructure="IEC61850_6">
+        <History>
+            <Hitem version="1.0" revision="A" when="2024-01-01" who="System" what="Created"/>
+        </History>
+    </Header>
+    <Communication>
+        <SubNetwork name="StationBus" type="8-MMS">
+            <ConnectedAP iedName="SampleIED" apName="S1">
+                <Address>
+                    <P type="IP">192.168.1.100</P>
+                    <P type="IP-SUBNET">255.255.255.0</P>
+                </Address>
+            </ConnectedAP>
+        </SubNetwork>
+        <SubNetwork name="ProcessBus" type="8-GOOSE">
+            <ConnectedAP iedName="SampleIED" apName="M1">
+                <Address>
+                    <P type="MAC">01-0C-CD-01-00-01</P>
+                    <P type="APPID">0x0001</P>
+                    <P type="VLAN-ID">0</P>
+                    <P type="VLAN-PRIORITY">4</P>
+                </Address>
+                <GSE iedName="SampleIED" apName="M1" ldInst="LDevice2" prefix="" lnClass="LGOS" lnInst="1" cbName="gse1">
+                    <Address>
+                        <P type="MAC">01-0C-CD-01-00-01</P>
+                        <P type="APPID">0x0001</P>
+                        <P type="VLAN-ID">0</P>
+                        <P type="VLAN-PRIORITY">4</P>
+                    </Address>
+                    <MinTime unit="s">2</MinTime>
+                    <MaxTime unit="s">10</MaxTime>
+                </GSE>
+                <GSE iedName="SampleIED" apName="M1" ldInst="LDevice2" prefix="" lnClass="LGOS" lnInst="2" cbName="gse2">
+                    <Address>
+                        <P type="MAC">01-0C-CD-01-00-02</P>
+                        <P type="APPID">0x0001</P>
+                        <P type="VLAN-ID">0</P>
+                        <P type="VLAN-PRIORITY">4</P>
+                    </Address>
+                    <MinTime unit="s">2</MinTime>
+                    <MaxTime unit="s">10</MaxTime>
+                </GSE>
+            </ConnectedAP>
+        </SubNetwork>
+    </Communication>
+    <IED name="SampleIED" type="PROT" manufacturer="SampleManufacturer" desc="Sample Protection IED">
+        <Services>
+            <AccessPoint name="S1">
+                <Server>
+                    <Authentication/>
+                    <LDevice inst="LDevice1" ldName="SampleIED/LD1">
+                        <LN0 prefix="" lnClass="LLN0" inst="" lnType="LLN0" desc="Logical Node Zero">
+                            <DOI name="Mod" desc="Mode">
+                                <DAI name="stVal">
+                                    <Val>on</Val>
+                                </DAI>
+                            </DOI>
+                            <DOI name="Beh" desc="Behaviour">
+                                <DAI name="stVal">
+                                    <Val>on</Val>
+                                </DAI>
+                            </DOI>
+                            <DOI name="Health" desc="Health">
+                                <DAI name="stVal">
+                                    <Val>ok</Val>
+                                </DAI>
+                            </DOI>
+                            <DOI name="NamPlt" desc="Name plate">
+                                <DAI name="vendor">
+                                    <Val>SampleManufacturer</Val>
+                                </DAI>
+                                <DAI name="swRev">
+                                    <Val>1.0.0</Val>
+                                </DAI>
+                            </DOI>
+                        </LN0>
+                        <LN prefix="" lnClass="MMXU" inst="1" lnType="MMXU" desc="Measurements">
+                            <DOI name="TotW" desc="Total active power">
+                                <DAI name="mag">
+                                    <Val>100.5</Val>
+                                </DAI>
+                            </DOI>
+                            <DOI name="TotVAr" desc="Total reactive power">
+                                <DAI name="mag">
+                                    <Val>50.2</Val>
+                                </DAI>
+                            </DOI>
+                            <DOI name="Hz" desc="Frequency">
+                                <DAI name="mag">
+                                    <Val>50.0</Val>
+                                </DAI>
+                            </DOI>
+                        </LN>
+                        <LN prefix="" lnClass="PDIS" inst="1" lnType="PDIS" desc="Distance protection">
+                            <DOI name="Str" desc="Start">
+                                <DAI name="general">
+                                    <Val>false</Val>
+                                </DAI>
+                            </DOI>
+                            <DOI name="Op" desc="Operate">
+                                <DAI name="general">
+                                    <Val>false</Val>
+                                </DAI>
+                            </DOI>
+                            <DOI name="BlkZn" desc="Block zone">
+                                <DAI name="setMag">
+                                    <Val>1.0</Val>
+                                </DAI>
+                            </DOI>
+                        </LN>
+                        <LN prefix="" lnClass="PTOC" inst="1" lnType="PTOC" desc="Overcurrent protection">
+                            <DOI name="Str" desc="Start">
+                                <DAI name="general">
+                                    <Val>false</Val>
+                                </DAI>
+                            </DOI>
+                            <DOI name="Op" desc="Operate">
+                                <DAI name="general">
+                                    <Val>false</Val>
+                                </DAI>
+                            </DOI>
+                            <DOI name="StrVal" desc="Start value">
+                                <DAI name="setMag">
+                                    <Val>5.0</Val>
+                                </DAI>
+                            </DOI>
+                            <DOI name="TmMult" desc="Time multiplier">
+                                <DAI name="setMag">
+                                    <Val>1.0</Val>
+                                </DAI>
+                            </DOI>
+                        </LN>
+                        <LN prefix="" lnClass="GGIO" inst="1" lnType="GGIO" desc="Generic I/O">
+                            <DOI name="Ind1" desc="Indicator 1">
+                                <DAI name="stVal">
+                                    <Val>false</Val>
+                                </DAI>
+                            </DOI>
+                            <DOI name="Ind2" desc="Indicator 2">
+                                <DAI name="stVal">
+                                    <Val>true</Val>
+                                </DAI>
+                            </DOI>
+                            <DOI name="SPCSO1" desc="Control output 1">
+                                <DAI name="stVal">
+                                    <Val>false</Val>
+                                </DAI>
+                            </DOI>
+                        </LN>
+                    </LDevice>
+                </Server>
+            </AccessPoint>
+            <AccessPoint name="M1">
+                <Server>
+                    <LDevice inst="LDevice2" ldName="SampleIED/LD2">
+                        <LN0 prefix="" lnClass="LLN0" inst="" lnType="LLN0_M1" desc="Logical Node Zero M1">
+                            <DOI name="Mod" desc="Mode">
+                                <DAI name="stVal">
+                                    <Val>on</Val>
+                                </DAI>
+                            </DOI>
+                        </LN0>
+                        <LN prefix="" lnClass="MSVC" inst="1" lnType="MSVC" desc="Sampled Values">
+                            <DOI name="SvCB" desc="SV Control Block">
+                                <DAI name="SvEna">
+                                    <Val>true</Val>
+                                </DAI>
+                            </DOI>
+                        </LN>
+                        <LN prefix="" lnClass="LGOS" inst="1" lnType="LGOS" desc="GOOSE Output 1">
+                            <DOI name="GoCB1" desc="GOOSE Control Block 1">
+                                <DAI name="GoEna">
+                                    <Val>true</Val>
+                                </DAI>
+                                <DAI name="GoID">
+                                    <Val>GOOSE1</Val>
+                                </DAI>
+                                <DAI name="ConfRev">
+                                    <Val>1</Val>
+                                </DAI>
+                            </DOI>
+                        </LN>
+                        <LN prefix="" lnClass="LGOS" inst="2" lnType="LGOS" desc="GOOSE Output 2">
+                            <DOI name="GoCB2" desc="GOOSE Control Block 2">
+                                <DAI name="GoEna">
+                                    <Val>true</Val>
+                                </DAI>
+                                <DAI name="GoID">
+                                    <Val>GOOSE2</Val>
+                                </DAI>
+                                <DAI name="ConfRev">
+                                    <Val>1</Val>
+                                </DAI>
+                            </DOI>
+                        </LN>
+                    </LDevice>
+                </Server>
+            </AccessPoint>
+        </Services>
+    </IED>
+    <DataTypeTemplates>
+        <LNodeType id="LLN0" lnClass="LLN0">
+            <DO name="Mod" type="INC" desc="Mode"/>
+            <DO name="Beh" type="INS" desc="Behaviour"/>
+            <DO name="Health" type="INS" desc="Health"/>
+            <DO name="NamPlt" type="LPL" desc="Name plate"/>
+        </LNodeType>
+        <LNodeType id="LLN0_M1" lnClass="LLN0">
+            <DO name="Mod" type="INC" desc="Mode"/>
+        </LNodeType>
+        <LNodeType id="MMXU" lnClass="MMXU">
+            <DO name="TotW" type="MV" desc="Total active power"/>
+            <DO name="TotVAr" type="MV" desc="Total reactive power"/>
+            <DO name="Hz" type="MV" desc="Frequency"/>
+        </LNodeType>
+        <LNodeType id="PDIS" lnClass="PDIS">
+            <DO name="Str" type="SPS" desc="Start"/>
+            <DO name="Op" type="SPS" desc="Operate"/>
+            <DO name="BlkZn" type="ASG" desc="Block zone"/>
+        </LNodeType>
+        <LNodeType id="PTOC" lnClass="PTOC">
+            <DO name="Str" type="SPS" desc="Start"/>
+            <DO name="Op" type="SPS" desc="Operate"/>
+            <DO name="StrVal" type="ASG" desc="Start value"/>
+            <DO name="TmMult" type="ASG" desc="Time multiplier"/>
+        </LNodeType>
+        <LNodeType id="GGIO" lnClass="GGIO">
+            <DO name="Ind1" type="SPS" desc="Indicator 1"/>
+            <DO name="Ind2" type="SPS" desc="Indicator 2"/>
+            <DO name="SPCSO1" type="SPC" desc="Control output 1"/>
+        </LNodeType>
+        <LNodeType id="MSVC" lnClass="MSVC">
+            <DO name="SvCB" type="SVC" desc="SV Control Block"/>
+        </LNodeType>
+        <DOType id="INC" cdc="INC">
+            <DA name="stVal" bType="INT32" fc="ST"/>
+            <DA name="q" bType="Quality" fc="ST"/>
+            <DA name="t" bType="Timestamp" fc="ST"/>
+            <DA name="ctlVal" bType="INT32" fc="CO"/>
+        </DOType>
+        <DOType id="INS" cdc="INS">
+            <DA name="stVal" bType="INT32" fc="ST"/>
+            <DA name="q" bType="Quality" fc="ST"/>
+            <DA name="t" bType="Timestamp" fc="ST"/>
+        </DOType>
+        <DOType id="SPS" cdc="SPS">
+            <DA name="stVal" bType="BOOLEAN" fc="ST"/>
+            <DA name="q" bType="Quality" fc="ST"/>
+            <DA name="t" bType="Timestamp" fc="ST"/>
+        </DOType>
+        <DOType id="MV" cdc="MV">
+            <DA name="mag" bType="FLOAT32" fc="MX"/>
+            <DA name="q" bType="Quality" fc="MX"/>
+            <DA name="t" bType="Timestamp" fc="MX"/>
+        </DOType>
+        <DOType id="ASG" cdc="ASG">
+            <DA name="setMag" bType="FLOAT32" fc="SG"/>
+        </DOType>
+        <DOType id="LPL" cdc="LPL">
+            <DA name="vendor" bType="VISIBLE_STRING" fc="EX"/>
+            <DA name="swRev" bType="VISIBLE_STRING" fc="EX"/>
+            <DA name="d" bType="VISIBLE_STRING" fc="DC"/>
+        </DOType>
+        <DOType id="SPC" cdc="SPC">
+            <DA name="stVal" bType="BOOLEAN" fc="ST"/>
+            <DA name="q" bType="Quality" fc="ST"/>
+            <DA name="t" bType="Timestamp" fc="ST"/>
+            <DA name="ctlVal" bType="BOOLEAN" fc="CO"/>
+        </DOType>
+        <DOType id="SVC" cdc="SVC">
+            <DA name="SvEna" bType="BOOLEAN" fc="CF"/>
+            <DA name="SvID" bType="VISIBLE_STRING" fc="CF"/>
+        </DOType>
+    </DataTypeTemplates>
+</SCL>

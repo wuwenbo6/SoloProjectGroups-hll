@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RTSP WebRTC 目标跟踪系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.8;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .controls {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .control-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .control-row:last-child {
+            margin-bottom: 0;
+        }
+
+        input, select, button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        input, select {
+            background: #0f3460;
+            color: #fff;
+            border: 1px solid #533483;
+            min-width: 200px;
+        }
+
+        input:focus, select:focus {
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        button.success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .streams-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .stream-card {
+            background: #16213e;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+
+        .stream-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stream-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stream-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .stream-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #00f2fe;
+            color: #16213e;
+        }
+
+        .status-inactive {
+            background: #f5576c;
+            color: white;
+        }
+
+        .video-container {
+            position: relative;
+            background: #000;
+            aspect-ratio: 16/9;
+        }
+
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .canvas-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .selection-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .stream-actions {
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .stream-info {
+            padding: 0 15px 15px;
+            font-size: 12px;
+            color: #8892b0;
+        }
+
+        .stream-info span {
+            margin-right: 15px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #8892b0;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #16213e;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+        }
+
+        .modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .tracking-controls {
+            padding: 15px;
+            border-top: 1px solid #0f3460;
+        }
+
+        .tracking-list {
+            margin-top: 10px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .tracking-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: #0f3460;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #667eea;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: #16213e;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 2000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            border-left: 4px solid #00f2fe;
+        }
+
+        .toast.error {
+            border-left: 4px solid #f5576c;
+        }
+
+        .export-section {
+            padding: 15px;
+            border-top: 1px solid #0f3460;
+        }
+
+        .export-section h4 {
+            font-size: 13px;
+            margin-bottom: 10px;
+            color: #8892b0;
+        }
+
+        .export-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .export-controls select,
+        .export-controls input {
+            min-width: 80px;
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        .export-controls button {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .export-list {
+            margin-top: 10px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .export-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: #0f3460;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            font-size: 11px;
+        }
+
+        .export-item .progress {
+            width: 60px;
+            height: 6px;
+            background: #1a1a2e;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .export-item .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s;
+        }
+
+        .status-badge {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .status-processing {
+            background: #ffc107;
+            color: #16213e;
+        }
+
+        .status-completed {
+            background: #00f2fe;
+            color: #16213e;
+        }
+
+        .status-failed {
+            background: #f5576c;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎥 RTSP WebRTC 智能目标跟踪系统</h1>
+        <p>多路视频流实时跟踪 · CSRT+卡尔曼滤波 · 轨迹记录 · 视频导出</p>
+    </div>
+
+    <div class="container">
+        <div class="controls">
+            <div class="control-row">
+                <button onclick="openAddModal()">➕ 添加视频流</button>
+                <button onclick="refreshStreams()">🔄 刷新列表</button>
+            </div>
+        </div>
+
+        <div class="streams-grid" id="streamsGrid">
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 7l-7 5 7 5V7z"/>
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                </svg>
+                <p>暂无视频流，点击上方按钮添加</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="addModal">
+        <div class="modal-content">
+            <h3>添加视频流</h3>
+            <div class="modal-form">
+                <input type="text" id="streamName" placeholder="流名称 (如: 监控摄像头1)">
+                <input type="text" id="streamUrl" placeholder="RTSP 地址 (如: rtsp://192.168.1.100:554/stream)">
+                <div class="modal-buttons">
+                    <button onclick="closeAddModal()" style="background: #555;">取消</button>
+                    <button onclick="addStream()" class="success">添加</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API_BASE = '/api';
+        const peerConnections = {};
+        const selectionState = {};
+
+        async function fetchAPI(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: { 'Content-Type': 'application/json' },
+                    ...options
+                });
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    throw new Error(error.detail || '请求失败');
+                }
+                return response.json();
+            } catch (error) {
+                showToast(error.message, 'error');
+                throw error;
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function openAddModal() {
+            document.getElementById('addModal').classList.add('active');
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').classList.remove('active');
+            document.getElementById('streamName').value = '';
+            document.getElementById('streamUrl').value = '';
+        }
+
+        async function addStream() {
+            const name = document.getElementById('streamName').value.trim();
+            const url = document.getElementById('streamUrl').value.trim();
+            
+            if (!name || !url) {
+                showToast('请填写完整信息', 'error');
+                return;
+            }
+
+            try {
+                await fetchAPI('/streams', {
+                    method: 'POST',
+                    body: JSON.stringify({ name, rtsp_url: url })
+                });
+                showToast('流添加成功');
+                closeAddModal();
+                refreshStreams();
+            } catch (e) {}
+        }
+
+        async function refreshStreams() {
+            try {
+                const streams = await fetchAPI('/streams');
+                renderStreams(streams);
+            } catch (e) {}
+        }
+
+        function renderStreams(streams) {
+            const grid = document.getElementById('streamsGrid');
+            
+            if (streams.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M23 7l-7 5 7 5V7z"/>
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                        </svg>
+                        <p>暂无视频流，点击上方按钮添加</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = streams.map(stream => `
+                <div class="stream-card" id="stream-${stream.id}">
+                    <div class="stream-header">
+                        <span class="stream-title">${escapeHtml(stream.name)}</span>
+                        <span class="stream-status ${stream.is_active ? 'status-active' : 'status-inactive'}">
+                            ${stream.is_active ? '● 运行中' : '○ 已停止'}
+                        </span>
+                    </div>
+                    <div class="video-container" data-stream-id="${stream.id}">
+                        <video id="video-${stream.id}" autoplay playsinline muted></video>
+                        <canvas class="canvas-overlay" id="canvas-${stream.id}"></canvas>
+                        <div class="selection-overlay" data-stream-id="${stream.id}"></div>
+                    </div>
+                    <div class="stream-actions">
+                        <button onclick="startStream(${stream.id})" class="success">▶ 开始</button>
+                        <button onclick="stopStream(${stream.id})" class="danger">⏹ 停止</button>
+                        <button onclick="startWebRTC(${stream.id})">📡 WebRTC</button>
+                        <button onclick="deleteStream(${stream.id})" class="danger">🗑 删除</button>
+                    </div>
+                    <div class="tracking-controls">
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <span style="font-size: 13px;">🎯 框选目标后开始跟踪:</span>
+                            <button onclick="enableSelection(${stream.id})" style="padding: 6px 12px; font-size: 12px;">✏ 选择目标</button>
+                        </div>
+                        <div class="tracking-list" id="tracking-${stream.id}"></div>
+                    </div>
+                    <div class="export-section">
+                        <h4>📹 视频导出 (最近120秒缓冲)</h4>
+                        <div class="export-controls">
+                            <select id="export-duration-${stream.id}">
+                                <option value="10">导出最近10秒</option>
+                                <option value="30" selected>导出最近30秒</option>
+                                <option value="60">导出最近60秒</option>
+                                <option value="120">导出最近120秒</option>
+                            </select>
+                            <button onclick="exportVideo(${stream.id})" style="padding: 6px 12px; font-size: 12px;">⬇ 导出</button>
+                            <button onclick="refreshExports(${stream.id})" style="padding: 6px 12px; font-size: 12px; background: #555;">🔄</button>
+                        </div>
+                        <div class="export-list" id="exports-${stream.id}"></div>
+                    </div>
+                    <div class="stream-info" id="info-${stream.id}">
+                        <span>ID: ${stream.id}</span>
+                        <span>FPS: 0</span>
+                        <span>跟踪目标: 0</span>
+                        <span>WebRTC: 0</span>
+                    </div>
+                </div>
+            `).join('');
+
+            streams.forEach(stream => {
+                setupSelectionOverlay(stream.id);
+                if (stream.is_active) {
+                    updateStreamStatus(stream.id);
+                }
+            });
+        }
+
+        function setupSelectionOverlay(streamId) {
+            const container = document.querySelector(`.video-container[data-stream-id="${streamId}"]`);
+            if (!container) return;
+            
+            const overlay = container.querySelector('.selection-overlay');
+            if (!overlay) return;
+
+            let isSelecting = false;
+            let startX, startY;
+
+            overlay.addEventListener('mousedown', (e) => {
+                if (!selectionState[streamId]?.enabled) return;
+                
+                isSelecting = true;
+                const rect = overlay.getBoundingClientRect();
+                startX = e.clientX - rect.left;
+                startY = e.clientY - rect.top;
+                
+                const box = document.createElement('div');
+                box.id = 'selection-box';
+                box.style.cssText = `
+                    position: absolute;
+                    border: 2px dashed #00ff00;
+                    background: rgba(0, 255, 0, 0.2);
+                    left: ${startX}px;
+                    top: ${startY}px;
+                    pointer-events: none;
+                `;
+                overlay.appendChild(box);
+            });
+
+            overlay.addEventListener('mousemove', (e) => {
+                if (!isSelecting) return;
+                
+                const rect = overlay.getBoundingClientRect();
+                const currentX = e.clientX - rect.left;
+                const currentY = e.clientY - rect.top;
+                
+                const box = document.getElementById('selection-box');
+                if (box) {
+                    box.style.left = Math.min(startX, currentX) + 'px';
+                    box.style.top = Math.min(startY, currentY) + 'px';
+                    box.style.width = Math.abs(currentX - startX) + 'px';
+                    box.style.height = Math.abs(currentY - startY) + 'px';
+                }
+            });
+
+            overlay.addEventListener('mouseup', (e) => {
+                if (!isSelecting) return;
+                isSelecting = false;
+                
+                const box = document.getElementById('selection-box');
+                if (box) {
+                    const rect = overlay.getBoundingClientRect();
+                    const endX = e.clientX - rect.left;
+                    const endY = e.clientY - rect.top;
+                    
+                    const x = Math.min(startX, endX);
+                    const y = Math.min(startY, endY);
+                    const width = Math.abs(endX - startX);
+                    const height = Math.abs(endY - startY);
+                    
+                    if (width > 20 && height > 20) {
+                        const scaleX = 640 / rect.width;
+                        const scaleY = 480 / rect.height;
+                        initTracking(streamId, 
+                            Math.round(x * scaleX),
+                            Math.round(y * scaleY),
+                            Math.round(width * scaleX),
+                            Math.round(height * scaleY)
+                        );
+                    }
+                    
+                    box.remove();
+                }
+                
+                selectionState[streamId].enabled = false;
+            });
+        }
+
+        function enableSelection(streamId) {
+            if (!selectionState[streamId]) {
+                selectionState[streamId] = {};
+            }
+            selectionState[streamId].enabled = true;
+            showToast('请在视频上框选要跟踪的目标');
+        }
+
+        async function initTracking(streamId, x, y, width, height) {
+            try {
+                const result = await fetchAPI(`/streams/${streamId}/track`, {
+                    method: 'POST',
+                    body: JSON.stringify({ stream_id: streamId, x, y, width, height, label: 'target' })
+                });
+                showToast(`跟踪已启动，目标ID: ${result.object_id}`);
+                updateTrackingList(streamId);
+            } catch (e) {}
+        }
+
+        async function updateTrackingList(streamId) {
+            try {
+                const result = await fetchAPI(`/streams/${streamId}/track`);
+                const container = document.getElementById(`tracking-${streamId}`);
+                if (container && result.boxes) {
+                    container.innerHTML = result.boxes.map(box => `
+                        <div class="tracking-item">
+                            <span>${box.label} (${box.object_id})</span>
+                            <button onclick="stopTracking(${streamId}, '${box.object_id}')" 
+                                    style="padding: 4px 8px; font-size: 10px;">移除</button>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) {}
+        }
+
+        async function stopTracking(streamId, objectId) {
+            try {
+                await fetchAPI(`/streams/${streamId}/track/${objectId}`, {
+                    method: 'DELETE'
+                });
+                showToast('跟踪已停止');
+                updateTrackingList(streamId);
+            } catch (e) {}
+        }
+
+        async function startStream(streamId) {
+            try {
+                await fetchAPI(`/streams/${streamId}/start`, { method: 'POST' });
+                showToast('流已启动');
+                updateStreamStatus(streamId);
+            } catch (e) {}
+        }
+
+        async function stopStream(streamId) {
+            try {
+                if (peerConnections[streamId]) {
+                    peerConnections[streamId].close();
+                    delete peerConnections[streamId];
+                }
+                await fetchAPI(`/streams/${streamId}/stop`, { method: 'POST' });
+                showToast('流已停止');
+                refreshStreams();
+            } catch (e) {}
+        }
+
+        async function deleteStream(streamId) {
+            if (!confirm('确定要删除这个视频流吗？')) return;
+            
+            try {
+                if (peerConnections[streamId]) {
+                    peerConnections[streamId].close();
+                    delete peerConnections[streamId];
+                }
+                await fetchAPI(`/streams/${streamId}`, { method: 'DELETE' });
+                showToast('流已删除');
+                refreshStreams();
+            } catch (e) {}
+        }
+
+        async function startWebRTC(streamId) {
+            const video = document.getElementById(`video-${streamId}`);
+            if (!video) return;
+
+            if (peerConnections[streamId]) {
+                peerConnections[streamId].close();
+            }
+
+            const pc = new RTCPeerConnection({
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            });
+
+            peerConnections[streamId] = pc;
+
+            pc.ontrack = (event) => {
+                video.srcObject = event.streams[0];
+            };
+
+            pc.oniceconnectionstatechange = () => {
+                if (pc.iceConnectionState === 'connected') {
+                    showToast('WebRTC 连接成功');
+                }
+            };
+
+            try {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                const answer = await fetchAPI(`/streams/${streamId}/webrtc/offer`, {
+                    method: 'POST',
+                    body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
+                });
+
+                await pc.setRemoteDescription(
+                    new RTCSessionDescription({ sdp: answer.sdp, type: answer.type })
+                );
+            } catch (e) {
+                console.error('WebRTC error:', e);
+            }
+        }
+
+        async function updateStreamStatus(streamId) {
+            try {
+                const status = await fetchAPI(`/streams/${streamId}/status`);
+                const info = document.getElementById(`info-${streamId}`);
+                if (info) {
+                    const latency = Math.round(status.latency_ms || 0);
+                    const latencyColor = latency > 200 ? '#f5576c' : latency > 100 ? '#ffc107' : '#00f2fe';
+                    info.innerHTML = `
+                        <span>ID: ${streamId}</span>
+                        <span>FPS: ${status.fps}</span>
+                        <span style="color: ${latencyColor};">延迟: ${latency}ms</span>
+                        <span>跟踪目标: ${status.tracking_count}</span>
+                        <span>WebRTC: ${status.webrtc_connections}</span>
+                        <span>算法: ${status.tracker_type || 'N/A'}</span>
+                    `;
+                }
+                
+                if (status.tracking_count > 0) {
+                    updateTrackingList(streamId);
+                }
+                
+                if (status.is_running) {
+                    setTimeout(() => updateStreamStatus(streamId), 2000);
+                }
+            } catch (e) {}
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function exportVideo(streamId) {
+            const durationSelect = document.getElementById(`export-duration-${streamId}`);
+            const duration = parseInt(durationSelect.value);
+
+            try {
+                const result = await fetchAPI(`/streams/${streamId}/export`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        stream_id: streamId,
+                        duration_seconds: duration,
+                        draw_boxes: true,
+                        draw_trajectory: true
+                    })
+                });
+
+                showToast(`导出任务已创建: ${result.export_id}`);
+                refreshExports(streamId);
+                
+                pollExportStatus(streamId, result.export_id);
+            } catch (e) {}
+        }
+
+        async function pollExportStatus(streamId, exportId) {
+            for (let i = 0; i < 60; i++) {
+                try {
+                    const status = await fetchAPI(`/streams/${streamId}/export/${exportId}`);
+                    refreshExports(streamId);
+                    
+                    if (status.status === 'completed') {
+                        showToast(`导出完成: ${status.filename}`);
+                        return;
+                    } else if (status.status === 'failed') {
+                        showToast(`导出失败: ${status.error}`, 'error');
+                        return;
+                    }
+                    
+                    await new Promise(r => setTimeout(r, 1000));
+                } catch (e) {
+                    return;
+                }
+            }
+        }
+
+        async function refreshExports(streamId) {
+            try {
+                const result = await fetchAPI(`/streams/${streamId}/exports`);
+                const container = document.getElementById(`exports-${streamId}`);
+                
+                if (!container || !result.exports || result.exports.length === 0) {
+                    if (container) {
+                        container.innerHTML = '<div style="font-size: 11px; color: #8892b0;">暂无导出记录</div>';
+                    }
+                    return;
+                }
+
+                container.innerHTML = result.exports.map(exp => {
+                    const statusClass = `status-${exp.status}`;
+                    const progressBar = exp.status === 'processing' 
+                        ? `<div class="progress"><div class="progress-bar" style="width: ${exp.progress}%"></div></div>`
+                        : '';
+                    
+                    const downloadLink = exp.status === 'completed' && exp.filename
+                        ? `<a href="/exports/${streamId}/${exp.filename}" download style="color: #667eea; text-decoration: none;">⬇ 下载</a>`
+                        : '';
+
+                    return `
+                        <div class="export-item">
+                            <span>${exp.export_id.slice(0, 20)}</span>
+                            ${progressBar}
+                            <span class="status-badge ${statusClass}">${exp.status}</span>
+                            ${exp.frame_count ? `<span>${exp.frame_count}帧</span>` : ''}
+                            ${downloadLink}
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {}
+        }
+
+        refreshStreams();
+    </script>
+</body>
+</html>

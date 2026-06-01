@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+frontend/dist/
+backend/dist/
+
+# Database
+backend/data/*.db
+backend/data/*.db-journal
+
+# Backups
+backend/backups/*
+!backend/backups/.gitkeep
+
+# Mounts
+backend/mounts/*
+!backend/mounts/.gitkeep
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local

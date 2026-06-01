@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FM Radio Player</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <h1>📻 FM Radio Player</h1>
+      <div class="header-status">
+        <div class="status-indicator">
+          <span id="statusDot" class="status-dot"></span>
+          <span id="statusText">就绪</span>
+        </div>
+        <div class="signal-indicator" id="signalIndicator" style="display: none;">
+          <span class="signal-label">信号:</span>
+          <div class="signal-bars">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+          </div>
+          <span id="silentIndicator" class="silent-badge" style="display: none;">静音</span>
+        </div>
+        <div class="recording-indicator" id="recordingIndicator" style="display: none;">
+          <span class="rec-dot"></span>
+          <span id="recTime">00:00</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <section class="player-section">
+        <div class="radio-display">
+          <div class="frequency-display">
+            <span id="currentFrequency">--.-</span>
+            <span class="mhz">MHz</span>
+          </div>
+          <div class="station-info">
+            <div id="stationName" class="station-name">等待调谐...</div>
+            <div id="programType" class="program-type"></div>
+          </div>
+        </div>
+
+        <div class="spectrum-container">
+          <canvas id="spectrumCanvas" class="spectrum-canvas"></canvas>
+          <div class="spectrum-labels">
+            <span>20Hz</span>
+            <span>1kHz</span>
+            <span>10kHz</span>
+            <span>20kHz</span>
+          </div>
+        </div>
+
+        <div class="frequency-control">
+          <label for="frequencyInput">频率 (MHz)</label>
+          <div class="input-group">
+            <input 
+              type="number" 
+              id="frequencyInput" 
+              min="87.5" 
+              max="108" 
+              step="0.1" 
+              value="95.0"
+            >
+            <button id="tuneBtn" class="btn btn-primary">调谐</button>
+          </div>
+        </div>
+
+        <div class="quick-frequencies">
+          <span class="quick-label">快速选择:</span>
+          <div class="freq-buttons" id="quickFreqButtons">
+          </div>
+        </div>
+
+        <div class="player-controls">
+          <button id="playBtn" class="btn btn-play">
+            <span class="play-icon">▶</span>
+            <span class="play-text">播放</span>
+          </button>
+          <button id="stopBtn" class="btn btn-stop" disabled>
+            <span class="stop-icon">⏹</span>
+            <span class="stop-text">停止</span>
+          </button>
+        </div>
+
+        <div class="recording-section">
+          <h3>🎙️ 录音控制</h3>
+          <div class="recording-controls">
+            <button id="recordBtn" class="btn btn-record" disabled>
+              <span>●</span> 开始录音
+            </button>
+            <button id="pauseRecordBtn" class="btn btn-pause-record" disabled style="display: none;">
+              <span>⏸</span> 暂停
+            </button>
+            <button id="stopRecordBtn" class="btn btn-stop-record" disabled style="display: none;">
+              <span>⏹</span> 停止
+            </button>
+          </div>
+          
+          <div class="timer-section">
+            <label>定时录音:</label>
+            <div class="timer-controls">
+              <select id="timerPreset" class="timer-select">
+                <option value="0">无定时</option>
+              </select>
+              <button id="startTimerBtn" class="btn btn-small btn-timer" disabled>
+                ⏱️ 开始定时
+              </button>
+            </div>
+            <div id="timerDisplay" class="timer-display" style="display: none;">
+              剩余时间: <span id="timerRemaining">00:00</span>
+              <div class="timer-progress-bar">
+                <div class="timer-progress-fill" id="timerProgressFill"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="output-dir-section">
+            <label>保存目录:</label>
+            <div class="dir-control">
+              <span id="outputDirPath" class="dir-path">默认目录</span>
+              <button id="changeDirBtn" class="btn btn-small">选择</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="audio-settings">
+          <h3>🔊 音频设置</h3>
+          <div class="setting-item">
+            <label for="noiseThreshold">噪声门限:</label>
+            <div class="setting-control">
+              <input type="range" id="noiseThreshold" min="100" max="2000" step="50" value="300">
+              <span id="thresholdValue">300</span>
+            </div>
+          </div>
+          <div class="setting-hint">
+            提高门限可减少弱信号时的背景噪声
+          </div>
+        </div>
+
+        <div class="stream-url">
+          <label>流媒体地址:</label>
+          <div class="url-display">
+            <code id="streamUrl">http://localhost:8080/stream.aac</code>
+            <button id="copyUrlBtn" class="btn btn-small">复制</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="scanner-section">
+        <div class="section-header">
+          <h2>🔍 频率扫描</h2>
+          <div class="scan-controls">
+            <button id="scanBtn" class="btn btn-scan">开始扫描</button>
+            <button id="stopScanBtn" class="btn btn-danger" disabled>停止扫描</button>
+          </div>
+        </div>
+
+        <div class="scan-range">
+          <div class="range-input">
+            <label>起始频率</label>
+            <input type="number" id="startFreq" min="87.5" max="108" step="0.1" value="87.5">
+          </div>
+          <div class="range-input">
+            <label>结束频率</label>
+            <input type="number" id="endFreq" min="87.5" max="108" step="0.1" value="108.0">
+          </div>
+          <div class="range-input">
+            <label>步进 (MHz)</label>
+            <input type="number" id="scanStep" min="0.1" max="1" step="0.1" value="0.1">
+          </div>
+        </div>
+
+        <div class="scan-progress" id="scanProgress" style="display: none;">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-text">
+            正在扫描: <span id="scanningFreq">--.-</span> MHz
+            | 已发现: <span id="foundCount">0</span> 个电台
+          </div>
+        </div>
+
+        <div class="stations-list">
+          <h3>发现的电台</h3>
+          <div id="stationsContainer" class="stations-container">
+            <div class="empty-state">
+              <p>点击"开始扫描"来搜索可用的FM电台</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="metadata-section">
+        <h2>📡 RDS 元数据</h2>
+        <div class="metadata-grid">
+          <div class="metadata-item">
+            <label>电台名称</label>
+            <div id="metaStationName" class="meta-value">-</div>
+          </div>
+          <div class="metadata-item">
+            <label>节目类型</label>
+            <div id="metaProgramType" class="meta-value">-</div>
+          </div>
+          <div class="metadata-item full-width">
+            <label>广播文本</label>
+            <div id="metaRadioText" class="meta-value">-</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="stats-section">
+        <h2>📊 接收统计</h2>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <label>RDS 分组总数</label>
+            <div id="statTotalGroups" class="stat-value">0</div>
+          </div>
+          <div class="stat-item">
+            <label>有效分组</label>
+            <div id="statValidGroups" class="stat-value stat-valid">0</div>
+          </div>
+          <div class="stat-item">
+            <label>错误分组</label>
+            <div id="statInvalidGroups" class="stat-value stat-invalid">0</div>
+          </div>
+          <div class="stat-item">
+            <label>错误率</label>
+            <div id="statErrorRate" class="stat-value">0%</div>
+          </div>
+        </div>
+        <div class="error-details" id="errorDetails" style="display: none;">
+          <h4>错误类型分布:</h4>
+          <div id="errorList" class="error-list"></div>
+        </div>
+      </section>
+
+      <section class="recordings-section">
+        <h2>💾 录音文件</h2>
+        <div class="recordings-header">
+          <button id="refreshRecordingsBtn" class="btn btn-small">
+            🔄 刷新列表
+          </button>
+        </div>
+        <div id="recordingsContainer" class="recordings-container">
+          <div class="empty-state">
+            <p>暂无录音文件</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <p>RTL-SDR FM Radio Player | 支持录音、定时、频谱分析和 RDS 解码</p>
+    </footer>
+  </div>
+
+  <audio id="audioPlayer" style="display: none;"></audio>
+  
+  <script src="app.js"></script>
+</body>
+</html>

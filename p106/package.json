@@ -1,0 +1,21 @@
+{
+  "name": "fm-radio-player",
+  "version": "1.0.0",
+  "description": "FM Radio Player with RTL-SDR, AAC encoding and RDS metadata",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": ["electron", "rtl-sdr", "fm", "radio", "rds", "aac"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "fluent-ffmpeg": "^2.1.2",
+    "wav": "^1.0.2"
+  }
+}

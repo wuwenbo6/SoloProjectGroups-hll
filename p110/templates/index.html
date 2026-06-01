@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IED ICD/CID 编辑器</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>变电站IED ICD/CID 文件编辑器</h1>
+            <div class="header-actions">
+                <button id="scdMergeBtn" class="btn btn-secondary">SCD合并</button>
+                <button id="svConfigBtn" class="btn btn-secondary">SV配置</button>
+                <button id="reportBtn" class="btn btn-secondary">导出报告</button>
+                <button id="loadTemplateBtn" class="btn btn-secondary">加载模板</button>
+                <button id="saveTemplateBtn" class="btn btn-secondary">保存模板</button>
+                <button id="exportBtn" class="btn btn-primary">导出CID</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <aside class="sidebar">
+                <div class="upload-section">
+                    <h2>文件上传</h2>
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="fileInput" accept=".icd,.xml,.cid" hidden>
+                        <div class="upload-icon">📁</div>
+                        <p>拖拽ICD文件到此处或点击上传</p>
+                        <button class="btn btn-outline" onclick="document.getElementById('fileInput').click()">选择文件</button>
+                    </div>
+                    <div id="fileInfo" class="file-info hidden">
+                        <p><strong>当前文件:</strong> <span id="currentFilename"></span></p>
+                    </div>
+                </div>
+
+                <div class="template-list hidden" id="templateList">
+                    <h3>已保存模板</h3>
+                    <div id="templateItems"></div>
+                </div>
+
+                <div class="ied-info hidden" id="iedInfo">
+                    <h2>IED 信息</h2>
+                    <div class="info-group">
+                        <label>IED 名称:</label>
+                        <input type="text" id="iedName" class="editable">
+                    </div>
+                    <div class="info-group">
+                        <label>类型:</label>
+                        <span id="iedType"></span>
+                    </div>
+                    <div class="info-group">
+                        <label>制造商:</label>
+                        <span id="iedManufacturer"></span>
+                    </div>
+                    <div class="info-group">
+                        <label>描述:</label>
+                        <input type="text" id="iedDesc" class="editable">
+                    </div>
+                </div>
+            </aside>
+
+            <main class="content">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="visualization">图形化视图</button>
+                    <button class="tab-btn" data-tab="xml">XML 视图</button>
+                </div>
+
+                <div class="tab-content">
+                    <div id="visualizationTab" class="tab-pane active">
+                        <div class="toolbar">
+                            <input type="text" id="searchInput" placeholder="搜索逻辑节点/数据对象...">
+                            <button id="expandAllBtn" class="btn btn-small">全部展开</button>
+                            <button id="collapseAllBtn" class="btn btn-small">全部折叠</button>
+                        </div>
+                        <div id="visualizationArea" class="visualization-area">
+                            <div class="empty-state">
+                                <div class="empty-icon">📊</div>
+                                <p>上传ICD文件后查看图形化展示</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="xmlTab" class="tab-pane">
+                        <div class="xml-editor">
+                            <textarea id="xmlContent" placeholder="XML内容将在这里显示..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <div id="editModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>编辑属性</h3>
+                    <button class="close-btn" onclick="closeModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="info-group">
+                        <label>属性名称:</label>
+                        <span id="editAttrName"></span>
+                    </div>
+                    <div class="info-group">
+                        <label>当前值:</label>
+                        <span id="editCurrentValue"></span>
+                    </div>
+                    <div class="info-group">
+                        <label>新值:</label>
+                        <input type="text" id="editNewValue">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                    <button class="btn btn-primary" onclick="applyEdit()">应用</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="templateModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>保存模板</h3>
+                    <button class="close-btn" onclick="closeTemplateModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="info-group">
+                        <label>模板名称:</label>
+                        <input type="text" id="templateName">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeTemplateModal()">取消</button>
+                    <button class="btn btn-primary" onclick="saveTemplate()">保存</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="scdMergeModal" class="modal hidden">
+            <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3>SCD合并 - 多ICD文件合并</h3>
+                    <button class="close-btn" onclick="closeScdMergeModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="info-group">
+                        <label>SCD名称:</label>
+                        <input type="text" id="scdName" value="Merged_SCD">
+                    </div>
+                    <div class="info-group">
+                        <label>选择ICD文件 (至少2个):</label>
+                        <input type="file" id="scdFileInput" multiple accept=".icd,.xml,.cid">
+                    </div>
+                    <div id="scdFileList" class="file-list"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeScdMergeModal()">取消</button>
+                    <button class="btn btn-primary" onclick="mergeSCD()">合并并导出SCD</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="svConfigModal" class="modal hidden">
+            <div class="modal-content" style="max-width: 700px;">
+                <div class="modal-header">
+                    <h3>SV采样值配置</h3>
+                    <button class="close-btn" onclick="closeSvConfigModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="svConfigList"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeSvConfigModal()">关闭</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="reportModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>导出报告</h3>
+                    <button class="close-btn" onclick="closeReportModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>选择报告格式:</p>
+                    <div style="margin: 1rem 0;">
+                        <button class="btn btn-outline" style="width: 100%; margin-bottom: 0.5rem;" onclick="exportReport('html')">
+                            📄 HTML格式报告
+                        </button>
+                        <button class="btn btn-outline" style="width: 100%;" onclick="exportReport('text')">
+                            📝 文本格式报告
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeReportModal()">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

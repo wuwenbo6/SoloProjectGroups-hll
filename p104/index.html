@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手势数字识别 - 0-9</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>✋ 手势数字识别</h1>
+            <p class="subtitle">使用摄像头实时识别手势数字 0-9</p>
+        </header>
+
+        <div class="main-content">
+            <div class="video-section">
+                <div class="video-container">
+                    <video id="video" autoplay playsinline muted></video>
+                    <canvas id="canvas" class="hidden"></canvas>
+                    <div id="loading-overlay" class="loading-overlay">
+                        <div class="spinner"></div>
+                        <p>加载模型中...</p>
+                    </div>
+                </div>
+                
+                <div class="result-display">
+                    <div class="result-label">当前手势</div>
+                    <div id="result" class="result-value">--</div>
+                    <div id="confidence" class="confidence">置信度: --%</div>
+                    <div class="fps-display" id="fpsDisplay">FPS: --</div>
+                </div>
+                
+                <div class="continuous-section">
+                    <div class="continuous-header">
+                        <span class="continuous-label">📝 连续拼写</span>
+                        <div class="continuous-controls">
+                            <button id="startContinuous" class="btn btn-small btn-primary" disabled>开始拼写</button>
+                            <button id="clearWord" class="btn btn-small btn-secondary">清空</button>
+                            <button id="backspace" class="btn btn-small btn-secondary">⌫ 退格</button>
+                            <button id="addSpace" class="btn btn-small btn-secondary">空格</button>
+                        </div>
+                    </div>
+                    <div class="word-display">
+                        <div id="currentWord" class="current-word"></div>
+                        <div class="cursor-blink"></div>
+                    </div>
+                    <div class="gesture-history" id="gestureHistory">
+                        <span class="history-label">手势序列:</span>
+                        <div id="historyContent" class="history-content">暂无</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <div class="section">
+                    <h3>📹 摄像头控制</h3>
+                    <button id="startCamera" class="btn btn-primary">启动摄像头</button>
+                    <button id="stopCamera" class="btn btn-secondary" disabled>停止摄像头</button>
+                    <button id="screenshot" class="btn btn-success" disabled>📸 保存截图</button>
+                </div>
+
+                <div class="section">
+                    <h3>🎯 识别控制</h3>
+                    <button id="startPredict" class="btn btn-primary" disabled>开始识别</button>
+                    <button id="stopPredict" class="btn btn-secondary" disabled>停止识别</button>
+                    <div class="control-group">
+                        <label for="smoothLevel" class="control-label">平滑程度:</label>
+                        <input type="range" id="smoothLevel" min="1" max="20" value="10" class="slider">
+                        <span id="smoothValue" class="slider-value">10</span>
+                    </div>
+                    <div class="control-group">
+                        <label for="confidenceThreshold" class="control-label">置信度阈值:</label>
+                        <input type="range" id="confidenceThreshold" min="0" max="100" value="60" class="slider">
+                        <span id="thresholdValue" class="slider-value">60%</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>📊 预测详情</h3>
+                    <div id="predictions" class="predictions-list">
+                        <div class="empty-state">暂无预测数据</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="training-section">
+            <h2>🧠 训练新手势</h2>
+            <div class="training-controls">
+                <div class="form-group">
+                    <label for="gestureName">手势名称/数字:</label>
+                    <input type="text" id="gestureName" placeholder="例如: 5 或 剪刀手">
+                </div>
+                <div class="form-group">
+                    <label>样本数量: <span id="sampleCount">0</span></label>
+                </div>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="useAugmentation" checked>
+                    <label for="useAugmentation">自动数据增强 (×5样本)</label>
+                </div>
+                <button id="addSample" class="btn btn-primary" disabled>➕ 添加样本</button>
+                <button id="trainModel" class="btn btn-warning" disabled>🚀 训练模型</button>
+                <div class="export-group">
+                    <button id="saveModel" class="btn btn-info" disabled>💾 TFJS 格式</button>
+                    <button id="exportWeights" class="btn btn-info" disabled>📊 导出权重</button>
+                    <button id="exportJSON" class="btn btn-info" disabled>📄 JSON 格式</button>
+                </div>
+                <button id="loadModel" class="btn btn-info">📂 加载模型</button>
+            </div>
+            
+            <div class="gesture-list">
+                <h4>已收集的手势:</h4>
+                <div id="gestureList" class="gesture-grid">
+                    <div class="empty-state">暂无手势数据</div>
+                </div>
+            </div>
+            
+            <div class="training-progress">
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+                <div id="trainingStatus">准备就绪</div>
+            </div>
+        </div>
+
+        <div id="toast" class="toast"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

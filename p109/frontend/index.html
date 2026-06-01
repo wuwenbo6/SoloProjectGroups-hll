@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BLE 室内定位系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin: 20px 0 10px;
+            color: #555;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        .map-container {
+            flex: 1;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #mapCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #666;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .beacon-list, .tag-list {
+            list-style: none;
+        }
+
+        .beacon-item, .tag-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .tag-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tag-info {
+            flex: 1;
+        }
+
+        .tag-name {
+            font-weight: 500;
+        }
+
+        .tag-position {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .confidence {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: #e9ecef;
+        }
+
+        .confidence.high {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .confidence.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .confidence.low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .fingerprint-form {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .fingerprint-form .control-group {
+            margin-bottom: 10px;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .row .control-group {
+            flex: 1;
+        }
+
+        .map-legend {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: rgba(255,255,255,0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 13px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .simulation-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .simulation-controls button {
+            flex: 1;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+        }
+
+        .checkbox-group label {
+            margin-bottom: 0;
+            cursor: pointer;
+        }
+
+        .enhanced-controls {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .noise-control {
+            margin-bottom: 15px;
+        }
+
+        .noise-control input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        .noise-value {
+            text-align: right;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .heatmap-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px 5px;
+            font-size: 12px;
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .tab-btn.active {
+            background: #007AFF;
+            color: white;
+        }
+
+        .heatmap-controls {
+            background: #f0f8ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .particle-dot {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 149, 0, 0.6);
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h1>BLE 室内定位系统</h1>
+        
+        <div id="connectionStatus" class="status disconnected">
+            状态: 未连接
+        </div>
+
+        <h2>楼层选择</h2>
+        <div class="control-group">
+            <select id="floorSelect">
+                <option value="1">1 楼</option>
+            </select>
+        </div>
+
+        <h2>指纹采集</h2>
+        <div class="fingerprint-form">
+            <div class="row">
+                <div class="control-group">
+                    <label>X 坐标</label>
+                    <input type="number" id="fpX" value="5" step="0.5">
+                </div>
+                <div class="control-group">
+                    <label>Y 坐标</label>
+                    <input type="number" id="fpY" value="5" step="0.5">
+                </div>
+            </div>
+            <div class="control-group">
+                <label>信标 MAC</label>
+                <input type="text" id="fpBeaconMac" value="AA:BB:CC:DD:EE:01">
+            </div>
+            <div class="control-group">
+                <label>RSSI 值</label>
+                <input type="number" id="fpRssi" value="-50">
+            </div>
+            <button onclick="addFingerprint()">添加指纹</button>
+        </div>
+
+        <h2>模拟 RSSI 数据</h2>
+        <div class="control-group">
+            <label>标签 ID</label>
+            <input type="text" id="simTagId" value="tag_001">
+        </div>
+        <div class="row">
+            <div class="control-group">
+                <label>模拟 X</label>
+                <input type="number" id="simX" value="5" step="0.5">
+            </div>
+            <div class="control-group">
+                <label>模拟 Y</label>
+                <input type="number" id="simY" value="5" step="0.5">
+            </div>
+        </div>
+        <div class="simulation-controls">
+            <button class="btn-success" onclick="sendSimulatedRSSI()">发送模拟数据</button>
+            <button class="btn-secondary" id="autoSimBtn" onclick="toggleAutoSimulation()">自动模拟</button>
+        </div>
+
+        <h2>增强定位功能</h2>
+        <div class="enhanced-controls">
+            <div class="checkbox-group">
+                <input type="checkbox" id="useRSSIPreprocessing" checked onchange="updatePositioningOptions()">
+                <label for="useRSSIPreprocessing">RSSI 预处理（异常值检测）</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="useKalman" checked onchange="updatePositioningOptions()">
+                <label for="useKalman">卡尔曼滤波（位置平滑）</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="useParticleFilter" onchange="updateParticleFilter()">
+                <label for="useParticleFilter">粒子滤波（追踪优化）</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="useInterpolation" checked onchange="updatePositioningOptions()">
+                <label for="useInterpolation">指纹插值（减少采点）</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="useCrowdsourcing" checked onchange="updatePositioningOptions()">
+                <label for="useCrowdsourcing">众包自动更新</label>
+            </div>
+            <button class="btn-secondary" style="width: 100%; margin-top: 10px;" onclick="applyInterpolation()">应用插值生成指纹</button>
+        </div>
+
+        <h2>自动指纹生成（仿真）</h2>
+        <div class="fingerprint-form">
+            <div class="row">
+                <div class="control-group">
+                    <label>网格间距</label>
+                    <input type="number" id="simGridSize" value="1" step="0.5" min="0.5">
+                </div>
+                <div class="control-group">
+                    <label>路径损耗指数</label>
+                    <input type="number" id="simPathLoss" value="2.5" step="0.1" min="1">
+                </div>
+            </div>
+            <div class="control-group">
+                <label>阴影衰落标准差</label>
+                <input type="number" id="simShadowing" value="4" step="0.5" min="0">
+            </div>
+            <div class="control-group">
+                <label>传播模型</label>
+                <select id="simMethod">
+                    <option value="logdistance">对数距离模型</option>
+                    <option value="raytracing">射线追踪（含墙体）</option>
+                </select>
+            </div>
+            <button class="btn-primary" style="width: 100%;" onclick="generateSimulatedFingerprints()">生成仿真指纹</button>
+        </div>
+
+        <h2>热力图</h2>
+        <div class="heatmap-controls">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="setHeatmapMode('none')">关闭</button>
+                <button class="tab-btn" onclick="setHeatmapMode('rssi')">RSSI 信号</button>
+                <button class="tab-btn" onclick="setHeatmapMode('error')">定位误差</button>
+            </div>
+            <div id="rssiHeatmapControls" style="display: none;">
+                <div class="control-group">
+                    <label>选择信标</label>
+                    <select id="heatmapBeacon">
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <button class="btn-secondary" style="flex: 1;" onclick="generateHeatmap()">生成热力图</button>
+                <button class="btn-success" style="flex: 1;" onclick="exportHeatmap()">导出 PPM</button>
+            </div>
+        </div>
+
+        <h2>环境干扰模拟</h2>
+        <div class="noise-control">
+            <label>RSSI 噪声强度</label>
+            <input type="range" id="noiseLevel" min="0" max="20" value="5" oninput="updateNoiseValue()">
+            <div class="noise-value" id="noiseValue">5 dB</div>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="enableBurstNoise">
+            <label for="enableBurstNoise">突发干扰（人员走动模拟）</label>
+        </div>
+
+        <h2>系统操作</h2>
+        <div class="simulation-controls">
+            <button class="btn-primary" onclick="initializeFingerprints()">初始化示例指纹</button>
+            <button class="btn-secondary" onclick="clearTrajectories()">清除轨迹</button>
+        </div>
+
+        <h2>信标列表</h2>
+        <ul id="beaconList" class="beacon-list"></ul>
+
+        <h2>活动标签</h2>
+        <ul id="tagList" class="tag-list"></ul>
+    </div>
+
+    <div class="main-content">
+        <div class="map-container">
+            <canvas id="mapCanvas"></canvas>
+            <canvas id="heatmapCanvas" class="heatmap-overlay"></canvas>
+            <div class="map-legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #007AFF;"></div>
+                    <span>BLE 信标</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FF3B30;"></div>
+                    <span>定位标签</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #34C759;"></div>
+                    <span>指纹采集点</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FF9500; opacity: 0.3;"></div>
+                    <span>轨迹路径</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgba(255, 149, 0, 0.6);"></div>
+                    <span>粒子分布</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        let ws = null;
+        let beacons = [];
+        let activeTags = new Map();
+        let trajectories = [];
+        let fingerprintLocations = [];
+        let autoSimulationInterval = null;
+        let autoSimRunning = false;
+        let useParticleFilter = false;
+        let currentHeatmapMode = 'none';
+        let currentHeatmap = null;
+        let particles = new Map();
+
+        const mapCanvas = document.getElementById('mapCanvas');
+        const ctx = mapCanvas.getContext('2d');
+        const heatmapCanvas = document.getElementById('heatmapCanvas');
+        const heatmapCtx = heatmapCanvas.getContext('2d');
+        const mapScale = 50;
+        const mapOffsetX = 50;
+        const mapOffsetY = 50;
+
+        function resizeCanvas() {
+            const container = mapCanvas.parentElement;
+            mapCanvas.width = container.clientWidth;
+            mapCanvas.height = container.clientHeight;
+            heatmapCanvas.width = container.clientWidth;
+            heatmapCanvas.height = container.clientHeight;
+            drawMap();
+            if (currentHeatmap) {
+                drawHeatmap(currentHeatmap);
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function initWebSocket() {
+            const statusEl = document.getElementById('connectionStatus');
+            
+            try {
+                ws = new WebSocket('ws://localhost:3000');
+                
+                ws.onopen = () => {
+                    statusEl.className = 'status connected';
+                    statusEl.textContent = '状态: 已连接';
+                };
+
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'position_update') {
+                        handlePositionUpdate(data);
+                    }
+                };
+
+                ws.onclose = () => {
+                    statusEl.className = 'status disconnected';
+                    statusEl.textContent = '状态: 未连接';
+                    setTimeout(initWebSocket, 3000);
+                };
+
+                ws.onerror = () => {
+                    statusEl.className = 'status disconnected';
+                    statusEl.textContent = '状态: 连接错误';
+                };
+            } catch (e) {
+                console.error('WebSocket error:', e);
+            }
+        }
+
+        async function loadBeacons() {
+            try {
+                const res = await fetch(`${API_BASE}/beacons`);
+                beacons = await res.json();
+                updateBeaconList();
+                drawMap();
+            } catch (e) {
+                console.error('Failed to load beacons:', e);
+            }
+        }
+
+        async function loadFingerprintLocations() {
+            try {
+                const floor = document.getElementById('floorSelect').value;
+                const res = await fetch(`${API_BASE}/fingerprint/locations?floor=${floor}`);
+                fingerprintLocations = await res.json();
+                drawMap();
+            } catch (e) {
+                console.error('Failed to load fingerprint locations:', e);
+            }
+        }
+
+        async function loadTrajectories() {
+            try {
+                const res = await fetch(`${API_BASE}/trajectories?limit=200`);
+                trajectories = await res.json();
+                drawMap();
+            } catch (e) {
+                console.error('Failed to load trajectories:', e);
+            }
+        }
+
+        function updateBeaconList() {
+            const listEl = document.getElementById('beaconList');
+            listEl.innerHTML = beacons.map(b => `
+                <li class="beacon-item">
+                    <strong>${b.name || b.id}</strong><br>
+                    MAC: ${b.mac_address}<br>
+                    位置: (${b.x}, ${b.y})
+                </li>
+            `).join('');
+        }
+
+        function updateTagList() {
+            const listEl = document.getElementById('tagList');
+            listEl.innerHTML = '';
+            
+            activeTags.forEach((tag, tagId) => {
+                const conf = tag.confidence || 0;
+                let confClass = 'low';
+                if (conf > 0.6) confClass = 'high';
+                else if (conf > 0.3) confClass = 'medium';
+
+                listEl.innerHTML += `
+                    <li class="tag-item">
+                        <div class="tag-info">
+                            <div class="tag-name">${tagId}</div>
+                            <div class="tag-position">
+                                位置: (${tag.x.toFixed(2)}, ${tag.y.toFixed(2)})
+                            </div>
+                        </div>
+                        <span class="confidence ${confClass}">
+                            ${(conf * 100).toFixed(0)}%
+                        </span>
+                    </li>
+                `;
+            });
+        }
+
+        function handlePositionUpdate(data) {
+            activeTags.set(data.tagId, data.position);
+            trajectories.push({
+                tag_id: data.tagId,
+                x: data.position.x,
+                y: data.position.y,
+                timestamp: data.timestamp
+            });
+            
+            if (trajectories.length > 500) {
+                trajectories = trajectories.slice(-500);
+            }
+
+            if (data.particles) {
+                particles.set(data.tagId, data.particles);
+            }
+
+            updateTagList();
+            drawMap();
+        }
+
+        function drawMap() {
+            ctx.clearRect(0, 0, mapCanvas.width, mapCanvas.height);
+            
+            ctx.fillStyle = '#fafafa';
+            ctx.fillRect(0, 0, mapCanvas.width, mapCanvas.height);
+
+            ctx.strokeStyle = '#eee';
+            ctx.lineWidth = 1;
+            for (let x = 0; x <= 12; x++) {
+                ctx.beginPath();
+                ctx.moveTo(mapOffsetX + x * mapScale, mapOffsetY);
+                ctx.lineTo(mapOffsetX + x * mapScale, mapOffsetY + 12 * mapScale);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= 12; y++) {
+                ctx.beginPath();
+                ctx.moveTo(mapOffsetX, mapOffsetY + y * mapScale);
+                ctx.lineTo(mapOffsetX + 12 * mapScale, mapOffsetY + y * mapScale);
+                ctx.stroke();
+            }
+
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(mapOffsetX, mapOffsetY, 10 * mapScale, 10 * mapScale);
+
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            for (let x = 0; x <= 10; x += 2) {
+                ctx.fillText(x.toString(), mapOffsetX + x * mapScale, mapOffsetY + 10 * mapScale + 20);
+            }
+            ctx.textAlign = 'right';
+            for (let y = 0; y <= 10; y += 2) {
+                ctx.fillText(y.toString(), mapOffsetX - 10, mapOffsetY + y * mapScale + 4);
+            }
+
+            fingerprintLocations.forEach(fp => {
+                const x = mapOffsetX + fp.location_x * mapScale;
+                const y = mapOffsetY + fp.location_y * mapScale;
+                
+                ctx.fillStyle = 'rgba(52, 199, 89, 0.3)';
+                ctx.beginPath();
+                ctx.arc(x, y, 15, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#34C759';
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            const tagTrajectories = new Map();
+            trajectories.forEach(t => {
+                if (!tagTrajectories.has(t.tag_id)) {
+                    tagTrajectories.set(t.tag_id, []);
+                }
+                tagTrajectories.get(t.tag_id).push(t);
+            });
+
+            tagTrajectories.forEach((traj, tagId) => {
+                if (traj.length < 2) return;
+                
+                ctx.strokeStyle = 'rgba(255, 149, 0, 0.4)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(
+                    mapOffsetX + traj[0].x * mapScale,
+                    mapOffsetY + traj[0].y * mapScale
+                );
+                
+                for (let i = 1; i < traj.length; i++) {
+                    ctx.lineTo(
+                        mapOffsetX + traj[i].x * mapScale,
+                        mapOffsetY + traj[i].y * mapScale
+                    );
+                }
+                ctx.stroke();
+            });
+
+            beacons.forEach(beacon => {
+                const x = mapOffsetX + beacon.x * mapScale;
+                const y = mapOffsetY + beacon.y * mapScale;
+
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, mapScale * 3);
+                gradient.addColorStop(0, 'rgba(0, 122, 255, 0.3)');
+                gradient.addColorStop(1, 'rgba(0, 122, 255, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, mapScale * 3, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#007AFF';
+                ctx.beginPath();
+                ctx.arc(x, y, 10, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#333';
+                ctx.font = 'bold 11px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(beacon.name || beacon.id, x, y - 15);
+            });
+
+            particles.forEach((particleList, tagId) => {
+                particleList.forEach(p => {
+                    const px = mapOffsetX + p.x * mapScale;
+                    const py = mapOffsetY + p.y * mapScale;
+                    const weight = p.weight || 0.001;
+                    
+                    ctx.fillStyle = `rgba(255, 149, 0, ${Math.min(0.6, weight * 10)})`;
+                    ctx.beginPath();
+                    ctx.arc(px, py, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            });
+
+            activeTags.forEach((position, tagId) => {
+                const x = mapOffsetX + position.x * mapScale;
+                const y = mapOffsetY + position.y * mapScale;
+
+                const pulseSize = 20 + Math.sin(Date.now() / 200) * 5;
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, pulseSize);
+                gradient.addColorStop(0, 'rgba(255, 59, 48, 0.4)');
+                gradient.addColorStop(1, 'rgba(255, 59, 48, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#FF3B30';
+                ctx.beginPath();
+                ctx.arc(x, y, 12, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(tagId.slice(-3), x, y + 4);
+            });
+        }
+
+        async function addFingerprint() {
+            const x = parseFloat(document.getElementById('fpX').value);
+            const y = parseFloat(document.getElementById('fpY').value);
+            const beaconMac = document.getElementById('fpBeaconMac').value;
+            const rssi = parseInt(document.getElementById('fpRssi').value);
+            const floor = parseInt(document.getElementById('floorSelect').value);
+
+            try {
+                await fetch(`${API_BASE}/fingerprint`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ locationX: x, locationY: y, floor, beaconMac, rssi })
+                });
+                await loadFingerprintLocations();
+                alert('指纹添加成功！');
+            } catch (e) {
+                alert('添加指纹失败: ' + e.message);
+            }
+        }
+
+        function generateSimulatedRSSI(x, y) {
+            const rssiData = [];
+            const beaconPositions = {
+                'AA:BB:CC:DD:EE:01': { x: 0, y: 0, baseRSSI: -40 },
+                'AA:BB:CC:DD:EE:02': { x: 10, y: 0, baseRSSI: -40 },
+                'AA:BB:CC:DD:EE:03': { x: 0, y: 10, baseRSSI: -40 },
+                'AA:BB:CC:DD:EE:04': { x: 10, y: 10, baseRSSI: -40 }
+            };
+
+            const noiseLevel = parseFloat(document.getElementById('noiseLevel').value);
+            const enableBurstNoise = document.getElementById('enableBurstNoise').checked;
+            const burstProbability = enableBurstNoise ? 0.2 : 0;
+            const burstMagnitude = 15;
+
+            for (const [mac, beacon] of Object.entries(beaconPositions)) {
+                const distance = Math.sqrt(Math.pow(x - beacon.x, 2) + Math.pow(y - beacon.y, 2));
+                const pathLoss = 20 * Math.log10(Math.max(distance, 0.1));
+                
+                let noise = (Math.random() - 0.5) * noiseLevel;
+                
+                if (Math.random() < burstProbability) {
+                    noise += (Math.random() - 0.5) * burstMagnitude;
+                }
+                
+                const rssi = beacon.baseRSSI - pathLoss + noise;
+                rssiData.push({ beaconMac: mac, rssi: Math.round(rssi) });
+            }
+
+            return rssiData;
+        }
+
+        async function sendSimulatedRSSI() {
+            const tagId = document.getElementById('simTagId').value;
+            const x = parseFloat(document.getElementById('simX').value);
+            const y = parseFloat(document.getElementById('simY').value);
+            const floor = parseInt(document.getElementById('floorSelect').value);
+
+            const rssiData = generateSimulatedRSSI(x, y);
+
+            try {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: 'rssi_data',
+                        tagId,
+                        rssiData,
+                        floor,
+                        useParticleFilter
+                    }));
+                } else {
+                    await fetch(`${API_BASE}/rssi`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tagId, rssiData, floor, useParticleFilter })
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to send RSSI:', e);
+            }
+        }
+
+        function toggleAutoSimulation() {
+            const btn = document.getElementById('autoSimBtn');
+            
+            if (autoSimRunning) {
+                clearInterval(autoSimulationInterval);
+                autoSimRunning = false;
+                btn.textContent = '自动模拟';
+                btn.className = 'btn-secondary';
+            } else {
+                let angle = 0;
+                autoSimulationInterval = setInterval(() => {
+                    const centerX = 5;
+                    const centerY = 5;
+                    const radius = 3;
+                    const x = centerX + Math.cos(angle) * radius;
+                    const y = centerY + Math.sin(angle) * radius;
+                    
+                    document.getElementById('simX').value = x.toFixed(1);
+                    document.getElementById('simY').value = y.toFixed(1);
+                    
+                    sendSimulatedRSSI();
+                    angle += 0.1;
+                }, 500);
+                
+                autoSimRunning = true;
+                btn.textContent = '停止模拟';
+                btn.className = 'btn-danger';
+            }
+        }
+
+        async function initializeFingerprints() {
+            try {
+                await fetch(`${API_BASE}/fingerprint/initialize`, { method: 'POST' });
+                await loadFingerprintLocations();
+                alert('示例指纹初始化完成！');
+            } catch (e) {
+                alert('初始化失败: ' + e.message);
+            }
+        }
+
+        function clearTrajectories() {
+            trajectories = [];
+            activeTags.clear();
+            updateTagList();
+            drawMap();
+        }
+
+        function updateNoiseValue() {
+            const value = document.getElementById('noiseLevel').value;
+            document.getElementById('noiseValue').textContent = value + ' dB';
+        }
+
+        async function updatePositioningOptions() {
+            const options = {
+                useRSSIPreprocessing: document.getElementById('useRSSIPreprocessing').checked,
+                useKalman: document.getElementById('useKalman').checked,
+                useInterpolation: document.getElementById('useInterpolation').checked,
+                useCrowdsourcing: document.getElementById('useCrowdsourcing').checked
+            };
+
+            try {
+                await fetch(`${API_BASE}/positioning/options`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(options)
+                });
+                await loadFingerprintLocations();
+            } catch (e) {
+                console.error('Failed to update options:', e);
+            }
+        }
+
+        async function applyInterpolation() {
+            try {
+                const floor = document.getElementById('floorSelect').value;
+                const res = await fetch(`${API_BASE}/fingerprint/interpolate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gridSize: 1, maxX: 10, maxY: 10, floor: parseInt(floor) })
+                });
+                const data = await res.json();
+                await loadFingerprintLocations();
+                alert(`插值完成！新增 ${data.count} 个插值指纹点`);
+            } catch (e) {
+                alert('插值失败: ' + e.message);
+            }
+        }
+
+        async function loadPositioningOptions() {
+            try {
+                const res = await fetch(`${API_BASE}/positioning/options`);
+                const options = await res.json();
+                document.getElementById('useRSSIPreprocessing').checked = options.useRSSIPreprocessing;
+                document.getElementById('useKalman').checked = options.useKalman;
+                document.getElementById('useInterpolation').checked = options.useInterpolation;
+                document.getElementById('useCrowdsourcing').checked = options.useCrowdsourcing;
+            } catch (e) {
+                console.error('Failed to load options:', e);
+            }
+        }
+
+        function updateParticleFilter() {
+            useParticleFilter = document.getElementById('useParticleFilter').checked;
+            if (!useParticleFilter) {
+                particles.clear();
+                fetch(`${API_BASE}/particlefilter/reset`, { method: 'POST' });
+            }
+            drawMap();
+        }
+
+        function updateBeaconSelect() {
+            const select = document.getElementById('heatmapBeacon');
+            select.innerHTML = beacons.map(b => 
+                `<option value="${b.mac_address}">${b.name || b.id} (${b.mac_address})</option>`
+            ).join('');
+        }
+
+        function setHeatmapMode(mode) {
+            currentHeatmapMode = mode;
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.getElementById('rssiHeatmapControls').style.display = mode === 'rssi' ? 'block' : 'none';
+
+            if (mode === 'none') {
+                currentHeatmap = null;
+                heatmapCtx.clearRect(0, 0, heatmapCanvas.width, heatmapCanvas.height);
+            }
+        }
+
+        function hslToRgb(h, s, l) {
+            let r, g, b;
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                };
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+
+        function valueToColor(value, type, heatmap) {
+            if (value === null || isNaN(value)) {
+                return [200, 200, 200, 0];
+            }
+
+            let normalized;
+            if (type === 'error') {
+                normalized = Math.min(1, value / Math.max(heatmap.maxError, 0.1));
+            } else {
+                const { minRSSI, maxRSSI } = heatmap;
+                normalized = (value - minRSSI) / (maxRSSI - minRSSI);
+                normalized = 1 - Math.max(0, Math.min(1, normalized));
+            }
+
+            const hue = (1 - normalized) * 240;
+            const [r, g, b] = hslToRgb(hue / 360, 0.8, 0.5);
+            return [r, g, b, 150];
+        }
+
+        function drawHeatmap(heatmap) {
+            heatmapCtx.clearRect(0, 0, heatmapCanvas.width, heatmapCanvas.height);
+            
+            const { data, gridSize, gridW, gridH } = heatmap;
+            const type = heatmap.beaconMac ? 'rssi' : 'error';
+
+            for (let gy = 0; gy < gridH; gy++) {
+                for (let gx = 0; gx < gridW; gx++) {
+                    const value = data[gy][gx];
+                    const [r, g, b, a] = valueToColor(value, type, heatmap);
+                    
+                    const x = mapOffsetX + gx * gridSize * mapScale;
+                    const y = mapOffsetY + gy * gridSize * mapScale;
+                    const size = gridSize * mapScale;
+
+                    heatmapCtx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+                    heatmapCtx.fillRect(x - size/2, y - size/2, size, size);
+                }
+            }
+        }
+
+        async function generateHeatmap() {
+            try {
+                const floor = parseInt(document.getElementById('floorSelect').value);
+                
+                if (currentHeatmapMode === 'rssi') {
+                    const beaconMac = document.getElementById('heatmapBeacon').value;
+                    const res = await fetch(`${API_BASE}/heatmap/rssi`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ beaconMac, floor })
+                    });
+                    currentHeatmap = await res.json();
+                } else if (currentHeatmapMode === 'error') {
+                    const tagId = document.getElementById('simTagId').value;
+                    const res = await fetch(`${API_BASE}/heatmap/error`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tagId, floor })
+                    });
+                    currentHeatmap = await res.json();
+                }
+
+                if (currentHeatmap) {
+                    drawHeatmap(currentHeatmap);
+                }
+            } catch (e) {
+                console.error('Failed to generate heatmap:', e);
+            }
+        }
+
+        async function exportHeatmap() {
+            try {
+                if (currentHeatmapMode === 'rssi') {
+                    const beaconMac = document.getElementById('heatmapBeacon').value;
+                    window.open(`${API_BASE}/heatmap/export/rssi?beaconMac=${beaconMac}&format=ppm`, '_blank');
+                } else if (currentHeatmapMode === 'error') {
+                    const tagId = document.getElementById('simTagId').value;
+                    window.open(`${API_BASE}/heatmap/export/error?tagId=${tagId}&format=ppm`, '_blank');
+                }
+            } catch (e) {
+                console.error('Failed to export heatmap:', e);
+            }
+        }
+
+        async function generateSimulatedFingerprints() {
+            try {
+                const gridSize = parseFloat(document.getElementById('simGridSize').value);
+                const pathLossExponent = parseFloat(document.getElementById('simPathLoss').value);
+                const shadowingStd = parseFloat(document.getElementById('simShadowing').value);
+                const method = document.getElementById('simMethod').value;
+                const floor = parseInt(document.getElementById('floorSelect').value);
+
+                const res = await fetch(`${API_BASE}/fingerprint/generate-simulated`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        gridSize,
+                        maxX: 10,
+                        maxY: 10,
+                        floor,
+                        method,
+                        pathLossExponent,
+                        shadowingStd
+                    })
+                });
+                
+                const data = await res.json();
+                await loadFingerprintLocations();
+                alert(`生成完成！${data.message}`);
+            } catch (e) {
+                alert('生成失败: ' + e.message);
+            }
+        }
+
+        function animate() {
+            drawMap();
+            requestAnimationFrame(animate);
+        }
+
+        async function init() {
+            resizeCanvas();
+            await loadBeacons();
+            updateBeaconSelect();
+            await loadFingerprintLocations();
+            await loadTrajectories();
+            await loadPositioningOptions();
+            initWebSocket();
+            animate();
+        }
+
+        init();
+    </script>
+</body>
+</html>
