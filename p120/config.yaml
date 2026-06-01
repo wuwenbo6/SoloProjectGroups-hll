@@ -1,0 +1,49 @@
+server:
+  coap:
+    tcp:
+      host: "0.0.0.0"
+      port: 5683
+    udp:
+      host: "0.0.0.0"
+      port: 5683
+    dtls:
+      enabled: false
+      host: "0.0.0.0"
+      port: 5684
+      cert_file: "./certs/server.crt"
+      key_file: "./certs/server.key"
+      ca_file: "./certs/ca.crt"
+      verify_peer: false
+  http:
+    host: "0.0.0.0"
+    port: 8080
+
+database:
+  path: "./coap_gateway.db"
+
+gateway:
+  timeout: 30
+  max_connections: 1000
+  observe_timeout: 3600
+
+log:
+  level: "debug"
+  format: "console"
+
+mqtt:
+  enabled: false
+  broker: "tcp://localhost:1883"
+  client_id: "coap-gateway"
+  username: ""
+  password: ""
+  topic_prefix: "coap"
+  qos: 1
+  keep_alive: 60
+
+access_log:
+  enabled: true
+  file_path: "./logs/access.log"
+  format: "json"
+  max_size: 100
+  max_backups: 10
+  max_age: 30

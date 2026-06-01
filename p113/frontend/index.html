@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GNSS数据质量分析系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            color: white;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .card h2 {
+            color: #1e3c72;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .upload-section {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .file-input-group {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .file-input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-button {
+            display: block;
+            width: 100%;
+            padding: 12px 20px;
+            background: #f5f5f5;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .file-button:hover {
+            border-color: #2a5298;
+            background: #e8f0fe;
+        }
+
+        .file-button.selected {
+            border-color: #4CAF50;
+            background: #e8f5e9;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(30, 60, 114, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .info-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .info-item .label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .info-item .value {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #1e3c72;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 1000px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+        }
+
+        #skyplotCanvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            background: radial-gradient(circle, #0a192f 0%, #020c1b 100%);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: #e0e0e0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .metrics-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .metrics-table th,
+        .metrics-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .metrics-table th {
+            background: #f5f5f5;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .metrics-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .quality-score {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .score-excellent {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .score-good {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .score-fair {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .score-poor {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2a5298;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .report-list {
+            list-style: none;
+        }
+
+        .report-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .report-item:hover {
+            background: #f8f9fa;
+        }
+
+        .report-info h4 {
+            color: #1e3c72;
+            margin-bottom: 5px;
+        }
+
+        .report-info p {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9em;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+
+        .time-slider {
+            width: 100%;
+            margin: 15px 0;
+        }
+
+        .time-display {
+            text-align: center;
+            font-weight: 600;
+            color: #1e3c72;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛰️ GNSS数据质量分析系统</h1>
+            <p>RINEX文件解析 · 多路径误差分析 · 周跳检测 · 卫星可视化</p>
+        </header>
+
+        <div class="card">
+            <h2>📁 上传RINEX文件</h2>
+            <div class="upload-section">
+                <div class="file-input-group">
+                    <label>观测文件 (.o / .obs)</label>
+                    <div class="file-input-wrapper">
+                        <label class="file-button" id="obsFileLabel">
+                            <input type="file" id="obsFile" accept=".o,.obs,.O,.OBS">
+                            <span id="obsFileName">选择观测文件...</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="file-input-group">
+                    <label>导航文件 (.n / .nav)</label>
+                    <div class="file-input-wrapper">
+                        <label class="file-button" id="navFileLabel">
+                            <input type="file" id="navFile" accept=".n,.nav,.N,.NAV">
+                            <span id="navFileName">选择导航文件 (可选)...</span>
+                        </label>
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="uploadBtn" onclick="uploadFiles()">
+                    上传并分析
+                </button>
+            </div>
+            <div id="uploadLoading" class="loading">
+                <div class="spinner"></div>
+                <p>正在解析文件...</p>
+            </div>
+            <div id="alertContainer"></div>
+        </div>
+
+        <div id="resultsSection" class="hidden">
+            <div class="card">
+                <h2>📊 文件信息</h2>
+                <div class="info-grid" id="fileInfo"></div>
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-success" id="saveReportBtn" onclick="saveReport()">
+                        💾 保存质量报告
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="tabs">
+                    <button class="tab active" onclick="showTab('skyplot')">🌟 卫星星空图</button>
+                    <button class="tab" onclick="showTab('visibility')">📈 可见性时间图</button>
+                    <button class="tab" onclick="showTab('metrics')">📋 质量指标</button>
+                    <button class="tab" onclick="showTab('snr')">📶 SNR-仰角图</button>
+                    <button class="tab" onclick="showTab('ionosphere')">🌐 电离层延迟</button>
+                    <button class="tab" onclick="showTab('displacement')">📍 站点位移</button>
+                    <button class="tab" onclick="showTab('export')">📤 导出报告</button>
+                </div>
+
+                <div id="skyplot" class="tab-content active">
+                    <div class="charts-grid">
+                        <div>
+                            <h3 style="margin-bottom: 15px; color: #1e3c72;">卫星星空图 (极坐标)</h3>
+                            <div class="chart-container">
+                                <canvas id="skyplotCanvas"></canvas>
+                            </div>
+                            <div class="legend" id="skyplotLegend"></div>
+                        </div>
+                        <div>
+                            <h3 style="margin-bottom: 15px; color: #1e3c72;">时间动画控制</h3>
+                            <input type="range" class="time-slider" id="timeSlider" min="0" value="0">
+                            <div class="time-display" id="timeDisplay">--</div>
+                            <div style="margin-top: 20px;">
+                                <button class="btn btn-primary" onclick="toggleAnimation()" id="animateBtn">
+                                    ▶️ 播放动画
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="visibility" class="tab-content">
+                    <h3 style="margin-bottom: 15px; color: #1e3c72;">卫星可见性时间图</h3>
+                    <div class="chart-container" style="height: 500px;">
+                        <canvas id="visibilityChart"></canvas>
+                    </div>
+                </div>
+
+                <div id="metrics" class="tab-content">
+                    <h3 style="margin-bottom: 15px; color: #1e3c72;">卫星质量指标详情</h3>
+                    <div style="overflow-x: auto;">
+                        <table class="metrics-table">
+                            <thead>
+                                <tr>
+                                    <th>卫星</th>
+                                    <th>平均多路径 (m)</th>
+                                    <th>最大多路径 (m)</th>
+                                    <th>平均SNR (dBHz)</th>
+                                    <th>最小SNR (dBHz)</th>
+                                    <th>周跳次数</th>
+                                    <th>数据可用性</th>
+                                    <th>质量评分</th>
+                                </tr>
+                            </thead>
+                            <tbody id="metricsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="snr" class="tab-content">
+                    <h3 style="margin-bottom: 15px; color: #1e3c72;">SNR与仰角关系</h3>
+                    <div class="chart-container">
+                        <canvas id="snrChart"></canvas>
+                    </div>
+                </div>
+
+                <div id="ionosphere" class="tab-content">
+                    <h3 style="margin-bottom: 15px; color: #1e3c72;">🌐 电离层延迟分析</h3>
+                    <div class="info-grid" id="ionosphereSummary"></div>
+                    <div style="margin-top: 20px;">
+                        <h4 style="color: #555; margin-bottom: 10px;">STEC时间序列</h4>
+                        <div class="chart-container">
+                            <canvas id="ionosphereChart"></canvas>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <h4 style="color: #555; margin-bottom: 10px;">各卫星电离层延迟统计</h4>
+                        <div style="overflow-x: auto;">
+                            <table class="metrics-table">
+                                <thead>
+                                    <tr>
+                                        <th>卫星</th>
+                                        <th>平均STEC (TECU)</th>
+                                        <th>最大STEC (TECU)</th>
+                                        <th>平均延迟 (m)</th>
+                                        <th>最大延迟 (m)</th>
+                                        <th>计算方法</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ionosphereTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="displacement" class="tab-content">
+                    <h3 style="margin-bottom: 15px; color: #1e3c72;">📍 站点位移监测</h3>
+                    <div class="info-grid" id="displacementSummary"></div>
+                    <div style="margin-top: 20px;">
+                        <h4 style="color: #555; margin-bottom: 10px;">ENU位移时间序列</h4>
+                        <div class="chart-container">
+                            <canvas id="displacementChart"></canvas>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <h4 style="color: #555; margin-bottom: 10px;">3D位移轨迹</h4>
+                        <div class="chart-container">
+                            <canvas id="displacement3dChart"></canvas>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px;" id="movementEvents">
+                        <h4 style="color: #555; margin-bottom: 10px;">移动事件检测</h4>
+                        <div id="eventsList"></div>
+                    </div>
+                </div>
+
+                <div id="export" class="tab-content">
+                    <h3 style="margin-bottom: 15px; color: #1e3c72;">📤 导出质量报告</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="label">报告格式</div>
+                            <div class="value">GFZ RNX 标准格式</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="label">包含内容</div>
+                            <div class="value">完整质量分析结果</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 25px;">
+                        <h4 style="color: #555; margin-bottom: 15px;">选择导出格式</h4>
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <button class="btn btn-primary" onclick="exportReport('gfzrnx')">
+                                📄 导出 GFZ RNX 格式 (.txt)
+                            </button>
+                            <button class="btn btn-success" onclick="exportReport('csv')">
+                                📊 导出 CSV 格式 (.csv)
+                            </button>
+                        </div>
+                    </div>
+                    <div style="margin-top: 25px;">
+                        <h4 style="color: #555; margin-bottom: 10px;">报告预览</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; max-height: 400px; overflow-y: auto;">
+                            <pre id="reportPreview" style="font-family: monospace; font-size: 12px; white-space: pre-wrap; word-wrap: break-word;">请先上传并分析RINEX文件...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📑 历史质量报告</h2>
+            <div id="reportsLoading" class="loading show">
+                <div class="spinner"></div>
+                <p>加载报告列表...</p>
+            </div>
+            <ul class="report-list" id="reportList"></ul>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

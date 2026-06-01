@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>行车记录仪碰撞预警系统</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="header-left">
+        <h1>🚗 行车记录仪碰撞预警系统</h1>
+        <span class="subtitle">前车检测 · 距离估算 · 碰撞风险分析</span>
+      </div>
+      <div class="header-right">
+        <button id="btnSelectVideo" class="btn btn-primary">
+          <span>📁 选择视频</span>
+        </button>
+        <button id="btnEmergency" class="btn btn-danger" title="手动触发紧急录像">
+          <span>⚠️ 紧急录像</span>
+        </button>
+        <button id="btnSettings" class="btn btn-secondary">
+          <span>⚙️ 设置</span>
+        </button>
+        <button id="btnAlarmTest" class="btn btn-warning" title="测试报警">
+          <span>🔔 测试</span>
+        </button>
+        <button id="btnAlarmMute" class="btn btn-secondary" title="静音">
+          <span id="muteIcon">🔊</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <section class="video-section">
+        <div class="video-container">
+          <video id="videoPlayer" class="video-player" controls>
+            您的浏览器不支持视频播放
+          </video>
+          <canvas id="detectionCanvas" class="detection-canvas"></canvas>
+          <div id="alertOverlay" class="alert-overlay hidden">
+            <div class="alert-badge" id="alertBadge">
+              <span class="alert-icon">⚠️</span>
+              <span class="alert-text" id="alertText">危险！距离过近</span>
+              <span class="alert-distance" id="alertDistance">0.0m</span>
+            </div>
+          </div>
+          <div id="processingOverlay" class="processing-overlay hidden">
+            <div class="processing-content">
+              <div class="spinner"></div>
+              <p id="processingText">正在处理视频...</p>
+              <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+              </div>
+              <p id="progressText">0%</p>
+              <button id="btnStopProcessing" class="btn btn-danger mt-2">停止处理</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="video-controls">
+          <div class="control-group">
+            <label>当前时间:</label>
+            <span id="currentTime">00:00</span>
+          </div>
+          <div class="control-group">
+            <label>检测车辆:</label>
+            <span id="vehicleCount">0</span>
+          </div>
+          <div class="control-group">
+            <label>最近距离:</label>
+            <span id="minDistance">-</span>
+          </div>
+          <div class="control-group">
+            <label>风险等级:</label>
+            <span id="riskLevel" class="risk-badge safe">安全</span>
+          </div>
+          <div class="control-group">
+            <label>距离来源:</label>
+            <span id="distanceSource">-</span>
+          </div>
+          <div class="control-group">
+            <label id="simulationLabel" class="simulation-label hidden">模拟模式</label>
+          </div>
+          <div class="control-group">
+            <label id="nightModeLabel" class="night-mode-label hidden">🌙 夜间模式</label>
+          </div>
+        </div>
+
+        <div class="timeline-container">
+          <div class="timeline" id="timeline">
+            <div class="timeline-track" id="timelineTrack"></div>
+            <div class="timeline-marker" id="timelineMarker"></div>
+          </div>
+          <div class="timeline-labels">
+            <span>00:00</span>
+            <span id="durationLabel">--:--</span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="sidebar">
+        <div class="sidebar-tabs">
+          <button class="tab-btn active" data-tab="events">📋 事件列表</button>
+          <button class="tab-btn" data-tab="emergency">🚨 紧急录像</button>
+          <button class="tab-btn" data-tab="gps">📍 GPS轨迹</button>
+          <button class="tab-btn" data-tab="upload">☁️ 上传队列</button>
+          <button class="tab-btn" data-tab="stats">📊 统计</button>
+        </div>
+
+        <div class="tab-content active" id="tab-events">
+          <div class="filters">
+            <select id="filterRiskLevel">
+              <option value="">全部风险等级</option>
+              <option value="danger">⚠️ 危险</option>
+              <option value="warning">⚠️ 警告</option>
+              <option value="safe">✓ 安全</option>
+            </select>
+            <input type="number" id="filterMaxDistance" placeholder="最大距离(米)" step="0.1">
+            <button id="btnRefreshEvents" class="btn btn-small">刷新</button>
+            <button id="btnExportEvents" class="btn btn-small btn-secondary">导出</button>
+          </div>
+
+          <div class="events-list" id="eventsList">
+            <div class="empty-state">
+              <p>暂无事件数据</p>
+              <p class="hint">选择并处理视频后，事件将显示在这里</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tab-emergency">
+          <div class="emergency-status">
+            <div class="status-item">
+              <label>状态:</label>
+              <span id="emergencyStatus" class="status-badge">待机</span>
+            </div>
+            <div class="status-item">
+              <label>缓冲帧数:</label>
+              <span id="emergencyBuffer">0</span>
+            </div>
+            <div class="status-item">
+              <label>缓冲时长:</label>
+              <span id="emergencyDuration">0秒</span>
+            </div>
+          </div>
+          
+          <div class="emergency-list" id="emergencyList">
+            <div class="empty-state">
+              <p>暂无紧急录像</p>
+              <p class="hint">碰撞或手动触发时，自动保存紧急录像</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tab-gps">
+          <div class="gps-status">
+            <div class="status-item">
+              <label>GPS状态:</label>
+              <span id="gpsStatus" class="status-badge">未激活</span>
+            </div>
+          </div>
+          
+          <div class="gps-list" id="gpsList">
+            <div class="empty-state">
+              <p>暂无GPS轨迹</p>
+              <p class="hint">视频处理时自动记录GPS轨迹</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tab-upload">
+          <div class="upload-status">
+            <div class="status-item">
+              <label>自动上传:</label>
+              <span id="uploadStatus" class="status-badge">已关闭</span>
+            </div>
+            <div class="status-item">
+              <label>队列大小:</label>
+              <span id="uploadQueueSize">0</span>
+            </div>
+          </div>
+          
+          <div class="upload-list" id="uploadList">
+            <div class="empty-state">
+              <p>暂无上传任务</p>
+              <p class="hint">紧急录像保存后可上传到服务器</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tab-stats">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">🎥</div>
+              <div class="stat-info">
+                <div class="stat-value" id="statVideos">0</div>
+                <div class="stat-label">视频总数</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">📋</div>
+              <div class="stat-info">
+                <div class="stat-value" id="statTotalEvents">0</div>
+                <div class="stat-label">事件总数</div>
+              </div>
+            </div>
+            <div class="stat-card danger">
+              <div class="stat-icon">🚨</div>
+              <div class="stat-info">
+                <div class="stat-value" id="statDanger">0</div>
+                <div class="stat-label">危险事件</div>
+              </div>
+            </div>
+            <div class="stat-card warning">
+              <div class="stat-icon">⚠️</div>
+              <div class="stat-info">
+                <div class="stat-value" id="statWarning">0</div>
+                <div class="stat-label">警告事件</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="distance-chart-container">
+            <h4>距离变化趋势</h4>
+            <canvas id="distanceChart"></canvas>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div id="settingsModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>⚙️ 系统设置</h3>
+        <button class="modal-close" id="closeSettings">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-grid">
+          <div class="setting-item">
+            <label>安全距离阈值 (米)</label>
+            <input type="number" id="settingDistanceThreshold" step="0.1" min="0.5" max="20">
+            <span class="setting-desc">低于此距离触发警告</span>
+          </div>
+          <div class="setting-item">
+            <label>危险距离阈值 (米)</label>
+            <input type="number" id="settingDangerThreshold" step="0.1" min="0.3" max="10">
+            <span class="setting-desc">低于此距离触发危险警报</span>
+          </div>
+          <div class="setting-item">
+            <label>标准车牌宽度 (米)</label>
+            <input type="number" id="settingPlateWidth" step="0.01" min="0.1" max="1">
+            <span class="setting-desc">用于距离估算的参考宽度</span>
+          </div>
+          <div class="setting-item">
+            <label>相机焦距 (像素)</label>
+            <input type="number" id="settingFocalLength" step="10" min="100" max="5000">
+            <span class="setting-desc">相机内参，影响距离计算精度</span>
+          </div>
+          <div class="setting-item">
+            <label>检测置信度阈值</label>
+            <input type="number" id="settingConfidence" step="0.05" min="0.1" max="1">
+            <span class="setting-desc">低于此值的检测结果将被忽略</span>
+          </div>
+          <div class="setting-item">
+            <label>跳帧数</label>
+            <input type="number" id="settingFrameSkip" step="1" min="1" max="10">
+            <span class="setting-desc">增大可提高处理速度，降低精度</span>
+          </div>
+          <div class="setting-item">
+            <label>最小车辆宽度 (像素)</label>
+            <input type="number" id="settingMinWidth" step="10" min="20" max="500">
+            <span class="setting-desc">忽略小于此宽度的检测结果</span>
+          </div>
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="settingAlarmEnabled"> 启用报警
+            </label>
+            <span class="setting-desc">启用声音和视觉警告</span>
+          </div>
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="settingNightModeEnabled"> 夜间模式增强
+            </label>
+            <span class="setting-desc">自动检测夜间并增强图像</span>
+          </div>
+          <div class="setting-item">
+            <label>夜间亮度阈值</label>
+            <input type="number" id="settingNightThreshold" step="5" min="10" max="150">
+            <span class="setting-desc">低于此亮度判定为夜间 (0-255)</span>
+          </div>
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="settingTaillightEnabled"> 尾灯距离估算
+            </label>
+            <span class="setting-desc">夜间使用尾灯间距估算距离</span>
+          </div>
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="settingLaneFilterEnabled"> 车道过滤
+            </label>
+            <span class="setting-desc">过滤旁车道车辆，减少弯道误报</span>
+          </div>
+          <div class="setting-item">
+            <label>车道中心容差</label>
+            <input type="number" id="settingLaneTolerance" step="0.05" min="0.1" max="0.5">
+            <span class="setting-desc">判断是否在本车道的容差范围</span>
+          </div>
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="settingKalmanEnabled"> 卡尔曼滤波
+            </label>
+            <span class="setting-desc">平滑距离数据，减少抖动</span>
+          </div>
+          <div class="setting-item">
+            <label>距离平滑窗口</label>
+            <input type="number" id="settingSmoothingWindow" step="1" min="1" max="20">
+            <span class="setting-desc">移动平均窗口大小</span>
+          </div>
+          <div class="setting-item">
+            <label>紧急录像前置秒数</label>
+            <input type="number" id="settingPreSeconds" step="1" min="5" max="60">
+            <span class="setting-desc">触发前缓存的秒数</span>
+          </div>
+          <div class="setting-item">
+            <label>紧急录像后置秒数</label>
+            <input type="number" id="settingPostSeconds" step="1" min="5" max="30">
+            <span class="setting-desc">触发后录制的秒数</span>
+          </div>
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="settingEmergencyCollision"> 碰撞自动触发
+            </label>
+            <span class="setting-desc">检测到危险时自动保存紧急录像</span>
+          </div>
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="settingAutoUpload"> 自动上传
+            </label>
+            <span class="setting-desc">紧急录像自动上传到服务器</span>
+          </div>
+          <div class="setting-item">
+            <label>上传服务器地址</label>
+            <input type="text" id="settingUploadUrl" placeholder="https://api.example.com/upload">
+            <span class="setting-desc">紧急录像上传服务器地址</span>
+          </div>
+          <div class="setting-item">
+            <label>上传最大重试次数</label>
+            <input type="number" id="settingUploadRetries" step="1" min="1" max="10">
+            <span class="setting-desc">上传失败后的重试次数</span>
+          </div>
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="settingGPSEnabled"> 启用GPS记录
+            </label>
+            <span class="setting-desc">视频处理时记录GPS轨迹</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btnSaveSettings" class="btn btn-primary">保存设置</button>
+        <button id="btnCancelSettings" class="btn btn-secondary">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="eventDetailModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="eventDetailTitle">事件详情</h3>
+        <button class="modal-close" id="closeEventDetail">&times;</button>
+      </div>
+      <div class="modal-body" id="eventDetailBody">
+      </div>
+      <div class="modal-footer">
+        <button id="btnJumpToEvent" class="btn btn-primary">跳转到视频位置</button>
+        <button id="btnDeleteEvent" class="btn btn-danger">删除事件</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

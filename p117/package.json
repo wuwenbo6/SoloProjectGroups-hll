@@ -1,0 +1,46 @@
+{
+  "name": "usb-guardian",
+  "version": "1.0.0",
+  "description": "USB设备监控与策略管理系统 - 基于白名单/黑名单的设备访问控制",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win"
+  },
+  "author": "USB Guardian",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "chokidar": "^3.5.3",
+    "usb-detection": "^4.21.0",
+    "node-pty": "^1.0.0"
+  },
+  "build": {
+    "appId": "com.usbguardian.app",
+    "productName": "USB Guardian",
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": ["dmg", "zip"],
+      "electronLanguages": ["zh-CN"]
+    },
+    "win": {
+      "target": ["nsis", "portable"],
+      "requestedExecutionLevel": "requireAdministrator"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": true
+    }
+  }
+}

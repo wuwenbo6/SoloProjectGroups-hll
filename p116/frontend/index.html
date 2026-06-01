@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卫星轨道跟踪系统</title>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>🛰️ 卫星轨道跟踪系统</h1>
+            
+            <div class="section">
+                <h3>卫星列表</h3>
+                <button id="loadSampleBtn" class="btn btn-primary">加载示例卫星</button>
+                <div id="satelliteList" class="satellite-list"></div>
+            </div>
+
+            <div class="section">
+                <h3>添加TLE数据</h3>
+                <input type="text" id="noradId" placeholder="NORAD ID" class="input">
+                <input type="text" id="satName" placeholder="卫星名称" class="input">
+                <textarea id="tleLine1" placeholder="TLE Line 1" class="input textarea"></textarea>
+                <textarea id="tleLine2" placeholder="TLE Line 2" class="input textarea"></textarea>
+                <button id="addTleBtn" class="btn btn-success">添加TLE</button>
+            </div>
+
+            <div class="section" id="satelliteInfoSection" style="display: none;">
+                <h3>卫星信息</h3>
+                <div id="satelliteInfo"></div>
+                <div class="button-group">
+                    <button id="showOrbitBtn" class="btn btn-primary">显示轨道</button>
+                    <button id="showGroundTrackBtn" class="btn btn-secondary">地面轨迹</button>
+                    <button id="toggleTrackBtn" class="btn btn-info">实时跟踪</button>
+                    <button id="exportKmlBtn" class="btn btn-warning">导出KML</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>过境预报</h3>
+                <input type="number" id="obsLat" placeholder="纬度 (例如: 39.9)" class="input" step="0.0001" value="39.9042">
+                <input type="number" id="obsLon" placeholder="经度 (例如: 116.4)" class="input" step="0.0001" value="116.4074">
+                <input type="number" id="obsAlt" placeholder="海拔 (米)" class="input" value="50">
+                <input type="number" id="predictHours" placeholder="预报时长 (小时)" class="input" value="24">
+                <input type="number" id="minElevation" placeholder="最小仰角 (度)" class="input" value="10">
+                <button id="predictBtn" class="btn btn-warning">预报过境</button>
+                <div id="passesList" class="passes-list"></div>
+            </div>
+
+            <div class="section">
+                <h3>星座展示</h3>
+                <div class="button-group">
+                    <button id="showStarlinkBtn" class="btn btn-info">星链星座</button>
+                    <button id="showIssBtn" class="btn btn-info">ISS</button>
+                    <button id="showGpsBtn" class="btn btn-info">GPS</button>
+                </div>
+                <div id="constellationInfo" class="constellation-info"></div>
+            </div>
+
+            <div class="section">
+                <h3>碰撞预警</h3>
+                <div class="input-group">
+                    <label>卫星A:</label>
+                    <select id="satA" class="input"></select>
+                </div>
+                <div class="input-group">
+                    <label>卫星B:</label>
+                    <select id="satB" class="input"></select>
+                </div>
+                <input type="number" id="collisionHours" placeholder="预报时长 (小时)" class="input" value="24">
+                <input type="number" id="thresholdKm" placeholder="距离阈值 (km)" class="input" value="5">
+                <button id="checkCollisionBtn" class="btn btn-danger">检查碰撞</button>
+                <div id="collisionResults" class="collision-results"></div>
+            </div>
+        </div>
+
+        <div id="cesiumContainer" class="cesium-container"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
