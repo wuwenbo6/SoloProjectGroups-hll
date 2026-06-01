@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文档转换器 - ODT/DOCX 转 PDF/HTML</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📄 文档转换器</h1>
+      <p class="subtitle">上传 ODT/DOCX 文档，转换为 PDF 或 HTML 格式</p>
+    </header>
+
+    <div class="upload-section">
+      <div class="upload-box" id="uploadBox">
+        <div class="upload-icon">⬆️</div>
+        <p class="upload-text">拖拽文件到此处，或点击选择文件</p>
+        <p class="upload-hint">支持 ODT, DOCX, DOC 格式，最大 500MB</p>
+        <input type="file" id="fileInput" accept=".odt,.docx,.doc" hidden>
+      </div>
+
+      <div class="options">
+        <div class="option-group">
+          <label class="option-label">输出格式：</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" id="formatPdf" value="pdf" checked>
+              <span>PDF</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" id="formatHtml" value="html">
+              <span>HTML</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="option-group">
+          <label class="checkbox-item">
+            <input type="checkbox" id="enableWatermark">
+            <span>添加水印</span>
+          </label>
+        </div>
+
+        <div class="option-group">
+          <label class="checkbox-item">
+            <input type="checkbox" id="enableThumbnail">
+            <span>生成缩略图</span>
+          </label>
+        </div>
+
+        <button id="convertBtn" class="convert-btn" disabled>开始转换</button>
+      </div>
+
+      <div class="watermark-config" id="watermarkConfig" style="display: none;">
+        <h4>水印设置</h4>
+        <div class="config-grid">
+          <div class="config-item">
+            <label>水印文字：</label>
+            <input type="text" id="watermarkText" value="CONFIDENTIAL" placeholder="输入水印文字">
+          </div>
+          <div class="config-item">
+            <label>透明度：</label>
+            <input type="range" id="watermarkOpacity" min="0.1" max="0.8" step="0.1" value="0.3">
+            <span id="opacityValue">0.3</span>
+          </div>
+          <div class="config-item">
+            <label>字体大小：</label>
+            <input type="number" id="watermarkFontSize" min="20" max="100" value="50">
+          </div>
+          <div class="config-item">
+            <label>旋转角度：</label>
+            <input type="number" id="watermarkRotation" min="0" max="90" value="45">
+          </div>
+          <div class="config-item">
+            <label>间距：</label>
+            <input type="number" id="watermarkSpacing" min="100" max="500" value="200">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="queue-status" id="queueStatus">
+      <span>队列中：<strong id="queuedCount">0</strong></span>
+      <span>处理中：<strong id="processingCount">0</strong></span>
+    </div>
+
+    <div class="jobs-section">
+      <h2>转换任务</h2>
+      <div id="jobsList" class="jobs-list"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
