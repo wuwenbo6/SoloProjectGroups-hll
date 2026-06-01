@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IO-Link Master Station</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <circle cx="14" cy="14" r="12" stroke="#00d4ff" stroke-width="2"/>
+            <circle cx="14" cy="14" r="6" stroke="#00d4ff" stroke-width="1.5"/>
+            <line x1="14" y1="2" x2="14" y2="8" stroke="#00d4ff" stroke-width="1.5"/>
+            <line x1="14" y1="20" x2="14" y2="26" stroke="#00d4ff" stroke-width="1.5"/>
+            <line x1="2" y1="14" x2="8" y2="14" stroke="#00d4ff" stroke-width="1.5"/>
+            <line x1="20" y1="14" x2="26" y2="14" stroke="#00d4ff" stroke-width="1.5"/>
+          </svg>
+          <h1>IO-Link Master Station</h1>
+        </div>
+        <span class="status-badge" id="masterStatus">OFFLINE</span>
+      </div>
+      <div class="header-right">
+        <div class="connection-panel">
+          <select id="portSelect">
+            <option value="">Simulated UART</option>
+          </select>
+          <select id="baudRateSelect">
+            <option value="4800">4800 (COM1)</option>
+            <option value="38400" selected>38400 (COM2)</option>
+            <option value="230400">230400 (COM3)</option>
+          </select>
+          <button id="connectBtn" class="btn btn-primary">Connect</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div class="sidebar">
+        <div class="panel">
+          <div class="panel-header">
+            <h3>Device Ports</h3>
+          </div>
+          <div class="panel-body" id="devicePortList">
+            <div class="empty-state">No devices connected</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h3>Connection Log</h3>
+          </div>
+          <div class="panel-body log-body" id="logPanel">
+            <div class="empty-state">Waiting for connection...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div id="noDeviceView" class="no-device-view">
+          <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+            <circle cx="40" cy="40" r="35" stroke="#1e2a3a" stroke-width="2"/>
+            <circle cx="40" cy="40" r="15" stroke="#1e2a3a" stroke-width="2"/>
+            <line x1="40" y1="5" x2="40" y2="25" stroke="#1e2a3a" stroke-width="2"/>
+            <line x1="40" y1="55" x2="40" y2="75" stroke="#1e2a3a" stroke-width="2"/>
+            <line x1="5" y1="40" x2="25" y2="40" stroke="#1e2a3a" stroke-width="2"/>
+            <line x1="55" y1="40" x2="75" y2="40" stroke="#1e2a3a" stroke-width="2"/>
+          </svg>
+          <p>Select a device port to view details</p>
+        </div>
+
+        <div id="deviceView" class="device-view" style="display:none;">
+          <div class="device-header">
+            <div class="device-title">
+              <h2 id="deviceName">--</h2>
+              <span class="device-state" id="deviceState">INACTIVE</span>
+            </div>
+            <div class="device-actions">
+              <button id="wakeupBtn" class="btn btn-secondary">Wake Up</button>
+              <button id="startBtn" class="btn btn-success">Start</button>
+              <button id="stopBtn" class="btn btn-danger" disabled>Stop</button>
+              <button id="refreshBtn" class="btn btn-secondary">Refresh ISDU</button>
+            </div>
+          </div>
+
+          <div class="device-info-grid">
+            <div class="info-card">
+              <div class="info-label">Vendor ID</div>
+              <div class="info-value" id="infoVendorId">0x0000</div>
+            </div>
+            <div class="info-card">
+              <div class="info-label">Device ID</div>
+              <div class="info-value" id="infoDeviceId">0x0000</div>
+            </div>
+            <div class="info-card">
+              <div class="info-label">Serial Number</div>
+              <div class="info-value" id="infoSerialNum">--</div>
+            </div>
+            <div class="info-card">
+              <div class="info-label">COM Speed</div>
+              <div class="info-value" id="infoComSpeed">--</div>
+            </div>
+            <div class="info-card">
+              <div class="info-label">HW Revision</div>
+              <div class="info-value" id="infoHwRev">--</div>
+            </div>
+            <div class="info-card">
+              <div class="info-label">FW Revision</div>
+              <div class="info-value" id="infoFwRev">--</div>
+            </div>
+          </div>
+
+          <div class="data-sections">
+            <section class="section mseq-section">
+              <div class="section-header">
+                <h3>M-Sequence State Machine</h3>
+                <div class="mseq-header-info">
+                  <span class="mseq-state-badge" id="mseqStateBadge">IDLE</span>
+                  <span class="mseq-cycle-info" id="mseqCycleInfo">Cycle: 0</span>
+                </div>
+              </div>
+              <div class="section-body">
+                <div class="mseq-overview">
+                  <div class="mseq-stats-grid">
+                    <div class="mseq-stat">
+                      <div class="mseq-stat-label">Total Sent</div>
+                      <div class="mseq-stat-value" id="mseqTotalSent">0</div>
+                    </div>
+                    <div class="mseq-stat">
+                      <div class="mseq-stat-label">Total Received</div>
+                      <div class="mseq-stat-value" id="mseqTotalReceived">0</div>
+                    </div>
+                    <div class="mseq-stat">
+                      <div class="mseq-stat-label">Timeouts</div>
+                      <div class="mseq-stat-value mseq-stat-warn" id="mseqTotalTimeout">0</div>
+                    </div>
+                    <div class="mseq-stat">
+                      <div class="mseq-stat-label">Errors</div>
+                      <div class="mseq-stat-value mseq-stat-error" id="mseqTotalError">0</div>
+                    </div>
+                  </div>
+                  <div class="mseq-state-flow">
+                    <div class="state-node" id="stateIdle">IDLE</div>
+                    <div class="state-arrow">&#8594;</div>
+                    <div class="state-node" id="stateMcSend">MC_SEND</div>
+                    <div class="state-arrow">&#8594;</div>
+                    <div class="state-node" id="stateWaitAc">WAIT_AC</div>
+                    <div class="state-arrow">&#8594;</div>
+                    <div class="state-node" id="stateAcRecv">AC_RECV</div>
+                    <div class="state-arrow">&#8594;</div>
+                    <div class="state-node" id="stateComplete">COMPLETE</div>
+                  </div>
+                  <div class="mseq-active-tx" id="mseqActiveTx" style="display:none;">
+                    <span class="mseq-active-label">Active Transaction:</span>
+                    <span class="mseq-active-detail" id="mseqActiveDetail"></span>
+                  </div>
+                </div>
+                <div class="mseq-type-stats">
+                  <div class="mseq-type-row">
+                    <span class="mseq-type-label">Type0 (Process Data)</span>
+                    <div class="mseq-type-bar-container">
+                      <div class="mseq-type-bar mseq-type-bar-t0" id="mseqBarT0"></div>
+                    </div>
+                    <span class="mseq-type-count" id="mseqCountT0">0</span>
+                  </div>
+                  <div class="mseq-type-row">
+                    <span class="mseq-type-label">Type1 (ISDU)</span>
+                    <div class="mseq-type-bar-container">
+                      <div class="mseq-type-bar mseq-type-bar-t1" id="mseqBarT1"></div>
+                    </div>
+                    <span class="mseq-type-count" id="mseqCountT1">0</span>
+                  </div>
+                  <div class="mseq-type-row">
+                    <span class="mseq-type-label">Type2 (Event)</span>
+                    <div class="mseq-type-bar-container">
+                      <div class="mseq-type-bar mseq-type-bar-t2" id="mseqBarT2"></div>
+                    </div>
+                    <span class="mseq-type-count" id="mseqCountT2">0</span>
+                  </div>
+                  <div class="mseq-type-row">
+                    <span class="mseq-type-label">Type3 (Page)</span>
+                    <div class="mseq-type-bar-container">
+                      <div class="mseq-type-bar mseq-type-bar-t3" id="mseqBarT3"></div>
+                    </div>
+                    <span class="mseq-type-count" id="mseqCountT3">0</span>
+                  </div>
+                </div>
+                <div class="mseq-history">
+                  <div class="mseq-history-header">
+                    <span>Recent Transactions</span>
+                  </div>
+                  <div class="mseq-history-list" id="mseqHistoryList">
+                    <div class="empty-state">No transactions</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="section process-section">
+              <div class="section-header">
+                <h3>Process Data (Cyclic)</h3>
+                <span class="cycle-counter" id="cycleCounter">Cycle: 0</span>
+              </div>
+              <div class="section-body">
+                <div class="process-display">
+                  <div class="process-gauge">
+                    <div class="gauge-container">
+                      <svg class="gauge-svg" viewBox="0 0 200 120">
+                        <path class="gauge-bg" d="M 20 100 A 80 80 0 0 1 180 100" />
+                        <path class="gauge-fill" id="gaugeFill" d="M 20 100 A 80 80 0 0 1 180 100" />
+                        <text class="gauge-value" id="gaugeValue" x="100" y="90" text-anchor="middle">--</text>
+                        <text class="gauge-unit" id="gaugeUnit" x="100" y="108" text-anchor="middle">°C</text>
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="process-raw">
+                    <div class="raw-item">
+                      <span class="raw-label">Raw Value:</span>
+                      <span class="raw-value" id="rawValue">0</span>
+                    </div>
+                    <div class="raw-item">
+                      <span class="raw-label">Raw Bytes:</span>
+                      <span class="raw-value" id="rawBytes">[0x00, 0x00]</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="section isdu-section">
+              <div class="section-header">
+                <h3>ISDU Parameters</h3>
+                <div class="isdu-actions">
+                  <button id="exportCsvBtn" class="btn btn-sm btn-secondary">Export CSV</button>
+                  <button id="exportJsonBtn" class="btn btn-sm btn-secondary">Export JSON</button>
+                </div>
+              </div>
+              <div class="section-body">
+                <table class="isdu-table">
+                  <thead>
+                    <tr>
+                      <th>Index</th>
+                      <th>Name</th>
+                      <th>Value</th>
+                      <th>Type</th>
+                      <th>Access</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="isduTableBody">
+                    <tr><td colspan="6" class="empty-state">No data</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="section events-section">
+              <div class="section-header">
+                <h3>Events</h3>
+                <span class="event-count" id="eventCount">0 events</span>
+              </div>
+              <div class="section-body">
+                <div class="events-list" id="eventsList">
+                  <div class="empty-state">No events</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="section alarm-section">
+              <div class="section-header">
+                <h3>Temperature Alarms</h3>
+                <div class="alarm-header-info">
+                  <span class="alarm-summary-badge" id="alarmSummaryBadge">No Alarms</span>
+                  <button id="ackAllAlarmsBtn" class="btn btn-sm btn-secondary" disabled>Ack All</button>
+                </div>
+              </div>
+              <div class="section-body">
+                <div class="alarm-stats-row">
+                  <div class="alarm-stat">
+                    <div class="alarm-stat-label">Total</div>
+                    <div class="alarm-stat-value" id="alarmTotal">0</div>
+                  </div>
+                  <div class="alarm-stat">
+                    <div class="alarm-stat-label">Active</div>
+                    <div class="alarm-stat-value alarm-stat-active" id="alarmActive">0</div>
+                  </div>
+                  <div class="alarm-stat">
+                    <div class="alarm-stat-label">Unacknowledged</div>
+                    <div class="alarm-stat-value alarm-stat-unack" id="alarmUnack">0</div>
+                  </div>
+                  <div class="alarm-stat">
+                    <div class="alarm-stat-label">High Alarms</div>
+                    <div class="alarm-stat-value alarm-stat-high" id="alarmHigh">0</div>
+                  </div>
+                  <div class="alarm-stat">
+                    <div class="alarm-stat-label">Low Alarms</div>
+                    <div class="alarm-stat-value alarm-stat-low" id="alarmLow">0</div>
+                  </div>
+                </div>
+                <div class="alarm-list" id="alarmList">
+                  <div class="empty-state">No temperature alarms</div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="editModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Edit Parameter</h3>
+        <button class="modal-close" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label id="editParamName">Parameter</label>
+          <input type="text" id="editParamValue" class="form-input" />
+          <input type="hidden" id="editParamIndex" />
+          <input type="hidden" id="editParamType" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modalCancel">Cancel</button>
+        <button class="btn btn-primary" id="modalSave">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

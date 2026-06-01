@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIP TLS 客户端</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 16px;
+            font-size: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .cert-display {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .call-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .call-controls button {
+            flex: 1;
+        }
+
+        .online-users {
+            margin-top: 16px;
+        }
+
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .user-item .username {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .user-item .call-btn {
+            background: #28a745;
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .connection-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .connection-status.connected {
+            background: #28a745;
+        }
+
+        .connection-status.disconnected {
+            background: #dc3545;
+        }
+
+        .logs {
+            background: #1e1e1e;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 12px;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+        }
+
+        .log-entry.sent {
+            color: #00bfff;
+        }
+
+        .log-entry.received {
+            color: #00ff00;
+        }
+
+        .log-entry.error {
+            color: #ff4444;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .tab-btn {
+            background: #e0e0e0;
+            color: #333;
+            padding: 8px 16px;
+            border-radius: 6px;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SIP TLS 客户端</h1>
+
+        <div class="card">
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="showTab('cert')">1. 证书生成</button>
+                <button class="tab-btn" onclick="showTab('register')">2. UA 注册</button>
+                <button class="tab-btn" onclick="showTab('call')">3. 呼叫控制</button>
+            </div>
+
+            <div id="cert-tab">
+                <h2>生成客户端证书</h2>
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="cert-username" placeholder="例如: alice">
+                </div>
+                <div class="form-group">
+                    <label>SIP Domain (用于证书CN/SAN验证)</label>
+                    <input type="text" id="cert-domain" placeholder="例如: localhost" value="localhost">
+                </div>
+                <button onclick="generateCertificate()">生成证书</button>
+                <div id="cert-status" class="status hidden"></div>
+                
+                <div id="cert-result" class="hidden">
+                    <h3 style="margin-top: 20px;">CA 证书</h3>
+                    <div class="cert-display" id="ca-cert-display"></div>
+                    
+                    <h3 style="margin-top: 20px;">客户端证书</h3>
+                    <div class="cert-display" id="client-cert-display"></div>
+                    
+                    <h3 style="margin-top: 20px;">客户端私钥</h3>
+                    <div class="cert-display" id="client-key-display"></div>
+                    
+                    <button style="margin-top: 12px;" onclick="downloadCertificates()">下载证书文件</button>
+                </div>
+            </div>
+
+            <div id="register-tab" class="hidden">
+                <h2>UA 注册</h2>
+                <div class="form-group">
+                    <label><span class="connection-status disconnected" id="conn-status"></span>连接状态</label>
+                </div>
+                <div class="form-group">
+                    <label>SIP 服务器地址</label>
+                    <input type="text" id="sip-server" value="localhost:5061">
+                </div>
+                <div class="form-group">
+                    <label>SIP 用户名</label>
+                    <input type="text" id="sip-username" placeholder="例如: alice">
+                </div>
+                <button onclick="connectSIP()">连接并注册</button>
+                <button onclick="disconnectSIP()" style="background: #dc3545;">断开连接</button>
+                <div id="register-status" class="status hidden"></div>
+
+                <h3 style="margin-top: 20px;">SIP 消息日志</h3>
+                <div class="logs" id="sip-logs"></div>
+            </div>
+
+            <div id="call-tab" class="hidden">
+                <h2>呼叫控制</h2>
+                <div class="form-group">
+                    <label>呼叫目标用户名</label>
+                    <input type="text" id="call-target" placeholder="例如: bob">
+                </div>
+                <div class="call-controls">
+                    <button onclick="initiateCall()" style="background: #28a745;">发起呼叫</button>
+                    <button onclick="endCall()" style="background: #dc3545;">结束呼叫</button>
+                </div>
+                <div id="call-status" class="status hidden"></div>
+
+                <div class="online-users">
+                    <h3>在线用户</h3>
+                    <button onclick="refreshOnlineUsers()" style="margin-bottom: 12px; padding: 6px 12px; font-size: 12px;">刷新列表</button>
+                    <div id="online-users-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

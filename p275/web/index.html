@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NVMe 控制器模拟器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #666;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 12px;
+        }
+
+        .status-connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #555;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .console {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #e0e0e0;
+            height: 400px;
+            overflow-y: auto;
+        }
+
+        .console-line {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .console-timestamp {
+            color: #888;
+        }
+
+        .console-sent {
+            color: #4ecdc4;
+        }
+
+        .console-received {
+            color: #ffe66d;
+        }
+
+        .console-error {
+            color: #ff6b6b;
+        }
+
+        .queue-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .queue-info h3 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .queue-info p {
+            color: #666;
+            font-size: 13px;
+            margin: 4px 0;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+        }
+
+        .controller-info {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .controller-info p {
+            color: #555;
+            font-size: 13px;
+            margin: 6px 0;
+        }
+
+        .controller-info strong {
+            color: #333;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>NVMe 控制器模拟器</h1>
+            <p>模拟 NVMe 控制器，响应 Admin 命令（Identify、Create/Delete IO Submission Queue）</p>
+            <span id="statusBadge" class="status-badge status-disconnected">未连接</span>
+        </div>
+
+        <div class="card">
+            <h2>发送命令</h2>
+
+            <div class="controller-info" id="controllerInfo" style="display: none;">
+                <p><strong>序列号：</strong><span id="controllerSN">-</span></p>
+                <p><strong>型号：</strong><span id="controllerMN">-</span></p>
+                <p><strong>固件版本：</strong><span id="controllerFR">-</span></p>
+                <p><strong>版本：</strong><span id="controllerVER">-</span></p>
+            </div>
+
+            <div class="form-group">
+                <label for="commandSelect">命令类型</label>
+                <select id="commandSelect">
+                    <option value="identify">Identify (0x06)</option>
+                    <option value="smart">SMART / Get Log Page (0x02)</option>
+                    <option value="read">NVM Read (0x02)</option>
+                    <option value="write">NVM Write (0x01)</option>
+                    <option value="create-cq">Create IO Completion Queue (0x05)</option>
+                    <option value="create-sq">Create IO Submission Queue (0x01)</option>
+                    <option value="delete-cq">Delete IO Completion Queue (0x04)</option>
+                    <option value="delete-sq">Delete IO Submission Queue (0x00)</option>
+                </select>
+            </div>
+
+            <div id="queueIdGroup" class="form-group" style="display: none;">
+                <label for="queueId">队列 ID (QID)</label>
+                <input type="number" id="queueId" value="1" min="1" max="65535">
+            </div>
+
+            <div id="queueSizeGroup" class="form-group" style="display: none;">
+                <label for="queueSize">队列大小</label>
+                <input type="number" id="queueSize" value="63" min="1" max="65535">
+            </div>
+
+            <div id="cqidGroup" class="form-group" style="display: none;">
+                <label for="cqid">关联完成队列 ID (CQID)</label>
+                <input type="number" id="cqid" value="1" min="1" max="65535">
+            </div>
+
+            <div id="nsidGroup" class="form-group" style="display: none;">
+                <label for="nsid">命名空间 ID (NSID)</label>
+                <input type="number" id="nsid" value="1" min="1">
+            </div>
+
+            <div id="lbaGroup" class="form-group" style="display: none;">
+                <label for="slba">起始 LBA (SLBA)</label>
+                <input type="number" id="slba" value="0" min="0">
+            </div>
+
+            <div id="nlbGroup" class="form-group" style="display: none;">
+                <label for="nlb">块数 (NLB)</label>
+                <input type="number" id="nlb" value="1" min="1">
+            </div>
+
+            <div id="dataGroup" class="form-group" style="display: none;">
+                <label for="writeData">写入数据 (单字节 Hex)</label>
+                <input type="text" id="writeData" value="AB" maxlength="2">
+            </div>
+
+            <div class="btn-group">
+                <button class="btn" id="sendBtn" onclick="sendCommand()">发送命令</button>
+                <button class="btn btn-secondary" id="refreshBtn" onclick="refreshStatus()">刷新状态</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>命令日志</h2>
+            <div class="console" id="console">
+                <div class="console-line">
+                    <span class="console-timestamp">[系统]</span>
+                    <span>等待 WebSocket 连接...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>SMART / Health 信息</h2>
+            <div id="smartCard" class="empty-state">请先刷新状态</div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>命名空间信息</h2>
+            <div id="namespaceCard" class="empty-state">请先刷新状态</div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>队列状态</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <h3 style="color: #667eea; margin-bottom: 16px;">IO 提交队列 (SQ)</h3>
+                    <div id="sqList">
+                        <div class="empty-state">暂无队列</div>
+                    </div>
+                </div>
+                <div>
+                    <h3 style="color: #764ba2; margin-bottom: 16px;">IO 完成队列 (CQ)</h3>
+                    <div id="cqList">
+                        <div class="empty-state">暂无队列</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let isConnected = false;
+
+        function connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            addLog('系统', `正在连接到 ${wsUrl}...`);
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = function() {
+                isConnected = true;
+                updateStatus(true);
+                addLog('系统', 'WebSocket 连接成功');
+                document.getElementById('sendBtn').disabled = false;
+                refreshStatus();
+            };
+
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'response') {
+                    addLog('接收', JSON.stringify(data, null, 2));
+                    handleResponse(data);
+                } else if (data.type === 'error') {
+                    addLog('错误', data.error, true);
+                }
+            };
+
+            ws.onclose = function() {
+                isConnected = false;
+                updateStatus(false);
+                addLog('系统', 'WebSocket 连接已关闭');
+                document.getElementById('sendBtn').disabled = true;
+                setTimeout(connect, 3000);
+            };
+
+            ws.onerror = function(error) {
+                addLog('错误', 'WebSocket 错误: ' + error.message, true);
+            };
+        }
+
+        function updateStatus(connected) {
+            const badge = document.getElementById('statusBadge');
+            if (connected) {
+                badge.textContent = '已连接';
+                badge.className = 'status-badge status-connected';
+            } else {
+                badge.textContent = '未连接';
+                badge.className = 'status-badge status-disconnected';
+            }
+        }
+
+        function addLog(type, message, isError = false) {
+            const console = document.getElementById('console');
+            const line = document.createElement('div');
+            line.className = 'console-line';
+
+            const timestamp = new Date().toLocaleTimeString();
+            let typeClass = '';
+            let typeText = type;
+
+            if (type === '发送') {
+                typeClass = 'console-sent';
+            } else if (type === '接收') {
+                typeClass = 'console-received';
+            } else if (isError || type === '错误') {
+                typeClass = 'console-error';
+            }
+
+            line.innerHTML = `
+                <span class="console-timestamp">[${timestamp}]</span>
+                <span class="${typeClass}">[${typeText}]</span>
+                <span>${escapeHtml(message)}</span>
+            `;
+
+            console.appendChild(line);
+            console.scrollTop = console.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.getElementById('commandSelect').addEventListener('change', function() {
+            const cmd = this.value;
+            document.getElementById('queueIdGroup').style.display =
+                (cmd === 'create-cq' || cmd === 'create-sq' || cmd === 'delete-cq' || cmd === 'delete-sq') ? 'block' : 'none';
+            document.getElementById('queueSizeGroup').style.display =
+                (cmd === 'create-cq' || cmd === 'create-sq') ? 'block' : 'none';
+            document.getElementById('cqidGroup').style.display =
+                (cmd === 'create-sq') ? 'block' : 'none';
+            document.getElementById('nsidGroup').style.display =
+                (cmd === 'read' || cmd === 'write') ? 'block' : 'none';
+            document.getElementById('lbaGroup').style.display =
+                (cmd === 'read' || cmd === 'write') ? 'block' : 'none';
+            document.getElementById('nlbGroup').style.display =
+                (cmd === 'read' || cmd === 'write') ? 'block' : 'none';
+            document.getElementById('dataGroup').style.display =
+                (cmd === 'write') ? 'block' : 'none';
+        });
+
+        function sendCommand() {
+            if (!isConnected || !ws) {
+                addLog('错误', 'WebSocket 未连接', true);
+                return;
+            }
+
+            const cmdType = document.getElementById('commandSelect').value;
+            let opcode, nsid = 0, cdw10 = 0, cdw11 = 0, cdw12 = 0, prp1 = 0;
+
+            switch (cmdType) {
+                case 'identify':
+                    opcode = 0x06;
+                    cdw10 = 0x01;
+                    break;
+                case 'smart':
+                    opcode = 0x02;
+                    nsid = 0xFFFFFFFF;
+                    cdw10 = 0x02 | (127 << 16);
+                    break;
+                case 'read':
+                    opcode = 0x82;
+                    nsid = parseInt(document.getElementById('nsid').value);
+                    const rslba = parseInt(document.getElementById('slba').value);
+                    const rnlb = parseInt(document.getElementById('nlb').value);
+                    cdw10 = rslba & 0xFFFFFFFF;
+                    cdw11 = (rslba >> 32) & 0xFFFFFFFF;
+                    cdw12 = rnlb - 1;
+                    break;
+                case 'write':
+                    opcode = 0x81;
+                    nsid = parseInt(document.getElementById('nsid').value);
+                    const wslba = parseInt(document.getElementById('slba').value);
+                    const wnlb = parseInt(document.getElementById('nlb').value);
+                    const dataHex = document.getElementById('writeData').value;
+                    cdw10 = wslba & 0xFFFFFFFF;
+                    cdw11 = (wslba >> 32) & 0xFFFFFFFF;
+                    cdw12 = wnlb - 1;
+                    if (dataHex && dataHex.length === 2) {
+                        prp1 = parseInt(dataHex, 16);
+                    } else {
+                        prp1 = 0xAB;
+                    }
+                    break;
+                case 'create-cq':
+                    opcode = 0x05;
+                    const cqid = parseInt(document.getElementById('queueId').value);
+                    const cqsize = parseInt(document.getElementById('queueSize').value);
+                    cdw10 = cqid | (cqsize << 16);
+                    cdw11 = 0x1;
+                    break;
+                case 'create-sq':
+                    opcode = 0x01;
+                    const sqid = parseInt(document.getElementById('queueId').value);
+                    const sqsize = parseInt(document.getElementById('queueSize').value);
+                    const assocCqid = parseInt(document.getElementById('cqid').value);
+                    cdw10 = sqid | (sqsize << 16);
+                    cdw11 = 0x1 | (assocCqid << 16);
+                    break;
+                case 'delete-cq':
+                    opcode = 0x04;
+                    cdw10 = parseInt(document.getElementById('queueId').value);
+                    break;
+                case 'delete-sq':
+                    opcode = 0x00;
+                    cdw10 = parseInt(document.getElementById('queueId').value);
+                    break;
+            }
+
+            const command = {
+                type: 'admin',
+                command: {
+                    opcode: opcode,
+                    flags: 0,
+                    cid: 0,
+                    nsid: nsid,
+                    mptr: 0,
+                    prp1: prp1,
+                    prp2: 0,
+                    cdw10: cdw10,
+                    cdw11: cdw11,
+                    cdw12: cdw12,
+                    cdw13: 0,
+                    cdw14: 0,
+                    cdw15: 0
+                }
+            };
+
+            addLog('发送', JSON.stringify(command, null, 2));
+            ws.send(JSON.stringify(command));
+        }
+
+        function handleResponse(data) {
+            if (data.response.status === 0 && data.response.data && data.response.data.length >= 4096) {
+                const sn = new TextDecoder().decode(new Uint8Array(data.response.data.slice(4, 24))).trim();
+                const mn = new TextDecoder().decode(new Uint8Array(data.response.data.slice(24, 64))).trim();
+                const fr = new TextDecoder().decode(new Uint8Array(data.response.data.slice(64, 72))).trim();
+                const ver = new DataView(new Uint8Array(data.response.data.slice(80, 84)).buffer).getUint32(0, true);
+
+                document.getElementById('controllerInfo').style.display = 'block';
+                document.getElementById('controllerSN').textContent = sn;
+                document.getElementById('controllerMN').textContent = mn;
+                document.getElementById('controllerFR').textContent = fr;
+                document.getElementById('controllerVER').textContent = '0x' + ver.toString(16).toUpperCase().padStart(8, '0');
+            }
+
+            if (data.response.status === 0 && data.response.data && data.response.data.length >= 192) {
+                const d = new Uint8Array(data.response.data);
+                const criticalWarning = d[0];
+                const temperature = d[1] | (d[2] << 8);
+                const availableSpare = d[3];
+                const availableSpareThreshold = d[4];
+                const percentageUsed = d[5];
+
+                if (criticalWarning !== undefined && temperature !== undefined) {
+                    addLog('SMART', `温度: ${temperature} K (${(temperature - 273.15).toFixed(1)} °C), 可用剩余: ${availableSpare}%, 已用: ${percentageUsed}%`);
+                }
+            }
+
+            refreshStatus();
+        }
+
+        function refreshStatus() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    updateSMARTCard(data.smart);
+                    updateNamespaceCard(data.namespace);
+                    updateQueueList('sqList', data.io_submission_queues, 'SQ');
+                    updateQueueList('cqList', data.io_completion_queues, 'CQ');
+                })
+                .catch(error => {
+                    addLog('错误', '获取状态失败: ' + error.message, true);
+                });
+        }
+
+        function updateSMARTCard(smart) {
+            const container = document.getElementById('smartCard');
+            if (!smart) {
+                container.innerHTML = '<div class="empty-state">暂无数据</div>';
+                return;
+            }
+
+            const tempC = (smart.temperature - 273.15).toFixed(1);
+            let tempColor = '#28a745';
+            if (smart.temperature > 345) tempColor = '#dc3545';
+            else if (smart.temperature > 328) tempColor = '#ffc107';
+
+            let spareColor = '#28a745';
+            if (smart.available_spare <= smart.available_spare_threshold) spareColor = '#dc3545';
+
+            container.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                    <div class="queue-info">
+                        <h3 style="color: #333;">温度</h3>
+                        <p style="font-size: 24px; color: ${tempColor}; font-weight: bold;">${tempC} °C</p>
+                        <p style="color: #666; font-size: 13px;">${smart.temperature} K</p>
+                    </div>
+                    <div class="queue-info">
+                        <h3 style="color: #333;">可用剩余</h3>
+                        <p style="font-size: 24px; color: ${spareColor}; font-weight: bold;">${smart.available_spare}%</p>
+                        <p style="color: #666; font-size: 13px;">阈值: ${smart.available_spare_threshold}%</p>
+                    </div>
+                    <div class="queue-info">
+                        <h3 style="color: #333;">已用百分比</h3>
+                        <p style="font-size: 24px; color: #667eea; font-weight: bold;">${smart.percentage_used}%</p>
+                        <p style="color: #666; font-size: 13px;">寿命使用</p>
+                    </div>
+                    <div class="queue-info">
+                        <h3 style="color: #333;">主机读命令</h3>
+                        <p style="font-size: 20px; color: #333; font-weight: bold;">${smart.host_read_commands}</p>
+                        <p style="color: #666; font-size: 13px;">数据读取: ${smart.data_units_read} 单位</p>
+                    </div>
+                    <div class="queue-info">
+                        <h3 style="color: #333;">主机写命令</h3>
+                        <p style="font-size: 20px; color: #333; font-weight: bold;">${smart.host_write_commands}</p>
+                        <p style="color: #666; font-size: 13px;">数据写入: ${smart.data_units_written} 单位</p>
+                    </div>
+                    <div class="queue-info">
+                        <h3 style="color: #333;">电源循环</h3>
+                        <p style="font-size: 24px; color: #764ba2; font-weight: bold;">${smart.power_cycles}</p>
+                        <p style="color: #666; font-size: 13px;">通电时间: ${smart.power_on_hours} h</p>
+                    </div>
+                    <div class="queue-info">
+                        <h3 style="color: #333;">不安全关机</h3>
+                        <p style="font-size: 24px; color: ${smart.unsafe_shutdowns > 0 ? '#dc3545' : '#28a745'}; font-weight: bold;">${smart.unsafe_shutdowns}</p>
+                        <p style="color: #666; font-size: 13px;">媒体错误: ${smart.media_errors}</p>
+                    </div>
+                    <div class="queue-info">
+                        <h3 style="color: #333;">控制器忙时间</h3>
+                        <p style="font-size: 24px; color: #fd7e14; font-weight: bold;">${smart.controller_busy_time} min</p>
+                        <p style="color: #666; font-size: 13px;">错误日志: ${smart.num_err_log_entries} 条</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateNamespaceCard(ns) {
+            const container = document.getElementById('namespaceCard');
+            if (!ns) {
+                container.innerHTML = '<div class="empty-state">暂无命名空间</div>';
+                return;
+            }
+
+            const sizeMB = (ns.size / (1024 * 1024)).toFixed(2);
+
+            container.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                    <div class="queue-info">
+                        <h3 style="color: #333;">命名空间 ID</h3>
+                        <p style="font-size: 24px; color: #667eea; font-weight: bold;">NS ${ns.id}</p>
+                    </div>
+                    <div class="queue-info">
+                        <h3 style="color: #333;">总容量</h3>
+                        <p style="font-size: 20px; color: #333; font-weight: bold;">${sizeMB} MB</p>
+                        <p style="color: #666; font-size: 13px;">${ns.size} 字节</p>
+                    </div>
+                    <div class="queue-info">
+                        <h3 style="color: #333;">LBA 数量</h3>
+                        <p style="font-size: 24px; color: #764ba2; font-weight: bold;">${ns.lba_count}</p>
+                        <p style="color: #666; font-size: 13px;">LBA 大小: ${ns.lba_size} 字节</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateQueueList(elementId, queues, prefix) {
+            const container = document.getElementById(elementId);
+            const queueIds = Object.keys(queues).sort((a, b) => a - b);
+
+            if (queueIds.length === 0) {
+                container.innerHTML = '<div class="empty-state">暂无队列</div>';
+                return;
+            }
+
+            let html = '';
+            for (const id of queueIds) {
+                const q = queues[id];
+                html += `
+                    <div class="queue-info">
+                        <h3>${prefix} ${id}</h3>
+                        <p><strong>大小：</strong>${q.Size} 项</p>
+                        <p><strong>物理连续：</strong>${q.PC ? '是' : '否'}</p>
+                        ${q.CQID ? `<p><strong>关联 CQ：</strong>${q.CQID}</p>` : ''}
+                        ${q.QPRIO !== undefined ? `<p><strong>优先级：</strong>${q.QPRIO}</p>` : ''}
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        connect();
+    </script>
+</body>
+</html>

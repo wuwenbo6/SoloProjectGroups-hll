@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LISP Map-Server - EID-RLOC 映射管理</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh; padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        header { text-align: center; color: white; margin-bottom: 30px; }
+        header h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+        header p { font-size: 1.1rem; opacity: 0.9; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-card { background: white; border-radius: 12px; padding: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; transition: transform 0.2s, box-shadow 0.2s; }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+        .stat-value { font-size: 1.8rem; font-weight: 700; color: #667eea; margin-bottom: 3px; }
+        .stat-label { color: #666; font-size: 0.85rem; }
+        .main-content { display: grid; grid-template-columns: 1fr; gap: 30px; }
+        .card { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #f0f0f0; flex-wrap: wrap; gap: 10px; }
+        .card-header h2 { font-size: 1.4rem; color: #333; }
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-2px); }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #e74c3c; color: white; padding: 5px 12px; font-size: 0.85rem; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-secondary { background: #95a5a6; color: white; }
+        .btn-secondary:hover { background: #7f8c8d; }
+        .btn-outline { background: white; color: #667eea; border: 2px solid #667eea; }
+        .btn-outline:hover { background: #667eea; color: white; }
+        .query-section { display: flex; gap: 10px; margin-bottom: 20px; }
+        .query-section input { flex: 1; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; transition: border-color 0.2s; }
+        .query-section input:focus { outline: none; border-color: #667eea; }
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: #f8f9fa; }
+        th { padding: 12px 10px; text-align: left; font-weight: 600; color: #333; border-bottom: 2px solid #e0e0e0; font-size: 0.9rem; }
+        td { padding: 12px 10px; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem; }
+        tbody tr:hover { background: #f8f9fa; }
+        .eid-cell { font-family: 'Courier New', monospace; font-weight: 600; color: #667eea; }
+        .rloc-list { display: flex; flex-direction: column; gap: 4px; }
+        .rloc-item { display: flex; align-items: center; gap: 8px; }
+        .rloc-ip { font-family: 'Courier New', monospace; color: #27ae60; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; }
+        .badge-priority { background: #fff3cd; color: #856404; }
+        .badge-weight { background: #d1ecf1; color: #0c5460; }
+        .badge-ttl { background: #e2e3e5; color: #383d41; }
+        .badge-selected { background: #28a745; color: white; font-size: 0.7rem; }
+        .badge-source-static { background: #cce5ff; color: #004085; }
+        .badge-source-register { background: #d4edda; color: #155724; }
+        .badge-source-api { background: #fff3cd; color: #856404; }
+        .rloc-selected { border: 2px solid #28a745; border-radius: 6px; padding: 2px 6px; background: #d4edda; }
+        .rloc-dimmed { opacity: 0.6; }
+        .query-count { text-align: center; font-weight: 600; color: #e74c3c; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.show { display: flex; }
+        .modal-content { background: white; border-radius: 12px; padding: 30px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h3 { font-size: 1.3rem; color: #333; }
+        .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; }
+        .form-group input { width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 0.95rem; }
+        .form-group input:focus { outline: none; border-color: #667eea; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .rloc-entry { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .remove-rloc { background: #e74c3c; color: white; border: none; border-radius: 4px; width: 30px; height: 30px; cursor: pointer; font-size: 1rem; }
+        .add-rloc-btn { width: 100%; padding: 8px; border: 2px dashed #667eea; background: none; color: #667eea; border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 10px; }
+        .add-rloc-btn:hover { background: #f0f0ff; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-actions .btn { flex: 1; }
+        .empty-state { text-align: center; padding: 40px; color: #888; }
+        .error-message { background: #fdecea; color: #c0392b; padding: 12px; border-radius: 6px; margin-bottom: 15px; display: none; }
+        .error-message.show { display: block; }
+        .success-message { background: #d4edda; color: #155724; padding: 12px; border-radius: 6px; margin-bottom: 15px; display: none; }
+        .success-message.show { display: block; }
+        .loading { text-align: center; padding: 40px; color: #888; }
+        .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .query-result { background: #f8f9fa; border-radius: 8px; padding: 15px; margin-bottom: 15px; display: none; }
+        .query-result.show { display: block; }
+        .query-result h4 { color: #333; margin-bottom: 10px; }
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .rloc-entry { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+            table { display: block; overflow-x: auto; }
+            .card-header { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🗺️ LISP Map-Server</h1>
+            <p>EID-RLOC 映射管理系统 · 支持 Map-Register 动态注册</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalRequests">0</div>
+                <div class="stat-label">总请求数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalReplies">0</div>
+                <div class="stat-label">总回复数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalRegisters">0</div>
+                <div class="stat-label">动态注册数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="cacheHits">0</div>
+                <div class="stat-label">缓存命中</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="hitRate">0%</div>
+                <div class="stat-label">命中率</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="uptime">--</div>
+                <div class="stat-label">运行时间</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2>📋 EID-RLOC 映射表</h2>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="openAddModal()">+ 添加映射</button>
+                        <button class="btn btn-success" onclick="openRegisterModal()">📡 注册 (Map-Register)</button>
+                        <button class="btn btn-outline" onclick="exportStats('json')">📊 导出 JSON</button>
+                        <button class="btn btn-outline" onclick="exportStats('csv')">📊 导出 CSV</button>
+                    </div>
+                </div>
+
+                <div class="query-section">
+                    <input type="text" id="queryInput" placeholder="输入 EID 地址进行查询，例如: 10.1.1.1">
+                    <button class="btn btn-primary" onclick="queryEID()">查询</button>
+                    <button class="btn btn-secondary" onclick="refreshData()">刷新</button>
+                </div>
+
+                <div id="queryResult" class="query-result"></div>
+                <div id="errorMessage" class="error-message"></div>
+                <div id="successMessage" class="success-message"></div>
+
+                <div id="tableContainer">
+                    <div class="loading"><div class="spinner"></div>加载中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加 EID-RLOC 映射</h3>
+                <button class="close-btn" onclick="closeAddModal()">&times;</button>
+            </div>
+            <form id="addForm" onsubmit="submitAddMapping(event)">
+                <div class="form-group"><label>EID 地址</label><input type="text" name="eid" placeholder="例如: 10.1.1.1" required></div>
+                <div class="form-row">
+                    <div class="form-group"><label>掩码长度</label><input type="number" name="maskLen" min="1" max="32" value="32" required></div>
+                    <div class="form-group"><label>TTL (分钟)</label><input type="number" name="ttl" min="1" value="1440" required></div>
+                    <div></div>
+                </div>
+                <div class="form-group">
+                    <label>RLOC 列表</label>
+                    <div id="rlocList">
+                        <div class="rloc-entry">
+                            <input type="text" name="rlocIp[]" placeholder="RLOC IP 地址" required>
+                            <input type="number" name="rlocPriority[]" min="1" max="255" value="1" placeholder="优先级">
+                            <input type="number" name="rlocWeight[]" min="1" max="100" value="100" placeholder="权重">
+                            <button type="button" class="remove-rloc" onclick="removeRLOC(this)">-</button>
+                        </div>
+                    </div>
+                    <button type="button" class="add-rloc-btn" onclick="addRLOC()">+ 添加 RLOC</button>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">添加映射</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📡 Map-Register 动态注册</h3>
+                <button class="close-btn" onclick="closeRegisterModal()">&times;</button>
+            </div>
+            <p style="color:#666; margin-bottom:15px; font-size:0.9rem;">通过 LISP Map-Register 协议注册 EID，服务器将回复 Map-Notify 确认注册。</p>
+            <form id="registerForm" onsubmit="submitRegister(event)">
+                <div class="form-group"><label>EID 地址</label><input type="text" name="eid" placeholder="例如: 10.5.0.1" required></div>
+                <div class="form-row">
+                    <div class="form-group"><label>掩码长度</label><input type="number" name="maskLen" min="1" max="32" value="32" required></div>
+                    <div class="form-group"><label>TTL (分钟)</label><input type="number" name="ttl" min="1" value="1440" required></div>
+                    <div></div>
+                </div>
+                <div class="form-group">
+                    <label>RLOC 列表</label>
+                    <div id="regRlocList">
+                        <div class="rloc-entry">
+                            <input type="text" name="rlocIp[]" placeholder="RLOC IP 地址" required>
+                            <input type="number" name="rlocPriority[]" min="1" max="255" value="1" placeholder="优先级">
+                            <input type="number" name="rlocWeight[]" min="1" max="100" value="100" placeholder="权重">
+                            <button type="button" class="remove-rloc" onclick="removeRegRLOC(this)">-</button>
+                        </div>
+                    </div>
+                    <button type="button" class="add-rloc-btn" onclick="addRegRLOC()">+ 添加 RLOC</button>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeRegisterModal()">取消</button>
+                    <button type="submit" class="btn btn-success">📡 发送 Map-Register</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        async function fetchData(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: { 'Content-Type': 'application/json', ...options.headers },
+                    ...options
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                showError('网络错误，请稍后重试');
+                throw error;
+            }
+        }
+
+        function showError(message) {
+            const el = document.getElementById('errorMessage');
+            el.textContent = message; el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 5000);
+        }
+
+        function showSuccess(message) {
+            const el = document.getElementById('successMessage');
+            el.textContent = message; el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 3000);
+        }
+
+        async function loadStats() {
+            try {
+                const result = await fetchData('/stats');
+                if (result.success) {
+                    const s = result.data;
+                    document.getElementById('totalRequests').textContent = s.total_requests;
+                    document.getElementById('totalReplies').textContent = s.total_replies;
+                    document.getElementById('totalRegisters').textContent = s.total_registers;
+                    document.getElementById('cacheHits').textContent = s.cache_hits;
+                    document.getElementById('hitRate').textContent = s.hit_rate;
+                    document.getElementById('uptime').textContent = formatUptime(s.uptime);
+                }
+            } catch (error) { console.error('Failed to load stats:', error); }
+        }
+
+        function formatUptime(uptime) {
+            const parts = uptime.split('h');
+            if (parts.length === 2) { return `${parts[0]}h ${parts[1].replace('m','').replace('s','')}`; }
+            return uptime;
+        }
+
+        async function loadMappings() {
+            const container = document.getElementById('tableContainer');
+            try {
+                const result = await fetchData('/mappings');
+                if (result.success) { renderMappings(result.data); }
+                else { container.innerHTML = `<div class="empty-state">加载失败: ${result.error}</div>`; }
+            } catch (error) { container.innerHTML = `<div class="empty-state">加载失败，请稍后重试</div>`; }
+        }
+
+        function renderMappings(mappings) {
+            const container = document.getElementById('tableContainer');
+            if (!mappings || mappings.length === 0) {
+                container.innerHTML = `<div class="empty-state"><p>暂无映射数据</p><p>点击上方按钮创建映射或注册 EID</p></div>`;
+                return;
+            }
+
+            let html = `<table><thead><tr>
+                <th>EID 地址</th><th>掩码</th><th>来源</th><th>RLOC 列表</th><th>选中 RLOC</th><th>TTL</th><th>查询</th><th>操作</th>
+            </tr></thead><tbody>`;
+
+            for (const m of mappings) {
+                let rlocHtml = '<div class="rloc-list">';
+                for (const rloc of m.rlocs) {
+                    const isSel = m.selected_rloc && rloc.ip === m.selected_rloc.ip;
+                    const cls = isSel ? 'rloc-selected' : (m.rlocs.length > 1 ? 'rloc-dimmed' : '');
+                    rlocHtml += `<div class="rloc-item ${cls}">
+                        <span class="rloc-ip">${rloc.ip}</span>
+                        <span class="badge badge-priority">P:${rloc.priority}</span>
+                        <span class="badge badge-weight">W:${rloc.weight}</span>
+                        ${isSel ? '<span class="badge badge-selected">✓</span>' : ''}
+                    </div>`;
+                }
+                rlocHtml += '</div>';
+
+                let selHtml = '--';
+                if (m.selected_rloc) {
+                    selHtml = `<span class="rloc-ip">${m.selected_rloc.ip}</span><br>
+                        <span class="badge badge-priority">P:${m.selected_rloc.priority}</span>
+                        <span class="badge badge-weight">W:${m.selected_rloc.weight}</span>`;
+                }
+
+                const srcCls = m.source === 'register' ? 'badge-source-register' : m.source === 'api' ? 'badge-source-api' : 'badge-source-static';
+                const srcLabel = m.source === 'register' ? 'Register' : m.source === 'api' ? 'API' : 'Static';
+
+                html += `<tr>
+                    <td class="eid-cell">${m.eid}</td>
+                    <td>/${m.eid_mask_len}</td>
+                    <td><span class="badge ${srcCls}">${srcLabel}</span></td>
+                    <td>${rlocHtml}</td>
+                    <td>${selHtml}</td>
+                    <td><span class="badge badge-ttl">${m.ttl}m</span></td>
+                    <td class="query-count">${m.query_count}</td>
+                    <td><button class="btn btn-danger" onclick="deleteMapping('${m.eid}', ${m.eid_mask_len})">删除</button></td>
+                </tr>`;
+            }
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        async function queryEID() {
+            const input = document.getElementById('queryInput');
+            const eid = input.value.trim();
+            if (!eid) { showError('请输入 EID 地址'); return; }
+
+            try {
+                const result = await fetchData(`/query?eid=${encodeURIComponent(eid)}`);
+                const qr = document.getElementById('queryResult');
+                if (result.success) {
+                    const d = result.data;
+                    let rlocHtml = '<div class="rloc-list">';
+                    for (const rloc of d.rlocs) {
+                        const isSel = d.selected_rloc && rloc.ip === d.selected_rloc.ip;
+                        const cls = isSel ? 'rloc-selected' : (d.rlocs.length > 1 ? 'rloc-dimmed' : '');
+                        rlocHtml += `<div class="rloc-item ${cls}">
+                            <span class="rloc-ip">${rloc.ip}</span>
+                            <span class="badge badge-priority">P:${rloc.priority}</span>
+                            <span class="badge badge-weight">W:${rloc.weight}</span>
+                            ${isSel ? '<span class="badge badge-selected">✓</span>' : ''}
+                        </div>`;
+                    }
+                    rlocHtml += '</div>';
+                    let selHtml = '';
+                    if (d.selected_rloc) {
+                        selHtml = `<p style="margin-top:10px"><strong>🎯 选中 RLOC:</strong>
+                            <span class="rloc-ip" style="font-size:1.1em">${d.selected_rloc.ip}</span>
+                            <span class="badge badge-priority">P:${d.selected_rloc.priority}</span>
+                            <span class="badge badge-weight">W:${d.selected_rloc.weight}</span></p>`;
+                    }
+                    qr.innerHTML = `<h4>✅ 查询结果: ${d.eid}/${d.eid_mask_len}</h4>
+                        <p><strong>RLOC 列表:</strong></p>${rlocHtml}${selHtml}
+                        <p style="margin-top:10px"><strong>TTL:</strong> <span class="badge badge-ttl">${d.ttl}m</span>
+                        <strong style="margin-left:15px">查询次数:</strong> <span class="query-count">${d.query_count}</span></p>`;
+                    qr.classList.add('show');
+                    refreshData();
+                } else {
+                    qr.innerHTML = `<h4>❌ 查询失败</h4><p>${result.error}</p>`;
+                    qr.classList.add('show');
+                }
+            } catch (error) { console.error('Query failed:', error); }
+        }
+
+        async function deleteMapping(eid, maskLen) {
+            if (!confirm(`确定要删除映射 ${eid}/${maskLen} 吗？`)) return;
+            try {
+                const result = await fetchData('/mappings/delete', {
+                    method: 'POST', body: JSON.stringify({ eid, mask_len: maskLen })
+                });
+                if (result.success) { showSuccess('映射删除成功'); refreshData(); }
+                else { showError(result.error); }
+            } catch (error) { console.error('Delete failed:', error); }
+        }
+
+        function openAddModal() {
+            document.getElementById('addModal').classList.add('show');
+            document.getElementById('addForm').reset();
+            document.getElementById('rlocList').innerHTML = rlocEntryHTML();
+        }
+        function closeAddModal() { document.getElementById('addModal').classList.remove('show'); }
+
+        function openRegisterModal() {
+            document.getElementById('registerModal').classList.add('show');
+            document.getElementById('registerForm').reset();
+            document.getElementById('regRlocList').innerHTML = rlocEntryHTML();
+        }
+        function closeRegisterModal() { document.getElementById('registerModal').classList.remove('show'); }
+
+        function rlocEntryHTML() {
+            return `<div class="rloc-entry">
+                <input type="text" name="rlocIp[]" placeholder="RLOC IP 地址" required>
+                <input type="number" name="rlocPriority[]" min="1" max="255" value="1" placeholder="优先级">
+                <input type="number" name="rlocWeight[]" min="1" max="100" value="100" placeholder="权重">
+                <button type="button" class="remove-rloc" onclick="removeRLOC(this)">-</button>
+            </div>`;
+        }
+
+        function addRLOC() {
+            const el = document.createElement('div'); el.className = 'rloc-entry';
+            el.innerHTML = rlocEntryHTML().replace('onclick="removeRLOC(this)"', 'onclick="removeRLOC(this)"');
+            document.getElementById('rlocList').appendChild(el);
+        }
+        function removeRLOC(btn) {
+            const list = document.getElementById('rlocList');
+            if (list.children.length > 1) btn.parentElement.remove(); else showError('至少需要一个 RLOC');
+        }
+        function addRegRLOC() {
+            const el = document.createElement('div'); el.className = 'rloc-entry';
+            el.innerHTML = rlocEntryHTML().replace('onclick="removeRLOC(this)"', 'onclick="removeRegRLOC(this)"');
+            document.getElementById('regRlocList').appendChild(el);
+        }
+        function removeRegRLOC(btn) {
+            const list = document.getElementById('regRlocList');
+            if (list.children.length > 1) btn.parentElement.remove(); else showError('至少需要一个 RLOC');
+        }
+
+        async function submitAddMapping(event) {
+            event.preventDefault();
+            const form = event.target; const fd = new FormData(form);
+            const rlocs = buildRLOCs(fd);
+            try {
+                const result = await fetchData('/mappings/add', {
+                    method: 'POST', body: JSON.stringify({ eid: fd.get('eid'), mask_len: parseInt(fd.get('maskLen')), ttl: parseInt(fd.get('ttl')), rlocs })
+                });
+                if (result.success) { showSuccess('映射添加成功'); closeAddModal(); refreshData(); }
+                else { showError(result.error); }
+            } catch (error) { console.error('Add mapping failed:', error); }
+        }
+
+        async function submitRegister(event) {
+            event.preventDefault();
+            const form = event.target; const fd = new FormData(form);
+            const rlocs = buildRLOCs(fd);
+            try {
+                const result = await fetchData('/mappings/register', {
+                    method: 'POST', body: JSON.stringify({ eid: fd.get('eid'), mask_len: parseInt(fd.get('maskLen')), ttl: parseInt(fd.get('ttl')), rlocs })
+                });
+                if (result.success) {
+                    const d = result.data;
+                    showSuccess(`EID ${d.registered_eid}/${d.mask_len} 注册成功！Nonce: ${d.nonce}, ${d.rloc_count} 个 RLOC`);
+                    closeRegisterModal(); refreshData();
+                } else { showError(result.error); }
+            } catch (error) { console.error('Register failed:', error); }
+        }
+
+        function buildRLOCs(fd) {
+            const ips = fd.getAll('rlocIp[]');
+            const ps = fd.getAll('rlocPriority[]');
+            const ws = fd.getAll('rlocWeight[]');
+            return ips.map((ip, i) => ({ ip: ip.trim(), priority: parseInt(ps[i]) || 1, weight: parseInt(ws[i]) || 100 }));
+        }
+
+        function exportStats(format) {
+            window.open(`${API_BASE}/stats/export?format=${format}`, '_blank');
+        }
+
+        function refreshData() { loadMappings(); loadStats(); }
+
+        document.getElementById('queryInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') queryEID();
+        });
+
+        refreshData();
+        setInterval(loadStats, 5000);
+    </script>
+</body>
+</html>

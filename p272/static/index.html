@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoundWire 命令解析器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .upload-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .upload-area {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fafbfc;
+        }
+        
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .upload-text {
+            color: #718096;
+            font-size: 14px;
+        }
+        
+        .upload-text strong {
+            color: #667eea;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+        
+        .btn-secondary:hover {
+            background: #cbd5e0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .file-info {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f0f4ff;
+            border-radius: 6px;
+            display: none;
+        }
+        
+        .file-info.show {
+            display: block;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #718096;
+            font-size: 14px;
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 1024px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            background: #f7fafc;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            font-size: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .panel-body {
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .tree {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 13px;
+        }
+        
+        .tree-node {
+            margin-left: 20px;
+        }
+        
+        .tree-node.bus {
+            margin-left: 0;
+        }
+        
+        .tree-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .tree-item:hover {
+            background: #f7fafc;
+        }
+        
+        .tree-icon {
+            margin-right: 8px;
+            font-size: 14px;
+        }
+        
+        .tree-name {
+            font-weight: 500;
+        }
+        
+        .tree-addr {
+            color: #a0aec0;
+            margin-left: 8px;
+            font-size: 12px;
+        }
+        
+        .tree-value {
+            color: #667eea;
+            margin-left: auto;
+            font-weight: 600;
+        }
+        
+        .icon-bus { color: #764ba2; }
+        .icon-group { color: #ed8936; }
+        .icon-device { color: #4299e1; }
+        .icon-register { color: #48bb78; }
+        .icon-broadcast { color: #e53e3e; }
+        
+        .badge-broadcast {
+            background: #fff5f5;
+            color: #c53030;
+        }
+        
+        .badge-unicast {
+            background: #ebf8ff;
+            color: #2b6cb0;
+        }
+        
+        .badge-group {
+            background: #fef5e7;
+            color: #d69e2e;
+        }
+        
+        .command-item.broadcast {
+            background: linear-gradient(90deg, rgba(229, 62, 62, 0.05) 0%, transparent 100%);
+            border-left: 3px solid #e53e3e;
+        }
+        
+        .command-item.crc-error {
+            background: linear-gradient(90deg, rgba(245, 101, 101, 0.08) 0%, transparent 100%);
+            border-left: 3px solid #e53e3e;
+        }
+        
+        .command-item.error-injected {
+            background: linear-gradient(90deg, rgba(237, 137, 54, 0.1) 0%, transparent 100%);
+            border-left: 3px solid #ed8936;
+        }
+        
+        .tree-group-header {
+            background: #fef5e7;
+            border-radius: 4px;
+            margin-bottom: 4px;
+        }
+        
+        .error-control {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .error-control-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e0;
+            transition: .3s;
+            border-radius: 26px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #e53e3e;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+        
+        .range-input {
+            width: 150px;
+        }
+        
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .parity-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .parity-ok {
+            color: #48bb78;
+        }
+        
+        .parity-error {
+            color: #e53e3e;
+        }
+        
+        .crc-status {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+            font-size: 11px;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        th {
+            background: #f7fafc;
+            text-align: left;
+            padding: 12px;
+            font-weight: 600;
+            color: #4a5568;
+            border-bottom: 2px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+        }
+        
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        tr:hover td {
+            background: #f7fafc;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .badge-read {
+            background: #ebf8ff;
+            color: #2b6cb0;
+        }
+        
+        .badge-write {
+            background: #fef5e7;
+            color: #d69e2e;
+        }
+        
+        .badge-cmd {
+            background: #f0fff4;
+            color: #276749;
+        }
+        
+        .command-list {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 12px;
+        }
+        
+        .command-item {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .command-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .command-name {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .command-addr {
+            color: #a0aec0;
+        }
+        
+        .command-params {
+            color: #718096;
+            padding-left: 15px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #a0aec0;
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎛️ SoundWire 命令解析器</h1>
+            <div class="subtitle">解析逻辑分析仪抓取的CSV数据，展示设备树和寄存器读写操作</div>
+        </header>
+        
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">
+                    拖拽CSV文件到这里，或 <strong>点击选择文件</strong>
+                </div>
+                <input type="file" id="fileInput" accept=".csv">
+            </div>
+            <div class="file-info" id="fileInfo">
+                <strong>已选择文件：</strong> <span id="fileName"></span>
+                <button class="btn" id="uploadBtn" style="margin-left: 15px;">开始解析</button>
+                <button class="btn btn-secondary" id="clearBtn" style="margin-left: 10px;">清除数据</button>
+            </div>
+        </div>
+        
+        <div class="stats" id="stats" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-value" id="totalCommands">0</div>
+                <div class="stat-label">命令总数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="broadcastCount">0</div>
+                <div class="stat-label">广播命令</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="parityErrors">0</div>
+                <div class="stat-label" style="color: #e53e3e;">校验错误</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="injectedErrors">0</div>
+                <div class="stat-label" style="color: #ed8936;">注入错误</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalRegOps">0</div>
+                <div class="stat-label">寄存器操作</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="deviceCount">0</div>
+                <div class="stat-label">设备数量</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="groupCount">0</div>
+                <div class="stat-label">组数量</div>
+            </div>
+        </div>
+        
+        <div class="error-control" id="errorControl" style="display: none;">
+            <div class="error-control-row">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <strong>🔧 错误注入测试：</strong>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="errorInjectionToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span id="errorInjectionStatus">已禁用</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label for="errorRate">错误率：</label>
+                    <input type="range" id="errorRate" class="range-input" min="0" max="100" value="10">
+                    <span id="errorRateValue">10%</span>
+                </div>
+                <button class="btn btn-secondary" id="applyErrorInjection">应用设置</button>
+                <div class="export-buttons" style="margin-left: auto;">
+                    <button class="btn btn-secondary" onclick="exportCommands()">📤 导出命令CSV</button>
+                    <button class="btn btn-secondary" onclick="exportRegisterOps()">📤 导出寄存器CSV</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content-grid" id="content" style="display: none;">
+            <div class="panel">
+                <div class="panel-header">
+                    <span>🌳 设备树</span>
+                </div>
+                <div class="panel-body">
+                    <div class="tree" id="deviceTree"></div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">
+                    <span>📡 广播命令</span>
+                </div>
+                <div class="panel-body">
+                    <div class="command-list" id="broadcastList"></div>
+                </div>
+            </div>
+            
+            <div class="panel full-width">
+                <div class="panel-header">
+                    <span>📝 寄存器读写操作</span>
+                </div>
+                <div class="panel-body">
+                    <div class="table-container">
+                        <table id="registerTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>设备</th>
+                                    <th>组ID</th>
+                                    <th>类型</th>
+                                    <th>操作</th>
+                                    <th>寄存器</th>
+                                    <th>数据</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel full-width">
+                <div class="panel-header">
+                    <span>📜 命令序列</span>
+                </div>
+                <div class="panel-body">
+                    <div class="command-list" id="commandList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const stats = document.getElementById('stats');
+        const content = document.getElementById('content');
+        const errorControl = document.getElementById('errorControl');
+        const errorInjectionToggle = document.getElementById('errorInjectionToggle');
+        const errorInjectionStatus = document.getElementById('errorInjectionStatus');
+        const errorRate = document.getElementById('errorRate');
+        const errorRateValue = document.getElementById('errorRateValue');
+        const applyErrorInjection = document.getElementById('applyErrorInjection');
+        
+        let selectedFile = null;
+        let errorInjectionConfig = { enabled: false, rate: 0.1 };
+        
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].name.endsWith('.csv')) {
+                handleFileSelect(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+        
+        function handleFileSelect(file) {
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileInfo.classList.add('show');
+            errorControl.style.display = 'block';
+        }
+        
+        uploadBtn.addEventListener('click', uploadAndParse);
+        
+        clearBtn.addEventListener('click', clearData);
+        
+        errorRate.addEventListener('input', () => {
+            errorRateValue.textContent = errorRate.value + '%';
+        });
+        
+        errorInjectionToggle.addEventListener('change', () => {
+            errorInjectionStatus.textContent = errorInjectionToggle.checked ? '已启用' : '已禁用';
+            errorInjectionStatus.style.color = errorInjectionToggle.checked ? '#e53e3e' : '#718096';
+        });
+        
+        applyErrorInjection.addEventListener('click', async () => {
+            const enabled = errorInjectionToggle.checked;
+            const rate = parseInt(errorRate.value) / 100;
+            
+            try {
+                const response = await fetch('/api/error-injection', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled, rate })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    errorInjectionConfig = { enabled: result.error_injection_enabled, rate: result.error_injection_rate };
+                    alert(`错误注入已${result.error_injection_enabled ? '启用' : '禁用'}，错误率: ${(result.error_injection_rate * 100).toFixed(0)}%\n请重新上传文件以应用设置`);
+                }
+            } catch (error) {
+                alert('设置失败: ' + error.message);
+            }
+        });
+        
+        async function uploadAndParse() {
+            if (!selectedFile) return;
+            
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = '解析中...';
+            
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const stats = result.statistics || {};
+                    document.getElementById('totalCommands').textContent = stats.total_commands || 0;
+                    document.getElementById('broadcastCount').textContent = stats.broadcast_commands || 0;
+                    document.getElementById('parityErrors').textContent = stats.parity_errors || 0;
+                    document.getElementById('injectedErrors').textContent = stats.injected_errors || 0;
+                    document.getElementById('totalRegOps').textContent = stats.total_register_ops || 0;
+                    document.getElementById('deviceCount').textContent = stats.device_count || 0;
+                    document.getElementById('groupCount').textContent = stats.group_count || 0;
+                    
+                    document.getElementById('stats').style.display = 'grid';
+                    document.getElementById('content').style.display = 'grid';
+                    
+                    await loadDeviceTree();
+                    await loadRegisterOps();
+                    await loadCommands();
+                    await loadBroadcastCommands();
+                } else {
+                    alert('解析失败: ' + result.error);
+                }
+            } catch (error) {
+                alert('上传失败: ' + error.message);
+            }
+            
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = '开始解析';
+        }
+        
+        function exportCommands() {
+            window.location.href = '/api/export/commands';
+        }
+        
+        function exportRegisterOps() {
+            window.location.href = '/api/export/register-ops';
+        }
+        
+        async function loadDeviceTree() {
+            const response = await fetch('/api/device-tree');
+            const result = await response.json();
+            
+            if (result.success) {
+                const treeEl = document.getElementById('deviceTree');
+                treeEl.innerHTML = renderTreeNode(result.device_tree, true);
+            }
+        }
+        
+        function renderTreeNode(node, isRoot = false) {
+            let html = `<div class="tree-node ${isRoot ? 'bus' : ''}">`;
+            html += `<div class="tree-item ${node.type === 'group' ? 'tree-group-header' : ''}">`;
+            
+            let iconClass = '';
+            if (node.type === 'bus') iconClass = 'icon-bus';
+            else if (node.type === 'group') iconClass = 'icon-group';
+            else if (node.type === 'device') iconClass = 'icon-device';
+            else if (node.type === 'register') iconClass = 'icon-register';
+            
+            let icon = '';
+            if (node.type === 'bus') icon = '🔌';
+            else if (node.type === 'group') icon = '📁';
+            else if (node.type === 'device') icon = '📦';
+            else if (node.type === 'register') icon = '📋';
+            
+            html += `<span class="tree-icon ${iconClass}">${icon}</span>`;
+            html += `<span class="tree-name">${node.name}</span>`;
+            
+            if (node.address) {
+                html += `<span class="tree-addr">${node.address}</span>`;
+            }
+            
+            if (node.group_id !== undefined && node.group_id !== null) {
+                html += `<span class="badge badge-group" style="margin-left:8px;">G${node.group_id}</span>`;
+            }
+            
+            if (node.value) {
+                html += `<span class="tree-value">${node.value}</span>`;
+            }
+            
+            html += `</div>`;
+            
+            if (node.children && node.children.length > 0) {
+                for (const child of node.children) {
+                    html += renderTreeNode(child);
+                }
+            }
+            
+            html += `</div>`;
+            return html;
+        }
+        
+        async function loadRegisterOps() {
+            const response = await fetch('/api/register-ops');
+            const result = await response.json();
+            
+            if (result.success) {
+                const tbody = document.querySelector('#registerTable tbody');
+                tbody.innerHTML = '';
+                
+                result.register_ops.forEach((op, idx) => {
+                    const tr = document.createElement('tr');
+                    const typeBadge = op.is_broadcast 
+                        ? '<span class="badge badge-broadcast">广播</span>' 
+                        : '<span class="badge badge-unicast">单播</span>';
+                    
+                    tr.innerHTML = `
+                        <td>${idx + 1}</td>
+                        <td>${op.device_name}</td>
+                        <td>${op.group_id !== undefined && op.group_id !== null ? `0x${op.group_id.toString(16).padStart(1, '0').toUpperCase()}` : '-'}</td>
+                        <td>${typeBadge}</td>
+                        <td><span class="badge ${op.operation === 'read' ? 'badge-read' : 'badge-write'}">${op.operation.toUpperCase()}</span></td>
+                        <td>${op.register_name} <small style="color:#a0aec0">(${op.register_address})</small></td>
+                        <td><code>${op.data || '-'}</code></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                
+                if (result.register_ops.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">暂无寄存器操作</td></tr>';
+                }
+            }
+        }
+        
+        async function loadCommands() {
+            const response = await fetch('/api/commands');
+            const result = await response.json();
+            
+            if (result.success) {
+                const listEl = document.getElementById('commandList');
+                listEl.innerHTML = '';
+                
+                result.commands.forEach((cmd, idx) => {
+                    const div = document.createElement('div');
+                    let className = 'command-item';
+                    if (cmd.is_broadcast) className += ' broadcast';
+                    if (cmd.error_injected) className += ' error-injected';
+                    else if (cmd.parity_error || cmd.crc_error) className += ' crc-error';
+                    div.className = className;
+                    
+                    let typeBadge = '';
+                    if (cmd.is_broadcast) {
+                        typeBadge = '<span class="badge badge-broadcast" style="margin-right:5px;">广播</span>';
+                    }
+                    if (cmd.error_injected) {
+                        typeBadge += '<span class="badge" style="background:#fef5e7;color:#d69e2e;margin-right:5px;">注入错误</span>';
+                    } else if (cmd.parity_error || cmd.crc_error) {
+                        typeBadge += '<span class="badge" style="background:#fff5f5;color:#c53030;margin-right:5px;">校验失败</span>';
+                    }
+                    
+                    let deviceInfo = '';
+                    if (cmd.is_broadcast) {
+                        deviceInfo = '广播地址';
+                    } else if (cmd.full_device_id !== undefined && cmd.full_device_id !== null) {
+                        deviceInfo = `完整ID: 0x${cmd.full_device_id.toString(16).padStart(2, '0').toUpperCase()}`;
+                        if (cmd.group_id !== undefined && cmd.group_id !== null) {
+                            deviceInfo += ` (组: 0x${cmd.group_id.toString(16).padStart(1, '0').toUpperCase()}, 设备: 0x${(cmd.full_device_id & 0x0F).toString(16).padStart(1, '0').toUpperCase()})`;
+                        }
+                    } else {
+                        deviceInfo = `设备: 0x${cmd.device_address.toString(16).padStart(2, '0').toUpperCase()}`;
+                    }
+                    
+                    let paramsHtml = '';
+                    if (cmd.params && cmd.params.length > 0) {
+                        paramsHtml = '<div class="command-params">';
+                        cmd.params.forEach(p => {
+                            paramsHtml += `<div>${p.name}: ${p.value}`;
+                            if (p.register_name) paramsHtml += ` (${p.register_name})`;
+                            if (p.group_id) paramsHtml += ` [组ID: ${p.group_id}, 设备ID: ${p.device_id}]`;
+                            paramsHtml += '</div>';
+                        });
+                        paramsHtml += '</div>';
+                    }
+                    
+                    let parityStatus = '';
+                    if (cmd.parity !== null && cmd.parity !== undefined) {
+                        const parityOk = !cmd.parity_error;
+                        const crcOk = !cmd.crc_error;
+                        parityStatus = `
+                            <div class="crc-status">
+                                <span class="parity-status ${parityOk ? 'parity-ok' : 'parity-error'}">
+                                    ${parityOk ? '✓' : '✗'} 奇偶校验: 收到=0x${cmd.parity.toString(16).padStart(2, '0').toUpperCase()}, 计算=0x${cmd.parity_calculated.toString(16).padStart(2, '0').toUpperCase()}
+                                </span>
+                                <span class="parity-status ${crcOk ? 'parity-ok' : 'parity-error'}">
+                                    ${crcOk ? '✓' : '✗'} CRC8: 计算=0x${cmd.crc_calculated.toString(16).padStart(2, '0').toUpperCase()}
+                                </span>
+                            </div>
+                        `;
+                    }
+                    
+                    div.innerHTML = `
+                        <div class="command-header">
+                            <span><span class="badge badge-cmd">#${idx + 1}</span> ${typeBadge}<span class="command-name">${cmd.cmd_name}</span></span>
+                            <span class="command-addr">${deviceInfo} | 原始: ${cmd.raw_byte}</span>
+                        </div>
+                        ${paramsHtml}
+                        ${parityStatus}
+                    `;
+                    listEl.appendChild(div);
+                });
+                
+                if (result.commands.length === 0) {
+                    listEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><div>暂无命令数据</div></div>';
+                }
+            }
+        }
+        
+        async function loadBroadcastCommands() {
+            const response = await fetch('/api/broadcast-commands');
+            const result = await response.json();
+            
+            if (result.success) {
+                const listEl = document.getElementById('broadcastList');
+                listEl.innerHTML = '';
+                
+                result.broadcast_commands.forEach((cmd, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'command-item broadcast';
+                    
+                    let paramsHtml = '';
+                    if (cmd.params && cmd.params.length > 0) {
+                        paramsHtml = '<div class="command-params">';
+                        cmd.params.forEach(p => {
+                            paramsHtml += `<div>${p.name}: ${p.value}`;
+                            if (p.register_name) paramsHtml += ` (${p.register_name})`;
+                            paramsHtml += '</div>';
+                        });
+                        paramsHtml += '</div>';
+                    }
+                    
+                    div.innerHTML = `
+                        <div class="command-header">
+                            <span><span class="badge badge-broadcast">#${idx + 1}</span> <span class="command-name">${cmd.cmd_name}</span></span>
+                            <span class="command-addr">广播地址 | 原始: ${cmd.raw_byte}</span>
+                        </div>
+                        ${paramsHtml}
+                    `;
+                    listEl.appendChild(div);
+                });
+                
+                if (result.broadcast_commands.length === 0) {
+                    listEl.innerHTML = '<div class="empty-state"><div class="empty-state-icon">�</div><div>暂无广播命令</div></div>';
+                }
+            }
+        }
+        
+        async function clearData() {
+            await fetch('/api/clear', { method: 'POST' });
+            document.getElementById('stats').style.display = 'none';
+            document.getElementById('content').style.display = 'none';
+            document.getElementById('errorControl').style.display = 'none';
+            fileInfo.classList.remove('show');
+            selectedFile = null;
+            fileInput.value = '';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>蓝牙扫描器 - BlueZ D-Bus</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="header-content">
+        <div class="logo-section">
+          <div class="bluetooth-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/>
+            </svg>
+          </div>
+          <div>
+            <h1>蓝牙扫描器</h1>
+            <p class="subtitle">基于 BlueZ D-Bus API</p>
+          </div>
+        </div>
+        <div class="status-section">
+          <div class="adapter-info" id="adapterInfo">
+            <span class="label">适配器:</span>
+            <span class="value" id="adapterPath">未检测到</span>
+          </div>
+          <div class="scan-status" id="scanStatus">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span class="status-text" id="statusText">未扫描</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div class="controls-section">
+        <button id="startBtn" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          开始扫描
+        </button>
+        <button id="stopBtn" class="btn btn-danger" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="6" y="6" width="12" height="12"/>
+          </svg>
+          停止扫描
+        </button>
+        <button id="refreshBtn" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"/>
+            <polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          刷新列表
+        </button>
+        <button id="reconnectBtn" class="btn btn-outline">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+          </svg>
+          重新连接
+        </button>
+        <button id="exportBtn" class="btn btn-success">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          导出CSV
+        </button>
+        <div class="device-count">
+          已发现设备: <span id="deviceCount">0</span>
+        </div>
+      </div>
+
+      <div class="devices-section">
+        <div class="section-header">
+          <h2>周边设备</h2>
+          <div class="filters">
+            <input type="text" id="searchInput" placeholder="搜索设备名称或地址..." class="search-input">
+          </div>
+        </div>
+        
+        <div class="table-container">
+          <table class="devices-table">
+            <thead>
+              <tr>
+                <th style="width: 60px;">信号</th>
+                <th>设备名称</th>
+                <th>MAC 地址</th>
+                <th style="width: 80px;">配对</th>
+                <th style="width: 80px;">连接</th>
+                <th style="width: 100px;">RSSI (dBm)</th>
+                <th style="width: 200px;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="devicesBody">
+              <tr class="empty-row">
+                <td colspan="7">
+                  <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29z"/>
+                    </svg>
+                    <p>暂无设备</p>
+                    <p class="hint">点击"开始扫描"搜索周边蓝牙设备</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="pinModal" style="display: none;">
+        <div class="modal">
+          <div class="modal-header">
+            <h3>输入PIN码</h3>
+            <button class="modal-close" id="pinModalClose">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p class="modal-message" id="pinModalMessage">请输入蓝牙设备的PIN码进行配对</p>
+            <input type="text" id="pinInput" class="modal-input" placeholder="输入PIN码 (如 0000 或 1234)" maxlength="16">
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="pinModalCancel">取消</button>
+            <button class="btn btn-primary" id="pinModalConfirm">确认配对</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="confirmModal" style="display: none;">
+        <div class="modal">
+          <div class="modal-header">
+            <h3>确认配对</h3>
+            <button class="modal-close" id="confirmModalClose">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p class="modal-message">请确认设备上显示的配对码是否一致：</p>
+            <div class="passkey-display" id="confirmPasskey">000000</div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="confirmModalCancel">取消</button>
+            <button class="btn btn-primary" id="confirmModalConfirm">确认匹配</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="log-section">
+        <div class="section-header">
+          <h2>运行日志</h2>
+          <button id="clearLogBtn" class="btn btn-small btn-outline">清空</button>
+        </div>
+        <div class="log-container" id="logContainer">
+          <div class="log-entry log-info">应用已启动</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

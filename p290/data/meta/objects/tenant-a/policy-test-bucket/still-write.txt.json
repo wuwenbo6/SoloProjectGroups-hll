@@ -1,0 +1,9 @@
+{
+  "key": "still-write.txt",
+  "bucket": "policy-test-bucket",
+  "tenant_id": "tenant-a",
+  "size": 17,
+  "content_type": "application/octet-stream",
+  "etag": "f1424d9e079e142ac3335d763aedb63c",
+  "last_modified": "2026-05-30T14:07:01.965558Z"
+}

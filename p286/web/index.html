@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L2TPv3 隧道管理器</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #1e293b;
+            --bg-input: #0f172a;
+            --border-color: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --warning: #f59e0b;
+            --radius: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header h1 .icon {
+            width: 32px;
+            height: 32px;
+            background: var(--accent);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius);
+            padding: 4px;
+            margin-bottom: 24px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px 16px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .tab:hover { color: var(--text-primary); background: var(--bg-primary); }
+        .tab.active { background: var(--accent); color: white; }
+
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group.full-width { grid-column: 1 / -1; }
+
+        .form-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-group input,
+        .form-group select {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--accent);
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-group .hint {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: var(--danger-hover); }
+        .btn-secondary { background: var(--border-color); color: var(--text-primary); }
+        .btn-secondary:hover { background: var(--text-muted); }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        thead th {
+            text-align: left;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tbody td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tbody tr:hover { background: var(--bg-primary); }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-up { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+        .badge-down { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .badge-udp { background: rgba(59, 130, 246, 0.15); color: var(--accent); }
+        .badge-ip { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .badge-eth { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+
+        .stats-info {
+            background: var(--bg-primary);
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 8px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 11px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 8px;
+        }
+
+        .stats-info div {
+            padding: 6px 8px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 4px;
+        }
+
+        .stats-info .label {
+            color: var(--text-secondary);
+            font-size: 10px;
+            display: block;
+        }
+
+        .stats-info .value {
+            color: var(--text-primary);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .stats-info .bytes-in .value { color: var(--success); }
+        .stats-info .bytes-out .value { color: var(--accent); }
+        .stats-info .pkts-in .value { color: var(--warning); }
+        .stats-info .pkts-out .value { color: #a855f7; }
+
+        .encrypt-result {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            margin-top: 16px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 12px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .encrypt-result .esp-header { color: var(--accent); }
+        .encrypt-result .esp-payload { color: var(--warning); }
+        .encrypt-result .esp-icv { color: var(--danger); }
+        .encrypt-result .esp-plain { color: var(--success); }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon { font-size: 36px; margin-bottom: 12px; }
+        .empty-state p { font-size: 14px; }
+
+        .result-box {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            margin-top: 16px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--success);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px;
+        }
+
+        .stat-card .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .stat-card .stat-value.text-blue { color: var(--accent); }
+        .stat-card .stat-value.text-green { color: var(--success); }
+        .stat-card .stat-value.text-yellow { color: var(--warning); }
+        .stat-card .stat-value.text-purple { color: #a855f7; }
+
+        .action-btn {
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+        }
+
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast-success { background: var(--success); color: white; }
+        .toast-error { background: var(--danger); color: white; }
+
+        .cookie-preview {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--warning);
+            word-break: break-all;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<div class="header">
+    <h1>
+        <span class="icon">&#128268;</span>
+        L2TPv3 隧道管理器
+    </h1>
+    <div class="status-bar">
+        <span><span class="status-dot"></span> 运行中</span>
+        <span id="dpMode">数据平面: --</span>
+        <span id="tunnelCount">隧道: 0</span>
+        <span id="sessionCount">会话: 0</span>
+    </div>
+</div>
+
+<div class="container">
+    <div class="tabs">
+        <button class="tab active" data-tab="overview">概览</button>
+        <button class="tab" data-tab="tunnels">隧道管理</button>
+        <button class="tab" data-tab="sessions">会话管理</button>
+        <button class="tab" data-tab="frame">帧封装</button>
+        <button class="tab" data-tab="ipsec">IPsec加密</button>
+    </div>
+
+    <div id="panel-overview" class="panel active">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">数据平面</div>
+                <div class="stat-value text-blue" id="statDataplane">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">活跃隧道</div>
+                <div class="stat-value text-green" id="statTunnels">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">活跃会话</div>
+                <div class="stat-value text-yellow" id="statSessions">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">伪线类型</div>
+                <div class="stat-value text-purple">Ethernet</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">&#128218; L2TPv3 协议说明</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.8;">
+                <p><strong>L2TPv3</strong>（Layer 2 Tunneling Protocol version 3, RFC3931）是二层隧道协议的第三版，支持对 Ethernet、VLAN 等二层帧的透明传输。</p>
+                <p style="margin-top:8px;">核心概念：</p>
+                <ul style="margin-left: 20px; margin-top: 4px;">
+                    <li><strong>隧道 (Tunnel)</strong>：在两个 L2TP 对端之间建立的传输通道，由 Tunnel ID 标识</li>
+                    <li><strong>会话 (Session/伪线)</strong>：隧道内的逻辑连接，由 Session ID 标识，承载特定类型的伪线（如 Ethernet）</li>
+                    <li><strong>Cookie</strong>：会话级别的可选认证值（4 或 8 字节），用于数据包校验，防止误投递</li>
+                    <li><strong>封装类型</strong>：UDP（支持 NAT 穿越）或 IP（更低开销）</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">&#128230; L2TPv3 数据包格式 (over IP)</div>
+            <div style="background: var(--bg-primary); border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 2;">
+                <span style="color: var(--accent);">+------------------+</span><br>
+                <span style="color: var(--accent);">|</span> IP Header        <span style="color: var(--accent);">|</span> <span style="color: var(--text-muted);">IP Protocol = 115</span><br>
+                <span style="color: var(--accent);">+------------------+</span><br>
+                <span style="color: var(--accent);">|</span> <span style="color: var(--warning);">Session ID (4B)</span>  <span style="color: var(--accent);">|</span> <span style="color: var(--text-muted);">本地会话标识</span><br>
+                <span style="color: var(--accent);">+------------------+</span><br>
+                <span style="color: var(--accent);">|</span> <span style="color: #a855f7;">Cookie (0/4/8B)</span> <span style="color: var(--accent);">|</span> <span style="color: var(--text-muted);">可选的会话认证</span><br>
+                <span style="color: var(--accent);">+------------------+</span><br>
+                <span style="color: var(--accent);">|</span> <span style="color: var(--success);">L2-Specific HDR</span> <span style="color: var(--accent);">|</span> <span style="color: var(--text-muted);">可选子层</span><br>
+                <span style="color: var(--accent);">+------------------+</span><br>
+                <span style="color: var(--accent);">|</span> <span style="color: var(--danger);">Ethernet Frame</span>  <span style="color: var(--accent);">|</span> <span style="color: var(--text-muted);">封装的二层帧</span><br>
+                <span style="color: var(--accent);">+------------------+</span><br>
+            </div>
+        </div>
+    </div>
+
+    <div id="panel-tunnels" class="panel">
+        <div class="card">
+            <div class="card-title">&#10133; 创建隧道</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>隧道名称</label>
+                    <input type="text" id="t-name" placeholder="例如: tunnel1">
+                </div>
+                <div class="form-group">
+                    <label>封装类型</label>
+                    <select id="t-encap">
+                        <option value="udp">UDP</option>
+                        <option value="ip">IP</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>本地地址</label>
+                    <input type="text" id="t-local" placeholder="例如: 10.0.0.1:5000">
+                    <span class="hint">IP:端口 格式</span>
+                </div>
+                <div class="form-group">
+                    <label>对端地址</label>
+                    <input type="text" id="t-peer" placeholder="例如: 10.0.0.2:5000">
+                    <span class="hint">IP:端口 格式</span>
+                </div>
+                <div class="form-group">
+                    <label>本地 Tunnel ID</label>
+                    <input type="number" id="t-tid" placeholder="1 - 4294967295" min="1">
+                    <span class="hint">32位，对端 peer_tunnel_id 须匹配</span>
+                </div>
+                <div class="form-group">
+                    <label>对端 Tunnel ID</label>
+                    <input type="number" id="t-ptid" placeholder="1 - 4294967295" min="1">
+                    <span class="hint">32位，须与对端 tunnel_id 一致</span>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="createTunnel()">&#10133; 创建隧道</button>
+                <button class="btn btn-secondary" onclick="refreshTunnels()">&#128260; 刷新列表</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">&#128203; 隧道列表</div>
+            <div id="tunnel-list">
+                <div class="empty-state">
+                    <div class="icon">&#128640;</div>
+                    <p>暂无隧道，请创建一个新隧道</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="panel-sessions" class="panel">
+        <div class="card">
+            <div class="card-title">&#10133; 创建会话（伪线）</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>所属隧道</label>
+                    <select id="s-tunnel">
+                        <option value="">-- 选择隧道 --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>会话名称</label>
+                    <input type="text" id="s-name" placeholder="例如: session1">
+                </div>
+                <div class="form-group">
+                    <label>本地 Session ID</label>
+                    <input type="number" id="s-sid" placeholder="1 - 4294967295" min="1">
+                    <span class="hint">32位，L2TPv3 会话标识</span>
+                </div>
+                <div class="form-group">
+                    <label>对端 Session ID</label>
+                    <input type="number" id="s-psid" placeholder="1 - 4294967295" min="1">
+                    <span class="hint">32位，须与对端 session_id 一致</span>
+                </div>
+                <div class="form-group">
+                    <label>本地 Cookie (Hex)</label>
+                    <input type="text" id="s-cookie" placeholder="例如: 014d3636 或 014d3636deadbeef">
+                    <span class="hint">4字节(8位hex) 或 8字节(16位hex)，可选</span>
+                    <div id="cookie-preview" class="cookie-preview" style="display:none;"></div>
+                </div>
+                <div class="form-group">
+                    <label>对端 Cookie (Hex)</label>
+                    <input type="text" id="s-peer-cookie" placeholder="例如: aabbccdd 或 aabbccdd11223344">
+                    <span class="hint">对端校验的 Cookie 值，可选</span>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="createSession()">&#10133; 创建会话</button>
+                <button class="btn btn-secondary" onclick="refreshSessions()">&#128260; 刷新列表</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">&#128203; 会话列表</div>
+            <div id="session-list">
+                <div class="empty-state">
+                    <div class="icon">&#128279;</div>
+                    <p>暂无会话，请先创建隧道再添加会话</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="panel-frame" class="panel">
+        <div class="card">
+            <div class="card-title">&#128230; Ethernet 帧封装（L2TPv3）</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Session ID</label>
+                    <input type="number" id="f-session-id" placeholder="例如: 12389" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Cookie (Hex)</label>
+                    <input type="text" id="f-cookie" placeholder="可选，例如: 014d3636">
+                </div>
+                <div class="form-group">
+                    <label>目标 MAC</label>
+                    <input type="text" id="f-dst-mac" placeholder="例如: aa:bb:cc:dd:ee:ff">
+                </div>
+                <div class="form-group">
+                    <label>源 MAC</label>
+                    <input type="text" id="f-src-mac" placeholder="例如: 11:22:33:44:55:66">
+                </div>
+                <div class="form-group">
+                    <label>EtherType</label>
+                    <select id="f-ether-type">
+                        <option value="2048">0x0800 - IPv4</option>
+                        <option value="34525">0x86DD - IPv6</option>
+                        <option value="2054">0x0806 - ARP</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>VLAN ID (0=无VLAN)</label>
+                    <input type="number" id="f-vlan" placeholder="0" min="0" max="4095">
+                </div>
+                <div class="form-group full-width">
+                    <label>Payload (Hex)</label>
+                    <input type="text" id="f-payload" placeholder="例如: 45000028...">
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="encapsulateFrame()">&#128230; 封装</button>
+            </div>
+            <div id="encap-result" class="result-box" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">&#128224; L2TPv3 帧解封装</div>
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>L2TPv3 数据 (Hex)</label>
+                    <input type="text" id="d-data" placeholder="L2TPv3 封装后的完整数据包（hex）">
+                </div>
+                <div class="form-group">
+                    <label>Cookie 长度 (字节)</label>
+                    <select id="d-cookie-len">
+                        <option value="0">0 (无 Cookie)</option>
+                        <option value="4">4 字节</option>
+                        <option value="8">8 字节</option>
+                    </select>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="decapsulateFrame()">&#128224; 解封装</button>
+            </div>
+            <div id="decap-result" class="result-box" style="display:none;"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">&#128236; L2TPv3 数据包分发（按 Session ID + Cookie 校验）</div>
+            <div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
+                模拟 L2TPv3 数据平面行为：根据数据包中的 Session ID 分发到对应伪线，并验证 Cookie 完整性
+            </div>
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>L2TPv3 封装数据包 (Hex)</label>
+                    <input type="text" id="dispatch-data" placeholder="例如: 00003065014d3636aabbccddeeff112233445566080045000028">
+                    <span class="hint">数据包格式: Session ID (4B) + Cookie (0/4/8B) + Ethernet Frame</span>
+                </div>
+                <div class="form-group">
+                    <label>Cookie 长度 (字节)</label>
+                    <select id="dispatch-cookie-len">
+                        <option value="0">0 (无 Cookie)</option>
+                        <option value="4">4 字节</option>
+                        <option value="8">8 字节</option>
+                    </select>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="dispatchPacket()">&#128236; 分发数据包</button>
+            </div>
+            <div id="dispatch-result" class="result-box" style="display:none;"></div>
+        </div>
+    </div>
+
+    <div id="panel-ipsec" class="panel">
+        <div class="card">
+            <div class="card-title">&#128274; IPsec ESP 加密（AES-CBC）</div>
+            <div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
+                模拟 IPsec ESP (Encapsulating Security Payload) 协议，对 L2TPv3 数据包进行加密保护。支持 AES-CBC 加密、IV 生成、ICV 完整性校验。
+            </div>
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>明文数据 (Hex)</label>
+                    <input type="text" id="ipsec-plain" placeholder="例如: 00003065014d3636aabbccddeeff112233445566080045000028">
+                    <span class="hint">通常是 L2TPv3 封装后的完整数据包</span>
+                </div>
+                <div class="form-group">
+                    <label>SPI (安全参数索引)</label>
+                    <input type="number" id="ipsec-spi" placeholder="例如: 256" value="256" min="1">
+                </div>
+                <div class="form-group">
+                    <label>序列号</label>
+                    <input type="number" id="ipsec-seq" placeholder="例如: 1" value="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label>加密密钥 (Hex, 16/24/32字节)</label>
+                    <input type="text" id="ipsec-key" placeholder="例如: 00112233445566778899aabbccddeeff" value="00112233445566778899aabbccddeeff">
+                    <span class="hint">16字节=AES-128, 24字节=AES-192, 32字节=AES-256</span>
+                </div>
+                <div class="form-group">
+                    <label>Next Header (协议号)</label>
+                    <select id="ipsec-next-header">
+                        <option value="115">115 - L2TP</option>
+                        <option value="6">6 - TCP</option>
+                        <option value="17">17 - UDP</option>
+                        <option value="47">47 - GRE</option>
+                        <option value="50">50 - ESP</option>
+                    </select>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="encryptIPsec()">&#128274; 加密</button>
+                <button class="btn btn-secondary" onclick="decryptIPsec()">&#128275; 解密</button>
+            </div>
+            <div id="ipsec-result" class="encrypt-result" style="display:none;"></div>
+        </div>
+    </div>
+</div>
+
+<div id="avp-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background: var(--bg-card); border:1px solid var(--border-color); border-radius: var(--radius); padding: 24px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto;">
+        <div class="card-title" style="margin-bottom:16px;">&#128203; 会话 AVP 信息</div>
+        <div id="avp-content" style="font-family: monospace; font-size: 12px; line-height: 1.8;"></div>
+        <div class="btn-row" style="margin-top:20px;">
+            <button class="btn btn-secondary" onclick="closeAVPModal()">关闭</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const API = '';
+
+function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast toast-' + type + ' show';
+    setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+async function api(method, path, body) {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(API + path, opts);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '请求失败');
+    return data;
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    });
+});
+
+document.getElementById('s-cookie').addEventListener('input', function() {
+    const val = this.value.replace(/\s/g, '');
+    const preview = document.getElementById('cookie-preview');
+    if (!val) { preview.style.display = 'none'; return; }
+    if (/^[0-9a-fA-F]+$/.test(val)) {
+        const bytes = val.length / 2;
+        if (bytes === 4 || bytes === 8) {
+            preview.textContent = 'Cookie: ' + val + ' (' + bytes + ' 字节)';
+            preview.style.display = 'block';
+        } else {
+            preview.textContent = 'Cookie 长度应为 4 或 8 字节 (8 或 16 hex 位)，当前: ' + bytes + ' 字节';
+            preview.style.display = 'block';
+            preview.style.color = 'var(--danger)';
+        }
+    } else if (val.length > 0) {
+        preview.textContent = '无效的十六进制字符串';
+        preview.style.display = 'block';
+        preview.style.color = 'var(--danger)';
+    }
+});
+
+async function loadStatus() {
+    try {
+        const s = await api('GET', '/api/status');
+        document.getElementById('dpMode').textContent = '数据平面: ' + s.data_plane;
+        document.getElementById('tunnelCount').textContent = '隧道: ' + s.tunnel_count;
+        document.getElementById('sessionCount').textContent = '会话: ' + s.session_count;
+        document.getElementById('statDataplane').textContent = s.data_plane === 'linux-netlink' ? 'Netlink' : 'Null';
+        document.getElementById('statTunnels').textContent = s.tunnel_count;
+        document.getElementById('statSessions').textContent = s.session_count;
+    } catch(e) { console.error(e); }
+}
+
+async function createTunnel() {
+    const name = document.getElementById('t-name').value.trim();
+    const local = document.getElementById('t-local').value.trim();
+    const peer = document.getElementById('t-peer').value.trim();
+    const tid = parseInt(document.getElementById('t-tid').value);
+    const ptid = parseInt(document.getElementById('t-ptid').value);
+    const encap = document.getElementById('t-encap').value;
+
+    if (!name || !local || !peer || !tid || !ptid) {
+        showToast('请填写所有必填字段', 'error');
+        return;
+    }
+
+    try {
+        await api('POST', '/api/tunnels', {
+            name, local_addr: local, peer_addr: peer,
+            tunnel_id: tid, peer_tunnel_id: ptid, encap
+        });
+        showToast('隧道创建成功: ' + name, 'success');
+        document.getElementById('t-name').value = '';
+        document.getElementById('t-local').value = '';
+        document.getElementById('t-peer').value = '';
+        document.getElementById('t-tid').value = '';
+        document.getElementById('t-ptid').value = '';
+        refreshTunnels();
+        refreshSessionTunnels();
+        loadStatus();
+    } catch(e) {
+        showToast('创建失败: ' + e.message, 'error');
+    }
+}
+
+async function refreshTunnels() {
+    try {
+        const tunnels = await api('GET', '/api/tunnels');
+        const el = document.getElementById('tunnel-list');
+        if (!tunnels || tunnels.length === 0) {
+            el.innerHTML = '<div class="empty-state"><div class="icon">&#128640;</div><p>暂无隧道，请创建一个新隧道</p></div>';
+            return;
+        }
+        let html = '<table><thead><tr><th>名称</th><th>本地地址</th><th>对端地址</th><th>Tunnel ID</th><th>Peer Tunnel ID</th><th>封装</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+        for (const t of tunnels) {
+            const encapBadge = t.encap === 'udp' ? 'badge-udp' : 'badge-ip';
+            let statsHtml = '';
+            try {
+                const stats = await api('GET', '/api/tunnels/' + encodeURIComponent(t.name) + '/stats');
+                statsHtml = `<div class="stats-info">
+                    <div class="bytes-in"><span class="label">收字节</span><span class="value">${formatBytes(stats.bytes_in)}</span></div>
+                    <div class="bytes-out"><span class="label">发字节</span><span class="value">${formatBytes(stats.bytes_out)}</span></div>
+                    <div class="pkts-in"><span class="label">收包</span><span class="value">${stats.packets_in}</span></div>
+                    <div class="pkts-out"><span class="label">发包</span><span class="value">${stats.packets_out}</span></div>
+                </div>`;
+            } catch(e) {}
+            html += `<tr>
+                <td colspan="8" style="padding:0;">
+                    <table style="width:100%; border:none;">
+                        <tr>
+                            <td style="width:15%; padding:12px;"><strong>${t.name}</strong></td>
+                            <td style="width:12%; padding:12px;">${t.local_addr}</td>
+                            <td style="width:12%; padding:12px;">${t.peer_addr}</td>
+                            <td style="width:10%; padding:12px;">${t.tunnel_id}</td>
+                            <td style="width:10%; padding:12px;">${t.peer_tunnel_id}</td>
+                            <td style="width:8%; padding:12px;"><span class="badge ${encapBadge}">${t.encap.toUpperCase()}</span></td>
+                            <td style="width:8%; padding:12px;"><span class="badge badge-up">${t.status}</span></td>
+                            <td style="width:25%; padding:12px;">
+                                <button class="btn btn-danger action-btn" onclick="deleteTunnel('${t.name}')">删除</button>
+                                <button class="btn btn-secondary action-btn" onclick="resetTunnelStats('${t.name}')">重置统计</button>
+                            </td>
+                        </tr>
+                        <tr><td colspan="8" style="padding:0 12px 12px 12px;">${statsHtml}</td></tr>
+                    </table>
+                </td>
+            </tr>`;
+        }
+        html += '</tbody></table>';
+        el.innerHTML = html;
+    } catch(e) { console.error(e); }
+}
+
+function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
+    if (bytes < 1073741824) return (bytes / 1048576).toFixed(2) + ' MB';
+    return (bytes / 1073741824).toFixed(2) + ' GB';
+}
+
+async function resetTunnelStats(name) {
+    if (!confirm('确认重置隧道 "' + name + '" 的统计数据？')) return;
+    try {
+        await api('DELETE', '/api/tunnels/' + encodeURIComponent(name) + '/stats');
+        showToast('统计已重置: ' + name, 'success');
+        refreshTunnels();
+        refreshSessions();
+    } catch(e) { showToast('重置失败: ' + e.message, 'error'); }
+}
+
+async function deleteTunnel(name) {
+    if (!confirm('确认删除隧道 "' + name + '"？')) return;
+    try {
+        await api('DELETE', '/api/tunnels/' + encodeURIComponent(name));
+        showToast('隧道已删除: ' + name, 'success');
+        refreshTunnels();
+        refreshSessionTunnels();
+        loadStatus();
+    } catch(e) { showToast('删除失败: ' + e.message, 'error'); }
+}
+
+async function refreshSessionTunnels() {
+    try {
+        const tunnels = await api('GET', '/api/tunnels');
+        const sel = document.getElementById('s-tunnel');
+        sel.innerHTML = '<option value="">-- 选择隧道 --</option>';
+        tunnels.forEach(t => {
+            sel.innerHTML += `<option value="${t.name}">${t.name}</option>`;
+        });
+    } catch(e) { console.error(e); }
+}
+
+async function createSession() {
+    const tunnelName = document.getElementById('s-tunnel').value;
+    const name = document.getElementById('s-name').value.trim();
+    const sid = parseInt(document.getElementById('s-sid').value);
+    const psid = parseInt(document.getElementById('s-psid').value);
+    const cookie = document.getElementById('s-cookie').value.trim();
+    const peerCookie = document.getElementById('s-peer-cookie').value.trim();
+
+    if (!tunnelName || !name || !sid || !psid) {
+        showToast('请填写所有必填字段', 'error');
+        return;
+    }
+
+    try {
+        await api('POST', '/api/tunnels/' + encodeURIComponent(tunnelName) + '/sessions', {
+            name, tunnel_name: tunnelName,
+            session_id: sid, peer_session_id: psid,
+            cookie, peer_cookie: peerCookie
+        });
+        showToast('会话创建成功: ' + name, 'success');
+        document.getElementById('s-name').value = '';
+        document.getElementById('s-sid').value = '';
+        document.getElementById('s-psid').value = '';
+        document.getElementById('s-cookie').value = '';
+        document.getElementById('s-peer-cookie').value = '';
+        document.getElementById('cookie-preview').style.display = 'none';
+        refreshSessions();
+        loadStatus();
+    } catch(e) {
+        showToast('创建失败: ' + e.message, 'error');
+    }
+}
+
+async function refreshSessions() {
+    try {
+        const tunnels = await api('GET', '/api/tunnels');
+        let allSessions = [];
+        for (const t of tunnels) {
+            try {
+                const sessions = await api('GET', '/api/tunnels/' + encodeURIComponent(t.name) + '/sessions');
+                for (const s of sessions) {
+                    try {
+                        const stats = await api('GET', '/api/tunnels/' + encodeURIComponent(t.name) + '/sessions/' + encodeURIComponent(s.name) + '/stats');
+                        s.stats = stats;
+                    } catch(e) { s.stats = null; }
+                    allSessions.push(s);
+                }
+            } catch(e) {}
+        }
+
+        const el = document.getElementById('session-list');
+        if (allSessions.length === 0) {
+            el.innerHTML = '<div class="empty-state"><div class="icon">&#128279;</div><p>暂无会话，请先创建隧道再添加会话</p></div>';
+            return;
+        }
+
+        let html = '<table><thead><tr><th>名称</th><th>隧道</th><th>Session ID</th><th>Peer Session ID</th><th>伪线</th><th>Cookie</th><th>Peer Cookie</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+        allSessions.forEach(s => {
+            let statsHtml = '';
+            if (s.stats) {
+                statsHtml = `<div class="stats-info">
+                    <div class="bytes-in"><span class="label">收字节</span><span class="value">${formatBytes(s.stats.bytes_in)}</span></div>
+                    <div class="bytes-out"><span class="label">发字节</span><span class="value">${formatBytes(s.stats.bytes_out)}</span></div>
+                    <div class="pkts-in"><span class="label">收包</span><span class="value">${s.stats.packets_in}</span></div>
+                    <div class="pkts-out"><span class="label">发包</span><span class="value">${s.stats.packets_out}</span></div>
+                </div>`;
+            }
+            html += `<tr>
+                <td colspan="9" style="padding:0;">
+                    <table style="width:100%; border:none;">
+                        <tr>
+                            <td style="width:12%; padding:12px;"><strong>${s.name}</strong></td>
+                            <td style="width:10%; padding:12px;">${s.tunnel_name}</td>
+                            <td style="width:10%; padding:12px;">${s.session_id}</td>
+                            <td style="width:10%; padding:12px;">${s.peer_session_id}</td>
+                            <td style="width:8%; padding:12px;"><span class="badge badge-eth">${s.pseudowire}</span></td>
+                            <td style="width:12%; padding:12px; font-family:monospace;font-size:12px;">${s.cookie || '-'}</td>
+                            <td style="width:12%; padding:12px; font-family:monospace;font-size:12px;">${s.peer_cookie || '-'}</td>
+                            <td style="width:8%; padding:12px;"><span class="badge badge-up">${s.status}</span></td>
+                            <td style="width:18%; padding:12px;">
+                                <button class="btn btn-secondary action-btn" style="margin-right:4px;" onclick="showSessionAVP('${s.tunnel_name}','${s.name}')">AVP</button>
+                                <button class="btn btn-danger action-btn" onclick="deleteSession('${s.tunnel_name}','${s.name}')">删除</button>
+                            </td>
+                        </tr>
+                        ${statsHtml ? `<tr><td colspan="9" style="padding:0 12px 12px 12px;">${statsHtml}</td></tr>` : ''}
+                    </table>
+                </td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+        el.innerHTML = html;
+    } catch(e) { console.error(e); }
+}
+
+async function deleteSession(tunnel, session) {
+    if (!confirm('确认删除会话 "' + session + '"？')) return;
+    try {
+        await api('DELETE', '/api/tunnels/' + encodeURIComponent(tunnel) + '/sessions/' + encodeURIComponent(session));
+        showToast('会话已删除: ' + session, 'success');
+        refreshSessions();
+        loadStatus();
+    } catch(e) { showToast('删除失败: ' + e.message, 'error'); }
+}
+
+async function encapsulateFrame() {
+    const sessionId = parseInt(document.getElementById('f-session-id').value);
+    const cookie = document.getElementById('f-cookie').value.trim();
+    const dstMac = document.getElementById('f-dst-mac').value.trim();
+    const srcMac = document.getElementById('f-src-mac').value.trim();
+    const etherType = parseInt(document.getElementById('f-ether-type').value);
+    const vlan = parseInt(document.getElementById('f-vlan').value) || 0;
+    const payload = document.getElementById('f-payload').value.trim();
+
+    if (!sessionId || !dstMac || !srcMac) {
+        showToast('请填写 Session ID、目标 MAC 和源 MAC', 'error');
+        return;
+    }
+
+    try {
+        const result = await api('POST', '/api/frame/encapsulate', {
+            session_id: sessionId, cookie,
+            dst_mac: dstMac, src_mac: srcMac,
+            ether_type: etherType, vlan_id: vlan,
+            payload: payload || '00'
+        });
+        const el = document.getElementById('encap-result');
+        el.style.display = 'block';
+        el.textContent =
+            'Ethernet 帧信息:\n' + result.ethernet_info + '\n\n' +
+            'Ethernet 原始帧 (Hex):\n' + result.ethernet_frame + '\n\n' +
+            'L2TPv3 封装后 (Hex):\n' + result.l2tpv3_encap + '\n\n' +
+            'Session ID: ' + result.session_id + '\n' +
+            'Cookie: ' + (result.cookie || '无') + '\n' +
+            '总长度: ' + result.total_length + ' 字节';
+    } catch(e) {
+        showToast('封装失败: ' + e.message, 'error');
+    }
+}
+
+async function decapsulateFrame() {
+    const data = document.getElementById('d-data').value.trim();
+    const cookieLen = parseInt(document.getElementById('d-cookie-len').value);
+
+    if (!data) {
+        showToast('请输入 L2TPv3 数据', 'error');
+        return;
+    }
+
+    try {
+        const result = await api('POST', '/api/frame/decapsulate', {
+            data, cookie_len: cookieLen
+        });
+        const el = document.getElementById('decap-result');
+        el.style.display = 'block';
+        if (result.parse_error) {
+            el.textContent =
+                'Session ID: ' + result.session_id + '\n' +
+                'Cookie (Hex): ' + (result.cookie || '无') + '\n' +
+                'Payload (Hex):\n' + result.payload_hex + '\n' +
+                '解析错误: ' + result.parse_error;
+        } else {
+            el.textContent =
+                'Session ID: ' + result.session_id + '\n' +
+                'Cookie (Hex): ' + (result.cookie || '无') + '\n\n' +
+                'Ethernet 帧信息:\n' + result.ethernet_info + '\n\n' +
+                '目标 MAC: ' + result.dst_mac + '\n' +
+                '源 MAC: ' + result.src_mac + '\n' +
+                'EtherType: ' + result.ether_type + '\n' +
+                'VLAN ID: ' + (result.is_vlan ? result.vlan_id : '无') + '\n\n' +
+                'Payload (Hex):\n' + result.payload_hex;
+        }
+    } catch(e) {
+        showToast('解封装失败: ' + e.message, 'error');
+    }
+}
+
+async function dispatchPacket() {
+    const data = document.getElementById('dispatch-data').value.trim();
+    const cookieLen = parseInt(document.getElementById('dispatch-cookie-len').value);
+
+    if (!data) {
+        showToast('请输入 L2TPv3 数据包', 'error');
+        return;
+    }
+
+    try {
+        const result = await api('POST', '/api/frame/dispatch', {
+            data, cookie_len: cookieLen
+        });
+        const el = document.getElementById('dispatch-result');
+        el.style.display = 'block';
+        
+        let statusColor = result.validation === 'VALID' ? 'var(--success)' : 'var(--danger)';
+        el.innerHTML =
+            '<span style="color:' + statusColor + '; font-weight: bold;">校验结果: ' + result.validation + '</span>\n' +
+            'Session ID: ' + result.session_id + '\n' +
+            '会话名称: ' + (result.session_name || '未知') + '\n' +
+            '隧道名称: ' + (result.tunnel_name || '未知') + '\n' +
+            '伪线类型: ' + (result.pseudowire || '未知') + '\n' +
+            '接收 Cookie (Hex): ' + (result.cookie || '无') + '\n' +
+            '期望 Cookie (Hex): ' + (result.expected_cookie || '无') + '\n';
+        
+        if (result.eth_info) {
+            el.innerHTML += '\n<span style="color: var(--success);">Ethernet 帧信息:</span>\n' +
+                result.eth_info + '\n\n' +
+                '目标 MAC: ' + result.dst_mac + '\n' +
+                '源 MAC: ' + result.src_mac + '\n' +
+                'EtherType: ' + result.ether_type + '\n\n' +
+                'Payload (Hex):\n' + result.payload_hex;
+        } else {
+            el.innerHTML += '\nPayload (Hex):\n' + result.payload_hex;
+        }
+    } catch(e) {
+        showToast('分发失败: ' + e.message, 'error');
+    }
+}
+
+async function showSessionAVP(tunnelName, sessionName) {
+    try {
+        const result = await api('GET', '/api/tunnels/' + encodeURIComponent(tunnelName) + '/sessions/' + encodeURIComponent(sessionName) + '/avp');
+        const modal = document.getElementById('avp-modal');
+        const content = document.getElementById('avp-content');
+        content.innerHTML = '<strong>隧道:</strong> ' + result.tunnel_name + '<br>' +
+                          '<strong>会话:</strong> ' + result.session_name + '<br><br>' +
+                          '<strong>AVP 列表:</strong><br>';
+        result.avps.forEach((avp, i) => {
+            content.innerHTML += (i + 1) + '. ' + avp + '<br>';
+        });
+        modal.style.display = 'flex';
+    } catch(e) {
+        showToast('获取 AVP 失败: ' + e.message, 'error');
+    }
+}
+
+function closeAVPModal() {
+    document.getElementById('avp-modal').style.display = 'none';
+}
+
+async function encryptIPsec() {
+    const data = document.getElementById('ipsec-plain').value.trim();
+    const spi = parseInt(document.getElementById('ipsec-spi').value);
+    const seq = parseInt(document.getElementById('ipsec-seq').value);
+    const key = document.getElementById('ipsec-key').value.trim();
+    const nextHeader = parseInt(document.getElementById('ipsec-next-header').value);
+
+    if (!data || !spi || !seq || !key) {
+        showToast('请填写所有必填字段', 'error');
+        return;
+    }
+
+    try {
+        const result = await api('POST', '/api/ipsec/encrypt', {
+            data, spi, seq_num: seq, key, next_header: nextHeader
+        });
+
+        const el = document.getElementById('ipsec-result');
+        el.style.display = 'block';
+
+        const headerHex = result.data.substring(0, 16);
+        const ivHex = result.data.substring(16, 48);
+        const payloadHex = result.data.substring(48, result.data.length - 8);
+        const icvHex = result.data.substring(result.data.length - 8);
+
+        el.innerHTML =
+            '<span style="color: var(--success); font-weight: bold;">&#10003; 加密成功</span>\n\n' +
+            '<span class="esp-header">ESP 头部 (SPI + Seq):</span>\n' +
+            '  SPI: 0x' + spi.toString(16).toUpperCase() + ' (' + spi + ')\n' +
+            '  序列号: ' + seq + '\n' +
+            '  Hex: ' + headerHex + '\n\n' +
+            '<span class="esp-header">IV (16字节):</span>\n' +
+            '  Hex: ' + ivHex + '\n\n' +
+            '<span class="esp-payload">加密数据 (' + (result.data.length - 56) + ' 字节):</span>\n' +
+            '  Hex: ' + payloadHex + '\n\n' +
+            '<span class="esp-icv">ICV (8字节):</span>\n' +
+            '  Hex: ' + icvHex + '\n\n' +
+            '<strong>完整 ESP 包 (' + result.length + ' 字节):</strong>\n' +
+            result.data;
+    } catch(e) {
+        showToast('加密失败: ' + e.message, 'error');
+    }
+}
+
+async function decryptIPsec() {
+    const data = document.getElementById('ipsec-plain').value.trim();
+    const spi = parseInt(document.getElementById('ipsec-spi').value);
+    const key = document.getElementById('ipsec-key').value.trim();
+
+    if (!data || !spi || !key) {
+        showToast('请填写数据、SPI 和密钥', 'error');
+        return;
+    }
+
+    try {
+        const result = await api('POST', '/api/ipsec/decrypt', {
+            data, spi, key
+        });
+
+        const el = document.getElementById('ipsec-result');
+        el.style.display = 'block';
+
+        const headerHex = data.substring(0, 16);
+        const ivHex = data.substring(16, 48);
+        const payloadHex = data.substring(48, data.length - 8);
+        const icvHex = data.substring(data.length - 8);
+
+        el.innerHTML =
+            '<span style="color: var(--success); font-weight: bold;">&#10003; 解密成功</span>\n\n' +
+            '<span class="esp-header">ESP 头部:</span>\n' +
+            '  Hex: ' + headerHex + '\n\n' +
+            '<span class="esp-header">IV:</span>\n' +
+            '  Hex: ' + ivHex + '\n\n' +
+            '<span class="esp-payload">密文数据:</span>\n' +
+            '  Hex: ' + payloadHex + '\n\n' +
+            '<span class="esp-icv">ICV:</span>\n' +
+            '  Hex: ' + icvHex + '\n\n' +
+            '<span class="esp-plain">明文数据 (' + result.length + ' 字节, Next Header: ' + result.next_header + '):</span>\n' +
+            '  Hex: ' + result.data;
+    } catch(e) {
+        showToast('解密失败: ' + e.message, 'error');
+    }
+}
+
+loadStatus();
+refreshTunnels();
+refreshSessionTunnels();
+refreshSessions();
+</script>
+</body>
+</html>

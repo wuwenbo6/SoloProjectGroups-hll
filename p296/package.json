@@ -1,0 +1,24 @@
+{
+  "name": "rtmp-auth-service",
+  "version": "1.0.0",
+  "description": "RTMP authentication service with JWT tokens and IP binding",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "generate-keys:rs256": "node scripts/generate-keys.js RS256",
+    "generate-keys:es256": "node scripts/generate-keys.js ES256"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["rtmp", "jwt", "authentication", "nginx-rtmp"],
+  "license": "MIT"
+}

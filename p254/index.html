@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DALI 灯具控制器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <h1>DALI 灯具控制器</h1>
+      <div id="connection-status" class="status-badge simulation">模拟模式</div>
+    </header>
+
+    <div class="main-content">
+      <div class="left-panel">
+        <div class="card">
+          <h2>串口连接</h2>
+          <div class="form-group">
+            <label for="port-select">串口选择</label>
+            <div class="port-select-row">
+              <select id="port-select" class="form-control">
+                <option value="">加载中...</option>
+              </select>
+              <button id="refresh-ports" class="btn btn-secondary">刷新</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="baud-rate">波特率</label>
+            <select id="baud-rate" class="form-control">
+              <option value="9600">9600</option>
+              <option value="19200">19200</option>
+              <option value="38400">38400</option>
+              <option value="57600">57600</option>
+              <option value="115200">115200</option>
+            </select>
+          </div>
+          <div class="button-group">
+            <button id="connect-btn" class="btn btn-primary">连接串口</button>
+            <button id="disconnect-btn" class="btn btn-danger" disabled>断开</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>地址设置</h2>
+          <div class="form-group">
+            <label for="addr-type">地址类型</label>
+            <select id="addr-type" class="form-control">
+              <option value="0">短地址 (Short)</option>
+              <option value="1">组地址 (Group)</option>
+              <option value="2" selected>广播 (Broadcast)</option>
+            </select>
+          </div>
+          <div class="form-group" id="addr-value-group">
+            <label for="addr-value">地址值</label>
+            <input type="number" id="addr-value" class="form-control" value="0" min="0" max="63" disabled>
+          </div>
+          <div class="frame-preview">
+            <span class="preview-label">地址字节:</span>
+            <span id="addr-byte-preview" class="preview-value">0xFE</span>
+            <span class="preview-detail" id="addr-byte-detail">广播 DAPC</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>调光控制</h2>
+          <div class="dimmer-control">
+            <div class="dimmer-display">
+              <span class="dimmer-label">目标亮度</span>
+              <span id="dimmer-value" class="dimmer-value">128</span>
+              <span class="dimmer-unit">/ 254</span>
+            </div>
+            <input type="range" id="dimmer-slider" class="dimmer-slider" min="0" max="254" value="128">
+            <div class="dimmer-markers">
+              <span>0</span>
+              <span>64</span>
+              <span>128</span>
+              <span>192</span>
+              <span>254</span>
+            </div>
+          </div>
+          <div class="button-group">
+            <button id="dimmer-off" class="btn btn-secondary">关灯 (0)</button>
+            <button id="dimmer-half" class="btn btn-secondary">50% (127)</button>
+            <button id="dimmer-full" class="btn btn-secondary">全开 (254)</button>
+          </div>
+          <button id="send-dimmer" class="btn btn-primary btn-full">发送调光命令 (DAPC)</button>
+        </div>
+
+        <div class="card">
+          <h2>渐变控制 (Fade Time)</h2>
+          <div class="form-group">
+            <label for="fade-time">Fade Time 参数 (0-15)</label>
+            <div class="fade-time-row">
+              <input type="range" id="fade-time" class="fade-time-slider" min="0" max="15" value="0">
+              <span id="fade-time-value" class="fade-time-value">0</span>
+            </div>
+            <div class="fade-time-desc" id="fade-time-desc">无渐变 (立即)</div>
+          </div>
+          <div class="fade-time-table" id="fade-time-table">
+            <div class="ftt-header"><span>参数</span><span>时间</span></div>
+          </div>
+          <button id="send-fade-time" class="btn btn-primary btn-full">设置 Fade Time</button>
+        </div>
+
+        <div class="card">
+          <h2>DALI 命令</h2>
+          <div class="form-group">
+            <label for="dali-command-mode">命令模式</label>
+            <select id="dali-command-mode" class="form-control">
+              <option value="dapc">DAPC (直接调光)</option>
+              <option value="command">间接命令</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="dali-command">命令 (HEX)</label>
+            <input type="text" id="dali-command" class="form-control" value="00" placeholder="例如: A0">
+          </div>
+          <div class="frame-preview">
+            <span class="preview-label">帧预览:</span>
+            <span id="frame-preview" class="preview-value">0xFE 0x00</span>
+          </div>
+          <div class="command-presets">
+            <span class="preset-label">快捷命令:</span>
+            <button class="btn-preset" data-cmd="00" data-mode="command">OFF</button>
+            <button class="btn-preset" data-cmd="01" data-mode="command">UP</button>
+            <button class="btn-preset" data-cmd="02" data-mode="command">DOWN</button>
+            <button class="btn-preset" data-cmd="A0" data-mode="command">查询亮度</button>
+            <button class="btn-preset" data-cmd="A5" data-mode="command">查询渐变</button>
+            <button class="btn-preset" data-cmd="90" data-mode="command">查询状态</button>
+          </div>
+          <button id="send-command" class="btn btn-primary btn-full">发送 DALI 命令</button>
+        </div>
+      </div>
+
+      <div class="right-panel">
+        <div class="card">
+          <div class="card-header">
+            <h2>灯光模拟</h2>
+            <div class="sim-toggles">
+              <label class="sim-toggle">
+                <input type="checkbox" id="sim-lamp-power" checked>
+                <span class="sim-toggle-label">通电</span>
+              </label>
+              <label class="sim-toggle">
+                <input type="checkbox" id="sim-lamp-failure">
+                <span class="sim-toggle-label">故障</span>
+              </label>
+            </div>
+          </div>
+          <div class="lamp-simulator">
+            <div class="lamp-visual" id="lamp-visual">
+              <div class="lamp-glow" id="lamp-glow"></div>
+              <div class="lamp-body">
+                <div class="lamp-bulb" id="lamp-bulb"></div>
+              </div>
+            </div>
+            <div class="lamp-info">
+              <div class="lamp-level-row">
+                <span class="lamp-level-label">实际亮度</span>
+                <span id="lamp-level-value" class="lamp-level-value">128</span>
+              </div>
+              <div class="lamp-fade-row">
+                <span class="lamp-fade-label">Fade Time</span>
+                <span id="lamp-fade-display" class="lamp-fade-display">无渐变</span>
+              </div>
+              <div class="lamp-power-row">
+                <span class="lamp-power-label">估计功率</span>
+                <span id="lamp-power-watts" class="lamp-power-watts">50.4 W</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>灯具状态查询</h2>
+            <button id="query-status-btn" class="btn btn-primary btn-sm">查询全部</button>
+          </div>
+          <div id="status-display" class="status-display">
+            <div class="status-power-row">
+              <div class="status-chip" id="status-power">
+                <span class="chip-icon">⚡</span>
+                <span class="chip-label">功率</span>
+                <span class="chip-value" id="status-power-value">查询中</span>
+              </div>
+              <div class="status-chip" id="status-failure">
+                <span class="chip-icon">⚠️</span>
+                <span class="chip-label">故障</span>
+                <span class="chip-value" id="status-failure-value">查询中</span>
+              </div>
+              <div class="status-chip" id="status-present">
+                <span class="chip-icon">✅</span>
+                <span class="chip-label">设备</span>
+                <span class="chip-value" id="status-present-value">查询中</span>
+              </div>
+            </div>
+            <div class="status-bits" id="status-bits">
+              <div class="status-bit-header">
+                <span>Bit</span>
+                <span>标志</span>
+                <span>状态</span>
+              </div>
+              <div class="status-bit-row" data-bit="7"><span>7</span><span>控制设备存在</span><span class="bit-value" id="bit-7">-</span></div>
+              <div class="status-bit-row" data-bit="6"><span>6</span><span>灯具故障</span><span class="bit-value" id="bit-6">-</span></div>
+              <div class="status-bit-row" data-bit="5"><span>5</span><span>灯具通电</span><span class="bit-value" id="bit-5">-</span></div>
+              <div class="status-bit-row" data-bit="4"><span>4</span><span>限制错误</span><span class="bit-value" id="bit-4">-</span></div>
+              <div class="status-bit-row" data-bit="3"><span>3</span><span>复位状态</span><span class="bit-value" id="bit-3">-</span></div>
+              <div class="status-bit-row" data-bit="2"><span>2</span><span>缺少短地址</span><span class="bit-value" id="bit-2">-</span></div>
+              <div class="status-bit-row" data-bit="1"><span>1</span><span>功率故障</span><span class="bit-value" id="bit-1">-</span></div>
+              <div class="status-bit-row" data-bit="0"><span>0</span><span>预留</span><span class="bit-value" id="bit-0">-</span></div>
+            </div>
+            <div class="status-quick-buttons">
+              <button class="btn-status" id="btn-query-power">查询通电</button>
+              <button class="btn-status" id="btn-query-failure">查询故障</button>
+              <button class="btn-status" id="btn-query-level">查询亮度</button>
+              <button class="btn-status" id="btn-query-fade">查询渐变</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>场景控制 (0-15)</h2>
+            <div class="scene-actions">
+              <button id="store-current-scene" class="btn btn-primary btn-sm">存储当前</button>
+              <select id="scene-select" class="form-control scene-select">
+                <option value="0">场景 0</option>
+                <option value="1">场景 1</option>
+                <option value="2">场景 2</option>
+                <option value="3">场景 3</option>
+                <option value="4">场景 4</option>
+                <option value="5">场景 5</option>
+                <option value="6">场景 6</option>
+                <option value="7">场景 7</option>
+                <option value="8">场景 8</option>
+                <option value="9">场景 9</option>
+                <option value="10">场景 10</option>
+                <option value="11">场景 11</option>
+                <option value="12">场景 12</option>
+                <option value="13">场景 13</option>
+                <option value="14">场景 14</option>
+                <option value="15">场景 15</option>
+              </select>
+            </div>
+          </div>
+          <div id="scenes-grid" class="scenes-grid">
+          </div>
+        </div>
+
+        <div class="card card-full">
+          <div class="card-header">
+            <h2>命令历史 & 应答状态</h2>
+            <button id="clear-history" class="btn btn-secondary btn-sm">清空</button>
+          </div>
+          <div id="history-list" class="history-list">
+            <div class="history-empty">暂无命令历史</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>当前应答状态</h2>
+          <div id="response-display" class="response-display">
+            <div class="response-item">
+              <span class="response-label">状态:</span>
+              <span id="response-status" class="response-value">等待接收</span>
+            </div>
+            <div class="response-item">
+              <span class="response-label">原始数据:</span>
+              <span id="response-raw" class="response-value">-</span>
+            </div>
+            <div class="response-item">
+              <span class="response-label">十六进制:</span>
+              <span id="response-hex" class="response-value">-</span>
+            </div>
+            <div class="response-item">
+              <span class="response-label">二进制:</span>
+              <span id="response-binary" class="response-value">-</span>
+            </div>
+            <div class="response-item">
+              <span class="response-label">数值:</span>
+              <span id="response-value" class="response-value">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

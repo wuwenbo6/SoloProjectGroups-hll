@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GMR帧解析系统</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GMR帧解析系统</h1>
+            <p class="subtitle">超帧 · 复帧 · 基本帧 · 时隙占用图 · BCH软判决 · FLW相关器</p>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="label">同步状态:</span>
+                <span id="sync-status" class="value status-searching">未连接</span>
+            </div>
+            <div class="status-item">
+                <span class="label">超帧编号:</span>
+                <span id="superframe-number" class="value">-</span>
+            </div>
+            <div class="status-item">
+                <span class="label">同步率:</span>
+                <span id="sync-rate" class="value">-</span>
+            </div>
+            <div class="status-item">
+                <span class="label">时隙占用率:</span>
+                <span id="occupancy-rate" class="value">-</span>
+            </div>
+            <div class="status-item">
+                <span class="label">FLW检测率:</span>
+                <span id="flw-rate" class="value">-</span>
+            </div>
+            <div class="status-item">
+                <span class="label">软判决增益:</span>
+                <span id="soft-gain" class="value">-</span>
+            </div>
+            <div class="status-item">
+                <span class="label">LQI:</span>
+                <span id="lqi-value" class="value">-</span>
+            </div>
+            <div class="status-item">
+                <span class="label">链路质量:</span>
+                <span id="lqi-quality" class="value">-</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="control-panel">
+                <h2>控制面板</h2>
+
+                <div class="section">
+                    <h3>测试数据生成</h3>
+                    <div class="form-group">
+                        <label for="occupancy-rate-input">时隙占用率:</label>
+                        <input type="range" id="occupancy-rate-input" min="0" max="1" step="0.1" value="0.6">
+                        <span id="occupancy-value">0.6</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="error-rate-input">误码率:</label>
+                        <input type="range" id="error-rate-input" min="0" max="0.1" step="0.001" value="0.01">
+                        <span id="error-value">0.01</span>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="use-flw" checked>
+                            使用FLW相关器
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="use-soft" checked>
+                            使用BCH软判决
+                        </label>
+                    </div>
+                    <button id="generate-btn" class="btn btn-primary">生成并解析测试数据</button>
+                </div>
+
+                <div class="section">
+                    <h3>数据输入</h3>
+                    <div class="form-group">
+                        <label for="hex-input">十六进制数据:</label>
+                        <textarea id="hex-input" rows="6" placeholder="输入十六进制帧数据..."></textarea>
+                    </div>
+                    <button id="parse-hex-btn" class="btn btn-secondary">解析十六进制数据</button>
+                </div>
+
+                <div class="section">
+                    <h3>文件上传</h3>
+                    <div class="form-group">
+                        <label for="file-input">二进制文件:</label>
+                        <input type="file" id="file-input" accept=".bin,.dat">
+                    </div>
+                    <button id="parse-file-btn" class="btn btn-secondary">上传并解析</button>
+                </div>
+
+                <div class="section">
+                    <h3>视图切换</h3>
+                    <div class="view-tabs">
+                        <button class="tab-btn active" data-view="occupancy">时隙占用图</button>
+                        <button class="tab-btn" data-view="flw">FLW相关图</button>
+                        <button class="tab-btn" data-view="bch">BCH码信息</button>
+                        <button class="tab-btn" data-view="soft">软判决</button>
+                        <button class="tab-btn" data-view="lqi">链路质量</button>
+                        <button class="tab-btn" data-view="errors">误码统计</button>
+                        <button class="tab-btn" data-view="traffic">业务时隙</button>
+                        <button class="tab-btn" data-view="statistics">统计信息</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>显示控制</h3>
+                    <div class="form-group">
+                        <label for="multiframe-select">选择复帧:</label>
+                        <select id="multiframe-select">
+                            <option value="all">全部</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="show-labels" checked>
+                            显示标签
+                        </label>
+                    </div>
+                    <button id="clear-stats-btn" class="btn btn-danger">清除统计</button>
+                </div>
+            </div>
+
+            <div class="display-panel">
+                <div id="occupancy-view" class="view active">
+                    <h2>时隙占用图</h2>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <span class="legend-color signaling"></span>
+                            <span>信令时隙</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color traffic"></span>
+                            <span>业务时隙（占用）</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color idle"></span>
+                            <span>空闲时隙</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color guard"></span>
+                            <span>保护时隙</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color error"></span>
+                            <span>BCH硬判决错误</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color soft-ok"></span>
+                            <span>软判决纠正</span>
+                        </div>
+                    </div>
+                    <div id="occupancy-grid" class="occupancy-grid"></div>
+                </div>
+
+                <div id="flw-view" class="view">
+                    <h2>FLW相关器</h2>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <span class="legend-color flw-strong"></span>
+                            <span>强相关 (≥0.9)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color flw-medium"></span>
+                            <span>中等相关 (0.75-0.9)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color flw-weak"></span>
+                            <span>弱相关 (0.5-0.75)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color flw-none"></span>
+                            <span>无相关 (<0.5)</span>
+                        </div>
+                    </div>
+                    <div class="flw-content">
+                        <div id="flw-heatmap" class="flw-heatmap"></div>
+                        <div id="flw-detail" class="flw-detail"></div>
+                    </div>
+                </div>
+
+                <div id="bch-view" class="view">
+                    <h2>BCH码信息</h2>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>复帧</th>
+                                    <th>基本帧</th>
+                                    <th>BCH索引</th>
+                                    <th>原始数据</th>
+                                    <th>硬判决</th>
+                                    <th>硬判决状态</th>
+                                    <th>软判决</th>
+                                    <th>欧几里得距离</th>
+                                    <th>软判决状态</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bch-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="soft-view" class="view">
+                    <h2>BCH软判决统计</h2>
+                    <div id="soft-content" class="soft-content"></div>
+                </div>
+
+                <div id="lqi-view" class="view">
+                    <h2>链路质量指示 (LQI)</h2>
+                    <div id="lqi-content" class="soft-content"></div>
+                </div>
+
+                <div id="errors-view" class="view">
+                    <h2>误码统计</h2>
+                    <div class="section" style="margin-bottom: 15px; display: flex; gap: 10px;">
+                        <button id="export-csv-btn" class="btn btn-secondary">导出 CSV</button>
+                        <button id="export-json-btn" class="btn btn-secondary">导出 JSON</button>
+                    </div>
+                    <div id="error-summary" class="soft-content"></div>
+                    <h3 style="margin-top: 20px;">错误分布</h3>
+                    <div id="error-distribution" class="soft-content"></div>
+                    <h3 style="margin-top: 20px;">错误明细</h3>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>复帧</th>
+                                    <th>基本帧</th>
+                                    <th>时隙</th>
+                                    <th>BCH索引</th>
+                                    <th>错误类型</th>
+                                    <th>比特错误</th>
+                                    <th>错误率</th>
+                                    <th>时间</th>
+                                </tr>
+                            </thead>
+                            <tbody id="error-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="traffic-view" class="view">
+                    <h2>业务时隙</h2>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>复帧</th>
+                                    <th>基本帧</th>
+                                    <th>时隙编号</th>
+                                    <th>数据</th>
+                                    <th>硬判决</th>
+                                    <th>软判决</th>
+                                    <th>欧几里得距离</th>
+                                </tr>
+                            </thead>
+                            <tbody id="traffic-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="statistics-view" class="view">
+                    <h2>统计信息</h2>
+                    <div id="statistics-content" class="statistics-grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="log-panel">
+            <h3>操作日志</h3>
+            <div id="log-content" class="log-content"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

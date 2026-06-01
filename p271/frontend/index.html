@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PTP Ordinary Clock Simulator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⏱ PTP Ordinary Clock Simulator</h1>
+            <p class="subtitle">IEEE 1588 Precision Time Protocol — 普通时钟模拟器</p>
+        </header>
+
+        <div class="main-grid">
+            <section class="card state-card">
+                <h2>时钟状态</h2>
+                <div class="state-display">
+                    <div class="state-indicator" id="state-indicator">
+                        <span class="state-text" id="state-text">LISTENING</span>
+                    </div>
+                    <div class="state-flow">
+                        <div class="state-node" data-state="LISTENING">LISTENING</div>
+                        <div class="arrow">→</div>
+                        <div class="state-node" data-state="UNCALIBRATED">UNCALIBRATED</div>
+                        <div class="arrow">→</div>
+                        <div class="state-node" data-state="SLAVE">SLAVE</div>
+                        <div class="arrow">↔</div>
+                        <div class="state-node" data-state="MASTER">MASTER</div>
+                    </div>
+                </div>
+                <div class="bmca-info" id="bmca-info">
+                    <span class="label">BMCA:</span>
+                    <span id="bmca-desc">—</span>
+                </div>
+            </section>
+
+            <section class="card local-card">
+                <h2>本地时钟配置</h2>
+                <div class="info-grid" id="local-info">
+                    <div class="info-item">
+                        <span class="label">Clock Identity</span>
+                        <span class="value" id="local-identity">—</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Priority1</span>
+                        <span class="value" id="local-p1">—</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Priority2</span>
+                        <span class="value" id="local-p2">—</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Clock Class</span>
+                        <span class="value" id="local-cc">—</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Clock Accuracy</span>
+                        <span class="value" id="local-ca">—</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Domain</span>
+                        <span class="value" id="local-domain">—</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card gm-card">
+                <h2>Grandmaster 信息</h2>
+                <div id="gm-info">
+                    <div class="no-gm" id="no-gm">当前无 Grandmaster（本地为 GM）</div>
+                    <div class="gm-details" id="gm-details" style="display:none">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="label">GM Identity</span>
+                                <span class="value" id="gm-identity">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Priority1</span>
+                                <span class="value" id="gm-p1">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Priority2</span>
+                                <span class="value" id="gm-p2">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Clock Class</span>
+                                <span class="value" id="gm-cc">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Clock Accuracy</span>
+                                <span class="value" id="gm-ca">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Steps Removed</span>
+                                <span class="value" id="gm-steps">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Time Source</span>
+                                <span class="value" id="gm-ts">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Source Port</span>
+                                <span class="value" id="gm-source">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card inject-card">
+                <h2>注入 Announce 报文</h2>
+                <div class="form-grid">
+                    <div class="form-item">
+                        <label>Grandmaster Identity</label>
+                        <input type="text" id="inject-gm-id" value="0C29A7FFFEABCDEF" placeholder="如 0C29A7FFFEABCDEF">
+                    </div>
+                    <div class="form-item">
+                        <label>Priority1 (0-255)</label>
+                        <input type="number" id="inject-p1" value="128" min="0" max="255">
+                    </div>
+                    <div class="form-item">
+                        <label>Priority2 (0-255)</label>
+                        <input type="number" id="inject-p2" value="128" min="0" max="255">
+                    </div>
+                    <div class="form-item">
+                        <label>Clock Class</label>
+                        <input type="number" id="inject-cc" value="248" min="0" max="255">
+                    </div>
+                    <div class="form-item">
+                        <label>Clock Accuracy (hex)</label>
+                        <input type="text" id="inject-ca" value="0xFE" placeholder="0x20-0xFE">
+                    </div>
+                    <div class="form-item">
+                        <label>Steps Removed</label>
+                        <input type="number" id="inject-steps" value="0" min="0" max="65535">
+                    </div>
+                </div>
+                <div class="preset-buttons">
+                    <button class="btn btn-preset" onclick="injectPreset('gm1')">GM1: 高精度</button>
+                    <button class="btn btn-preset" onclick="injectPreset('gm2')">GM2: 普通精度</button>
+                    <button class="btn btn-preset" onclick="injectPreset('gm3')">GM3: 低精度</button>
+                </div>
+                <button class="btn btn-primary" id="inject-btn" onclick="injectAnnounce()">发送 Announce 报文</button>
+            </section>
+
+            <section class="card config-card">
+                <h2>本地时钟参数调整</h2>
+                <div class="form-grid">
+                    <div class="form-item">
+                        <label>Priority1</label>
+                        <input type="number" id="cfg-p1" value="128" min="0" max="255">
+                        <button class="btn btn-sm" onclick="setLocalParam('priority1')">设置</button>
+                    </div>
+                    <div class="form-item">
+                        <label>Priority2</label>
+                        <input type="number" id="cfg-p2" value="128" min="0" max="255">
+                        <button class="btn btn-sm" onclick="setLocalParam('priority2')">设置</button>
+                    </div>
+                    <div class="form-item">
+                        <label>Clock Class</label>
+                        <input type="number" id="cfg-cc" value="248" min="0" max="255">
+                        <button class="btn btn-sm" onclick="setLocalParam('clock-class')">设置</button>
+                    </div>
+                    <div class="form-item">
+                        <label>Clock Accuracy (hex)</label>
+                        <input type="text" id="cfg-ca" value="0xFE">
+                        <button class="btn btn-sm" onclick="setLocalParam('clock-accuracy')">设置</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card foreign-card">
+                <h2>外部主时钟列表</h2>
+                <div id="foreign-masters">
+                    <div class="empty-msg">暂无外部主时钟</div>
+                </div>
+            </section>
+
+            <section class="card delay-card">
+                <h2>延迟测量 (Delay_Req/Resp)</h2>
+                <div id="delay-info">
+                    <div class="no-gm" id="no-delay">SLAVE/UNCALIBRATED 状态下自动测量</div>
+                    <div class="delay-details" id="delay-details" style="display:none">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="label">Sequence ID</span>
+                                <span class="value" id="dm-seq">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Offset</span>
+                                <span class="value" id="dm-offset">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Delay</span>
+                                <span class="value" id="dm-delay">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">t1 (Sync发送)</span>
+                                <span class="value" id="dm-t1">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">t2 (Sync接收)</span>
+                                <span class="value" id="dm-t2">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">t3 (Delay_Req发送)</span>
+                                <span class="value" id="dm-t3">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">t4 (Delay_Resp接收)</span>
+                                <span class="value" id="dm-t4">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">测量次数</span>
+                                <span class="value" id="dm-count">0</span>
+                            </div>
+                        </div>
+                        <div class="formula-info">
+                            <span class="formula">offset = ((t2−t1) − (t4−t3)) / 2</span>
+                            <span class="formula">delay  = ((t2−t1) + (t4−t3)) / 2</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card sim-card">
+                <h2>模拟参数</h2>
+                <div class="form-grid">
+                    <div class="form-item">
+                        <label>时钟偏移 (ns)</label>
+                        <input type="number" id="sim-offset" value="0">
+                        <button class="btn btn-sm" onclick="setSimParam('offset')">设置</button>
+                    </div>
+                    <div class="form-item">
+                        <label>抖动 (ns)</label>
+                        <input type="number" id="sim-jitter" value="50">
+                        <button class="btn btn-sm" onclick="setSimParam('jitter')">设置</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card chart-card" style="grid-column: 1 / -1;">
+                <div class="chart-header">
+                    <h2>同步误差曲线</h2>
+                    <div class="chart-actions">
+                        <button class="btn btn-preset" onclick="exportCSV()">📥 导出 CSV</button>
+                    </div>
+                </div>
+                <div class="chart-legend">
+                    <span class="legend-item"><span class="legend-color" style="background:#6c8cff"></span> Offset (μs)</span>
+                    <span class="legend-item"><span class="legend-color" style="background:#4ade80"></span> Delay (μs)</span>
+                </div>
+                <canvas id="sync-chart" width="1100" height="300"></canvas>
+                <div id="chart-empty" class="empty-msg">等待同步测量数据...</div>
+            </section>
+
+            <section class="card history-card">
+                <h2>状态变更历史</h2>
+                <div id="state-history" class="history-list">
+                    <div class="empty-msg">暂无状态变更记录</div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

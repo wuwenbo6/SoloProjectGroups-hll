@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RTMP 推流地址生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+
+        .tab-btn {
+            padding: 10px 24px;
+            border: none;
+            background: transparent;
+            color: #666;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            background: #f7fafc;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #edf2f7;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+            box-shadow: none;
+        }
+
+        .result {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .success-icon {
+            width: 24px;
+            height: 24px;
+            background: #48bb78;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .result-header h2 {
+            color: #333;
+            font-size: 18px;
+        }
+
+        .info-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-card {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-card .label {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 4px;
+        }
+
+        .info-card .value {
+            font-size: 14px;
+            color: #2d3748;
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        .url-section {
+            margin-bottom: 20px;
+        }
+
+        .url-section h3 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 12px;
+            padding-left: 10px;
+            border-left: 3px solid #667eea;
+        }
+
+        .url-item {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .url-label {
+            min-width: 80px;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 13px;
+        }
+
+        .url-value {
+            flex: 1;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 11px;
+            color: #2d3748;
+            word-break: break-all;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .copy-btn {
+            background: #edf2f7;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #4a5568;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .copy-btn:hover {
+            background: #cbd5e0;
+        }
+
+        .copy-btn.copied {
+            background: #48bb78;
+            color: white;
+        }
+
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .token-display {
+            background: #1a202c;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 11px;
+            word-break: break-all;
+            max-height: 120px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .token-label {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 6px;
+        }
+
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 13px;
+        }
+
+        .log-table th,
+        .log-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .log-table th {
+            background: #f7fafc;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .log-table tr:hover {
+            background: #f7fafc;
+        }
+
+        .log-level {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .log-level.INFO {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .log-level.WARN {
+            background: #feebc8;
+            color: #744210;
+        }
+
+        .log-level.ERROR {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .log-event {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #a0aec0;
+        }
+
+        .refresh-btn {
+            margin-bottom: 15px;
+            padding: 8px 16px;
+            background: #edf2f7;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #4a5568;
+        }
+
+        .refresh-btn:hover {
+            background: #e2e8f0;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .badge.enabled {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .badge.disabled {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 24px;
+            }
+
+            .row {
+                grid-template-columns: 1fr;
+            }
+
+            .info-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .url-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .url-label {
+                min-width: auto;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+
+            .log-table {
+                font-size: 11px;
+            }
+
+            .log-table th,
+            .log-table td {
+                padding: 8px 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 RTMP 推流地址生成器</h1>
+        <p class="subtitle">生成带有JWT鉴权Token和防盗链签名的推流/播放地址</p>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('token')">JWT Token</button>
+            <button class="tab-btn" onclick="switchTab('antileech')">防盗链URL</button>
+            <button class="tab-btn" onclick="switchTab('logs')">审计日志</button>
+        </div>
+
+        <div id="tab-token" class="tab-content active">
+            <div class="form-group">
+                <label for="streamKey">Stream Key (流名称)</label>
+                <input type="text" id="streamKey" placeholder="例如: my-live-stream-001" value="test-stream-001">
+            </div>
+
+            <div class="row">
+                <div class="form-group">
+                    <label for="userId">用户ID (可选)</label>
+                    <input type="text" id="userId" placeholder="例如: user_12345">
+                </div>
+                <div class="form-group">
+                    <label for="ttl">Token有效期 (秒)</label>
+                    <input type="number" id="ttl" placeholder="默认86400秒(24小时)" value="86400">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="form-group">
+                    <label for="antileechTtl">防盗链有效期 (秒)</label>
+                    <input type="number" id="antileechTtl" placeholder="默认3600秒(1小时)" value="3600">
+                </div>
+            </div>
+
+            <button class="btn" onclick="generateToken()">生成带Token的推流地址</button>
+
+            <div class="error" id="error"></div>
+
+            <div class="result" id="result">
+                <div class="result-header">
+                    <div class="success-icon">✓</div>
+                    <h2>生成成功！</h2>
+                </div>
+
+                <div class="info-cards">
+                    <div class="info-card">
+                        <div class="label">Stream Key</div>
+                        <div class="value" id="resultStreamKey">-</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="label">JWT过期时间</div>
+                        <div class="value" id="resultExpiresAt">-</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="label">绑定IP</div>
+                        <div class="value" id="resultIp">-</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="label">签名算法</div>
+                        <div class="value" id="resultAlgorithm">-</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="token-label">JWT Token</div>
+                    <div class="token-display" id="resultToken">-</div>
+                </div>
+
+                <div class="url-section">
+                    <h3>RTMP 地址</h3>
+                    <div class="url-item">
+                        <span class="url-label">推流地址</span>
+                        <span class="url-value" id="rtmpPushUrl">-</span>
+                        <button class="copy-btn" onclick="copyToClipboard('rtmpPushUrl', this)">复制</button>
+                    </div>
+                    <div class="url-item">
+                        <span class="url-label">拉流地址</span>
+                        <span class="url-value" id="rtmpPullUrl">-</span>
+                        <button class="copy-btn" onclick="copyToClipboard('rtmpPullUrl', this)">复制</button>
+                    </div>
+                </div>
+
+                <div class="url-section">
+                    <h3>HLS / HTTP-FLV 地址</h3>
+                    <div class="url-item">
+                        <span class="url-label">HLS 地址</span>
+                        <span class="url-value" id="hlsUrl">-</span>
+                        <button class="copy-btn" onclick="copyToClipboard('hlsUrl', this)">复制</button>
+                    </div>
+                    <div class="url-item">
+                        <span class="url-label">HTTP-FLV 地址</span>
+                        <span class="url-value" id="httpFlvUrl">-</span>
+                        <button class="copy-btn" onclick="copyToClipboard('httpFlvUrl', this)">复制</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-antileech" class="tab-content">
+            <div class="form-group">
+                <label for="antileechStreamKey">Stream Key (流名称)</label>
+                <input type="text" id="antileechStreamKey" placeholder="例如: my-live-stream-001" value="test-stream-001">
+            </div>
+
+            <div class="form-group">
+                <label for="antileechTtl2">防盗链有效期 (秒)</label>
+                <input type="number" id="antileechTtl2" placeholder="默认3600秒(1小时)" value="3600">
+            </div>
+
+            <button class="btn" onclick="generateAntiLeech()">生成防盗链URL</button>
+
+            <div class="error" id="antileechError"></div>
+
+            <div class="result" id="antileechResult">
+                <div class="result-header">
+                    <div class="success-icon">✓</div>
+                    <h2>防盗链URL生成成功！</h2>
+                </div>
+
+                <div class="info-cards">
+                    <div class="info-card">
+                        <div class="label">时间戳 (ts)</div>
+                        <div class="value" id="alTimestamp">-</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="label">MD5签名 (sign)</div>
+                        <div class="value" id="alSignature">-</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="label">过期时间</div>
+                        <div class="value" id="alExpiresAt">-</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="label">有效期</div>
+                        <div class="value" id="alTtl">-</div>
+                    </div>
+                </div>
+
+                <div class="url-section">
+                    <h3>防盗链地址</h3>
+                    <div class="url-item">
+                        <span class="url-label">RTMP推流</span>
+                        <span class="url-value" id="alRtmpPushUrl">-</span>
+                        <button class="copy-btn" onclick="copyToClipboard('alRtmpPushUrl', this)">复制</button>
+                    </div>
+                    <div class="url-item">
+                        <span class="url-label">RTMP拉流</span>
+                        <span class="url-value" id="alRtmpPullUrl">-</span>
+                        <button class="copy-btn" onclick="copyToClipboard('alRtmpPullUrl', this)">复制</button>
+                    </div>
+                    <div class="url-item">
+                        <span class="url-label">HLS</span>
+                        <span class="url-value" id="alHlsUrl">-</span>
+                        <button class="copy-btn" onclick="copyToClipboard('alHlsUrl', this)">复制</button>
+                    </div>
+                    <div class="url-item">
+                        <span class="url-label">HTTP-FLV</span>
+                        <span class="url-value" id="alHttpFlvUrl">-</span>
+                        <button class="copy-btn" onclick="copyToClipboard('alHttpFlvUrl', this)">复制</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-logs" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="color: #333; margin-bottom: 0;">审计日志</h3>
+                <button class="refresh-btn" onclick="loadLogs()">🔄 刷新</button>
+            </div>
+
+            <div id="logsContainer">
+                <div class="empty-state">点击刷新加载日志</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            if (tabName === 'logs') {
+                loadLogs();
+            }
+        }
+
+        async function generateToken() {
+            const streamKey = document.getElementById('streamKey').value.trim();
+            const userId = document.getElementById('userId').value.trim();
+            const ttl = parseInt(document.getElementById('ttl').value);
+            const antileechTtl = parseInt(document.getElementById('antileechTtl').value);
+
+            const errorDiv = document.getElementById('error');
+            const resultDiv = document.getElementById('result');
+
+            errorDiv.classList.remove('show');
+            resultDiv.classList.remove('show');
+
+            if (!streamKey) {
+                showError('请输入Stream Key');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/token/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        streamKey,
+                        userId: userId || undefined,
+                        ttl: ttl || undefined,
+                        antileechTtl: antileechTtl || undefined,
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || '生成失败');
+                }
+
+                displayTokenResult(data);
+            } catch (err) {
+                showError(err.message);
+            }
+        }
+
+        function displayTokenResult(data) {
+            document.getElementById('resultStreamKey').textContent = data.streamKey;
+            document.getElementById('resultExpiresAt').textContent = new Date(data.expiresAt).toLocaleString('zh-CN');
+            document.getElementById('resultIp').textContent = data.ipBinding || '未绑定';
+            document.getElementById('resultAlgorithm').textContent = data.algorithm?.algorithm || 'HS256';
+            document.getElementById('resultToken').textContent = data.token;
+
+            document.getElementById('rtmpPushUrl').textContent = data.urls.rtmp.push;
+            document.getElementById('rtmpPullUrl').textContent = data.urls.rtmp.pull;
+            document.getElementById('hlsUrl').textContent = data.urls.hls;
+            document.getElementById('httpFlvUrl').textContent = data.urls.httpFlv;
+
+            document.getElementById('result').classList.add('show');
+        }
+
+        async function generateAntiLeech() {
+            const streamKey = document.getElementById('antileechStreamKey').value.trim();
+            const ttl = parseInt(document.getElementById('antileechTtl2').value);
+
+            const errorDiv = document.getElementById('antileechError');
+            const resultDiv = document.getElementById('antileechResult');
+
+            errorDiv.classList.remove('show');
+            resultDiv.classList.remove('show');
+
+            if (!streamKey) {
+                showError('请输入Stream Key', 'antileechError');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/token/antileech', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        streamKey,
+                        ttl: ttl || undefined,
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || '生成失败');
+                }
+
+                displayAntiLeechResult(data);
+            } catch (err) {
+                showError(err.message, 'antileechError');
+            }
+        }
+
+        function displayAntiLeechResult(data) {
+            document.getElementById('alTimestamp').textContent = data.antileech.timestamp;
+            document.getElementById('alSignature').textContent = data.antileech.signature;
+            document.getElementById('alExpiresAt').textContent = new Date(data.antileech.expiresAt).toLocaleString('zh-CN');
+            document.getElementById('alTtl').textContent = formatDuration(data.antileech.ttl);
+
+            document.getElementById('alRtmpPushUrl').textContent = data.urls.rtmp.push;
+            document.getElementById('alRtmpPullUrl').textContent = data.urls.rtmp.pull;
+            document.getElementById('alHlsUrl').textContent = data.urls.hls;
+            document.getElementById('alHttpFlvUrl').textContent = data.urls.httpFlv;
+
+            document.getElementById('antileechResult').classList.add('show');
+        }
+
+        async function loadLogs() {
+            try {
+                const response = await fetch('/api/token/logs?limit=50');
+                const data = await response.json();
+
+                const container = document.getElementById('logsContainer');
+
+                if (!data.logs || data.logs.length === 0) {
+                    container.innerHTML = '<div class="empty-state">暂无日志记录</div>';
+                    return;
+                }
+
+                let html = '<table class="log-table"><thead><tr><th>时间</th><th>级别</th><th>事件</th><th>详情</th></tr></thead><tbody>';
+                
+                data.logs.reverse().forEach(log => {
+                    html += `<tr>
+                        <td>${formatTimestamp(log.raw)}</td>
+                        <td><span class="log-level ${log.level}">${log.level}</span></td>
+                        <td><span class="log-event">${extractEvent(log.raw)}</span></td>
+                        <td>${extractMessage(log.raw)}</td>
+                    </tr>`;
+                });
+
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            } catch (err) {
+                document.getElementById('logsContainer').innerHTML = 
+                    '<div class="empty-state">加载日志失败: ' + err.message + '</div>';
+            }
+        }
+
+        function formatTimestamp(logRaw) {
+            const match = logRaw.match(/\[([^\]]+)\]/);
+            if (match) {
+                const date = new Date(match[1]);
+                return date.toLocaleString('zh-CN', {
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                });
+            }
+            return '-';
+        }
+
+        function extractEvent(logRaw) {
+            const match = logRaw.match(/\[([a-z_]+)\]/g);
+            if (match && match.length >= 2) {
+                return match[1].replace(/[\[\]]/g, '');
+            }
+            return '-';
+        }
+
+        function extractMessage(logRaw) {
+            const parts = logRaw.split(/\] /);
+            return parts[parts.length - 1] || '-';
+        }
+
+        function showError(message, elementId = 'error') {
+            document.getElementById(elementId).textContent = message;
+            document.getElementById(elementId).classList.add('show');
+        }
+
+        function formatDuration(seconds) {
+            if (seconds < 60) return `${seconds}秒`;
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}分钟`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)}小时`;
+            return `${Math.floor(seconds / 86400)}天`;
+        }
+
+        function copyToClipboard(elementId, button) {
+            const text = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = button.textContent;
+                button.textContent = '已复制!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        document.getElementById('streamKey').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateToken();
+            }
+        });
+
+        document.getElementById('antileechStreamKey').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateAntiLeech();
+            }
+        });
+    </script>
+</body>
+</html>

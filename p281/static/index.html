@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DHCPv6 前缀委派服务器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e4e4e7;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.2);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #6366f1;
+            margin-bottom: 8px;
+        }
+
+        .stat-value.success {
+            color: #4ade80;
+        }
+
+        .stat-value.warning {
+            color: #fbbf24;
+        }
+
+        .stat-value.info {
+            color: #60a5fa;
+        }
+
+        .stat-label {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        .stat-subtext {
+            color: #64748b;
+            font-size: 0.75rem;
+            margin-top: 5px;
+            word-break: break-all;
+        }
+
+        .main-content {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #f4f4f5;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .refresh-btn, .export-btn {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .refresh-btn:hover, .export-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .export-btn:hover {
+            box-shadow: 0 5px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .refresh-btn:active, .export-btn:active {
+            transform: scale(0.98);
+        }
+
+        .filter-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e4e4e7;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .filter-select:focus {
+            border-color: #6366f1;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border-color: transparent;
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: rgba(99, 102, 241, 0.1);
+            color: #c7d2fe;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        th {
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #a5b4fc;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid rgba(99, 102, 241, 0.2);
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .prefix-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            color: #c7d2fe;
+        }
+
+        .duid-text {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            word-break: break-all;
+            max-width: 200px;
+        }
+
+        .status-active {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #4ade80;
+        }
+
+        .status-active::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .event-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .event-assign {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+            border: 1px solid rgba(74, 222, 128, 0.3);
+        }
+
+        .event-renew {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .event-release {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .event-expire {
+            background: rgba(168, 85, 247, 0.2);
+            color: #a78bfa;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+
+        .event-error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .renew-badge {
+            display: inline-block;
+            background: rgba(251, 191, 36, 0.2);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: #fbbf24;
+            font-weight: 500;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .empty-state small {
+            color: #475569;
+        }
+
+        .time-info {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .message-text {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            max-width: 300px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .config-section {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .config-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #c7d2fe;
+            margin-bottom: 15px;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .config-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .config-label {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .config-value {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9rem;
+            color: #c7d2fe;
+            word-break: break-all;
+        }
+
+        .dns-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .dns-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            color: #c7d2fe;
+        }
+
+        .dns-icon {
+            width: 6px;
+            height: 6px;
+            background: #4ade80;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>DHCPv6 前缀委派服务器</h1>
+            <p class="subtitle">IA_PD 前缀绑定管理面板 | RDNSS 支持</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value success" id="leaseCount">0</div>
+                <div class="stat-label">活跃绑定</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="availablePrefixes">-</div>
+                <div class="stat-label">可用前缀</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="usageProgress" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalPrefixes">-</div>
+                <div class="stat-label">前缀总数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value info" id="logCount">0</div>
+                <div class="stat-label">日志条目</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="prefixPool">-</div>
+                <div class="stat-label">前缀池</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="leaseTime">-</div>
+                <div class="stat-label">租期</div>
+            </div>
+        </div>
+
+        <div class="config-section">
+            <div class="config-title">服务器配置</div>
+            <div class="config-grid">
+                <div class="config-item">
+                    <span class="config-label">前缀池</span>
+                    <span class="config-value" id="configPrefixPool">-</span>
+                </div>
+                <div class="config-item">
+                    <span class="config-label">DNS 服务器 (RDNSS)</span>
+                    <div class="dns-list" id="dnsList">
+                        <span style="color: #64748b;">未配置</span>
+                    </div>
+                </div>
+                <div class="config-item">
+                    <span class="config-label">服务器时间</span>
+                    <span class="config-value" id="serverTime">-</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content" style="margin-top: 30px;">
+            <div class="section-header">
+                <h2 class="section-title">前缀管理</h2>
+                <div class="header-actions">
+                    <button class="refresh-btn" onclick="fetchData()" id="refreshBtn">
+                        <span>刷新</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('leases')">租约列表</button>
+                <button class="tab-btn" onclick="switchTab('bindings')">绑定表</button>
+                <button class="tab-btn" onclick="switchTab('logs')">分配日志</button>
+            </div>
+
+            <div id="leasesTab" class="tab-content active">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>状态</th>
+                                <th>分配前缀</th>
+                                <th>客户端 DUID</th>
+                                <th>IAID</th>
+                                <th>续约次数</th>
+                                <th>客户端地址</th>
+                                <th>分配时间</th>
+                                <th>过期时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leasesTableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="empty-state" id="leasesEmptyState" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+                        <path d="M9 10h.01M15 10h.01M9.5 15.5a3.5 3.5 0 0 0 5 0"/>
+                    </svg>
+                    <p>暂无租约记录</p>
+                    <small>等待 DHCPv6 客户端请求前缀委派...</small>
+                </div>
+            </div>
+
+            <div id="bindingsTab" class="tab-content">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>前缀</th>
+                                <th>客户端 DUID</th>
+                                <th>IAID</th>
+                                <th>过期时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bindingsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="empty-state" id="bindingsEmptyState" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+                        <path d="M9 10h.01M15 10h.01M9.5 15.5a3.5 3.5 0 0 0 5 0"/>
+                    </svg>
+                    <p>暂无前缀绑定</p>
+                </div>
+            </div>
+
+            <div id="logsTab" class="tab-content">
+                <div class="section-header" style="margin-bottom: 15px;">
+                    <h3 style="font-size: 1.2rem; font-weight: 600; color: #f4f4f5;">分配日志</h3>
+                    <div class="header-actions">
+                        <select class="filter-select" id="logFilter" onchange="fetchLogs()">
+                            <option value="">全部事件</option>
+                            <option value="ASSIGN">分配</option>
+                            <option value="RENEW">续约</option>
+                            <option value="RELEASE">释放</option>
+                            <option value="EXPIRE">过期</option>
+                            <option value="ERROR">错误</option>
+                        </select>
+                        <select class="filter-select" id="logFormat" onchange="exportLogs()">
+                            <option value="">导出格式</option>
+                            <option value="json">JSON 格式</option>
+                            <option value="csv">CSV 格式</option>
+                        </select>
+                        <button class="export-btn" onclick="exportLogs()">
+                            <span>导出日志</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>事件</th>
+                                <th>前缀</th>
+                                <th>客户端 DUID</th>
+                                <th>IAID</th>
+                                <th>客户端地址</th>
+                                <th>消息</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="empty-state" id="logsEmptyState" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M9 12h6M12 9v6M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+                    </svg>
+                    <p>暂无日志记录</p>
+                    <small>日志将在此显示前缀分配、续约、释放等事件</small>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>DHCPv6 Server with IA_PD Support | Go Implementation | RDNSS Option</p>
+        </footer>
+    </div>
+
+    <script>
+        function formatTime(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        function formatRelativeTime(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = date - now;
+            
+            if (diff < 0) return '已过期';
+            
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            
+            if (hours > 0) {
+                return `${hours}小时${minutes}分钟后`;
+            }
+            return `${minutes}分钟后`;
+        }
+
+        function setButtonLoading(loading) {
+            const btn = document.getElementById('refreshBtn');
+            if (loading) {
+                btn.innerHTML = '<span class="loading"></span>';
+                btn.disabled = true;
+            } else {
+                btn.innerHTML = '<span>刷新</span>';
+                btn.disabled = false;
+            }
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            if (tab === 'leases') {
+                document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+                document.getElementById('leasesTab').classList.add('active');
+            } else if (tab === 'bindings') {
+                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+                document.getElementById('bindingsTab').classList.add('active');
+            } else {
+                document.querySelector('.tab-btn:nth-child(3)').classList.add('active');
+                document.getElementById('logsTab').classList.add('active');
+                fetchLogs();
+            }
+        }
+
+        function iaidToString(iaidArray) {
+            if (Array.isArray(iaidArray)) {
+                return iaidArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+            return iaidArray;
+        }
+
+        function getEventClass(eventType) {
+            const classes = {
+                'ASSIGN': 'event-assign',
+                'RENEW': 'event-renew',
+                'RELEASE': 'event-release',
+                'EXPIRE': 'event-expire',
+                'ERROR': 'event-error'
+            };
+            return classes[eventType] || '';
+        }
+
+        function getEventLabel(eventType) {
+            const labels = {
+                'ASSIGN': '分配',
+                'RENEW': '续约',
+                'RELEASE': '释放',
+                'EXPIRE': '过期',
+                'ERROR': '错误'
+            };
+            return labels[eventType] || eventType;
+        }
+
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                
+                document.getElementById('leaseCount').textContent = stats.leaseCount;
+                document.getElementById('availablePrefixes').textContent = stats.availablePrefixes;
+                document.getElementById('totalPrefixes').textContent = stats.totalPrefixes;
+                document.getElementById('logCount').textContent = stats.logCount;
+                document.getElementById('prefixPool').textContent = stats.prefixPool;
+                document.getElementById('leaseTime').textContent = stats.leaseTime;
+                document.getElementById('serverTime').textContent = formatTime(stats.serverTime);
+                document.getElementById('configPrefixPool').textContent = stats.prefixPool;
+
+                const usagePercent = ((stats.totalPrefixes - stats.availablePrefixes) / stats.totalPrefixes) * 100;
+                document.getElementById('usageProgress').style.width = usagePercent + '%';
+
+                if (stats.dnsServers && stats.dnsServers.length > 0) {
+                    const dnsList = document.getElementById('dnsList');
+                    dnsList.innerHTML = stats.dnsServers.map(dns => 
+                        `<div class="dns-item"><span class="dns-icon"></span>${dns}</div>`
+                    ).join('');
+                }
+            } catch (error) {
+                console.error('Failed to fetch stats:', error);
+            }
+        }
+
+        async function fetchLeases() {
+            try {
+                const response = await fetch('/api/leases');
+                const leases = await response.json();
+                
+                const tbody = document.getElementById('leasesTableBody');
+                const emptyState = document.getElementById('leasesEmptyState');
+                
+                if (leases.length === 0) {
+                    tbody.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+                
+                emptyState.style.display = 'none';
+                
+                tbody.innerHTML = leases.map(lease => `
+                    <tr>
+                        <td>
+                            <span class="status-active">活跃</span>
+                        </td>
+                        <td>
+                            <span class="prefix-badge">${lease.prefix}</span>
+                        </td>
+                        <td>
+                            <span class="duid-text" title="${lease.duid}">${lease.duid}</span>
+                        </td>
+                        <td>${lease.iaid}</td>
+                        <td>
+                            ${lease.renewCount > 0 
+                                ? `<span class="renew-badge">${lease.renewCount} 次</span>` 
+                                : '<span style="color: #64748b;">首次</span>'}
+                        </td>
+                        <td>${lease.clientAddr}</td>
+                        <td class="time-info">${formatTime(lease.assignedAt)}</td>
+                        <td class="time-info">
+                            ${formatTime(lease.expiresAt)}
+                            <br>
+                            <small>(${formatRelativeTime(lease.expiresAt)})</small>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to fetch leases:', error);
+            }
+        }
+
+        async function fetchBindings() {
+            try {
+                const response = await fetch('/api/bindings');
+                const bindings = await response.json();
+                
+                const tbody = document.getElementById('bindingsTableBody');
+                const emptyState = document.getElementById('bindingsEmptyState');
+                
+                if (bindings.length === 0) {
+                    tbody.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+                
+                emptyState.style.display = 'none';
+                
+                tbody.innerHTML = bindings.map(binding => `
+                    <tr>
+                        <td>
+                            <span class="prefix-badge">${binding.prefix}</span>
+                        </td>
+                        <td>
+                            <span class="duid-text" title="${binding.duid}">${binding.duid}</span>
+                        </td>
+                        <td>${iaidToString(binding.iaid)}</td>
+                        <td class="time-info">
+                            ${formatTime(binding.expiresAt)}
+                            <br>
+                            <small>(${formatRelativeTime(binding.expiresAt)})</small>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to fetch bindings:', error);
+            }
+        }
+
+        async function fetchLogs() {
+            try {
+                const eventType = document.getElementById('logFilter').value;
+                const url = eventType ? `/api/logs?type=${eventType}` : '/api/logs?limit=100';
+                
+                const response = await fetch(url);
+                const logs = await response.json();
+                
+                const tbody = document.getElementById('logsTableBody');
+                const emptyState = document.getElementById('logsEmptyState');
+                
+                if (logs.length === 0) {
+                    tbody.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+                
+                emptyState.style.display = 'none';
+                
+                tbody.innerHTML = logs.map(log => `
+                    <tr>
+                        <td class="time-info">${formatTime(log.timestamp)}</td>
+                        <td>
+                            <span class="event-badge ${getEventClass(log.eventType)}">${getEventLabel(log.eventType)}</span>
+                        </td>
+                        <td>
+                            ${log.prefix ? `<span class="prefix-badge">${log.prefix}</span>` : '-'}
+                        </td>
+                        <td>
+                            <span class="duid-text" title="${log.duid}">${log.duid}</span>
+                        </td>
+                        <td>${log.iaid || '-'}</td>
+                        <td>${log.clientAddr || '-'}</td>
+                        <td class="message-text">${log.message}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to fetch logs:', error);
+            }
+        }
+
+        async function exportLogs() {
+            const eventType = document.getElementById('logFilter').value;
+            const format = document.getElementById('logFormat').value;
+            
+            if (!format) {
+                alert('请选择导出格式');
+                return;
+            }
+            
+            let url = `/api/logs/export?format=${format}`;
+            if (eventType) {
+                url += `&type=${eventType}`;
+            }
+            
+            window.location.href = url;
+            document.getElementById('logFormat').value = '';
+        }
+
+        async function fetchData() {
+            setButtonLoading(true);
+            await Promise.all([fetchStats(), fetchLeases(), fetchBindings()]);
+            if (document.getElementById('logsTab').classList.contains('active')) {
+                await fetchLogs();
+            }
+            setButtonLoading(false);
+        }
+
+        fetchData();
+        setInterval(fetchData, 5000);
+    </script>
+</body>
+</html>

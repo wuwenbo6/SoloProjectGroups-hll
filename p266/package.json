@@ -1,0 +1,24 @@
+{
+  "name": "electron-bluetooth-scanner",
+  "version": "1.0.0",
+  "description": "Electron应用通过D-Bus调用BlueZ API进行蓝牙扫描",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging"
+  },
+  "keywords": [
+    "electron",
+    "bluetooth",
+    "bluez",
+    "dbus"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  },
+  "dependencies": {
+    "dbus-next": "^0.10.2"
+  }
+}

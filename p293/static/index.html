@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMA 绑定缓存管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+        }
+
+        th {
+            font-weight: 600;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #e0e0e0;
+            transition: background-color 0.2s;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9ff;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .refresh-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f0f0f0;
+            color: #333;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            transition: background-color 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-card .number {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .stat-card .label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>LMA 本地移动锚点</h1>
+            <p>代理绑定更新 (PBU) 处理与绑定缓存管理</p>
+        </div>
+
+        <div class="card">
+            <h2>发送 PBU 请求</h2>
+            <form id="pbuForm">
+                <div class="form-group">
+                    <label for="mnPrefix">MN IPv6 前缀</label>
+                    <input type="text" id="mnPrefix" name="mnPrefix" placeholder="例如: 2001:db8:1::/64" required>
+                </div>
+                <div class="form-group">
+                    <label for="magAddress">MAG 地址</label>
+                    <input type="text" id="magAddress" name="magAddress" placeholder="例如: 2001:db8:100::1" required>
+                </div>
+                <div class="form-group">
+                    <label for="lifetime">生存期 (秒)</label>
+                    <input type="number" id="lifetime" name="lifetime" value="3600" min="1" max="65535">
+                </div>
+                <button type="submit" class="btn">发送 PBU</button>
+                <div id="successMessage" class="success-message"></div>
+                <div id="errorMessage" class="error-message"></div>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>绑定缓存</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="number" id="totalBindings">0</div>
+                    <div class="label">总绑定数</div>
+                </div>
+            </div>
+            <button class="refresh-btn" onclick="loadBindings()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 4v6h-6"></path>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+                刷新
+            </button>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>MN IPv6 前缀</th>
+                            <th>MAG 地址</th>
+                            <th>创建时间</th>
+                            <th>更新时间</th>
+                            <th>生存期</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bindingsTable">
+                    </tbody>
+                </table>
+                <div id="emptyState" class="empty-state" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <p>暂无绑定缓存条目</p>
+                    <p style="font-size: 0.9rem; margin-top: 10px;">发送 PBU 请求以创建绑定</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadBindings() {
+            try {
+                const response = await fetch('/bindings');
+                const bindings = await response.json();
+                
+                const tableBody = document.getElementById('bindingsTable');
+                const emptyState = document.getElementById('emptyState');
+                const totalBindings = document.getElementById('totalBindings');
+                
+                tableBody.innerHTML = '';
+                totalBindings.textContent = bindings.length;
+                
+                if (bindings.length === 0) {
+                    emptyState.style.display = 'block';
+                    return;
+                }
+                
+                emptyState.style.display = 'none';
+                
+                bindings.forEach(binding => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><code>${escapeHtml(binding.mn_prefix)}</code></td>
+                        <td><code>${escapeHtml(binding.mag_address)}</code></td>
+                        <td>${formatDate(binding.created_at)}</td>
+                        <td>${formatDate(binding.updated_at)}</td>
+                        <td>${binding.lifetime} 秒</td>
+                        <td><span class="status-badge status-active">活跃</span></td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('加载绑定缓存失败:', error);
+            }
+        }
+
+        document.getElementById('pbuForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const mnPrefix = document.getElementById('mnPrefix').value;
+            const magAddress = document.getElementById('magAddress').value;
+            const lifetime = parseInt(document.getElementById('lifetime').value);
+            
+            const successMsg = document.getElementById('successMessage');
+            const errorMsg = document.getElementById('errorMessage');
+            
+            successMsg.style.display = 'none';
+            errorMsg.style.display = 'none';
+            
+            try {
+                const response = await fetch('/pbu', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        mn_prefix: mnPrefix,
+                        mag_address: magAddress,
+                        lifetime: lifetime
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    successMsg.textContent = '✓ PBU 处理成功: ' + result.message;
+                    successMsg.style.display = 'block';
+                    loadBindings();
+                } else {
+                    errorMsg.textContent = '✗ PBU 处理失败: ' + result.message;
+                    errorMsg.style.display = 'block';
+                }
+            } catch (error) {
+                errorMsg.textContent = '✗ 请求失败: ' + error.message;
+                errorMsg.style.display = 'block';
+            }
+        });
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        loadBindings();
+        setInterval(loadBindings, 5000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTProto 消息解析器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MTProto 消息解析器</h1>
+            <p class="subtitle">解析 Telegram MTProto 协议消息，解密并提取明文内容</p>
+        </header>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="card">
+                    <h2>会话密钥管理</h2>
+                    <div class="input-group">
+                        <label>密钥名称</label>
+                        <input type="text" id="keyName" placeholder="default" value="default">
+                    </div>
+                    <div class="input-group">
+                        <label>会话密钥 (Auth Key) - 512位十六进制</label>
+                        <textarea id="authKey" rows="4" placeholder="输入256字节的会话密钥（512个十六进制字符）"></textarea>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="addAuthKey()">添加密钥</button>
+                        <button class="btn btn-secondary" onclick="generateTestKey()">生成测试密钥</button>
+                    </div>
+                    <div class="key-list" id="keyList">
+                        <h3>已保存的密钥</h3>
+                        <div id="keyListContent">
+                            <p class="empty">暂无密钥</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>生成测试数据</h2>
+                    <div class="input-group">
+                        <label>测试消息文本</label>
+                        <input type="text" id="testMessage" placeholder="Hello, Telegram!" value="你好，这是一条测试消息！">
+                    </div>
+                    <button class="btn btn-accent" onclick="generateTestData()">生成加密测试数据</button>
+                </div>
+
+                <div class="card">
+                    <h2>解析选项</h2>
+                    <div class="input-group">
+                        <label>传输类型</label>
+                        <select id="transportType">
+                            <option value="">自动检测</option>
+                            <option value="abridged">TCP Abridged</option>
+                            <option value="intermediate">TCP Intermediate</option>
+                            <option value="padded_intermediate">TCP Padded Intermediate</option>
+                            <option value="full">TCP Full</option>
+                            <option value="http">HTTP/WebSocket</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>消息方向</label>
+                        <select id="isClient">
+                            <option value="true">客户端 -> 服务端</option>
+                            <option value="false">服务端 -> 客户端</option>
+                        </select>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="showRaw" checked>
+                        <label for="showRaw">显示原始数据</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="card">
+                    <h2>输入加密数据</h2>
+                    <p class="hint">支持十六进制 (HEX) 或 Base64 编码格式</p>
+                    <div class="input-group">
+                        <textarea id="encryptedData" rows="8" placeholder="粘贴加密的MTProto消息数据..."></textarea>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn btn-primary btn-large" onclick="decryptMessage()">解析并解密</button>
+                        <button class="btn btn-secondary" onclick="clearAll()">清空</button>
+                        <button class="btn btn-secondary" onclick="loadDemoData()">加载演示数据</button>
+                    </div>
+                </div>
+
+                <div class="card" id="resultCard" style="display: none;">
+                    <h2>解析结果</h2>
+                    <div id="resultContent">
+                    </div>
+                </div>
+
+                <div class="card" id="messagesCard" style="display: none;">
+                    <h2>提取的消息 <span id="messageCount" class="badge badge-info" style="font-size:0.8rem;"></span></h2>
+                    <div class="button-group" style="margin-bottom: 12px;">
+                        <button class="btn btn-secondary" onclick="exportChat('json')">📥 导出 JSON</button>
+                        <button class="btn btn-secondary" onclick="exportChat('csv')">📥 导出 CSV</button>
+                        <button class="btn btn-secondary" onclick="exportChat('html')">📥 导出 HTML</button>
+                    </div>
+                    <div id="messagesContent">
+                    </div>
+                </div>
+
+                <div class="card" id="debugCard" style="display: none;">
+                    <h2>调试信息</h2>
+                    <div class="debug-section">
+                        <h3>传输层信息</h3>
+                        <div id="transportInfo"></div>
+                    </div>
+                    <div class="debug-section">
+                        <h3>加密层信息</h3>
+                        <div id="cryptoInfo"></div>
+                    </div>
+                    <div class="debug-section">
+                        <h3>TL 结构 (JSON)</h3>
+                        <pre id="tlStructure"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+            <div class="spinner"></div>
+            <p>正在解析...</p>
+        </div>
+
+        <div id="toast" class="toast" style="display: none;"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

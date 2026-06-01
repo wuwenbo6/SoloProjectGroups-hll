@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eMMC 信息读取工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .status-bar {
+            background: white;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.disconnected {
+            background: #dc3545;
+        }
+
+        .status-dot.connecting {
+            background: #ffc107;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd6;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .device-selector {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            min-width: 200px;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .card-icon.summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .card-icon.cid {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .card-icon.csd {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .info-list {
+            list-style: none;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 600;
+            text-align: right;
+            word-break: break-all;
+        }
+
+        .capacity-bar {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 10px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .capacity-fill {
+            background: linear-gradient(90deg, #28a745, #20c997);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #dc3545;
+        }
+
+        .speed-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .speed-high {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+
+        .speed-medium {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+        }
+
+        .speed-low {
+            background: linear-gradient(135deg, #6c757d, #495057);
+        }
+
+        .card-icon.boot {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .card-icon.calc {
+            background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+        }
+
+        .card-icon.rpmb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .card-icon.health {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .rpmb-input-section {
+            margin: 15px 0;
+        }
+
+        .rpmb-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .rpmb-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .rpmb-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .rpmb-small-input {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .health-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .health-badge.excellent {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .health-badge.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .health-badge.critical {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .health-badge.unknown {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .progress-bar {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 20px;
+            margin: 10px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-fill.excellent {
+            background: linear-gradient(90deg, #28a745, #20c997);
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #ffc107, #fd7e14);
+        }
+
+        .progress-fill.critical {
+            background: linear-gradient(90deg, #dc3545, #c82333);
+        }
+
+        .progress-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 11px;
+            font-weight: 600;
+            color: #333;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+        }
+
+        .health-section {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .health-section-title {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .health-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .health-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .health-item-label {
+            color: #6c757d;
+        }
+
+        .health-item-value {
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .boot-partition-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .boot-part-item {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .boot-part-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .boot-part-item.active {
+            border-color: #28a745;
+            background: #f0fff4;
+        }
+
+        .boot-part-item.selected {
+            border-color: #667eea;
+            background: #eef2ff;
+        }
+
+        .boot-part-item .part-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .boot-part-item .part-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .boot-part-item .part-node {
+            font-size: 10px;
+            color: #999;
+        }
+
+        .boot-part-item.active .part-name {
+            color: #28a745;
+        }
+
+        .boot-ack-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #28a745;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        .btn-warning {
+            background: #fd7e14;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #e8590c;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .calc-detail {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            border-left: 4px solid #a18cd1;
+        }
+
+        .calc-detail .calc-title {
+            font-weight: 700;
+            color: #6f42c1;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .calc-detail .calc-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 12px;
+        }
+
+        .calc-detail .calc-label {
+            color: #666;
+        }
+
+        .calc-detail .calc-value {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .calc-formula {
+            background: #eef2ff;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 8px 0;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 12px;
+            color: #4338ca;
+            word-break: break-all;
+        }
+
+        .operation-log {
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 11px;
+            color: #d4d4d4;
+        }
+
+        .operation-log .log-entry {
+            padding: 3px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .operation-log .log-entry.success {
+            color: #4ec9b0;
+        }
+
+        .operation-log .log-entry.error {
+            color: #f44747;
+        }
+
+        .operation-log .log-time {
+            color: #6a9955;
+            margin-right: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .status-bar {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .controls {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💾 eMMC 信息读取工具</h1>
+            <p>读取并解析 eMMC 的 CID 和 CSD 数据</p>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">未连接</span>
+            </div>
+            <div class="controls">
+                <select class="device-selector" id="deviceSelector">
+                    <option value="/dev/mmcblk0">/dev/mmcblk0</option>
+                </select>
+                <button class="btn btn-primary" id="refreshBtn" onclick="refreshData()">
+                    🔄 刷新数据
+                </button>
+                <button class="btn btn-success" id="connectBtn" onclick="toggleConnection()">
+                    🔌 连接
+                </button>
+            </div>
+        </div>
+
+        <div id="errorContainer"></div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>正在读取 eMMC 信息...</p>
+        </div>
+
+        <div id="dataContainer" style="display: none;">
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon summary">📊</div>
+                        <h2 class="card-title">设备摘要</h2>
+                    </div>
+                    <ul class="info-list" id="summaryList"></ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon cid">🆔</div>
+                        <h2 class="card-title">CID (Card ID)</h2>
+                    </div>
+                    <ul class="info-list" id="cidList"></ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon csd">📈</div>
+                        <h2 class="card-title">CSD (Card-Specific Data)</h2>
+                    </div>
+                    <ul class="info-list" id="csdList"></ul>
+                    <div id="capacityCalc"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon calc">🧮</div>
+                        <h2 class="card-title">容量计算详情</h2>
+                    </div>
+                    <div id="capacityDetail"></div>
+                </div>
+
+                <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header">
+                        <div class="card-icon boot">⚡</div>
+                        <h2 class="card-title">Boot Partition 管理</h2>
+                    </div>
+                    <div id="bootConfigPanel">
+                        <div class="boot-partition-grid" id="bootPartitionGrid"></div>
+                        <div class="boot-ack-toggle">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="bootAckToggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span style="font-weight: 500; color: #333;">Boot Acknowledgment</span>
+                            <span style="font-size: 12px; color: #666;" id="bootAckStatus">已启用</span>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <button class="btn btn-warning" id="enableBootBtn" onclick="enableBootPartition()">
+                                ⚡ 启用选中分区
+                            </button>
+                            <button class="btn btn-danger" id="disableBootBtn" onclick="disableBootPartition()">
+                                🚫 禁用 Boot 分区
+                            </button>
+                        </div>
+                        <div class="operation-log" id="operationLog">
+                            <div class="log-entry" style="color: #6a9955;">// 操作日志</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon rpmb">🔐</div>
+                        <h2 class="card-title">RPMB 分区</h2>
+                    </div>
+                    <ul class="info-list" id="rpmbInfoList"></ul>
+                    <div class="rpmb-input-section">
+                        <label style="font-weight: 600; color: #495057; font-size: 13px; margin-bottom: 8px; display: block;">写入数据（最多 512 字节）</label>
+                        <textarea class="rpmb-input" id="rpmbWriteData" placeholder="在此输入要写入 RPMB 的数据..."></textarea>
+                        <div class="rpmb-controls">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="rpmbReliable" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span style="font-weight: 500; color: #333; font-size: 12px;">安全写入 (Reliable Write)</span>
+                            <button class="btn btn-primary" onclick="rpmbWrite()" style="margin-left: auto;">
+                                ✍️ 写入
+                            </button>
+                        </div>
+                    </div>
+                    <div class="rpmb-input-section">
+                        <label style="font-weight: 600; color: #495057; font-size: 13px; margin-bottom: 8px; display: block;">读取数据</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div>
+                                <label style="font-size: 11px; color: #666;">偏移量</label>
+                                <input type="number" class="rpmb-small-input" id="rpmbOffset" value="0" min="0">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; color: #666;">块数</label>
+                                <input type="number" class="rpmb-small-input" id="rpmbCount" value="1" min="1" max="256">
+                            </div>
+                            <button class="btn btn-primary" onclick="rpmbRead()" style="margin-left: auto;">
+                                📖 读取
+                            </button>
+                        </div>
+                        <div id="rpmbReadResult" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px; font-family: monospace; font-size: 12px; word-break: break-all; display: none;"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon health">❤️</div>
+                        <h2 class="card-title">健康度报告</h2>
+                    </div>
+                    <div id="healthReport">
+                        <div style="text-align: center; padding: 20px;">
+                            <span class="health-badge unknown" id="healthBadge">
+                                <span>❓</span> 未知
+                            </span>
+                        </div>
+                        <div class="health-section">
+                            <div class="health-section-title">设备寿命预估 (SLC)</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill excellent" id="lifeAProgress" style="width: 0%;"></div>
+                                <span class="progress-label" id="lifeALabel">0%</span>
+                            </div>
+                            <div style="font-size: 11px; color: #666; text-align: center;" id="lifeAText">检测中...</div>
+                        </div>
+                        <div class="health-section">
+                            <div class="health-section-title">设备寿命预估 (MLC)</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill excellent" id="lifeBProgress" style="width: 0%;"></div>
+                                <span class="progress-label" id="lifeBLabel">0%</span>
+                            </div>
+                            <div style="font-size: 11px; color: #666; text-align: center;" id="lifeBText">检测中...</div>
+                        </div>
+                        <div class="health-section">
+                            <div class="health-section-title">详细参数</div>
+                            <div class="health-grid" id="healthDetailGrid"></div>
+                        </div>
+                        <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="refreshHealth()">
+                            🔄 刷新健康状态
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let isConnected = false;
+        let selectedBootPart = null;
+        let currentBootPart = 0;
+        let currentCsdData = null;
+
+        const WS_URL = 'ws://localhost:8765';
+
+        function updateConnectionStatus(status) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            const btn = document.getElementById('connectBtn');
+            const refreshBtn = document.getElementById('refreshBtn');
+
+            dot.className = 'status-dot ' + status;
+            
+            switch(status) {
+                case 'connected':
+                    text.textContent = '已连接';
+                    btn.textContent = '🔌 断开';
+                    refreshBtn.disabled = false;
+                    isConnected = true;
+                    break;
+                case 'connecting':
+                    text.textContent = '连接中...';
+                    btn.textContent = '⏳ 连接中';
+                    refreshBtn.disabled = true;
+                    break;
+                case 'disconnected':
+                    text.textContent = '未连接';
+                    btn.textContent = '🔌 连接';
+                    refreshBtn.disabled = true;
+                    isConnected = false;
+                    break;
+            }
+        }
+
+        function showError(message) {
+            const container = document.getElementById('errorContainer');
+            container.innerHTML = `<div class="error-message">❌ ${message}</div>`;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        function toggleConnection() {
+            if (isConnected) {
+                disconnect();
+            } else {
+                connect();
+            }
+        }
+
+        function connect() {
+            updateConnectionStatus('connecting');
+            
+            try {
+                ws = new WebSocket(WS_URL);
+
+                ws.onopen = function() {
+                    updateConnectionStatus('connected');
+                    listDevices();
+                    refreshData();
+                };
+
+                ws.onmessage = function(event) {
+                    const response = JSON.parse(event.data);
+                    handleMessage(response);
+                };
+
+                ws.onclose = function() {
+                    updateConnectionStatus('disconnected');
+                    document.getElementById('dataContainer').style.display = 'none';
+                };
+
+                ws.onerror = function(error) {
+                    showError('WebSocket 连接错误');
+                    updateConnectionStatus('disconnected');
+                };
+            } catch (error) {
+                showError('无法建立连接: ' + error.message);
+                updateConnectionStatus('disconnected');
+            }
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            updateConnectionStatus('disconnected');
+        }
+
+        function handleMessage(response) {
+            console.log('Received:', response);
+            
+            switch(response.type) {
+                case 'connection':
+                    console.log(response.message);
+                    break;
+                case 'emmc_info':
+                    displayData(response.data);
+                    break;
+                case 'cid_info':
+                    displayCID(response.data);
+                    break;
+                case 'csd_info':
+                    displayCSD(response.data);
+                    break;
+                case 'boot_config':
+                    displayBootConfig(response.data);
+                    break;
+                case 'bootpart_result':
+                    handleBootpartResult(response.data);
+                    break;
+                case 'rpmb_info':
+                    displayRPMBInfo(response.data);
+                    break;
+                case 'rpmb_result':
+                    handleRPMBResult(response.data);
+                    break;
+                case 'health_report':
+                    displayHealthReport(response.data);
+                    break;
+                case 'device_list':
+                    updateDeviceSelector(response.data);
+                    break;
+                case 'pong':
+                    console.log('Ping response:', response.timestamp);
+                    break;
+                case 'error':
+                    showError(response.message);
+                    break;
+            }
+            
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function sendMessage(data) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(data));
+            } else {
+                showError('未连接到服务器');
+            }
+        }
+
+        function listDevices() {
+            sendMessage({ action: 'list_devices' });
+        }
+
+        function refreshData() {
+            if (!isConnected) {
+                showError('请先连接到服务器');
+                return;
+            }
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('dataContainer').style.display = 'none';
+            
+            const device = document.getElementById('deviceSelector').value;
+            sendMessage({
+                action: 'get_all_info',
+                device: device
+            });
+        }
+
+        function updateDeviceSelector(devices) {
+            const selector = document.getElementById('deviceSelector');
+            selector.innerHTML = '';
+            
+            if (devices.length === 0) {
+                selector.innerHTML = '<option value="/dev/mmcblk0">/dev/mmcblk0 (默认)</option>';
+                return;
+            }
+            
+            devices.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device;
+                option.textContent = device;
+                selector.appendChild(option);
+            });
+        }
+
+        function displayData(data) {
+            document.getElementById('dataContainer').style.display = 'block';
+            
+            if (data.summary) {
+                displaySummary(data.summary);
+            }
+            
+            if (data.cid && !data.cid.error) {
+                displayCID(data.cid);
+            }
+            
+            if (data.csd && !data.csd.error) {
+                currentCsdData = data.csd;
+                displayCSD(data.csd);
+                displayCapacityDetail(data.csd);
+            }
+
+            if (data.boot_config) {
+                displayBootConfig(data.boot_config);
+            }
+
+            if (data.rpmb_info) {
+                displayRPMBInfo(data.rpmb_info);
+            }
+
+            if (data.health_report) {
+                displayHealthReport(data.health_report);
+            }
+        }
+
+        function displaySummary(summary) {
+            const list = document.getElementById('summaryList');
+            list.innerHTML = '';
+            
+            const labels = {
+                manufacturer: '制造商',
+                product_name: '产品名称',
+                capacity: '容量',
+                capacity_formula: '计算公式',
+                capacity_detail: '计算展开',
+                csd_structure_version: 'CSD版本',
+                speed_class: '速度等级',
+                firmware_version: '固件版本',
+                serial_number: '序列号',
+                manufacturing_date: '生产日期',
+                boot_partition: 'Boot分区',
+                rpmb_size: 'RPMB容量',
+                device_health: '健康状态'
+            };
+            
+            for (const [key, value] of Object.entries(summary)) {
+                const item = document.createElement('li');
+                item.className = 'info-item';
+                
+                let displayValue = value;
+                if (key === 'speed_class') {
+                    const speedClass = value.toLowerCase();
+                    let badgeClass = 'speed-low';
+                    if (speedClass.includes('class 10') || speedClass.includes('uhs')) {
+                        badgeClass = 'speed-high';
+                    } else if (speedClass.includes('class 6')) {
+                        badgeClass = 'speed-medium';
+                    }
+                    displayValue = `<span class="speed-badge ${badgeClass}">${value}</span>`;
+                }
+                if (key === 'device_health') {
+                    const health = value.toLowerCase();
+                    let badgeClass = 'unknown';
+                    if (health === 'excellent') badgeClass = 'excellent';
+                    if (health === 'warning') badgeClass = 'warning';
+                    if (health === 'critical') badgeClass = 'critical';
+                    const badgeIcons = { 'excellent': '✅', 'warning': '⚠️', 'critical': '❌', 'unknown': '❓' };
+                    displayValue = `<span class="health-badge ${badgeClass}"><span>${badgeIcons[health] || '❓'}</span> ${value}</span>`;
+                }
+                
+                item.innerHTML = `
+                    <span class="info-label">${labels[key] || key}</span>
+                    <span class="info-value">${displayValue}</span>
+                `;
+                list.appendChild(item);
+            }
+        }
+
+        function displayCID(cid) {
+            const list = document.getElementById('cidList');
+            list.innerHTML = '';
+            
+            const labels = {
+                manufacturer_id: '制造商ID',
+                manufacturer: '制造商',
+                oem_id: 'OEM ID',
+                product_name: '产品名称',
+                firmware_version: '固件版本',
+                serial_number: '序列号',
+                manufacturing_date: '生产日期'
+            };
+            
+            for (const [key, value] of Object.entries(cid)) {
+                if (key === 'raw_cid' || key === 'error') continue;
+                
+                const item = document.createElement('li');
+                item.className = 'info-item';
+                item.innerHTML = `
+                    <span class="info-label">${labels[key] || key}</span>
+                    <span class="info-value">${value}</span>
+                `;
+                list.appendChild(item);
+            }
+        }
+
+        function displayCSD(csd) {
+            const list = document.getElementById('csdList');
+            list.innerHTML = '';
+            
+            const labels = {
+                csd_version: 'CSD版本',
+                csd_structure_version: 'CSD Structure Version',
+                taac: '数据读取时间',
+                nsac: '时钟周期数',
+                transfer_speed: '传输速度',
+                command_classes: '命令类',
+                read_block_length: '读取块长度',
+                c_size: 'C_SIZE',
+                c_size_mult: 'C_SIZE_MULT',
+                read_bl_len: 'READ_BL_LEN',
+                device_size: '设备容量',
+                speed_class: '速度等级'
+            };
+
+            const skipKeys = ['raw_csd', 'device_size_bytes', 'error', 'capacity_formula', 'capacity_detail'];
+            
+            for (const [key, value] of Object.entries(csd)) {
+                if (skipKeys.includes(key)) continue;
+                
+                const item = document.createElement('li');
+                item.className = 'info-item';
+                
+                let displayValue = value;
+                if (key === 'speed_class') {
+                    const speedClass = value.toLowerCase();
+                    let badgeClass = 'speed-low';
+                    if (speedClass.includes('class 10') || speedClass.includes('uhs')) {
+                        badgeClass = 'speed-high';
+                    } else if (speedClass.includes('class 6')) {
+                        badgeClass = 'speed-medium';
+                    }
+                    displayValue = `<span class="speed-badge ${badgeClass}">${value}</span>`;
+                }
+                
+                item.innerHTML = `
+                    <span class="info-label">${labels[key] || key}</span>
+                    <span class="info-value">${displayValue}</span>
+                `;
+                list.appendChild(item);
+            }
+        }
+
+        function displayCapacityDetail(csd) {
+            const container = document.getElementById('capacityDetail');
+            const version = csd.csd_structure_version;
+            
+            if (!version) {
+                container.innerHTML = '<p style="color: #999;">无CSD数据</p>';
+                return;
+            }
+
+            let html = '';
+            
+            if (version === '1.0') {
+                html = `
+                    <div class="calc-detail">
+                        <div class="calc-title">📐 CSD_STRUCTURE_VERSION = 1.0 (Standard Capacity)</div>
+                        <div class="calc-row">
+                            <span class="calc-label">C_SIZE</span>
+                            <span class="calc-value">${csd.c_size !== undefined ? csd.c_size : 'N/A'}</span>
+                        </div>
+                        <div class="calc-row">
+                            <span class="calc-label">C_SIZE_MULT</span>
+                            <span class="calc-value">${csd.c_size_mult !== undefined ? csd.c_size_mult : 'N/A'}</span>
+                        </div>
+                        <div class="calc-row">
+                            <span class="calc-label">READ_BL_LEN</span>
+                            <span class="calc-value">${csd.read_bl_len !== undefined ? csd.read_bl_len : 'N/A'}</span>
+                        </div>
+                        <div class="calc-formula">
+                            Capacity = (C_SIZE + 1) × 2<sup>(C_SIZE_MULT + 2)</sup> × 2<sup>READ_BL_LEN</sup>
+                        </div>
+                        <div class="calc-formula">
+                            ${csd.capacity_formula || 'N/A'}
+                        </div>
+                        <div class="calc-row">
+                            <span class="calc-label">展开计算</span>
+                            <span class="calc-value">${csd.capacity_detail || 'N/A'}</span>
+                        </div>
+                        <div class="calc-row" style="margin-top: 8px; padding-top: 8px; border-top: 2px solid #a18cd1;">
+                            <span class="calc-label" style="font-weight: 700; color: #6f42c1;">计算结果</span>
+                            <span class="calc-value" style="color: #6f42c1; font-size: 14px;">${csd.device_size || 'N/A'}</span>
+                        </div>
+                    </div>
+                `;
+            } else if (version === '2.0') {
+                html = `
+                    <div class="calc-detail">
+                        <div class="calc-title">📐 CSD_STRUCTURE_VERSION = 2.0 (High Capacity / eMMC)</div>
+                        <div class="calc-row">
+                            <span class="calc-label">C_SIZE</span>
+                            <span class="calc-value">${csd.c_size !== undefined ? csd.c_size : 'N/A'}</span>
+                        </div>
+                        <div class="calc-row">
+                            <span class="calc-label">乘数</span>
+                            <span class="calc-value">512 × 1024 = 524288 bytes</span>
+                        </div>
+                        <div class="calc-formula">
+                            Capacity = (C_SIZE + 1) × 512 × 1024
+                        </div>
+                        <div class="calc-formula">
+                            ${csd.capacity_formula || 'N/A'}
+                        </div>
+                        <div class="calc-row">
+                            <span class="calc-label">展开计算</span>
+                            <span class="calc-value">${csd.capacity_detail || 'N/A'}</span>
+                        </div>
+                        <div class="calc-row" style="margin-top: 8px; padding-top: 8px; border-top: 2px solid #a18cd1;">
+                            <span class="calc-label" style="font-weight: 700; color: #6f42c1;">计算结果</span>
+                            <span class="calc-value" style="color: #6f42c1; font-size: 14px;">${csd.device_size || 'N/A'}</span>
+                        </div>
+                        <div style="margin-top: 10px; padding: 8px; background: #fff3cd; border-radius: 6px; font-size: 11px; color: #856404;">
+                            ⚠️ V2.0 不使用 C_SIZE_MULT 和 READ_BL_LEN 计算容量，采用固定的 512KB 块乘数
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function displayBootConfig(bootConfig) {
+            currentBootPart = bootConfig.boot_part;
+            selectedBootPart = null;
+            
+            const grid = document.getElementById('bootPartitionGrid');
+            grid.innerHTML = '';
+            
+            const partIcons = { 0: '💾', 1: '1️⃣', 2: '2️⃣' };
+            
+            if (bootConfig.available_partitions) {
+                bootConfig.available_partitions.forEach(part => {
+                    const div = document.createElement('div');
+                    div.className = 'boot-part-item' + (part.id === currentBootPart ? ' active' : '');
+                    div.id = 'bootPart_' + part.id;
+                    div.innerHTML = `
+                        <div class="part-icon">${partIcons[part.id] || '💾'}</div>
+                        <div class="part-name">${part.name}</div>
+                        <div class="part-node">${part.device_node}</div>
+                        ${part.id === currentBootPart ? '<div style="color: #28a745; font-size: 10px; margin-top: 4px;">✅ 当前激活</div>' : ''}
+                    `;
+                    div.onclick = function() {
+                        selectBootPart(part.id);
+                    };
+                    grid.appendChild(div);
+                });
+            }
+        }
+
+        function selectBootPart(partId) {
+            selectedBootPart = partId;
+            
+            document.querySelectorAll('.boot-part-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            const selected = document.getElementById('bootPart_' + partId);
+            if (selected) {
+                selected.classList.add('selected');
+            }
+        }
+
+        function enableBootPartition() {
+            if (selectedBootPart === null) {
+                showError('请先选择一个 Boot 分区');
+                return;
+            }
+            
+            const bootAck = document.getElementById('bootAckToggle').checked;
+            const device = document.getElementById('deviceSelector').value;
+            
+            sendMessage({
+                action: 'bootpart_enable',
+                device: device,
+                boot_part: selectedBootPart,
+                boot_ack: bootAck
+            });
+        }
+
+        function disableBootPartition() {
+            const device = document.getElementById('deviceSelector').value;
+            
+            sendMessage({
+                action: 'bootpart_enable',
+                device: device,
+                boot_part: 0,
+                boot_ack: false
+            });
+        }
+
+        function handleBootpartResult(data) {
+            if (data.success) {
+                addLogEntry('success', `$ ${data.command}`);
+                addLogEntry('success', data.message);
+                
+                currentBootPart = data.boot_part;
+                
+                document.querySelectorAll('.boot-part-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                const activeItem = document.getElementById('bootPart_' + data.boot_part);
+                if (activeItem) {
+                    activeItem.classList.add('active');
+                }
+
+                sendMessage({
+                    action: 'get_boot_config',
+                    device: document.getElementById('deviceSelector').value
+                });
+            } else {
+                addLogEntry('error', data.message || 'Operation failed');
+            }
+        }
+
+        function addLogEntry(type, message) {
+            const log = document.getElementById('operationLog');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry ' + type;
+            entry.innerHTML = `<span class="log-time">[${time}]</span>${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function displayRPMBInfo(rpmbInfo) {
+            const list = document.getElementById('rpmbInfoList');
+            list.innerHTML = '';
+            
+            const labels = {
+                rpmb_device: 'RPMB设备',
+                rpmb_size_formatted: '容量',
+                rpmb_size_mult: 'Size Mult',
+                reliable_write_sector_count: '可靠写扇区数',
+                supports_secure_write: '支持安全写入',
+            };
+            
+            for (const [key, value] of Object.entries(rpmbInfo)) {
+                if (!labels[key]) continue;
+                
+                const item = document.createElement('li');
+                item.className = 'info-item';
+                
+                let displayValue = value;
+                if (key === 'supports_secure_write') {
+                    displayValue = value ? '✅ 支持' : '❌ 不支持';
+                }
+                
+                item.innerHTML = `
+                    <span class="info-label">${labels[key] || key}</span>
+                    <span class="info-value">${displayValue}</span>
+                `;
+                list.appendChild(item);
+            }
+        }
+
+        function rpmbWrite() {
+            if (!isConnected) {
+                showError('请先连接到服务器');
+                return;
+            }
+            
+            const data = document.getElementById('rpmbWriteData').value;
+            if (!data) {
+                showError('请输入要写入的数据');
+                return;
+            }
+            
+            if (data.length > 512) {
+                showError('数据不能超过 512 字节');
+                return;
+            }
+            
+            const useReliable = document.getElementById('rpmbReliable').checked;
+            const device = document.getElementById('deviceSelector').value;
+            
+            sendMessage({
+                action: 'rpmb_write',
+                device: device,
+                data: data,
+                use_reliable: useReliable
+            });
+        }
+
+        function rpmbRead() {
+            if (!isConnected) {
+                showError('请先连接到服务器');
+                return;
+            }
+            
+            const offset = parseInt(document.getElementById('rpmbOffset').value);
+            const count = parseInt(document.getElementById('rpmbCount').value);
+            const device = document.getElementById('deviceSelector').value;
+            
+            sendMessage({
+                action: 'rpmb_read',
+                device: device,
+                offset: offset,
+                count: count
+            });
+        }
+
+        function handleRPMBResult(data) {
+            addLogEntry('success', `$ ${data.command}`);
+            addLogEntry('success', data.message);
+            
+            if (data.data) {
+                const resultDiv = document.getElementById('rpmbReadResult');
+                resultDiv.textContent = `Offset ${data.offset}, Count ${data.count}: ${data.data}`;
+                resultDiv.style.display = 'block';
+            }
+        }
+
+        function displayHealthReport(healthData) {
+            const badge = document.getElementById('healthBadge');
+            const health = healthData.device_health?.toLowerCase() || 'unknown';
+            
+            const badgeIcons = {
+                'excellent': '✅',
+                'warning': '⚠️',
+                'critical': '❌',
+                'unknown': '❓'
+            };
+            
+            badge.className = 'health-badge ' + health;
+            badge.innerHTML = `<span>${badgeIcons[health] || '❓'}</span> ${healthData.device_health || '未知'}`;
+            
+            const lifeAPercent = healthData.life_time_a_percent || 0;
+            const lifeBPercent = healthData.life_time_b_percent || 0;
+            
+            updateProgressBar('lifeA', lifeAPercent, healthData.life_time_a || 'N/A');
+            updateProgressBar('lifeB', lifeBPercent, healthData.life_time_b || 'N/A');
+            
+            const detailGrid = document.getElementById('healthDetailGrid');
+            detailGrid.innerHTML = '';
+            
+            const details = [
+                { label: 'EXT CSD版本', value: healthData.ext_csd_version || 'N/A' },
+                { label: 'Pre-EOL状态', value: healthData.pre_eol_info || 'N/A' },
+                { label: '最佳写入大小', value: healthData.optimal_write_size || 'N/A' },
+                { label: '最佳Trim大小', value: healthData.optimal_trim_size || 'N/A' },
+                { label: '缓存大小', value: healthData.cache_size || 'N/A' },
+                { label: '断电通知', value: healthData.power_off_notification ? '支持' : '不支持' },
+            ];
+            
+            details.forEach(d => {
+                const item = document.createElement('div');
+                item.className = 'health-item';
+                item.innerHTML = `
+                    <span class="health-item-label">${d.label}</span>
+                    <span class="health-item-value">${d.value}</span>
+                `;
+                detailGrid.appendChild(item);
+            });
+        }
+
+        function updateProgressBar(id, percent, text) {
+            const progress = document.getElementById(id + 'Progress');
+            const label = document.getElementById(id + 'Label');
+            const textEl = document.getElementById(id + 'Text');
+            
+            label.textContent = percent + '%';
+            textEl.textContent = text;
+            
+            let fillClass = 'excellent';
+            if (percent >= 70) {
+                fillClass = 'warning';
+            }
+            if (percent >= 90) {
+                fillClass = 'critical';
+            }
+            
+            progress.className = 'progress-fill ' + fillClass;
+            progress.style.width = percent + '%';
+        }
+
+        function refreshHealth() {
+            if (!isConnected) {
+                showError('请先连接到服务器');
+                return;
+            }
+            
+            const device = document.getElementById('deviceSelector').value;
+            sendMessage({
+                action: 'get_health_report',
+                device: device
+            });
+        }
+
+        document.getElementById('bootAckToggle').addEventListener('change', function() {
+            document.getElementById('bootAckStatus').textContent = this.checked ? '已启用' : '已禁用';
+        });
+
+        window.onload = function() {
+            updateConnectionStatus('disconnected');
+        };
+
+        window.onbeforeunload = function() {
+            if (ws) {
+                ws.close();
+            }
+        };
+    </script>
+</body>
+</html>

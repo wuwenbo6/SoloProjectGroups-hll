@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RADIUS CoA 服务器管理面板</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 24px 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #1a202c;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-card .label {
+            font-size: 13px;
+            color: #718096;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .stat-card .unit {
+            font-size: 14px;
+            color: #a0aec0;
+            margin-left: 4px;
+        }
+
+        .stat-card.online .value {
+            color: #38a169;
+        }
+
+        .stat-card.offline .value {
+            color: #e53e3e;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .filter-group label {
+            font-size: 14px;
+            color: #4a5568;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #38a169;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #2f855a;
+        }
+
+        .btn-danger {
+            background: #e53e3e;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c53030;
+        }
+
+        .btn-secondary {
+            background: #718096;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4a5568;
+        }
+
+        .sessions-table {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .table-header {
+            background: #f7fafc;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-header h2 {
+            font-size: 18px;
+            color: #2d3748;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 14px 20px;
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        th {
+            background: #f7fafc;
+            font-weight: 600;
+            font-size: 13px;
+            color: #4a5568;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            font-size: 14px;
+            color: #2d3748;
+        }
+
+        tr:hover {
+            background: #f7fafc;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-online {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-offline {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .status-disconnected {
+            background: #feebc8;
+            color: #744210;
+        }
+
+        .policy-info {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .policy-info strong {
+            color: #2d3748;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        .action-btns .btn {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal h3 {
+            font-size: 20px;
+            color: #2d3748;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #4a5568;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            border-color: #667eea;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: #a0aec0;
+            margin-top: 4px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 2000;
+            transform: translateX(400px);
+            transition: transform 0.3s;
+        }
+
+        .toast.active {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background: #38a169;
+        }
+
+        .toast.error {
+            background: #e53e3e;
+        }
+
+        .toast.info {
+            background: #4299e1;
+        }
+
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+            color: #a0aec0;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 22px;
+            }
+
+            th, td {
+                padding: 10px 12px;
+                font-size: 12px;
+            }
+
+            .action-btns {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>RADIUS CoA 服务器管理面板</h1>
+            <p>实时监控在线用户会话，动态调整授权策略</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="label">总会话数</div>
+                <div class="value" id="totalSessions">0</div>
+            </div>
+            <div class="stat-card online">
+                <div class="label">在线用户</div>
+                <div class="value" id="onlineSessions">0</div>
+            </div>
+            <div class="stat-card offline">
+                <div class="label">离线用户</div>
+                <div class="value" id="offlineSessions">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">总上行带宽</div>
+                <div class="value" id="totalUpload">0<span class="unit">Mbps</span></div>
+            </div>
+            <div class="stat-card">
+                <div class="label">总下行带宽</div>
+                <div class="value" id="totalDownload">0<span class="unit">Mbps</span></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="filter-group">
+                <label>状态筛选:</label>
+                <select id="statusFilter">
+                    <option value="online">仅在线</option>
+                    <option value="all">全部</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>搜索:</label>
+                <input type="text" id="searchInput" placeholder="用户名 / IP / 会话ID">
+            </div>
+            <button class="btn btn-primary" onclick="refreshData()">
+                刷新数据
+            </button>
+        </div>
+
+        <div class="sessions-table">
+            <div class="table-header">
+                <h2>用户会话列表</h2>
+                <span style="font-size: 12px; color: #718096;">自动刷新: <span id="lastUpdate">--</span></span>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>用户名</th>
+                            <th>会话ID</th>
+                            <th>NAS IP</th>
+                            <th>用户IP</th>
+                            <th>MAC地址</th>
+                            <th>上行速率</th>
+                            <th>下行速率</th>
+                            <th>上线时间</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sessionsTable">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="policyModal">
+        <div class="modal">
+            <h3>修改用户策略</h3>
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="modalUsername" readonly>
+            </div>
+            <div class="form-group">
+                <label>上行速率 (Kbps)</label>
+                <input type="number" id="modalUpload" min="1" placeholder="例如: 10240">
+                <div class="form-hint">1024 Kbps = 1 Mbps</div>
+            </div>
+            <div class="form-group">
+                <label>下行速率 (Kbps)</label>
+                <input type="number" id="modalDownload" min="1" placeholder="例如: 51200">
+                <div class="form-hint">1024 Kbps = 1 Mbps</div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-success" onclick="submitPolicy()">确认修改</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal">
+            <h3>确认操作</h3>
+            <p id="confirmMessage" style="color: #4a5568; margin-bottom: 24px;">确定要执行此操作吗？</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeConfirmModal()">取消</button>
+                <button class="btn btn-danger" onclick="executeConfirm()">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let currentSessionId = null;
+        let confirmCallback = null;
+        let autoRefreshInterval = null;
+
+        function formatSpeed(bps) {
+            if (bps >= 1024 * 1024) {
+                return (bps / 1024 / 1024).toFixed(1) + ' Mbps';
+            } else if (bps >= 1024) {
+                return (bps / 1024).toFixed(1) + ' Kbps';
+            }
+            return bps + ' bps';
+        }
+
+        function formatTime(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = now - date;
+
+            if (diff < 60000) {
+                return '刚刚';
+            } else if (diff < 3600000) {
+                return Math.floor(diff / 60000) + ' 分钟前';
+            } else if (diff < 86400000) {
+                return Math.floor(diff / 3600000) + ' 小时前';
+            } else {
+                return date.toLocaleString('zh-CN');
+            }
+        }
+
+        function getStatusClass(status) {
+            switch (status) {
+                case 'online': return 'status-online';
+                case 'offline': return 'status-offline';
+                case 'disconnected': return 'status-disconnected';
+                default: return 'status-offline';
+            }
+        }
+
+        function getStatusText(status) {
+            switch (status) {
+                case 'online': return '在线';
+                case 'offline': return '离线';
+                case 'disconnected': return '已断开';
+                case 'authorizing': return '认证中';
+                default: return status;
+            }
+        }
+
+        async function fetchStats() {
+            try {
+                const resp = await fetch('/api/stats');
+                const data = await resp.json();
+
+                document.getElementById('totalSessions').textContent = data.total_sessions;
+                document.getElementById('onlineSessions').textContent = data.online_sessions;
+                document.getElementById('offlineSessions').textContent = data.offline_sessions;
+                document.getElementById('totalUpload').innerHTML =
+                    (data.total_upload_bw / 1024 / 1024).toFixed(1) + '<span class="unit">Mbps</span>';
+                document.getElementById('totalDownload').innerHTML =
+                    (data.total_download_bw / 1024 / 1024).toFixed(1) + '<span class="unit">Mbps</span>';
+            } catch (err) {
+                console.error('Failed to fetch stats:', err);
+            }
+        }
+
+        async function fetchSessions() {
+            try {
+                const status = document.getElementById('statusFilter').value;
+                const search = document.getElementById('searchInput').value.toLowerCase();
+
+                const url = status === 'online' ? '/api/sessions?status=online' : '/api/sessions';
+                const resp = await fetch(url);
+                const data = await resp.json();
+
+                const tbody = document.getElementById('sessionsTable');
+                let sessions = data.sessions;
+
+                if (search) {
+                    sessions = sessions.filter(s =>
+                        s.username.toLowerCase().includes(search) ||
+                        (s.framed_ip || '').toLowerCase().includes(search) ||
+                        (s.nas_ip || '').toLowerCase().includes(search) ||
+                        s.id.toLowerCase().includes(search)
+                    );
+                }
+
+                if (sessions.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="10">
+                                <div class="empty-state">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <p>暂无会话数据</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = sessions.map(s => `
+                        <tr>
+                            <td><strong>${s.username}</strong></td>
+                            <td style="font-family: monospace; font-size: 12px; max-width: 150px; overflow: hidden; text-overflow: ellipsis;" title="${s.id}">${s.id}</td>
+                            <td>${s.nas_ip}</td>
+                            <td>${s.framed_ip || '-'}</td>
+                            <td>${s.calling_station_id || '-'}</td>
+                            <td>${formatSpeed(s.policy.upload_speed)}</td>
+                            <td>${formatSpeed(s.policy.download_speed)}</td>
+                            <td>${formatTime(s.start_time)}</td>
+                            <td><span class="status-badge ${getStatusClass(s.status)}">${getStatusText(s.status)}</span></td>
+                            <td>
+                                <div class="action-btns">
+                                    ${s.status === 'online' ? `
+                                        <button class="btn btn-success" onclick="openPolicyModal('${s.id}', '${s.username}', ${s.policy.upload_speed}, ${s.policy.download_speed})">
+                                            修改策略
+                                        </button>
+                                        <button class="btn btn-danger" onclick="confirmDisconnect('${s.id}', '${s.username}')">
+                                            断开连接
+                                        </button>
+                                    ` : '-'}
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('zh-CN');
+            } catch (err) {
+                console.error('Failed to fetch sessions:', err);
+                showToast('获取会话数据失败', 'error');
+            }
+        }
+
+        function refreshData() {
+            fetchStats();
+            fetchSessions();
+            showToast('数据已刷新', 'success');
+        }
+
+        function openPolicyModal(sessionId, username, upload, download) {
+            currentSessionId = sessionId;
+            document.getElementById('modalUsername').value = username;
+            document.getElementById('modalUpload').value = Math.round(upload / 1024);
+            document.getElementById('modalDownload').value = Math.round(download / 1024);
+            document.getElementById('policyModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('policyModal').classList.remove('active');
+            currentSessionId = null;
+        }
+
+        async function submitPolicy() {
+            if (!currentSessionId) return;
+
+            const upload = parseInt(document.getElementById('modalUpload').value);
+            const download = parseInt(document.getElementById('modalDownload').value);
+
+            if (!upload || !download || upload <= 0 || download <= 0) {
+                showToast('请输入有效的速率值', 'error');
+                return;
+            }
+
+            try {
+                const resp = await fetch(`/api/sessions/${currentSessionId}/policy`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        upload_speed: upload * 1024,
+                        download_speed: download * 1024
+                    })
+                });
+
+                const result = await resp.json();
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    closeModal();
+                    fetchSessions();
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (err) {
+                console.error('Failed to update policy:', err);
+                showToast('策略修改失败', 'error');
+            }
+        }
+
+        function confirmDisconnect(sessionId, username) {
+            currentSessionId = sessionId;
+            document.getElementById('confirmMessage').textContent = `确定要断开用户 "${username}" 的连接吗？`;
+            confirmCallback = disconnectSession;
+            document.getElementById('confirmModal').classList.add('active');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.remove('active');
+            currentSessionId = null;
+            confirmCallback = null;
+        }
+
+        async function executeConfirm() {
+            if (confirmCallback && currentSessionId) {
+                await confirmCallback(currentSessionId);
+            }
+            closeConfirmModal();
+        }
+
+        async function disconnectSession(sessionId) {
+            try {
+                const resp = await fetch(`/api/sessions/${sessionId}/disconnect`, {
+                    method: 'POST'
+                });
+
+                const result = await resp.json();
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    fetchSessions();
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (err) {
+                console.error('Failed to disconnect:', err);
+                showToast('断开连接失败', 'error');
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.add('active');
+
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 3000);
+        }
+
+        document.getElementById('statusFilter').addEventListener('change', fetchSessions);
+        document.getElementById('searchInput').addEventListener('input', fetchSessions);
+
+        document.getElementById('policyModal').addEventListener('click', (e) => {
+            if (e.target.id === 'policyModal') closeModal();
+        });
+
+        document.getElementById('confirmModal').addEventListener('click', (e) => {
+            if (e.target.id === 'confirmModal') closeConfirmModal();
+        });
+
+        refreshData();
+        autoRefreshInterval = setInterval(refreshData, 10000);
+
+        window.addEventListener('beforeunload', () => {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>

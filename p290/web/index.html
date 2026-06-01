@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini RGW - S3 API Simulator</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+.header { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); padding: 20px 40px; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; }
+.header h1 { font-size: 24px; font-weight: 700; }
+.header h1 span { color: #38bdf8; }
+.header .subtitle { color: #94a3b8; font-size: 14px; }
+.container { max-width: 1200px; margin: 0 auto; padding: 30px 20px; }
+.card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+.card h2 { font-size: 18px; margin-bottom: 16px; color: #38bdf8; display: flex; align-items: center; gap: 8px; }
+.card h2 .badge { background: #0ea5e9; color: white; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 768px) { .row { grid-template-columns: 1fr; } }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 6px; font-weight: 500; }
+.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #e2e8f0; font-size: 14px; outline: none; transition: border-color 0.2s; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #0ea5e9; }
+.form-group input[type="file"] { padding: 8px; }
+.btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; }
+.btn-primary { background: #0ea5e9; color: white; }
+.btn-primary:hover { background: #0284c7; }
+.btn-success { background: #10b981; color: white; }
+.btn-success:hover { background: #059669; }
+.btn-warning { background: #f59e0b; color: white; }
+.btn-warning:hover { background: #d97706; }
+.btn-danger { background: #ef4444; color: white; }
+.btn-danger:hover { background: #dc2626; }
+.btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+.table-container { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; padding: 12px; background: #0f172a; color: #94a3b8; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+td { padding: 12px; border-top: 1px solid #334155; }
+tr:hover td { background: rgba(56, 189, 248, 0.05); }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+.tag-blue { background: rgba(14, 165, 233, 0.2); color: #38bdf8; }
+.tag-green { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+.tag-amber { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+.log { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 16px; max-height: 300px; overflow-y: auto; font-family: 'Fira Code', 'Cascadia Code', monospace; font-size: 13px; line-height: 1.6; }
+.log-entry { margin-bottom: 4px; }
+.log-time { color: #64748b; }
+.log-method { font-weight: 700; }
+.log-put { color: #f59e0b; }
+.log-get { color: #10b981; }
+.log-post { color: #38bdf8; }
+.log-delete { color: #ef4444; }
+.log-status-2xx { color: #10b981; }
+.log-status-4xx { color: #f59e0b; }
+.log-status-5xx { color: #ef4444; }
+.tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid #334155; }
+.tab { padding: 10px 20px; cursor: pointer; color: #94a3b8; font-size: 14px; font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+.tab.active { color: #38bdf8; border-bottom-color: #0ea5e9; }
+.tab:hover { color: #e2e8f0; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.cli-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 16px; font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.8; overflow-x: auto; }
+.cli-box .cmd { color: #10b981; }
+.cli-box .flag { color: #38bdf8; }
+.cli-box .val { color: #fbbf24; }
+.cli-box .comment { color: #64748b; }
+.empty-state { text-align: center; padding: 40px 20px; color: #64748b; }
+.empty-state svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.5; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1><span>Mini</span> RGW</h1>
+    <div class="subtitle">Ceph RGW S3 API Simulator &mdash; Multi-Tenant</div>
+  </div>
+  <div style="color:#64748b;font-size:13px;">Port: <span id="portDisplay">9000</span></div>
+</div>
+
+<div class="container">
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('manage')">Tenant & Bucket Management</div>
+  <div class="tab" onclick="switchTab('objects')">Object Operations</div>
+  <div class="tab" onclick="switchTab('multipart')">Multipart Upload</div>
+  <div class="tab" onclick="switchTab('policy')">Bucket Policy</div>
+  <div class="tab" onclick="switchTab('accesslog')">Access Logs</div>
+  <div class="tab" onclick="switchTab('cli')">AWS CLI Guide</div>
+</div>
+
+<!-- Tab: Manage -->
+<div id="tab-manage" class="tab-content active">
+  <div class="row">
+    <div class="card">
+      <h2>Create Tenant <span class="badge">Multi-Tenant</span></h2>
+      <div class="form-group">
+        <label>Tenant ID</label>
+        <input type="text" id="tenantId" placeholder="e.g. tenant-a">
+      </div>
+      <div class="form-group">
+        <label>Access Key ID</label>
+        <input type="text" id="accessKeyId" placeholder="e.g. AKIAIOSFODNN7EXAMPLE">
+      </div>
+      <div class="form-group">
+        <label>Secret Access Key</label>
+        <input type="text" id="secretAccessKey" placeholder="e.g. wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY">
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="createTenant()">Create Tenant</button>
+        <button class="btn btn-warning" onclick="generateKeys()">Auto Generate Keys</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tenants & Credentials</h2>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>Tenant ID</th><th>Access Key ID</th></tr></thead>
+          <tbody id="tenantTable"><tr><td colspan="2" class="empty-state">No tenants yet</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h2>Create Bucket</h2>
+      <div class="form-group">
+        <label>Tenant</label>
+        <select id="bucketTenant"><option value="">-- Select Tenant --</option></select>
+      </div>
+      <div class="form-group">
+        <label>Bucket Name</label>
+        <input type="text" id="bucketName" placeholder="e.g. my-bucket">
+      </div>
+      <button class="btn btn-success" onclick="createBucket()">Create Bucket</button>
+    </div>
+
+    <div class="card">
+      <h2>Buckets</h2>
+      <div class="form-group">
+        <label>Tenant</label>
+        <select id="viewBucketTenant" onchange="loadBuckets()"><option value="">-- Select Tenant --</option></select>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>Bucket Name</th><th>Created At</th></tr></thead>
+          <tbody id="bucketTable"><tr><td colspan="2" class="empty-state">No buckets yet</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab: Objects -->
+<div id="tab-objects" class="tab-content">
+  <div class="row">
+    <div class="card">
+      <h2>Upload Object (PutObject)</h2>
+      <div class="form-group">
+        <label>Tenant</label>
+        <select id="objTenant" onchange="loadBucketOptions()"><option value="">-- Select Tenant --</option></select>
+      </div>
+      <div class="form-group">
+        <label>Bucket</label>
+        <select id="objBucket"><option value="">-- Select Bucket --</option></select>
+      </div>
+      <div class="form-group">
+        <label>Object Key</label>
+        <input type="text" id="objKey" placeholder="e.g. data/file.txt">
+      </div>
+      <div class="form-group">
+        <label>File</label>
+        <input type="file" id="objFile">
+      </div>
+      <button class="btn btn-primary" onclick="uploadObject()">Upload</button>
+    </div>
+
+    <div class="card">
+      <h2>Download Object (GetObject)</h2>
+      <div class="form-group">
+        <label>Tenant</label>
+        <select id="dlTenant" onchange="loadDlBuckets()"><option value="">-- Select Tenant --</option></select>
+      </div>
+      <div class="form-group">
+        <label>Bucket</label>
+        <select id="dlBucket" onchange="loadDlObjects()"><option value="">-- Select Bucket --</option></select>
+      </div>
+      <div class="form-group">
+        <label>Object</label>
+        <select id="dlObject"><option value="">-- Select Object --</option></select>
+      </div>
+      <button class="btn btn-success" onclick="downloadObject()">Download</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Objects in Bucket</h2>
+    <div class="form-group" style="display:flex;gap:12px;align-items:end;">
+      <div style="flex:1">
+        <label>Tenant</label>
+        <select id="listObjTenant" onchange="loadListBuckets()"><option value="">-- Select Tenant --</option></select>
+      </div>
+      <div style="flex:1">
+        <label>Bucket</label>
+        <select id="listObjBucket" onchange="loadObjectList()"><option value="">-- Select Bucket --</option></select>
+      </div>
+      <button class="btn btn-primary" onclick="loadObjectList()">Refresh</button>
+    </div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Key</th><th>Size</th><th>ETag</th><th>Last Modified</th></tr></thead>
+        <tbody id="objectTable"><tr><td colspan="4" class="empty-state">No objects yet</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Tab: Multipart -->
+<div id="tab-multipart" class="tab-content">
+  <div class="card">
+    <h2>Multipart Upload Workflow <span class="badge">New</span></h2>
+    <p style="color:#94a3b8;font-size:14px;margin-bottom:20px;">
+      Multipart upload allows you to upload large objects in parts. The workflow is:
+      <strong>Initiate → Upload Parts → Complete</strong>.
+    </p>
+
+    <div class="row">
+      <div>
+        <h3 style="font-size:15px;color:#38bdf8;margin-bottom:12px;">Step 1: Initiate Upload</h3>
+        <div class="form-group">
+          <label>Tenant</label>
+          <select id="mpTenant" onchange="loadMpBuckets()"><option value="">-- Select Tenant --</option></select>
+        </div>
+        <div class="form-group">
+          <label>Bucket</label>
+          <select id="mpBucket"><option value="">-- Select Bucket --</option></select>
+        </div>
+        <div class="form-group">
+          <label>Object Key</label>
+          <input type="text" id="mpKey" placeholder="e.g. large-file.dat">
+        </div>
+        <button class="btn btn-primary" onclick="initiateMultipart()">Initiate Upload</button>
+      </div>
+
+      <div>
+        <h3 style="font-size:15px;color:#10b981;margin-bottom:12px;">Step 2: Upload Parts</h3>
+        <div class="form-group">
+          <label>Upload ID</label>
+          <input type="text" id="mpUploadId" placeholder="Upload ID from Step 1" readonly style="background:#0f172a;">
+        </div>
+        <div class="form-group">
+          <label>Part Number (1-10000)</label>
+          <input type="number" id="mpPartNumber" value="1" min="1" max="10000">
+        </div>
+        <div class="form-group">
+          <label>Part Data (file)</label>
+          <input type="file" id="mpPartFile">
+        </div>
+        <button class="btn btn-success" onclick="uploadMultipartPart()">Upload Part</button>
+        <div id="mpPartsList" style="margin-top:12px;font-size:13px;color:#94a3b8;"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;">
+      <h3 style="font-size:15px;color:#f59e0b;margin-bottom:12px;">Step 3: Complete / Abort Upload</h3>
+      <div class="btn-group">
+        <button class="btn btn-success" onclick="completeMultipart()">Complete Upload</button>
+        <button class="btn btn-danger" onclick="abortMultipart()">Abort Upload</button>
+      </div>
+      <div id="mpResult" style="margin-top:12px;font-size:13px;color:#94a3b8;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab: Policy -->
+<div id="tab-policy" class="tab-content">
+  <div class="card">
+    <h2>Bucket Policy <span class="badge">IAM</span></h2>
+    <p style="color:#94a3b8;font-size:14px;margin-bottom:20px;">
+      Bucket policies control access to your S3 resources. Use <strong>Allow</strong> to grant or <strong>Deny</strong> to block specific actions.
+      The policy evaluation order is: first matching Deny wins → then first matching Allow → default Allow (no policy).
+    </p>
+    <div class="form-group">
+      <label>Tenant</label>
+      <select id="polTenant" onchange="loadPolBuckets()"><option value="">-- Select Tenant --</option></select>
+    </div>
+    <div class="form-group">
+      <label>Bucket</label>
+      <select id="polBucket" onchange="loadCurrentPolicy()"><option value="">-- Select Bucket --</option></select>
+    </div>
+    <div class="form-group">
+      <label>Policy JSON</label>
+      <textarea id="polJson" rows="14" style="font-family:'Fira Code',monospace;font-size:13px;resize:vertical;" placeholder='{"Version":"2012-10-17","Statement":[{"Effect":"Deny","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::my-bucket/*"]}]}'></textarea>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-success" onclick="putPolicy()">Set Policy</button>
+      <button class="btn btn-primary" onclick="loadCurrentPolicy()">View Current</button>
+      <button class="btn btn-danger" onclick="deletePolicy()">Delete Policy</button>
+    </div>
+    <div id="polResult" style="margin-top:12px;font-size:13px;"></div>
+  </div>
+  <div class="card">
+    <h2>Policy Quick Templates</h2>
+    <div class="btn-group" style="margin-bottom:12px;">
+      <button class="btn btn-primary" onclick="applyTemplate('deny-read')">Deny GetObject</button>
+      <button class="btn btn-warning" onclick="applyTemplate('deny-write')">Deny PutObject</button>
+      <button class="btn btn-danger" onclick="applyTemplate('deny-all')">Deny All</button>
+      <button class="btn btn-success" onclick="applyTemplate('allow-read')">Allow GetObject Only</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tab: Access Logs -->
+<div id="tab-accesslog" class="tab-content">
+  <div class="card">
+    <h2>S3 Access Logs <span class="badge">Audit</span></h2>
+    <div class="form-group" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;">
+      <div style="flex:1;min-width:120px">
+        <label>Tenant</label>
+        <select id="logTenant"><option value="">All Tenants</option></select>
+      </div>
+      <div style="flex:1;min-width:120px">
+        <label>Bucket</label>
+        <input type="text" id="logBucket" placeholder="Filter by bucket">
+      </div>
+      <div style="flex:1;min-width:120px">
+        <label>Start Date</label>
+        <input type="date" id="logStartDate">
+      </div>
+      <div style="flex:1;min-width:120px">
+        <label>End Date</label>
+        <input type="date" id="logEndDate">
+      </div>
+      <button class="btn btn-primary" onclick="loadAccessLogs()">Query</button>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;">
+      <button class="btn btn-success" onclick="exportLogs('json')">Export JSON</button>
+      <button class="btn btn-warning" onclick="exportLogs('csv')">Export CSV</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Log Entries</h2>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Time</th><th>Tenant</th><th>Bucket</th><th>Object</th><th>Operation</th><th>Method</th><th>Status</th><th>Error</th><th>Bytes</th></tr></thead>
+        <tbody id="logTable"><tr><td colspan="9" class="empty-state">No logs yet</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Tab: CLI -->
+<div id="tab-cli" class="tab-content">
+  <div class="card">
+    <h2>AWS CLI Configuration</h2>
+    <div class="cli-box">
+      <div class="comment"># Configure awscli profile</div>
+      <div><span class="cmd">aws configure</span> <span class="flag">--profile</span> <span class="val">mini-rgw</span></div>
+      <div style="margin-top:8px">
+        <span class="comment"># Enter the following when prompted:</span><br>
+        AWS Access Key ID: <span class="val" id="cliAccessKey">AKIAIOSFODNN7EXAMPLE</span><br>
+        AWS Secret Access Key: <span class="val" id="cliSecretKey">wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY</span><br>
+        Default region name: <span class="val">us-east-1</span><br>
+        Default output format: <span class="val">json</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>S3 API Examples</h2>
+    <div class="cli-box">
+      <div class="comment"># 1. Create Bucket</div>
+      <div><span class="cmd">aws s3 mb</span> <span class="flag">s3://my-bucket</span> <span class="flag">--endpoint-url</span> <span class="val">http://localhost:9000</span> <span class="flag">--profile</span> <span class="val">mini-rgw</span></div>
+      <br>
+      <div class="comment"># 2. List Buckets</div>
+      <div><span class="cmd">aws s3 ls</span> <span class="flag">--endpoint-url</span> <span class="val">http://localhost:9000</span> <span class="flag">--profile</span> <span class="val">mini-rgw</span></div>
+      <br>
+      <div class="comment"># 3. Upload Object (PutObject)</div>
+      <div><span class="cmd">aws s3 cp</span> <span class="val">./file.txt</span> <span class="flag">s3://my-bucket/file.txt</span> <span class="flag">--endpoint-url</span> <span class="val">http://localhost:9000</span> <span class="flag">--profile</span> <span class="val">mini-rgw</span></div>
+      <br>
+      <div class="comment"># 4. Download Object (GetObject)</div>
+      <div><span class="cmd">aws s3 cp</span> <span class="flag">s3://my-bucket/file.txt</span> <span class="val">./downloaded.txt</span> <span class="flag">--endpoint-url</span> <span class="val">http://localhost:9000</span> <span class="flag">--profile</span> <span class="val">mini-rgw</span></div>
+      <br>
+      <div class="comment"># 5. List Objects in Bucket</div>
+      <div><span class="cmd">aws s3 ls</span> <span class="flag">s3://my-bucket/</span> <span class="flag">--endpoint-url</span> <span class="val">http://localhost:9000</span> <span class="flag">--profile</span> <span class="val">mini-rgw</span></div>
+      <br>
+      <div class="comment"># 6. Multipart Upload (large file auto-multipart by awscli)</div>
+      <div><span class="cmd">aws s3 cp</span> <span class="val">./large-file.zip</span> <span class="flag">s3://my-bucket/large-file.zip</span> <span class="flag">--endpoint-url</span> <span class="val">http://localhost:9000</span> <span class="flag">--profile</span> <span class="val">mini-rgw</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Storage Layout: Tenant/Bucket Prefix</h2>
+    <div class="cli-box">
+      <div class="comment"># Buckets are stored with tenant prefix on disk</div>
+      <div style="color:#94a3b8;">data/buckets/<span class="val">tenant-a</span>/<span class="flag">my-bucket</span>/object-key</div>
+      <div style="color:#94a3b8;">data/buckets/<span class="val">tenant-b</span>/<span class="flag">my-bucket</span>/object-key</div>
+      <br>
+      <div class="comment"># Same bucket name, different tenants → isolated storage</div>
+      <div style="color:#94a3b8;">This matches Ceph RGW's multi-tenant bucket naming convention.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Multi-Tenant Explanation</h2>
+    <p style="color:#94a3b8;line-height:1.8;font-size:14px;">
+      This simulator supports multi-tenancy like Ceph RGW. Each tenant is identified by a unique Tenant ID and has its own Access Key / Secret Key pair.
+      Different tenants have isolated namespaces &mdash; a bucket named "data" under tenant-a is completely separate from a bucket named "data" under tenant-b.
+      The tenant mapping is determined by the Access Key used in the AWS Signature V4 authentication: each Access Key is bound to exactly one tenant.
+    </p>
+  </div>
+</div>
+
+</div>
+
+<script>
+const API = '';
+let requestLogs = [];
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab:nth-child(${['manage','objects','multipart','policy','accesslog','cli'].indexOf(name)+1})`).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'manage') { loadTenants(); refreshTenantSelects(); }
+  if (name === 'policy') { refreshTenantSelects(); }
+  if (name === 'accesslog') { refreshTenantSelects(); loadAccessLogs(); }
+}
+
+function logRequest(method, path, status, detail) {
+  const entry = { time: new Date(), method, path, status, detail };
+  requestLogs.unshift(entry);
+  if (requestLogs.length > 200) requestLogs.pop();
+  renderLogs();
+}
+
+function renderLogs() {
+  const container = document.getElementById('logContainer');
+  if (requestLogs.length === 0) {
+    container.innerHTML = '<div class="empty-state">No requests yet</div>';
+    return;
+  }
+  container.innerHTML = requestLogs.map(l => {
+    const mClass = l.method.toLowerCase() === 'put' ? 'log-put' : l.method.toLowerCase() === 'get' ? 'log-get' : l.method.toLowerCase() === 'post' ? 'log-post' : 'log-delete';
+    const sClass = l.status >= 200 && l.status < 300 ? 'log-status-2xx' : l.status >= 400 && l.status < 500 ? 'log-status-4xx' : 'log-status-5xx';
+    return `<div class="log-entry"><span class="log-time">${l.time.toLocaleTimeString()}</span> <span class="log-method ${mClass}">${l.method}</span> ${l.path} <span class="${sClass}">${l.status}</span> ${l.detail || ''}</div>`;
+  }).join('');
+}
+
+function clearLogs() { requestLogs = []; renderLogs(); }
+
+function generateKeys() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const secretChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/+=';
+  let ak = 'AKIA'; for (let i=0;i<16;i++) ak += chars[Math.floor(Math.random()*chars.length)];
+  let sk = ''; for (let i=0;i<40;i++) sk += secretChars[Math.floor(Math.random()*secretChars.length)];
+  document.getElementById('accessKeyId').value = ak;
+  document.getElementById('secretAccessKey').value = sk;
+}
+
+async function createTenant() {
+  const tid = document.getElementById('tenantId').value.trim();
+  const ak = document.getElementById('accessKeyId').value.trim();
+  const sk = document.getElementById('secretAccessKey').value.trim();
+  if (!tid || !ak || !sk) { alert('All fields are required'); return; }
+  try {
+    const resp = await fetch(API + '/api/tenants', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({tenant_id:tid, access_key_id:ak, secret_access_key:sk})
+    });
+    logRequest('POST', '/api/tenants', resp.status, tid);
+    if (resp.ok) { alert('Tenant created!'); loadTenants(); refreshTenantSelects(); }
+    else { const e = await resp.json(); alert('Error: ' + e.error); }
+  } catch(e) { alert('Request failed: ' + e.message); }
+}
+
+async function loadTenants() {
+  try {
+    const resp = await fetch(API + '/api/credentials');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const tbody = document.getElementById('tenantTable');
+    if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="2" class="empty-state">No tenants yet</td></tr>'; return; }
+    tbody.innerHTML = data.map(d => `<tr><td><span class="tag tag-blue">${d.tenant_id}</span></td><td><code>${d.access_key_id}</code></td></tr>`).join('');
+  } catch(e) {}
+}
+
+async function refreshTenantSelects() {
+  try {
+    const resp = await fetch(API + '/api/credentials');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const options = data.map(d => `<option value="${d.tenant_id}">${d.tenant_id}</option>`).join('');
+    const selects = ['bucketTenant','viewBucketTenant','objTenant','dlTenant','listObjTenant','mpTenant','polTenant','logTenant'];
+    selects.forEach(id => {
+      const el = document.getElementById(id);
+      const val = el.value;
+      el.innerHTML = '<option value="">-- Select Tenant --</option>' + options;
+      if (val) el.value = val;
+    });
+  } catch(e) {}
+}
+
+async function createBucket() {
+  const tid = document.getElementById('bucketTenant').value;
+  const bname = document.getElementById('bucketName').value.trim();
+  if (!tid || !bname) { alert('All fields are required'); return; }
+  try {
+    const resp = await fetch(API + '/api/buckets', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({tenant_id:tid, bucket_name:bname})
+    });
+    logRequest('POST', '/api/buckets', resp.status, tid + '/' + bname);
+    if (resp.ok) { alert('Bucket created!'); document.getElementById('bucketName').value = ''; loadBuckets(); }
+    else { const e = await resp.json(); alert('Error: ' + e.error); }
+  } catch(e) { alert('Request failed: ' + e.message); }
+}
+
+async function loadBuckets() {
+  const tid = document.getElementById('viewBucketTenant').value;
+  if (!tid) return;
+  try {
+    const resp = await fetch(API + '/api/buckets?tenant_id=' + encodeURIComponent(tid));
+    logRequest('GET', '/api/buckets?tenant_id=' + tid, resp.status);
+    const data = await resp.json();
+    const tbody = document.getElementById('bucketTable');
+    if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="2" class="empty-state">No buckets</td></tr>'; return; }
+    tbody.innerHTML = data.map(d => `<tr><td><span class="tag tag-green">${d.name}</span></td><td>${new Date(d.created_at).toLocaleString()}</td></tr>`).join('');
+  } catch(e) {}
+}
+
+async function loadBucketOptions() {
+  const tid = document.getElementById('objTenant').value;
+  if (!tid) return;
+  try {
+    const resp = await fetch(API + '/api/buckets?tenant_id=' + encodeURIComponent(tid));
+    if (!resp.ok) return;
+    const data = await resp.json();
+    document.getElementById('objBucket').innerHTML = '<option value="">-- Select Bucket --</option>' + data.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+  } catch(e) {}
+}
+
+async function uploadObject() {
+  const tid = document.getElementById('objTenant').value;
+  const bname = document.getElementById('objBucket').value;
+  const key = document.getElementById('objKey').value.trim();
+  const fileInput = document.getElementById('objFile');
+  if (!tid || !bname || !key || !fileInput.files[0]) { alert('All fields are required'); return; }
+  const formData = new FormData();
+  formData.append('tenant_id', tid);
+  formData.append('bucket_name', bname);
+  formData.append('object_key', key);
+  formData.append('file', fileInput.files[0]);
+  try {
+    const resp = await fetch(API + '/api/objects', { method: 'POST', body: formData });
+    logRequest('POST', '/api/objects', resp.status, tid + '/' + bname + '/' + key);
+    if (resp.ok) { alert('Upload success!'); document.getElementById('objKey').value = ''; fileInput.value = ''; }
+    else { const e = await resp.json(); alert('Error: ' + e.error); }
+  } catch(e) { alert('Upload failed: ' + e.message); }
+}
+
+async function loadDlBuckets() {
+  const tid = document.getElementById('dlTenant').value;
+  if (!tid) return;
+  try {
+    const resp = await fetch(API + '/api/buckets?tenant_id=' + encodeURIComponent(tid));
+    if (!resp.ok) return;
+    const data = await resp.json();
+    document.getElementById('dlBucket').innerHTML = '<option value="">-- Select Bucket --</option>' + data.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+  } catch(e) {}
+}
+
+async function loadDlObjects() {
+  const tid = document.getElementById('dlTenant').value;
+  const bname = document.getElementById('dlBucket').value;
+  if (!tid || !bname) return;
+  try {
+    const resp = await fetch(API + '/api/objects?tenant_id=' + encodeURIComponent(tid) + '&bucket_name=' + encodeURIComponent(bname));
+    if (!resp.ok) return;
+    const data = await resp.json();
+    document.getElementById('dlObject').innerHTML = '<option value="">-- Select Object --</option>' + data.map(d => `<option value="${d.key}">${d.key}</option>`).join('');
+  } catch(e) {}
+}
+
+async function downloadObject() {
+  const tid = document.getElementById('dlTenant').value;
+  const bname = document.getElementById('dlBucket').value;
+  const key = document.getElementById('dlObject').value;
+  if (!tid || !bname || !key) { alert('All fields are required'); return; }
+  try {
+    const resp = await fetch(API + '/api/objects/get', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({tenant_id:tid, bucket_name:bname, object_key:key})
+    });
+    logRequest('POST', '/api/objects/get', resp.status, tid + '/' + bname + '/' + key);
+    if (resp.ok) {
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = key.split('/').pop(); a.click();
+      URL.revokeObjectURL(url);
+    } else { const e = await resp.json(); alert('Error: ' + e.error); }
+  } catch(e) { alert('Download failed: ' + e.message); }
+}
+
+async function loadListBuckets() {
+  const tid = document.getElementById('listObjTenant').value;
+  if (!tid) return;
+  try {
+    const resp = await fetch(API + '/api/buckets?tenant_id=' + encodeURIComponent(tid));
+    if (!resp.ok) return;
+    const data = await resp.json();
+    document.getElementById('listObjBucket').innerHTML = '<option value="">-- Select Bucket --</option>' + data.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+  } catch(e) {}
+}
+
+async function loadObjectList() {
+  const tid = document.getElementById('listObjTenant').value;
+  const bname = document.getElementById('listObjBucket').value;
+  if (!tid || !bname) return;
+  try {
+    const resp = await fetch(API + '/api/objects?tenant_id=' + encodeURIComponent(tid) + '&bucket_name=' + encodeURIComponent(bname));
+    logRequest('GET', '/api/objects', resp.status, tid + '/' + bname);
+    const data = await resp.json();
+    const tbody = document.getElementById('objectTable');
+    if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No objects</td></tr>'; return; }
+    tbody.innerHTML = data.map(d => `<tr><td><code>${d.key}</code></td><td>${formatSize(d.size)}</td><td><span class="tag tag-amber">${d.etag}</span></td><td>${new Date(d.last_modified).toLocaleString()}</td></tr>`).join('');
+  } catch(e) {}
+}
+
+function formatSize(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B','KB','MB','GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+let mpParts = [];
+
+async function loadMpBuckets() {
+  const tid = document.getElementById('mpTenant').value;
+  if (!tid) return;
+  try {
+    const resp = await fetch(API + '/api/buckets?tenant_id=' + encodeURIComponent(tid));
+    if (!resp.ok) return;
+    const data = await resp.json();
+    document.getElementById('mpBucket').innerHTML = '<option value="">-- Select Bucket --</option>' + data.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+  } catch(e) {}
+}
+
+async function initiateMultipart() {
+  const tid = document.getElementById('mpTenant').value;
+  const bname = document.getElementById('mpBucket').value;
+  const key = document.getElementById('mpKey').value.trim();
+  if (!tid || !bname || !key) { alert('Tenant, Bucket, and Object Key are required'); return; }
+  try {
+    const resp = await fetch(API + '/api/multipart/initiate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tenant_id: tid, bucket_name: bname, object_key: key})
+    });
+    const data = await resp.json();
+    logRequest('POST', '/api/multipart/initiate', resp.status, tid + '/' + bname + '/' + key);
+    if (resp.ok) {
+      document.getElementById('mpUploadId').value = data.upload_id;
+      mpParts = [];
+      renderMpParts();
+      document.getElementById('mpResult').textContent = 'Upload initiated. Upload ID: ' + data.upload_id;
+    } else { alert('Error: ' + (data.error || 'unknown')); }
+  } catch(e) { alert('Request failed: ' + e.message); }
+}
+
+async function uploadMultipartPart() {
+  const tid = document.getElementById('mpTenant').value;
+  const bname = document.getElementById('mpBucket').value;
+  const uploadId = document.getElementById('mpUploadId').value;
+  const partNumber = parseInt(document.getElementById('mpPartNumber').value);
+  const fileInput = document.getElementById('mpPartFile');
+  if (!tid || !bname || !uploadId || !partNumber || !fileInput.files[0]) { alert('All fields required'); return; }
+  const formData = new FormData();
+  formData.append('tenant_id', tid);
+  formData.append('bucket_name', bname);
+  formData.append('upload_id', uploadId);
+  formData.append('part_number', partNumber);
+  formData.append('file', fileInput.files[0]);
+  try {
+    const resp = await fetch(API + '/api/multipart/upload-part', { method: 'POST', body: formData });
+    const data = await resp.json();
+    logRequest('POST', '/api/multipart/upload-part', resp.status, 'part ' + partNumber);
+    if (resp.ok) {
+      mpParts.push({ part_number: partNumber, etag: data.etag, size: data.size });
+      renderMpParts();
+      document.getElementById('mpPartNumber').value = partNumber + 1;
+      document.getElementById('mpPartFile').value = '';
+    } else { alert('Error: ' + (data.error || 'unknown')); }
+  } catch(e) { alert('Upload failed: ' + e.message); }
+}
+
+function renderMpParts() {
+  const el = document.getElementById('mpPartsList');
+  if (mpParts.length === 0) { el.textContent = 'No parts uploaded yet'; return; }
+  el.innerHTML = '<strong>Parts uploaded:</strong><br>' + mpParts.map(p =>
+    `Part #${p.part_number}: ${formatSize(p.size)}, ETag: ${p.etag}`
+  ).join('<br>');
+}
+
+async function completeMultipart() {
+  const tid = document.getElementById('mpTenant').value;
+  const bname = document.getElementById('mpBucket').value;
+  const uploadId = document.getElementById('mpUploadId').value;
+  if (!tid || !bname || !uploadId) { alert('Missing fields'); return; }
+  if (mpParts.length === 0) { alert('No parts uploaded'); return; }
+  try {
+    const resp = await fetch(API + '/api/multipart/complete', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tenant_id: tid, bucket_name: bname, upload_id: uploadId, parts: mpParts})
+    });
+    const data = await resp.json();
+    logRequest('POST', '/api/multipart/complete', resp.status, uploadId);
+    if (resp.ok) {
+      document.getElementById('mpResult').innerHTML = `<span style="color:#10b981">✅ Upload complete! Object: ${data.key}, Size: ${formatSize(data.size)}, ETag: ${data.etag}</span>`;
+      mpParts = [];
+      renderMpParts();
+    } else { alert('Error: ' + (data.error || 'unknown')); }
+  } catch(e) { alert('Request failed: ' + e.message); }
+}
+
+async function abortMultipart() {
+  const tid = document.getElementById('mpTenant').value;
+  const bname = document.getElementById('mpBucket').value;
+  const uploadId = document.getElementById('mpUploadId').value;
+  if (!tid || !bname || !uploadId) { alert('Missing fields'); return; }
+  try {
+    const resp = await fetch(API + '/api/multipart/abort', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tenant_id: tid, bucket_name: bname, upload_id: uploadId})
+    });
+    logRequest('POST', '/api/multipart/abort', resp.status, uploadId);
+    if (resp.ok) {
+      document.getElementById('mpResult').innerHTML = '<span style="color:#ef4444">Upload aborted.</span>';
+      mpParts = [];
+      renderMpParts();
+    } else { const data = await resp.json(); alert('Error: ' + (data.error || 'unknown')); }
+  } catch(e) { alert('Request failed: ' + e.message); }
+}
+
+async function loadPolBuckets() {
+  const tid = document.getElementById('polTenant').value;
+  if (!tid) return;
+  try {
+    const resp = await fetch(API + '/api/buckets?tenant_id=' + encodeURIComponent(tid));
+    if (!resp.ok) return;
+    const data = await resp.json();
+    document.getElementById('polBucket').innerHTML = '<option value="">-- Select Bucket --</option>' + data.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+  } catch(e) {}
+}
+
+async function loadCurrentPolicy() {
+  const tid = document.getElementById('polTenant').value;
+  const bname = document.getElementById('polBucket').value;
+  if (!tid || !bname) return;
+  try {
+    const resp = await fetch(API + '/api/policy?tenant_id=' + encodeURIComponent(tid) + '&bucket_name=' + encodeURIComponent(bname));
+    if (resp.ok) {
+      const data = await resp.json();
+      document.getElementById('polJson').value = JSON.stringify(data, null, 2);
+      document.getElementById('polResult').innerHTML = '<span style="color:#10b981">Policy loaded</span>';
+    } else {
+      document.getElementById('polJson').value = '';
+      document.getElementById('polResult').innerHTML = '<span style="color:#f59e0b">No policy set on this bucket</span>';
+    }
+  } catch(e) { document.getElementById('polResult').textContent = 'Error: ' + e.message; }
+}
+
+async function putPolicy() {
+  const tid = document.getElementById('polTenant').value;
+  const bname = document.getElementById('polBucket').value;
+  const jsonStr = document.getElementById('polJson').value.trim();
+  if (!tid || !bname || !jsonStr) { alert('Tenant, Bucket, and Policy JSON are required'); return; }
+  let policy;
+  try { policy = JSON.parse(jsonStr); } catch(e) { alert('Invalid JSON: ' + e.message); return; }
+  try {
+    const resp = await fetch(API + '/api/policy', {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({tenant_id: tid, bucket_name: bname, policy: policy})
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+      document.getElementById('polResult').innerHTML = '<span style="color:#10b981">✅ Policy set successfully</span>';
+    } else { alert('Error: ' + (data.error || 'unknown')); }
+  } catch(e) { alert('Request failed: ' + e.message); }
+}
+
+async function deletePolicy() {
+  const tid = document.getElementById('polTenant').value;
+  const bname = document.getElementById('polBucket').value;
+  if (!tid || !bname) { alert('Tenant and Bucket are required'); return; }
+  try {
+    const resp = await fetch(API + '/api/policy', {
+      method: 'DELETE',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({tenant_id: tid, bucket_name: bname})
+    });
+    if (resp.ok) {
+      document.getElementById('polJson').value = '';
+      document.getElementById('polResult').innerHTML = '<span style="color:#ef4444">Policy deleted</span>';
+    } else { const data = await resp.json(); alert('Error: ' + (data.error || 'unknown')); }
+  } catch(e) { alert('Request failed: ' + e.message); }
+}
+
+function applyTemplate(type) {
+  const bname = document.getElementById('polBucket').value || 'my-bucket';
+  const templates = {
+    'deny-read': {Version:"2012-10-17",Statement:[{Sid:"DenyRead",Effect:"Deny",Principal:{AWS:["*"]},Action:["s3:GetObject"],Resource:["arn:aws:s3:::"+bname+"/*"]}]},
+    'deny-write': {Version:"2012-10-17",Statement:[{Sid:"DenyWrite",Effect:"Deny",Principal:{AWS:["*"]},Action:["s3:PutObject"],Resource:["arn:aws:s3:::"+bname+"/*"]}]},
+    'deny-all': {Version:"2012-10-17",Statement:[{Sid:"DenyAll",Effect:"Deny",Principal:{AWS:["*"]},Action:["s3:*"],Resource:["arn:aws:s3:::"+bname+"/*"]}]},
+    'allow-read': {Version:"2012-10-17",Statement:[{Sid:"AllowRead",Effect:"Allow",Principal:{AWS:["*"]},Action:["s3:GetObject"],Resource:["arn:aws:s3:::"+bname+"/*"]},{Sid:"DenyRest",Effect:"Deny",Principal:{AWS:["*"]},Action:["s3:*"],Resource:["arn:aws:s3:::"+bname+"/*"]}]}
+  };
+  if (templates[type]) {
+    document.getElementById('polJson').value = JSON.stringify(templates[type], null, 2);
+  }
+}
+
+async function loadAccessLogs() {
+  const tid = document.getElementById('logTenant').value;
+  const bucket = document.getElementById('logBucket').value;
+  const startDate = document.getElementById('logStartDate').value;
+  const endDate = document.getElementById('logEndDate').value;
+  let url = API + '/api/logs?limit=50';
+  if (tid) url += '&tenant_id=' + encodeURIComponent(tid);
+  if (bucket) url += '&bucket_name=' + encodeURIComponent(bucket);
+  if (startDate) url += '&start_date=' + encodeURIComponent(startDate);
+  if (endDate) url += '&end_date=' + encodeURIComponent(endDate);
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const tbody = document.getElementById('logTable');
+    if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No logs found</td></tr>'; return; }
+    tbody.innerHTML = data.map(e => {
+      const statusClass = e.status_code >= 200 && e.status_code < 300 ? 'tag-green' : e.status_code >= 400 ? 'tag-amber' : 'tag-blue';
+      return `<tr>
+        <td style="font-size:12px">${new Date(e.timestamp).toLocaleString()}</td>
+        <td><span class="tag tag-blue">${e.tenant_id}</span></td>
+        <td>${e.bucket || '-'}</td>
+        <td style="font-size:12px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.object_key || '-'}</td>
+        <td><code>${e.operation}</code></td>
+        <td>${e.http_method}</td>
+        <td><span class="tag ${statusClass}">${e.status_code}</span></td>
+        <td>${e.error_code || '-'}</td>
+        <td>${formatSize(e.bytes_sent)}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {}
+}
+
+function exportLogs(format) {
+  const tid = document.getElementById('logTenant').value;
+  const bucket = document.getElementById('logBucket').value;
+  const startDate = document.getElementById('logStartDate').value;
+  const endDate = document.getElementById('logEndDate').value;
+  let url = API + '/api/logs/export?format=' + format;
+  if (tid) url += '&tenant_id=' + encodeURIComponent(tid);
+  if (bucket) url += '&bucket_name=' + encodeURIComponent(bucket);
+  if (startDate) url += '&start_date=' + encodeURIComponent(startDate);
+  if (endDate) url += '&end_date=' + encodeURIComponent(endDate);
+  window.open(url, '_blank');
+}
+
+loadTenants();
+refreshTenantSelects();
+</script>
+</body>
+</html>

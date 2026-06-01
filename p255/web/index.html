@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TFTP blksize & tsize 选项测试工具 (RFC 2347/2349)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .slider-container {
+            margin: 20px 0;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.4);
+        }
+
+        .slider-value {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            cursor: pointer;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .negotiation-result {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            background: #f8f9ff;
+            border-left: 4px solid #667eea;
+        }
+
+        .negotiation-result.show {
+            display: block;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .result-row:last-child {
+            border-bottom: none;
+        }
+
+        .result-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .result-value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .result-value.success {
+            color: #10b981;
+        }
+
+        .result-value.negotiated {
+            color: #f59e0b;
+        }
+
+        .comparison-bar {
+            display: flex;
+            height: 40px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .bar-requested {
+            background: #fbbf24;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: width 0.5s;
+        }
+
+        .bar-negotiated {
+            background: #10b981;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: width 0.5s;
+        }
+
+        .logs-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .logs-table th,
+        .logs-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .logs-table th {
+            background: #f8f9ff;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .logs-table tr:hover {
+            background: #f8f9ff;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .info-box {
+            background: #e0e7ff;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .info-box p {
+            color: #4338ca;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .info-box code {
+            background: rgba(255,255,255,0.5);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', monospace;
+        }
+
+        .test-files {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .file-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-btn:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .file-size {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            flex: 1;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .concurrent-result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f0fdf4;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .concurrent-result.show {
+            display: block;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #10b981;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .error-list {
+            margin-top: 15px;
+            padding: 15px;
+            background: #fef2f2;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .error-item {
+            color: #dc2626;
+            font-size: 13px;
+            padding: 5px 0;
+            border-bottom: 1px solid #fecaca;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📡 TFTP blksize & tsize 选项测试工具</h1>
+        
+        <div class="card">
+            <h2>🔧 服务器状态</h2>
+            <p style="margin-bottom: 10px;">
+                <span class="status-indicator status-online"></span>
+                <strong>TFTP 服务器运行中</strong> - UDP 端口 69
+            </p>
+            <div style="background: #f0f9ff; padding: 12px; border-radius: 8px; margin: 10px 0;">
+                <p style="color: #0369a1; font-size: 14px; margin-bottom: 8px;">
+                    <strong>📦 MTU 计算 (链路 MTU = 1500):</strong>
+                </p>
+                <p style="color: #0284c7; font-family: monospace; font-size: 13px;">
+                    1500 (MTU) - 20 (IP) - 8 (UDP) - 4 (TFTP) - 48 (选项预留) = <strong>1420 字节</strong>
+                </p>
+            </div>
+            <p style="color: #666; font-size: 14px; margin-bottom: 8px;">
+                支持 RFC 2347 blksize / RFC 2349 tsize 选项协商
+            </p>
+            <p style="color: #666; font-size: 14px;">
+                🔄 重传超时: 3秒, 最大重传次数: 5次 | 🧹 重复块自动检测去重
+            </p>
+        </div>
+
+        <div class="card">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('negotiation')">📝 选项协商测试</button>
+                <button class="tab-btn" onclick="switchTab('concurrent')">🚀 并发客户端测试</button>
+            </div>
+
+            <div id="tab-negotiation" class="tab-content active">
+                <div class="info-box">
+                    <p>
+                        <strong>RFC 2347 blksize:</strong> 协商传输块大小<br>
+                        <strong>RFC 2349 tsize:</strong> 预先通知文件总大小 (读请求时服务器返回，写请求时客户端发送)
+                    </p>
+                </div>
+
+                <div class="test-files">
+                    <button class="file-btn" onclick="createTestFile('small')">
+                        <strong>小文件</strong>
+                        <div class="file-size">~1KB</div>
+                    </button>
+                    <button class="file-btn" onclick="createTestFile('medium')">
+                        <strong>中文件</strong>
+                        <div class="file-size">~10KB</div>
+                    </button>
+                    <button class="file-btn" onclick="createTestFile('large')">
+                        <strong>大文件</strong>
+                        <div class="file-size">~100KB</div>
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label>请求块大小 (bytes)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="blockSizeSlider" min="256" max="2048" value="1024">
+                        <div class="slider-value" id="sliderValue">1024 字节</div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; color: #999; font-size: 12px;">
+                        <span>256</span>
+                        <span style="color: #10b981;">512 (最小)</span>
+                        <span>1024</span>
+                        <span style="color: #f59e0b;">1420 (最大)</span>
+                        <span>2048</span>
+                    </div>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="useTsize" checked>
+                    <label for="useTsize">启用 tsize 选项 (RFC 2349)</label>
+                </div>
+
+                <button class="btn" id="testBtn" onclick="runTest()">开始协商测试</button>
+
+                <div class="negotiation-result" id="resultBox">
+                    <h3 style="margin-bottom: 15px; color: #333;">协商结果</h3>
+                    
+                    <div class="result-row">
+                        <span class="result-label">状态:</span>
+                        <span class="result-value" id="resultStatus">成功</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">请求块大小:</span>
+                        <span class="result-value" id="resultRequested">1024 字节</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">协商后块大小:</span>
+                        <span class="result-value negotiated" id="resultNegotiated">1024 字节</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">tsize (文件大小):</span>
+                        <span class="result-value" id="resultTsize">0 字节</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">消息:</span>
+                        <span class="result-value" id="resultMessage">已接受请求</span>
+                    </div>
+
+                    <div class="comparison-bar" id="comparisonBar">
+                        <div class="bar-requested" id="barRequested" style="width: 50%;">请求 1024</div>
+                        <div class="bar-negotiated" id="barNegotiated" style="width: 50%;">协商 1024</div>
+                    </div>
+
+                    <div style="margin-top: 15px; padding: 15px; background: #f0fdf4; border-radius: 8px;">
+                        <h4 style="color: #065f46; margin-bottom: 10px;">📊 传输效率分析</h4>
+                        <p style="color: #047857; font-size: 14px;" id="efficiencyText">
+                            使用 1024 字节块大小相比默认 512 字节，可减少约 50% 的数据包数量。
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-concurrent" class="tab-content">
+                <div class="info-box">
+                    <p>
+                        <strong>并发客户端测试:</strong> 模拟多个客户端同时下载文件，测试服务器并发处理能力。
+                        每个客户端都会进行完整的 TFTP 传输流程（包括选项协商）。
+                    </p>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>客户端数量</label>
+                        <input type="number" id="numClients" value="10" min="1" max="200">
+                    </div>
+                    <div class="input-group">
+                        <label>测试文件</label>
+                        <select id="testFilename">
+                            <option value="small_test.bin">small_test.bin (1KB)</option>
+                            <option value="medium_test.bin" selected>medium_test.bin (10KB)</option>
+                            <option value="large_test.bin">large_test.bin (100KB)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>块大小</label>
+                        <input type="number" id="concurrentBlockSize" value="1024" min="512" max="1420">
+                    </div>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="concurrentTsize" checked>
+                    <label for="concurrentTsize">启用 tsize 选项</label>
+                </div>
+
+                <button class="btn btn-secondary" id="concurrentBtn" onclick="runConcurrentTest()">开始并发测试</button>
+
+                <div class="concurrent-result" id="concurrentResult">
+                    <h3 style="margin-bottom: 15px; color: #065f46;">并发测试结果</h3>
+                    <p id="concurrentMessage" style="color: #065f46; margin-bottom: 15px;"></p>
+                    
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="statTotal">0</div>
+                            <div class="stat-label">总客户端数</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="statSuccess" style="color: #10b981;">0</div>
+                            <div class="stat-label">成功</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="statFailed" style="color: #ef4444;">0</div>
+                            <div class="stat-label">失败</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="statBlocks">0</div>
+                            <div class="stat-label">传输块数</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="statAvgTime">0</div>
+                            <div class="stat-label">平均耗时(ms)</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="statTotalTime">0</div>
+                            <div class="stat-label">总耗时(ms)</div>
+                        </div>
+                    </div>
+
+                    <div class="error-list" id="errorList" style="display: none;">
+                        <strong style="color: #dc2626;">错误列表:</strong>
+                        <div id="errorItems"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📋 协商日志</h2>
+            <button class="btn" style="width: auto; margin-bottom: 15px;" onclick="refreshLogs()">刷新日志</button>
+            <div style="overflow-x: auto;">
+                <table class="logs-table">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>客户端</th>
+                            <th>文件名</th>
+                            <th>请求大小</th>
+                            <th>协商大小</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: #999;">暂无日志记录</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const slider = document.getElementById('blockSizeSlider');
+        const sliderValue = document.getElementById('sliderValue');
+
+        slider.addEventListener('input', function() {
+            sliderValue.textContent = this.value + ' 字节';
+        });
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabName).classList.add('active');
+        }
+
+        function createTestFile(size) {
+            fetch('/api/create-test-file?size=' + size)
+                .then(r => r.json())
+                .then(data => {
+                    alert(data.message);
+                });
+        }
+
+        function runTest() {
+            const btn = document.getElementById('testBtn');
+            const resultBox = document.getElementById('resultBox');
+            
+            btn.disabled = true;
+            btn.textContent = '测试中...';
+            resultBox.classList.remove('show');
+
+            const blockSize = parseInt(slider.value);
+            const useTsize = document.getElementById('useTsize').checked;
+
+            fetch('/api/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ block_size: blockSize, use_tsize: useTsize })
+            })
+            .then(r => r.json())
+            .then(data => {
+                displayResult(data);
+                refreshLogs();
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = '开始协商测试';
+            });
+        }
+
+        function displayResult(data) {
+            const resultBox = document.getElementById('resultBox');
+            
+            document.getElementById('resultStatus').textContent = data.success ? '成功 ✓' : '失败 ✗';
+            document.getElementById('resultStatus').className = 'result-value ' + (data.success ? 'success' : '');
+            
+            document.getElementById('resultRequested').textContent = data.req_block_size + ' 字节';
+            document.getElementById('resultNegotiated').textContent = data.neg_block_size + ' 字节';
+            document.getElementById('resultTsize').textContent = (data.tsize || 0) + ' 字节';
+            document.getElementById('resultMessage').textContent = data.message;
+
+            const maxSize = 2048;
+            const reqPercent = (data.req_block_size / maxSize) * 100;
+            const negPercent = (data.neg_block_size / maxSize) * 100;
+
+            document.getElementById('barRequested').style.width = reqPercent + '%';
+            document.getElementById('barRequested').textContent = '请求 ' + data.req_block_size;
+            document.getElementById('barNegotiated').style.width = negPercent + '%';
+            document.getElementById('barNegotiated').textContent = '协商 ' + data.neg_block_size;
+
+            const efficiency = Math.round((1 - 512 / data.neg_block_size) * 100);
+            document.getElementById('efficiencyText').textContent = 
+                '使用 ' + data.neg_block_size + ' 字节块大小相比默认 512 字节，可减少约 ' + efficiency + '% 的数据包数量。';
+
+            resultBox.classList.add('show');
+        }
+
+        function runConcurrentTest() {
+            const btn = document.getElementById('concurrentBtn');
+            const resultBox = document.getElementById('concurrentResult');
+            
+            btn.disabled = true;
+            btn.textContent = '测试中...';
+            resultBox.classList.remove('show');
+
+            const numClients = parseInt(document.getElementById('numClients').value);
+            const filename = document.getElementById('testFilename').value;
+            const blockSize = parseInt(document.getElementById('concurrentBlockSize').value);
+            const useTsize = document.getElementById('concurrentTsize').checked;
+
+            fetch('/api/concurrent-test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    num_clients: numClients,
+                    filename: filename,
+                    block_size: blockSize,
+                    use_tsize: useTsize
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                displayConcurrentResult(data);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = '开始并发测试';
+            });
+        }
+
+        function displayConcurrentResult(data) {
+            const resultBox = document.getElementById('concurrentResult');
+            
+            document.getElementById('concurrentMessage').textContent = data.message;
+            document.getElementById('statTotal').textContent = data.total_clients || 0;
+            document.getElementById('statSuccess').textContent = data.success_clients || 0;
+            document.getElementById('statFailed').textContent = data.failed_clients || 0;
+            document.getElementById('statBlocks').textContent = data.blocks_sent || 0;
+            document.getElementById('statAvgTime').textContent = data.avg_duration_ms || 0;
+            document.getElementById('statTotalTime').textContent = data.total_duration_ms || 0;
+
+            const errorList = document.getElementById('errorList');
+            const errorItems = document.getElementById('errorItems');
+            if (data.errors && data.errors.length > 0) {
+                errorList.style.display = 'block';
+                errorItems.innerHTML = data.errors.map(e => 
+                    '<div class="error-item">' + e + '</div>'
+                ).join('');
+            } else {
+                errorList.style.display = 'none';
+            }
+
+            resultBox.classList.add('show');
+            refreshLogs();
+        }
+
+        function refreshLogs() {
+            fetch('/api/logs')
+                .then(r => r.json())
+                .then(logs => {
+                    const tbody = document.getElementById('logsBody');
+                    
+                    if (logs.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">暂无日志记录</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = logs.slice().reverse().map(log => {
+                        const badgeClass = log.success ? 'badge-success' : 'badge-warning';
+                        return `
+                            <tr>
+                                <td>${new Date(log.timestamp).toLocaleTimeString()}</td>
+                                <td>${log.client_addr}</td>
+                                <td>${log.filename}</td>
+                                <td>${log.req_block_size}</td>
+                                <td><strong>${log.neg_block_size}</strong></td>
+                                <td><span class="badge ${badgeClass}">${log.message}</span></td>
+                            </tr>
+                        `;
+                    }).join('');
+                });
+        }
+
+        setInterval(refreshLogs, 5000);
+        refreshLogs();
+    </script>
+</body>
+</html>

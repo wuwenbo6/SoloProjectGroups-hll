@@ -1,0 +1,16 @@
+{
+  "name": "iolink-master-station",
+  "version": "1.0.0",
+  "description": "IO-Link Master Station - UART communication simulator",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "dependencies": {
+    "serialport": "^12.0.0"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "key": "hello.txt",
+  "bucket": "policy-test-bucket",
+  "tenant_id": "tenant-a",
+  "size": 13,
+  "content_type": "application/octet-stream",
+  "etag": "a33ac2fbf5d6ffedd5da1bd4b81f605a",
+  "last_modified": "2026-05-30T14:07:01.96028Z"
+}

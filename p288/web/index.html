@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TWAMP 网络测量仪表 - 多会话DSCP测试</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh; color: #fff; padding: 20px;
+        }
+        .container { max-width: 1600px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 30px; }
+        header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        header p { color: #8892b0; font-size: 1.1em; }
+
+        .session-tabs {
+            display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+            overflow-x: auto; padding-bottom: 10px;
+        }
+        .session-tab {
+            padding: 12px 20px; background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+            cursor: pointer; transition: all 0.2s; white-space: nowrap;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .session-tab:hover { background: rgba(255,255,255,0.1); }
+        .session-tab.active {
+            background: linear-gradient(90deg, rgba(0,212,255,0.2), rgba(123,47,247,0.2));
+            border-color: #00d4ff;
+        }
+        .session-tab .dscp-badge {
+            padding: 2px 8px; border-radius: 12px; font-size: 0.75em;
+            background: rgba(0,212,255,0.2); color: #00d4ff;
+        }
+        .session-tab .stat {
+            font-size: 0.85em; color: #8892b0;
+        }
+
+        .controls {
+            display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap;
+            align-items: center;
+        }
+        .control-group { display: flex; align-items: center; gap: 10px; }
+        .control-group label { color: #8892b0; font-size: 0.9em; }
+        .control-group input, .control-group select {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px; padding: 10px 15px; color: #fff;
+        }
+        .btn {
+            background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+            border: none; padding: 12px 30px; border-radius: 8px;
+            color: #fff; font-size: 1em; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s; font-weight: 600;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,212,255,0.4); }
+        .btn-secondary { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
+        .btn-danger { background: linear-gradient(90deg, #ff6b6b, #ee5a5a); }
+
+        .status {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 8px 16px; background: rgba(0,255,136,0.1);
+            border-radius: 20px; color: #00ff88; font-size: 0.9em;
+        }
+        .status-dot {
+            width: 8px; height: 8px; background: #00ff88;
+            border-radius: 50%; animation: pulse 2s infinite;
+        }
+        .status.inactive { background: rgba(255,107,107,0.1); color: #ff6b6b; }
+        .status.inactive .status-dot { background: #ff6b6b; animation: none; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px; margin-bottom: 25px;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.05); backdrop-filter: blur(10px);
+            border-radius: 12px; padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,212,255,0.2); }
+        .stat-card h3 {
+            color: #8892b0; font-size: 0.85em; text-transform: uppercase;
+            letter-spacing: 0.5px; margin-bottom: 8px;
+        }
+        .stat-card .value {
+            font-size: 2em; font-weight: bold; color: #00d4ff;
+        }
+        .stat-card .unit { font-size: 0.4em; color: #8892b0; margin-left: 5px; }
+
+        .charts-container {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 20px; margin-bottom: 25px;
+        }
+        @media (max-width: 900px) { .charts-container { grid-template-columns: 1fr; } }
+        .chart-card {
+            background: rgba(255,255,255,0.05); backdrop-filter: blur(10px);
+            border-radius: 12px; padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .chart-card h2 {
+            font-size: 1.2em; margin-bottom: 15px; color: #ccd6f6;
+        }
+
+        .session-cards {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px; margin-bottom: 30px;
+        }
+        .session-info-card {
+            background: rgba(255,255,255,0.05); backdrop-filter: blur(10px);
+            border-radius: 12px; padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-left: 4px solid #00d4ff;
+        }
+        .session-info-card h3 {
+            font-size: 1.1em; margin-bottom: 10px; color: #ccd6f6;
+        }
+        .session-info-card .dscp-tag {
+            display: inline-block; padding: 4px 10px; border-radius: 4px;
+            background: rgba(0,212,255,0.2); color: #00d4ff;
+            font-size: 0.85em; margin-bottom: 10px;
+        }
+        .session-info-card .info-row {
+            display: flex; justify-content: space-between;
+            padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .session-info-card .info-label { color: #8892b0; font-size: 0.9em; }
+        .session-info-card .info-value { color: #ccd6f6; font-weight: 600; }
+
+        .table-container {
+            background: rgba(255,255,255,0.05); backdrop-filter: blur(10px);
+            border-radius: 12px; padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1); overflow-x: auto;
+        }
+        .table-container h2 { font-size: 1.2em; margin-bottom: 15px; color: #ccd6f6; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        th { color: #8892b0; font-weight: 600; text-transform: uppercase; font-size: 0.8em; letter-spacing: 0.5px; }
+        td { color: #ccd6f6; }
+        tr:hover { background: rgba(255,255,255,0.05); }
+        .good { color: #00ff88; } .warning { color: #ffd93d; } .critical { color: #ff6b6b; }
+
+        .dscp-legend {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px; margin-top: 20px; padding: 20px;
+            background: rgba(255,255,255,0.03); border-radius: 10px;
+        }
+        .dscp-item { display: flex; align-items: center; gap: 10px; font-size: 0.9em; }
+        .dscp-color { width: 12px; height: 12px; border-radius: 50%; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>TWAMP 网络测量仪表</h1>
+            <p>多会话DSCP区分服务测试 - 实时时延与抖动监测</p>
+        </header>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>目标地址:</label>
+                <input type="text" id="targetAddr" value="127.0.0.1" placeholder="目标IP">
+            </div>
+            <div class="control-group">
+                <label>测试端口:</label>
+                <input type="number" id="targetPort" value="863" placeholder="端口">
+            </div>
+            <div class="control-group">
+                <label>发送间隔(ms):</label>
+                <input type="number" id="interval" value="100" placeholder="间隔">
+            </div>
+            <div class="control-group">
+                <label>直方图区间:</label>
+                <select id="histogramBins">
+                    <option value="5">5 区间</option>
+                    <option value="10" selected>10 区间</option>
+                    <option value="15">15 区间</option>
+                    <option value="20">20 区间</option>
+                </select>
+            </div>
+            <button class="btn" id="startBtn">开始测量</button>
+            <button class="btn btn-secondary" id="stopBtn" disabled>停止</button>
+            <button class="btn btn-danger" id="clearBtn">清空数据</button>
+            <div class="status" id="status">
+                <span class="status-dot"></span>
+                <span>等待开始</span>
+            </div>
+        </div>
+
+        <div class="session-tabs" id="sessionTabs"></div>
+
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <div class="charts-container">
+            <div class="chart-card">
+                <h2>往返时延 (RTT) 趋势</h2>
+                <canvas id="rttChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h2>抖动 (Jitter) 趋势</h2>
+                <canvas id="jitterChart"></canvas>
+            </div>
+            <div class="chart-card" style="grid-column: span 2;">
+                <h2>RTT 分布直方图</h2>
+                <canvas id="histogramChart"></canvas>
+            </div>
+        </div>
+
+        <div class="session-cards" id="sessionCards"></div>
+
+        <div class="table-container">
+            <h2>最近测量记录</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>会话</th>
+                        <th>DSCP</th>
+                        <th>时间</th>
+                        <th>RTT (ms)</th>
+                        <th>抖动 (ms)</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsTable"></tbody>
+            </table>
+        </div>
+
+        <div class="dscp-legend" id="dscpLegend"></div>
+    </div>
+
+    <script>
+        let isRunning = false;
+        let sequence = 0;
+        let rttChart, jitterChart, histogramChart;
+        let currentSession = null;
+        let sessions = [];
+        let sessionStats = [];
+        let sessionColors = {};
+        const maxDataPoints = 50;
+
+        const dscpColorMap = {
+            46: '#00ff88',
+            184: '#00ff88',
+            136: '#00d4ff',
+            34: '#7b2ff7',
+            26: '#ffd93d',
+            18: '#ff9f43',
+            10: '#ff6b6b',
+            8: '#ee5a5a',
+            0: '#8892b0',
+            40: '#46e3b7',
+            32: '#4dabf7',
+            24: '#748ffc',
+            16: '#9775fa',
+            48: '#20c997',
+            56: '#12b886',
+        };
+
+        function getDSCPColor(dscp) {
+            return dscpColorMap[dscp] || '#8892b0';
+        }
+
+        function initCharts() {
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#8892b0', maxTicksLimit: 10 }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#8892b0' }
+                    }
+                },
+                plugins: {
+                    legend: { display: true, labels: { color: '#8892b0' } }
+                },
+                elements: { point: { radius: 2 }, line: { tension: 0.4 } }
+            };
+
+            rttChart = new Chart(document.getElementById('rttChart'), {
+                type: 'line',
+                data: { labels: [], datasets: getSessionDatasets('rtt') },
+                options: { ...chartOptions, plugins: { ...chartOptions.plugins, legend: { display: true, position: 'top', labels: { color: '#8892b0' } } } }
+            });
+
+            jitterChart = new Chart(document.getElementById('jitterChart'), {
+                type: 'line',
+                data: { labels: [], datasets: getSessionDatasets('jitter') },
+                options: chartOptions
+            });
+
+            histogramChart = new Chart(document.getElementById('histogramChart'), {
+                type: 'bar',
+                data: { labels: [], datasets: [{ label: '数据包数量', data: [], backgroundColor: 'rgba(0,212,255,0.6)', borderColor: '#00d4ff', borderWidth: 1 }] },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        legend: { display: true, labels: { color: '#8892b0' } },
+                        tooltip: { callbacks: { label: (ctx) => `${ctx.parsed.y} 个数据包 (${getPercentage(ctx.parsed.y)}%)` } }
+                    }
+                }
+            });
+        }
+
+        function getSessionDatasets(type) {
+            return sessions.map((s, i) => ({
+                label: s.name,
+                data: [],
+                borderColor: getDSCPColor(s.dscp),
+                backgroundColor: `${getDSCPColor(s.dscp)}20`,
+                fill: false,
+                borderWidth: 2,
+                hidden: false,
+            }));
+        }
+
+        let totalHistogramCount = 0;
+        function getPercentage(value) {
+            return totalHistogramCount > 0 ? ((value / totalHistogramCount) * 100).toFixed(1) : 0;
+        }
+
+        function updateSessionTabs() {
+            const tabsContainer = document.getElementById('sessionTabs');
+            tabsContainer.innerHTML = '';
+
+            const allTab = document.createElement('div');
+            allTab.className = `session-tab ${currentSession === null ? 'active' : ''}`;
+            allTab.innerHTML = `
+                <span>全部会话</span>
+                <span class="stat">${sessionStats.reduce((a, s) => a + s.total_packets, 0)} 包</span>
+            `;
+            allTab.onclick = () => { currentSession = null; updateSessionTabs(); updateAll(); };
+            tabsContainer.appendChild(allTab);
+
+            sessions.forEach((s, i) => {
+                const stat = sessionStats.find(st => st.session_id === s.id) || { total_packets: 0, rtt_avg: 0 };
+                const tab = document.createElement('div');
+                tab.className = `session-tab ${currentSession === s.id ? 'active' : ''}`;
+                tab.innerHTML = `
+                    <span class="dscp-badge" style="background: ${getDSCPColor(s.dscp)}30; color: ${getDSCPColor(s.dscp)}">DSCP ${s.dscp}</span>
+                    <span>${s.name}</span>
+                    <span class="stat">${stat.total_packets}包</span>
+                    <span class="stat">${stat.rtt_avg.toFixed(1)}ms</span>
+                `;
+                tab.onclick = () => { currentSession = s.id; updateSessionTabs(); updateAll(); };
+                tabsContainer.appendChild(tab);
+            });
+        }
+
+        function updateStatsGrid() {
+            const statsContainer = document.getElementById('statsGrid');
+            let displayStats = sessionStats;
+
+            if (currentSession) {
+                displayStats = sessionStats.filter(s => s.session_id === currentSession);
+            }
+
+            if (displayStats.length === 0) {
+                statsContainer.innerHTML = '<div style="grid-column: span 5; text-align: center; color: #8892b0; padding: 20px;">暂无数据</div>';
+                return;
+            }
+
+            const totalPackets = displayStats.reduce((a, s) => a + s.total_packets, 0);
+            const rttValues = displayStats.filter(s => s.total_packets > 0).map(s => s.rtt_avg);
+            const jitterValues = displayStats.filter(s => s.total_packets > 0).map(s => s.jitter_avg);
+
+            const rttMin = rttValues.length ? Math.min(...rttValues) : 0;
+            const rttMax = rttValues.length ? Math.max(...rttValues) : 0;
+            const rttAvg = rttValues.length ? rttValues.reduce((a, b) => a + b, 0) / rttValues.length : 0;
+            const jitterAvg = jitterValues.length ? jitterValues.reduce((a, b) => a + b, 0) / jitterValues.length : 0;
+
+            statsContainer.innerHTML = `
+                <div class="stat-card">
+                    <h3>数据包总数</h3>
+                    <div class="value">${totalPackets}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>活跃会话</h3>
+                    <div class="value">${displayStats.filter(s => s.active).length}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>平均 RTT</h3>
+                    <div class="value">${rttAvg.toFixed(2)}<span class="unit">ms</span></div>
+                </div>
+                <div class="stat-card">
+                    <h3>RTT 范围</h3>
+                    <div class="value">${rttMin.toFixed(1)}-${rttMax.toFixed(1)}<span class="unit">ms</span></div>
+                </div>
+                <div class="stat-card">
+                    <h3>平均抖动</h3>
+                    <div class="value">${jitterAvg.toFixed(2)}<span class="unit">ms</span></div>
+                </div>
+            `;
+        }
+
+        function updateSessionCards() {
+            const container = document.getElementById('sessionCards');
+            container.innerHTML = '';
+
+            sessions.forEach(s => {
+                const stat = sessionStats.find(st => st.session_id === s.id) || { total_packets: 0, rtt_min: 0, rtt_max: 0, rtt_avg: 0, jitter_avg: 0, active: true };
+                const color = getDSCPColor(s.dscp);
+
+                const card = document.createElement('div');
+                card.className = 'session-info-card';
+                card.style.borderLeftColor = color;
+                card.innerHTML = `
+                    <h3>${s.name}</h3>
+                    <span class="dscp-tag" style="background: ${color}30; color: ${color}">DSCP ${s.dscp}</span>
+                    <div class="info-row">
+                        <span class="info-label">状态</span>
+                        <span class="info-value" style="color: ${stat.active ? '#00ff88' : '#ff6b6b'}">${stat.active ? '活跃' : '停止'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">数据包</span>
+                        <span class="info-value">${stat.total_packets}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">RTT 平均</span>
+                        <span class="info-value" style="color: ${color}">${stat.rtt_avg.toFixed(2)} ms</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">RTT 最小/最大</span>
+                        <span class="info-value">${stat.rtt_min.toFixed(1)} / ${stat.rtt_max.toFixed(1)} ms</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">抖动平均</span>
+                        <span class="info-value">${stat.jitter_avg.toFixed(2)} ms</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function updateDSCPLegend() {
+            const legend = document.getElementById('dscpLegend');
+            const uniqueDSCPs = [...new Set(sessions.map(s => s.dscp))];
+
+            legend.innerHTML = '<h3 style="grid-column: 1/-1; color: #8892b0; margin-bottom: 10px;">DSCP 服务等级说明</h3>' +
+                uniqueDSCPs.map(dscp => {
+                    const names = {
+                        46: 'EF - 加速转发 (低时延)',
+                        184: 'Voice - 语音',
+                        136: 'Video - 视频',
+                        34: 'AF41 - 高优先级',
+                        26: 'AF31 - 中优先级',
+                        18: 'AF21 - 低优先级',
+                        10: 'AF11 - 标准',
+                        8: 'CS1 - 低优先级',
+                        0: 'BE - 尽力而为',
+                        40: 'CS5 - 信令',
+                        32: 'CS4 - 视频会议',
+                        24: 'CS3 - 关键应用',
+                        16: 'CS2 - 网络管理',
+                    };
+                    return `
+                        <div class="dscp-item">
+                            <span class="dscp-color" style="background: ${getDSCPColor(dscp)}"></span>
+                            <span>DSCP ${dscp}: ${names[dscp] || '自定义'}</span>
+                        </div>
+                    `;
+                }).join('');
+        }
+
+        function updateCharts() {
+            fetch('/api/results/latest?limit=200')
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success || data.data.length === 0) return;
+
+                    const resultsBySession = {};
+                    sessions.forEach(s => resultsBySession[s.id] = []);
+
+                    data.data.forEach(r => {
+                        if (!resultsBySession[r.session_id]) resultsBySession[r.session_id] = [];
+                        resultsBySession[r.session_id].push(r);
+                    });
+
+                    rttChart.data.labels = data.data.filter(r => currentSession ? r.session_id === currentSession : true)
+                        .map((r, i) => i.toString());
+
+                    sessions.forEach((s, i) => {
+                        const sessionResults = resultsBySession[s.id] || [];
+                        if (currentSession && s.id !== currentSession) {
+                            rttChart.data.datasets[i].data = [];
+                            jitterChart.data.datasets[i].data = [];
+                        } else {
+                            rttChart.data.datasets[i].data = sessionResults.map(r => r.rtt_ms);
+                            jitterChart.data.datasets[i].data = sessionResults.map(r => r.jitter_ms);
+                        }
+                    });
+
+                    rttChart.update('none');
+                    jitterChart.update('none');
+                });
+        }
+
+        function updateHistogram() {
+            const bins = document.getElementById('histogramBins').value;
+            let url = `/api/histograms?bins=${bins}`;
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success || data.data.length === 0) return;
+
+                    let histogramData;
+                    if (currentSession) {
+                        histogramData = data.data.find(h => h.session_id === currentSession);
+                    }
+                    if (!histogramData) {
+                        histogramData = {
+                            session_name: '全部会话',
+                            total: data.data.reduce((a, h) => a + h.total, 0),
+                            bins: mergeHistograms(data.data.map(h => h.bins))
+                        };
+                    }
+
+                    totalHistogramCount = histogramData.total;
+                    histogramChart.data.labels = histogramData.bins.map(b => b.range);
+                    histogramChart.data.datasets[0].data = histogramData.bins.map(b => b.count);
+                    histogramChart.update('none');
+                });
+        }
+
+        function mergeHistograms(allBins) {
+            if (allBins.length === 0) return [];
+            const merged = {};
+            allBins.forEach(bins => {
+                bins.forEach(b => {
+                    if (!merged[b.range]) merged[b.range] = { range: b.range, min: b.min, max: b.max, count: 0 };
+                    merged[b.range].count += b.count;
+                });
+            });
+            return Object.values(merged).sort((a, b) => a.min - b.min);
+        }
+
+        function updateTable() {
+            fetch('/api/results/latest?limit=50')
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success || data.data.length === 0) return;
+
+                    const tbody = document.getElementById('resultsTable');
+                    tbody.innerHTML = '';
+
+                    let displayData = data.data;
+                    if (currentSession) {
+                        displayData = data.data.filter(r => r.session_id === currentSession);
+                    }
+
+                    displayData.slice().reverse().slice(0, 20).forEach(r => {
+                        const time = new Date(r.timestamp).toLocaleTimeString();
+                        const rttClass = r.rtt_ms < 30 ? 'good' : r.rtt_ms < 60 ? 'warning' : 'critical';
+                        const jitterClass = r.jitter_ms < 5 ? 'good' : r.jitter_ms < 15 ? 'warning' : 'critical';
+                        const session = sessions.find(s => s.id === r.session_id);
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${r.sequence}</td>
+                                <td><span style="color: ${getDSCPColor(r.dscp)}">${session ? session.name : r.session_id.slice(0, 12)}</span></td>
+                                <td>${r.dscp}</td>
+                                <td>${time}</td>
+                                <td class="${rttClass}">${r.rtt_ms.toFixed(3)}</td>
+                                <td class="${jitterClass}">${r.jitter_ms.toFixed(3)}</td>
+                            </tr>
+                        `;
+                    });
+                });
+        }
+
+        function loadSessions() {
+            return fetch('/api/sessions')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        sessions = data.data;
+                        sessions.forEach(s => sessionColors[s.id] = getDSCPColor(s.dscp));
+                    }
+                });
+        }
+
+        function loadSessionStats() {
+            return fetch('/api/sessions/stats')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        sessionStats = data.data;
+                    }
+                });
+        }
+
+        function updateAll() {
+            Promise.all([loadSessions(), loadSessionStats()])
+                .then(() => {
+                    updateSessionTabs();
+                    updateStatsGrid();
+                    updateSessionCards();
+                    updateDSCPLegend();
+                    updateCharts();
+                    updateHistogram();
+                    updateTable();
+                });
+        }
+
+        function simulateMeasurement() {
+            if (!isRunning) return;
+
+            fetch('/api/results/latest?limit=1')
+                .then(res => res.json())
+                .then(() => {
+                    updateAll();
+                });
+
+            if (isRunning) {
+                const interval = parseInt(document.getElementById('interval').value);
+                setTimeout(simulateMeasurement, interval);
+            }
+        }
+
+        document.getElementById('startBtn').addEventListener('click', () => {
+            if (!isRunning) {
+                isRunning = true;
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                document.getElementById('status').className = 'status';
+                document.getElementById('status').querySelector('span:last-child').textContent = '测量中...';
+                simulateMeasurement();
+            }
+        });
+
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            isRunning = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('status').className = 'status inactive';
+            document.getElementById('status').querySelector('span:last-child').textContent = '已停止';
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            fetch('/api/results', { method: 'DELETE' })
+                .then(() => {
+                    sequence = 0;
+                    rttChart.data.labels = [];
+                    rttChart.data.datasets.forEach(d => d.data = []);
+                    rttChart.update();
+                    jitterChart.data.labels = [];
+                    jitterChart.data.datasets.forEach(d => d.data = []);
+                    jitterChart.update();
+                    histogramChart.data.labels = [];
+                    histogramChart.data.datasets[0].data = [];
+                    histogramChart.update();
+                    updateAll();
+                });
+        });
+
+        document.getElementById('histogramBins').addEventListener('change', updateHistogram);
+
+        loadSessions().then(() => {
+            initCharts();
+            updateAll();
+            setInterval(() => {
+                if (!isRunning) {
+                    updateAll();
+                }
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>信道绑定模拟器 - 上行速率对比</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh; padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { text-align: center; color: white; margin-bottom: 30px; }
+        .header h1 { font-size: 2.5rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+        .header p { font-size: 1.1rem; opacity: 0.9; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
+        .card h2 { color: #333; margin-bottom: 20px; font-size: 1.4rem; display: flex; align-items: center; gap: 10px; }
+        .card h2::before { content: ''; width: 4px; height: 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 2px; }
+        .channel-list { display: flex; flex-direction: column; gap: 12px; }
+        .channel-item { background: #f8f9fa; border-radius: 10px; padding: 16px; border-left: 4px solid #667eea; transition: all 0.3s ease; }
+        .channel-item:hover { transform: translateX(5px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .channel-item.bound { border-left-color: #10b981; background: #ecfdf5; }
+        .channel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .channel-id { font-weight: 600; color: #333; }
+        .modulation-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+        .modulation-qpsk { background: #dbeafe; color: #1d4ed8; }
+        .modulation-16qam { background: #fce7f3; color: #be185d; }
+        .channel-stats { display: flex; gap: 20px; font-size: 0.9rem; color: #666; flex-wrap: wrap; }
+        .channel-actions { margin-top: 12px; display: flex; gap: 8px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+        .btn-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
+        .btn-success:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4); }
+        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; }
+        .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4); }
+        .btn-secondary { background: #e5e7eb; color: #374151; }
+        .btn-secondary:hover { background: #d1d5db; }
+        .btn-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; }
+        .btn-warning:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4); }
+        .btn-info { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white; }
+        .btn-info:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4); }
+        .cm-section { margin-bottom: 20px; }
+        .cm-info { background: #f0f9ff; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+        .cm-info h3 { color: #0369a1; margin-bottom: 8px; }
+        .cm-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+        .stat-item { background: white; padding: 12px; border-radius: 8px; text-align: center; }
+        .stat-label { font-size: 0.8rem; color: #666; margin-bottom: 4px; }
+        .stat-value { font-size: 1.2rem; font-weight: 700; color: #333; }
+        .chart-container { position: relative; height: 400px; }
+        .full-width { grid-column: 1 / -1; }
+        .comparison-result { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 20px; }
+        .comparison-card { text-align: center; padding: 20px; border-radius: 12px; }
+        .comparison-card.no-bonding { background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%); }
+        .comparison-card.with-bonding { background: linear-gradient(135deg, #d1fae5 0%, #6ee7b7 100%); }
+        .comparison-card.improvement { background: linear-gradient(135deg, #e0e7ff 0%, #818cf8 100%); color: white; }
+        .comparison-label { font-size: 0.9rem; opacity: 0.8; margin-bottom: 8px; }
+        .comparison-value { font-size: 2rem; font-weight: 700; }
+        .comparison-unit { font-size: 0.9rem; opacity: 0.8; }
+        .controls { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+        .input-group { display: flex; align-items: center; gap: 8px; }
+        .input-group label { font-weight: 500; color: #333; white-space: nowrap; }
+        .input-group input, .input-group select { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; }
+        .status-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+        .status-active { background: #dcfce7; color: #166534; }
+        .status-idle { background: #f3f4f6; color: #4b5563; }
+        .matrix-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        .matrix-table th, .matrix-table td { padding: 10px; text-align: center; border: 1px solid #e5e7eb; }
+        .matrix-table th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600; }
+        .matrix-table td input { width: 60px; padding: 6px; text-align: center; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; }
+        .matrix-table td.diagonal { background: #f3f4f6; color: #9ca3af; }
+        .matrix-info { background: #f0f9ff; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9rem; color: #0369a1; }
+        .channel-detail { background: white; padding: 8px; border-radius: 6px; margin-top: 6px; font-size: 0.8rem; }
+        .channel-detail-row { display: flex; justify-content: space-between; padding: 2px 0; }
+        .snr-reduced { color: #ef4444; font-weight: 600; }
+        .lb-panel { background: #f0fdf4; border-radius: 10px; padding: 16px; margin-top: 12px; border: 1px solid #bbf7d0; }
+        .lb-panel h3 { color: #166534; margin-bottom: 12px; }
+        .lb-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+        .lb-stat { background: white; padding: 10px; border-radius: 8px; text-align: center; }
+        .lb-stat-label { font-size: 0.75rem; color: #666; }
+        .lb-stat-value { font-size: 1rem; font-weight: 700; color: #166534; }
+        .utilization-bar-container { background: #e5e7eb; border-radius: 6px; height: 20px; overflow: hidden; margin-top: 4px; }
+        .utilization-bar { height: 100%; border-radius: 6px; transition: width 0.5s ease; }
+        .utilization-low { background: linear-gradient(90deg, #10b981, #34d399); }
+        .utilization-mid { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        .utilization-high { background: linear-gradient(90deg, #ef4444, #f87171); }
+        .rebalance-log { background: white; border-radius: 8px; padding: 12px; max-height: 200px; overflow-y: auto; font-size: 0.8rem; }
+        .rebalance-log-entry { padding: 6px 0; border-bottom: 1px solid #f3f4f6; }
+        .rebalance-log-entry:last-child { border-bottom: none; }
+        .report-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .report-modal.active { display: flex; }
+        .report-modal-content { background: white; border-radius: 16px; padding: 24px; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .report-modal-content pre { background: #f8f9fa; border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 0.8rem; line-height: 1.5; }
+        .report-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .report-modal-header h2 { margin-bottom: 0; }
+        .report-summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+        .report-summary-item { background: #f8f9fa; padding: 12px; border-radius: 8px; }
+        .report-summary-item .label { font-size: 0.8rem; color: #666; }
+        .report-summary-item .value { font-size: 1.1rem; font-weight: 700; color: #333; }
+        .auto-refresh-indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 8px; }
+        .auto-refresh-on { background: #10b981; animation: pulse 2s infinite; }
+        .auto-refresh-off { background: #9ca3af; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @media (max-width: 968px) { .grid { grid-template-columns: 1fr; } .lb-stats { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📡 上行信道绑定模拟器</h1>
+            <p>QPSK / 16QAM 调制 | 动态信道绑定 | 负载均衡 | 吞吐量对比分析</p>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>信道状态</h2>
+                <div class="channel-list" id="channelList"></div>
+            </div>
+
+            <div class="card">
+                <h2>CM 设备管理</h2>
+                <div class="controls">
+                    <div class="input-group">
+                        <label>CM ID:</label>
+                        <input type="text" id="cmIdInput" value="cm1" style="width: 80px;">
+                    </div>
+                    <button class="btn btn-primary" onclick="createCM()">创建设备</button>
+                    <button class="btn btn-secondary" onclick="resetSimulation()">重置</button>
+                </div>
+                <div id="cmList"></div>
+            </div>
+
+            <div class="card full-width">
+                <h2>⚖️ 负载均衡控制</h2>
+                <div class="controls">
+                    <div class="input-group">
+                        <label>均衡策略:</label>
+                        <select id="lbStrategy">
+                            <option value="least_loaded">最低负载优先</option>
+                            <option value="best_snr">最佳信噪比优先</option>
+                            <option value="weighted">加权综合评分</option>
+                            <option value="round_robin">轮询</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="setLBStrategy()">应用策略</button>
+                    <div class="input-group">
+                        <label>高阈值:</label>
+                        <input type="number" id="thresholdHigh" value="80" style="width: 60px;">%
+                    </div>
+                    <div class="input-group">
+                        <label>低阈值:</label>
+                        <input type="number" id="thresholdLow" value="20" style="width: 60px;">%
+                    </div>
+                    <button class="btn btn-warning" onclick="setThresholds()">设置阈值</button>
+                </div>
+                <div class="controls">
+                    <button class="btn btn-success" onclick="autoBindChannels()">🤖 自动绑定信道</button>
+                    <button class="btn btn-info" onclick="rebalanceCheck()">🔄 检测并重平衡</button>
+                    <button class="btn btn-secondary" onclick="loadBalancerStatus()">刷新状态</button>
+                    <span class="auto-refresh-indicator auto-refresh-off" id="refreshIndicator"></span>
+                </div>
+                <div id="lbPanel"></div>
+            </div>
+
+            <div class="card full-width">
+                <h2>📊 信道干扰矩阵 (SNR衰减, dB)</h2>
+                <div class="matrix-info">
+                    <strong>说明：</strong>矩阵元素 matrix[i][j] 表示信道 j 对信道 i 的干扰衰减值（dB）。信道间距越大，干扰越强，SNR降低越多。
+                </div>
+                <div><table class="matrix-table" id="interferenceMatrix"></table></div>
+                <div class="controls" style="margin-top: 16px;">
+                    <button class="btn btn-primary" onclick="saveInterferenceMatrix()">保存干扰矩阵</button>
+                    <button class="btn btn-secondary" onclick="loadInterferenceMatrix()">重置默认值</button>
+                </div>
+            </div>
+
+            <div class="card full-width">
+                <h2>吞吐量对比分析</h2>
+                <div class="controls">
+                    <div class="input-group">
+                        <label>选择 CM:</label>
+                        <select id="cmSelect"><option value="">请先创建 CM</option></select>
+                    </div>
+                    <div class="input-group">
+                        <label>绑定信道:</label>
+                        <select id="channelSelect" multiple></select>
+                    </div>
+                    <button class="btn btn-success" onclick="bindChannels()">绑定信道</button>
+                    <button class="btn btn-primary" onclick="runComparison()">生成对比图表</button>
+                </div>
+                <div class="chart-container"><canvas id="comparisonChart"></canvas></div>
+                <div class="comparison-result" id="comparisonResult"></div>
+            </div>
+
+            <div class="card full-width">
+                <h2>📋 信道绑定报告</h2>
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="viewCMReport()">查看 CM 报告</button>
+                    <button class="btn btn-info" onclick="viewFullReport()">查看全局报告</button>
+                    <button class="btn btn-success" onclick="downloadCMReport()">⬇ 下载 CM 报告</button>
+                    <button class="btn btn-warning" onclick="downloadFullReport()">⬇ 下载全局报告</button>
+                </div>
+                <div id="reportPreview"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="report-modal" id="reportModal">
+        <div class="report-modal-content">
+            <div class="report-modal-header">
+                <h2 id="reportModalTitle">信道绑定报告</h2>
+                <button class="btn btn-secondary" onclick="closeReportModal()">关闭</button>
+            </div>
+            <div id="reportModalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5001/api';
+        let comparisonChart = null;
+        let autoRefreshInterval = null;
+
+        async function fetchData(url, options = {}) {
+            try {
+                const response = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...options });
+                return await response.json();
+            } catch (error) { console.error('API Error:', error); return null; }
+        }
+
+        async function loadChannels() {
+            const data = await fetchData(`${API_BASE}/channels`);
+            if (data) { renderChannels(data.channels); updateChannelSelect(data.channels); }
+        }
+
+        function renderChannels(channels) {
+            document.getElementById('channelList').innerHTML = channels.map(ch => `
+                <div class="channel-item ${ch.is_busy ? 'bound' : ''}">
+                    <div class="channel-header">
+                        <span class="channel-id">信道 ${ch.channel_id}</span>
+                        <span class="modulation-badge modulation-${ch.modulation.toLowerCase()}">${ch.modulation}</span>
+                    </div>
+                    <div class="channel-stats">
+                        <span>SNR: ${ch.snr_db} dB</span>
+                        <span>速率: ${(ch.theoretical_throughput / 1e6).toFixed(2)} Mbps</span>
+                        <span>利用率: ${ch.utilization ? ch.utilization.toFixed(1) : 0}%</span>
+                        <span class="status-badge ${ch.is_busy ? 'status-active' : 'status-idle'}">
+                            ${ch.is_busy ? `已绑定 (${ch.assigned_cm})` : '空闲'}
+                        </span>
+                    </div>
+                    <div class="utilization-bar-container">
+                        <div class="utilization-bar ${ch.utilization > 60 ? 'utilization-high' : ch.utilization > 30 ? 'utilization-mid' : 'utilization-low'}"
+                             style="width: ${Math.min(ch.utilization || 0, 100)}%"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateChannelSelect(channels) {
+            document.getElementById('channelSelect').innerHTML = channels.filter(ch => !ch.is_busy).map(ch =>
+                `<option value="${ch.channel_id}">信道 ${ch.channel_id} (${ch.modulation})</option>`
+            ).join('');
+        }
+
+        async function loadCMs() {
+            const data = await fetchData(`${API_BASE}/cms`);
+            if (data) { renderCMs(data.cms); updateCMSelect(data.cms); }
+        }
+
+        function renderCMs(cms) {
+            document.getElementById('cmList').innerHTML = cms.map(cm => `
+                <div class="cm-section">
+                    <div class="cm-info">
+                        <h3>${cm.name} (ID: ${cm.cm_id})</h3>
+                        <div>绑定信道: ${cm.bound_channels.length > 0 ? cm.bound_channels.join(', ') : '无'} | 信道绑定: <strong>${cm.is_bonding_enabled ? '已启用' : '未启用'}</strong></div>
+                        <div class="cm-stats">
+                            <div class="stat-item"><div class="stat-label">单信道速率</div><div class="stat-value">${(cm.single_channel_throughput / 1e6).toFixed(2)} Mbps</div></div>
+                            <div class="stat-item"><div class="stat-label">绑定总速率</div><div class="stat-value">${(cm.bonded_throughput / 1e6).toFixed(2)} Mbps</div></div>
+                        </div>
+                        ${cm.channel_throughputs && cm.channel_throughputs.length > 0 ? `
+                        <div class="channel-detail"><strong>各信道独立速率 (考虑干扰):</strong>
+                            ${cm.channel_throughputs.map(ct => `
+                            <div class="channel-detail-row">
+                                <span>信道 ${ct.channel_id} (${ct.modulation}):</span>
+                                <span>SNR: ${ct.base_snr} → <span class="snr-reduced">${ct.effective_snr.toFixed(1)} dB</span> | ${ct.throughput_mbps.toFixed(2)} Mbps</span>
+                            </div>`).join('')}
+                        </div>` : ''}
+                        <div class="channel-actions">
+                            <button class="btn btn-success" onclick="toggleBonding('${cm.cm_id}', true)">启用绑定</button>
+                            <button class="btn btn-secondary" onclick="toggleBonding('${cm.cm_id}', false)">禁用绑定</button>
+                            <button class="btn btn-danger" onclick="unbindAllChannels('${cm.cm_id}')">解绑全部</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateCMSelect(cms) {
+            document.getElementById('cmSelect').innerHTML = cms.length > 0
+                ? cms.map(cm => `<option value="${cm.cm_id}">${cm.name}</option>`).join('')
+                : '<option value="">请先创建 CM</option>';
+        }
+
+        async function loadInterferenceMatrix() {
+            const data = await fetchData(`${API_BASE}/interference`);
+            if (data) renderInterferenceMatrix(data);
+        }
+
+        function renderInterferenceMatrix(data) {
+            const container = document.getElementById('interferenceMatrix');
+            const n = data.num_channels;
+            const m = data.matrix;
+            let html = '<thead><tr><th>信道 i ↓ / 信道 j →</th>';
+            for (let j = 0; j < n; j++) html += `<th>信道 ${j}</th>`;
+            html += '</tr></thead><tbody>';
+            for (let i = 0; i < n; i++) {
+                html += `<tr><td><strong>信道 ${i}</strong></td>`;
+                for (let j = 0; j < n; j++) {
+                    html += i === j ? `<td class="diagonal">-</td>` : `<td><input type="number" step="0.5" min="0" max="50" value="${m[i][j]}" data-i="${i}" data-j="${j}"></td>`;
+                }
+                html += '</tr>';
+            }
+            container.innerHTML = html + '</tbody>';
+        }
+
+        async function saveInterferenceMatrix() {
+            const matrix = [];
+            for (let i = 0; i < 4; i++) { matrix[i] = []; for (let j = 0; j < 4; j++) { matrix[i][j] = i === j ? 0 : parseFloat(document.querySelector(`#interferenceMatrix input[data-i="${i}"][data-j="${j}"]`).value) || 0; } }
+            await fetchData(`${API_BASE}/interference/matrix`, { method: 'PUT', body: JSON.stringify({ matrix }) });
+            loadCMs(); loadChannels(); alert('干扰矩阵已保存！');
+        }
+
+        async function createCM() {
+            const cmId = document.getElementById('cmIdInput').value;
+            if (!cmId) return;
+            await fetchData(`${API_BASE}/cms`, { method: 'POST', body: JSON.stringify({ cm_id: cmId, name: `CM-${cmId}` }) });
+            loadCMs();
+        }
+
+        async function bindChannels() {
+            const cmId = document.getElementById('cmSelect').value;
+            const channelIds = Array.from(document.getElementById('channelSelect').selectedOptions).map(opt => parseInt(opt.value));
+            if (!cmId || channelIds.length === 0) { alert('请选择 CM 和信道'); return; }
+            await fetchData(`${API_BASE}/cms/${cmId}/bind`, { method: 'POST', body: JSON.stringify({ channel_ids: channelIds }) });
+            loadChannels(); loadCMs();
+        }
+
+        async function unbindAllChannels(cmId) { await fetchData(`${API_BASE}/cms/${cmId}/unbind`, { method: 'POST' }); loadChannels(); loadCMs(); }
+        async function toggleBonding(cmId, enabled) { await fetchData(`${API_BASE}/cms/${cmId}/bonding`, { method: 'PUT', body: JSON.stringify({ enabled }) }); loadCMs(); }
+
+        async function setLBStrategy() {
+            const strategy = document.getElementById('lbStrategy').value;
+            await fetchData(`${API_BASE}/loadbalancer/strategy`, { method: 'PUT', body: JSON.stringify({ strategy }) });
+            loadBalancerStatus();
+        }
+
+        async function setThresholds() {
+            const high = parseFloat(document.getElementById('thresholdHigh').value);
+            const low = parseFloat(document.getElementById('thresholdLow').value);
+            await fetchData(`${API_BASE}/loadbalancer/thresholds`, { method: 'PUT', body: JSON.stringify({ high, low }) });
+            loadBalancerStatus();
+        }
+
+        async function autoBindChannels() {
+            const cmId = document.getElementById('cmSelect').value;
+            if (!cmId) { alert('请先选择 CM'); return; }
+            const result = await fetchData(`${API_BASE}/cms/${cmId}/auto_bind`, { method: 'POST', body: JSON.stringify({ target_count: 4 }) });
+            if (result) {
+                if (result.rebalanced) alert(`✅ 自动绑定成功！信道: ${result.new_channels.join(', ')}`);
+                else alert(`ℹ️ ${result.reason}`);
+            }
+            loadChannels(); loadCMs(); loadBalancerStatus();
+        }
+
+        async function rebalanceCheck() {
+            const cmId = document.getElementById('cmSelect').value;
+            if (!cmId) { alert('请先选择 CM'); return; }
+            const result = await fetchData(`${API_BASE}/cms/${cmId}/rebalance`, { method: 'POST' });
+            if (result) {
+                if (result.rebalanced) alert(`🔄 重平衡完成！\n旧信道: ${result.old_channels.join(', ')}\n新信道: ${result.new_channels.join(', ')}`);
+                else alert(`✅ 负载均衡良好，无需调整。(${result.reason})`);
+            }
+            loadChannels(); loadCMs(); loadBalancerStatus();
+        }
+
+        async function loadBalancerStatus() {
+            const data = await fetchData(`${API_BASE}/loadbalancer`);
+            if (!data) return;
+            const utilData = await fetchData(`${API_BASE}/channels/utilization`);
+            const utils = utilData ? utilData.utilizations : [];
+
+            document.getElementById('lbPanel').innerHTML = `
+                <div class="lb-panel">
+                    <h3>负载均衡状态</h3>
+                    <div class="lb-stats">
+                        <div class="lb-stat"><div class="lb-stat-label">当前策略</div><div class="lb-stat-value">${data.strategy}</div></div>
+                        <div class="lb-stat"><div class="lb-stat-label">重平衡次数</div><div class="lb-stat-value">${data.rebalance_count}</div></div>
+                        <div class="lb-stat"><div class="lb-stat-label">高利用率阈值</div><div class="lb-stat-value">${data.utilization_threshold_high}%</div></div>
+                        <div class="lb-stat"><div class="lb-stat-label">低利用率阈值</div><div class="lb-stat-value">${data.utilization_threshold_low}%</div></div>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <strong>信道利用率:</strong>
+                        ${utils.map(u => `
+                            <div style="margin-top: 6px;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                                    <span>信道 ${u.channel_id} (${u.modulation})</span>
+                                    <span>${u.utilization.toFixed(1)}% ${u.is_busy ? '→ ' + u.assigned_cm : '(空闲)'}</span>
+                                </div>
+                                <div class="utilization-bar-container">
+                                    <div class="utilization-bar ${u.utilization > 60 ? 'utilization-high' : u.utilization > 30 ? 'utilization-mid' : 'utilization-low'}"
+                                         style="width: ${Math.min(u.utilization, 100)}%"></div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ${data.recent_rebalances && data.recent_rebalances.length > 0 ? `
+                    <div><strong>最近重平衡记录:</strong>
+                        <div class="rebalance-log">
+                            ${data.recent_rebalances.reverse().map(r => `
+                                <div class="rebalance-log-entry">
+                                    <strong>${r.timestamp}</strong> | CM: ${r.cm_id} | ${r.old_channels.join(',')} → ${r.new_channels.join(',')} | ${r.reason}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>` : '<div style="color: #666; font-size: 0.9rem;">暂无重平衡记录</div>'}
+                </div>
+            `;
+        }
+
+        async function viewCMReport() {
+            const cmId = document.getElementById('cmSelect').value;
+            if (!cmId) { alert('请先选择 CM'); return; }
+            const report = await fetchData(`${API_BASE}/report/${cmId}`);
+            if (!report || report.error) { alert(report?.error || '获取报告失败'); return; }
+            showReportModal(`CM ${cmId} 信道绑定报告`, report);
+        }
+
+        async function viewFullReport() {
+            const report = await fetchData(`${API_BASE}/report`);
+            if (!report || report.error) { alert(report?.error || '获取报告失败'); return; }
+            showReportModal('全局信道绑定报告', report);
+        }
+
+        function showReportModal(title, report) {
+            document.getElementById('reportModalTitle').textContent = title;
+            const ts = report.generated_at || report.report_id;
+            const summary = report.throughput_summary || {};
+            const cmDevice = report.cm_device || {};
+
+            let html = `
+                <div class="report-summary-grid">
+                    <div class="report-summary-item"><div class="label">报告ID</div><div class="value">${report.report_id}</div></div>
+                    <div class="report-summary-item"><div class="label">生成时间</div><div class="value">${ts}</div></div>
+                    ${summary.single_channel_mbps !== undefined ? `
+                    <div class="report-summary-item"><div class="label">单信道速率</div><div class="value">${summary.single_channel_mbps} Mbps</div></div>
+                    <div class="report-summary-item"><div class="label">绑定总速率</div><div class="value">${summary.bonded_total_mbps} Mbps</div></div>
+                    <div class="report-summary-item"><div class="label">性能提升</div><div class="value">${summary.improvement_percent}% (${summary.improvement_ratio}x)</div></div>
+                    <div class="report-summary-item"><div class="label">绑定信道数</div><div class="value">${cmDevice.bound_channel_count || '-'}</div></div>
+                    ` : ''}
+                </div>
+                <details><summary style="cursor:pointer; font-weight:600; margin-bottom:8px;">📄 完整 JSON 报告</summary>
+                    <pre>${JSON.stringify(report, null, 2)}</pre>
+                </details>
+            `;
+            document.getElementById('reportModalBody').innerHTML = html;
+            document.getElementById('reportModal').classList.add('active');
+        }
+
+        function closeReportModal() { document.getElementById('reportModal').classList.remove('active'); }
+
+        function downloadCMReport() {
+            const cmId = document.getElementById('cmSelect').value;
+            if (!cmId) { alert('请先选择 CM'); return; }
+            window.open(`${API_BASE}/report/${cmId}?format=download`, '_blank');
+        }
+
+        function downloadFullReport() { window.open(`${API_BASE}/report?format=download`, '_blank'); }
+
+        async function runComparison() {
+            const cmId = document.getElementById('cmSelect').value;
+            if (!cmId) { alert('请先选择 CM'); return; }
+            const data = await fetchData(`${API_BASE}/simulate/comparison/${cmId}`);
+            if (data && !data.error) { renderComparisonChart(data); renderComparisonResult(data); }
+            else alert(data?.error || '获取数据失败');
+        }
+
+        function renderComparisonChart(data) {
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+            if (comparisonChart) comparisonChart.destroy();
+            comparisonChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.snr_range.map(s => s + ' dB'),
+                    datasets: [
+                        { label: '单信道 (无绑定)', data: data.no_bonding_throughput_mbps, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', borderWidth: 3, fill: true, tension: 0.4, pointRadius: 5, pointHoverRadius: 8 },
+                        { label: `${data.channel_count} 信道绑定`, data: data.with_bonding_throughput_mbps, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', borderWidth: 3, fill: true, tension: 0.4, pointRadius: 5, pointHoverRadius: 8 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { title: { display: true, text: `信道绑定吞吐量对比 (CM: ${data.cm_id}, 绑定信道数: ${data.channel_count})`, font: { size: 16, weight: 'bold' } }, legend: { position: 'top', labels: { font: { size: 14 } } } },
+                    scales: { x: { title: { display: true, text: 'SNR (dB)', font: { size: 14, weight: 'bold' } } }, y: { title: { display: true, text: '吞吐量 (Mbps)', font: { size: 14, weight: 'bold' } }, beginAtZero: true } }
+                }
+            });
+        }
+
+        function renderComparisonResult(data) {
+            const avgN = data.no_bonding_throughput_mbps.reduce((a, b) => a + b, 0) / data.no_bonding_throughput_mbps.length;
+            const avgB = data.with_bonding_throughput_mbps.reduce((a, b) => a + b, 0) / data.with_bonding_throughput_mbps.length;
+            const imp = ((avgB - avgN) / avgN * 100).toFixed(1);
+            document.getElementById('comparisonResult').innerHTML = `
+                <div class="comparison-card no-bonding"><div class="comparison-label">单信道平均吞吐量</div><div class="comparison-value">${avgN.toFixed(2)}</div><div class="comparison-unit">Mbps</div></div>
+                <div class="comparison-card with-bonding"><div class="comparison-label">${data.channel_count} 信道绑定平均吞吐量</div><div class="comparison-value">${avgB.toFixed(2)}</div><div class="comparison-unit">Mbps</div></div>
+                <div class="comparison-card improvement"><div class="comparison-label">性能提升</div><div class="comparison-value">+${imp}%</div><div class="comparison-unit">约 ${(avgB / avgN).toFixed(1)} 倍</div></div>
+            `;
+        }
+
+        async function resetSimulation() {
+            await fetchData(`${API_BASE}/reset`, { method: 'POST' });
+            loadChannels(); loadCMs(); loadInterferenceMatrix(); loadBalancerStatus();
+            if (comparisonChart) { comparisonChart.destroy(); comparisonChart = null; }
+            document.getElementById('comparisonResult').innerHTML = '';
+        }
+
+        loadChannels(); loadCMs(); loadInterferenceMatrix(); loadBalancerStatus();
+    </script>
+</body>
+</html>

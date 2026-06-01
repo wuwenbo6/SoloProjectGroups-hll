@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GPIO Sysfs Simulator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #1e293b;
+      --bg-input: #334155;
+      --border: #334155;
+      --border-focus: #3b82f6;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #3b82f6;
+      --accent-blue-hover: #2563eb;
+      --accent-green: #22c55e;
+      --accent-green-bg: rgba(34, 197, 94, 0.15);
+      --accent-red: #ef4444;
+      --accent-red-bg: rgba(239, 68, 68, 0.15);
+      --accent-amber: #f59e0b;
+      --accent-amber-bg: rgba(245, 158, 11, 0.15);
+      --accent-purple: #a855f7;
+      --accent-purple-bg: rgba(168, 85, 247, 0.15);
+      --accent-cyan: #06b6d4;
+      --accent-cyan-bg: rgba(6, 182, 212, 0.15);
+      --radius: 10px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .app { max-width: 1160px; margin: 0 auto; padding: 28px 24px 40px; }
+
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    header h1 {
+      font-size: 22px; font-weight: 700;
+      background: linear-gradient(135deg, #3b82f6, #a855f7);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    header .subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+    .sysfs-path {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px; color: var(--text-muted);
+      background: var(--bg-input); border-radius: 6px;
+      padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;
+    }
+
+    .sysfs-path .path-accent { color: var(--accent-blue); }
+
+    .section-title {
+      font-size: 14px; font-weight: 700; color: var(--text-primary);
+      margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+
+    .section-title .badge {
+      font-size: 10px; font-weight: 600; padding: 2px 8px;
+      border-radius: 10px; text-transform: uppercase; letter-spacing: .3px;
+    }
+
+    .badge-gpio { background: var(--accent-blue-bg); color: var(--accent-blue); }
+    .badge-i2c { background: var(--accent-cyan-bg); color: var(--accent-cyan); }
+    .badge-trace { background: var(--accent-amber-bg); color: var(--accent-amber); }
+
+    .toolbar {
+      display: flex; gap: 10px; align-items: center;
+      margin-bottom: 20px; flex-wrap: wrap;
+    }
+
+    .toolbar input, .toolbar input[type="number"] {
+      width: 110px; padding: 8px 12px;
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text-primary);
+      font-size: 14px; outline: none; transition: border-color .2s;
+    }
+
+    .toolbar input:focus { border-color: var(--border-focus); }
+
+    .btn {
+      padding: 8px 18px; border: none; border-radius: var(--radius);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: all .2s; display: inline-flex; align-items: center; gap: 6px;
+    }
+
+    .btn-primary { background: var(--accent-blue); color: #fff; }
+    .btn-primary:hover { background: var(--accent-blue-hover); }
+    .btn-danger { background: var(--accent-red); color: #fff; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-ghost { background: var(--bg-input); color: var(--text-secondary); }
+    .btn-ghost:hover { background: var(--border); color: var(--text-primary); }
+    .btn-cyan { background: var(--accent-cyan); color: #fff; }
+    .btn-cyan:hover { background: #0891b2; }
+
+    .pins-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+      gap: 16px;
+    }
+
+    .pin-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px;
+      transition: border-color .25s, box-shadow .25s;
+      animation: cardIn .3s ease;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .pin-card:hover { border-color: var(--accent-blue); box-shadow: var(--shadow); }
+
+    .pin-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .pin-label { display: flex; align-items: center; gap: 8px; }
+    .pin-label .pin-num { font-size: 18px; font-weight: 700; }
+    .pin-label .sysfs-label {
+      font-family: 'SF Mono', monospace; font-size: 11px;
+      color: var(--text-muted); background: var(--bg-input);
+      padding: 2px 8px; border-radius: 4px;
+    }
+
+    .pin-value-badge {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 800;
+      transition: all .3s;
+    }
+
+    .pin-value-badge.high {
+      background: var(--accent-green-bg); color: var(--accent-green);
+      box-shadow: 0 0 16px rgba(34, 197, 94, 0.25);
+    }
+
+    .pin-value-badge.low { background: var(--accent-red-bg); color: var(--accent-red); }
+
+    .pin-fields { display: flex; flex-direction: column; gap: 10px; }
+
+    .field-row { display: flex; align-items: center; gap: 10px; }
+
+    .field-label {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .5px; color: var(--text-muted);
+      width: 70px; flex-shrink: 0;
+    }
+
+    .field-row select, .field-row .value-btn {
+      padding: 5px 10px; background: var(--bg-input);
+      border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text-primary); font-size: 13px;
+      outline: none; cursor: pointer; transition: border-color .2s;
+    }
+
+    .field-row select:focus { border-color: var(--border-focus); }
+
+    .value-toggle {
+      display: flex; gap: 0; border-radius: 6px; overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .value-toggle button {
+      padding: 5px 16px; border: none;
+      background: var(--bg-input); color: var(--text-secondary);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: all .2s;
+    }
+
+    .value-toggle button.active-high { background: var(--accent-green); color: #fff; }
+    .value-toggle button.active-low { background: var(--accent-red); color: #fff; }
+    .value-toggle button:disabled { opacity: .4; cursor: not-allowed; }
+
+    .interrupt-section {
+      margin-top: 12px; padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .interrupt-counters { display: flex; gap: 10px; margin-top: 8px; }
+
+    .counter-chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 600;
+    }
+
+    .counter-chip.rising { background: var(--accent-green-bg); color: var(--accent-green); }
+    .counter-chip.falling { background: var(--accent-red-bg); color: var(--accent-red); }
+    .counter-chip.poll { background: var(--accent-purple-bg); color: var(--accent-purple); }
+
+    .counter-chip .counter-arrow { font-size: 14px; }
+
+    .interrupt-actions { display: flex; gap: 6px; margin-top: 8px; }
+
+    .btn-sm {
+      padding: 4px 10px; font-size: 11px; border-radius: 5px;
+      border: none; cursor: pointer; font-weight: 600;
+      transition: all .2s;
+    }
+
+    .btn-rising { background: var(--accent-green-bg); color: var(--accent-green); }
+    .btn-rising:hover { background: var(--accent-green); color: #fff; }
+    .btn-falling { background: var(--accent-red-bg); color: var(--accent-red); }
+    .btn-falling:hover { background: var(--accent-red); color: #fff; }
+    .btn-poll { background: var(--accent-purple-bg); color: var(--accent-purple); }
+    .btn-poll:hover { background: var(--accent-purple); color: #fff; }
+    .btn-poll:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-poll-cancel { background: var(--accent-amber-bg); color: var(--accent-amber); }
+    .btn-poll-cancel:hover { background: var(--accent-amber); color: #fff; }
+    .btn-poll-cancel:disabled { opacity: .4; cursor: not-allowed; }
+
+    .poll-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .poll-status { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+
+    .poll-indicator {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--text-muted); transition: all .3s;
+    }
+
+    .poll-indicator.waiting { background: var(--accent-purple); animation: pulse 1.2s infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .5; transform: scale(1.2); }
+    }
+
+    .poll-controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+    .poll-controls select {
+      padding: 4px 8px; background: var(--bg-input);
+      border: 1px solid var(--border); border-radius: 5px;
+      color: var(--text-secondary); font-size: 11px;
+      outline: none; cursor: pointer;
+    }
+
+    .btn-unexport { margin-top: 10px; width: 100%; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; line-height: 1.6; }
+
+    .panel {
+      margin-top: 24px; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px; background: var(--bg-input);
+      font-size: 12px; font-weight: 600; color: var(--text-secondary);
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+
+    .panel-body { padding: 16px; }
+
+    .i2c-config-row {
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .i2c-config-row label {
+      font-size: 11px; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: .3px;
+    }
+
+    .i2c-config-row input {
+      width: 70px; padding: 5px 8px;
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 5px; color: var(--text-primary);
+      font-size: 13px; outline: none;
+    }
+
+    .i2c-config-row input:focus { border-color: var(--border-focus); }
+
+    .i2c-config-row select {
+      padding: 5px 8px; background: var(--bg-input);
+      border: 1px solid var(--border); border-radius: 5px;
+      color: var(--text-primary); font-size: 13px; outline: none;
+    }
+
+    .i2c-devices {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
+    }
+
+    .i2c-device-chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 6px;
+      background: var(--accent-cyan-bg); color: var(--accent-cyan);
+      font-size: 12px; font-weight: 600;
+      font-family: 'SF Mono', monospace;
+    }
+
+    .i2c-device-chip button {
+      background: none; border: none; color: var(--accent-red);
+      cursor: pointer; font-size: 13px; font-weight: 700;
+      line-height: 1; padding: 0;
+    }
+
+    .i2c-xfer-row {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .i2c-xfer-row input {
+      width: 80px; padding: 5px 8px;
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 5px; color: var(--text-primary);
+      font-size: 13px; outline: none;
+    }
+
+    .i2c-xfer-row input:focus { border-color: var(--border-focus); }
+
+    .i2c-xfer-row label {
+      font-size: 11px; font-weight: 600; color: var(--text-muted);
+    }
+
+    .i2c-regs {
+      margin-top: 12px; padding: 10px;
+      background: var(--bg-input); border-radius: 6px;
+      font-family: 'SF Mono', monospace; font-size: 11px;
+      color: var(--text-secondary); max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .i2c-regs::-webkit-scrollbar { width: 4px; }
+    .i2c-regs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .i2c-reg-row { display: flex; gap: 8px; }
+    .i2c-reg-addr { color: var(--accent-cyan); }
+    .i2c-reg-val { color: var(--text-primary); }
+
+    .trace-controls {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .trace-indicator {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--text-muted); transition: all .3s;
+    }
+
+    .trace-indicator.recording {
+      background: var(--accent-red);
+      animation: pulse 1s infinite;
+    }
+
+    .trace-stats {
+      display: flex; gap: 12px; align-items: center;
+      font-size: 12px; color: var(--text-secondary);
+    }
+
+    .trace-stats span { font-family: 'SF Mono', monospace; }
+
+    .log-body {
+      max-height: 180px; overflow-y: auto; padding: 10px 16px;
+      font-family: 'SF Mono', monospace; font-size: 11px;
+      line-height: 1.8; color: var(--text-secondary);
+    }
+
+    .log-body::-webkit-scrollbar { width: 4px; }
+    .log-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .log-entry { display: flex; gap: 8px; }
+    .log-time { color: var(--text-muted); flex-shrink: 0; }
+    .log-type-info { color: var(--accent-blue); }
+    .log-type-rising { color: var(--accent-green); }
+    .log-type-falling { color: var(--accent-red); }
+    .log-type-warn { color: var(--accent-amber); }
+    .log-type-poll { color: var(--accent-purple); }
+    .log-type-i2c { color: var(--accent-cyan); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>GPIO Sysfs Simulator</h1>
+        <div class="subtitle">Linux /sys/class/gpio + I2C + Logic Analyzer</div>
+      </div>
+      <div class="sysfs-path">
+        <span class="path-accent">/sys/class/gpio</span>
+        <span>+</span>
+        <span class="path-accent">/dev/i2c-*</span>
+      </div>
+    </header>
+
+    <div class="section-title">
+      <span class="badge badge-gpio">GPIO</span>
+      Virtual Pins
+    </div>
+
+    <div class="toolbar">
+      <input type="number" id="gpioInput" placeholder="GPIO #" min="0" max="999" />
+      <button class="btn btn-primary" onclick="handleExport()">Export Pin</button>
+      <button class="btn btn-ghost" onclick="handleExportBatch()">Export 4 Pins</button>
+    </div>
+
+    <div id="pinsContainer" class="pins-grid"></div>
+    <div id="emptyState" class="empty-state">
+      <div class="icon">📡</div>
+      <p>No GPIO pins exported yet.<br/>Enter a GPIO number above and click "Export Pin" to begin.</p>
+    </div>
+
+    <div class="section-title" style="margin-top:28px;">
+      <span class="badge badge-i2c">I2C</span>
+      Bus Simulation (SDA/SCL)
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span>I2C Bus Configuration</span>
+        <span id="i2cStatus">Not configured</span>
+      </div>
+      <div class="panel-body">
+        <div class="i2c-config-row">
+          <label>SDA GPIO</label>
+          <input type="number" id="i2cSda" value="2" min="0" max="999" />
+          <label>SCL GPIO</label>
+          <input type="number" id="i2cScl" value="3" min="0" max="999" />
+          <button class="btn btn-cyan" onclick="handleI2cConfigure()">Connect Bus</button>
+          <label>Bit Delay</label>
+          <select id="i2cBitDelay" onchange="handleI2cSetDelay()">
+            <option value="20">20ms (fast)</option>
+            <option value="50" selected>50ms (normal)</option>
+            <option value="100">100ms (slow)</option>
+            <option value="200">200ms (debug)</option>
+          </select>
+        </div>
+        <div class="i2c-config-row">
+          <label>Device Addr (0x)</label>
+          <input type="number" id="i2cDevAddr" value="0x50" style="width:80px" />
+          <button class="btn btn-ghost" onclick="handleI2cAddDevice()">Add Device</button>
+          <button class="btn btn-ghost" onclick="handleI2cAddSampleDevice()">Add Sample (0x50)</button>
+        </div>
+        <div class="i2c-devices" id="i2cDevices"></div>
+        <div class="i2c-xfer-row">
+          <label>Addr (0x)</label>
+          <input type="number" id="i2cXferAddr" value="0x50" style="width:80px" />
+          <label>Write Data</label>
+          <input type="text" id="i2cWriteData" placeholder="0x00,0x01..." style="width:160px" />
+          <button class="btn btn-cyan" onclick="handleI2cWrite()">Write</button>
+          <label>Read Count</label>
+          <input type="number" id="i2cReadCount" value="4" style="width:60px" />
+          <button class="btn btn-ghost" onclick="handleI2cRead()">Read</button>
+        </div>
+        <div class="i2c-xfer-row">
+          <label>Reg Addr (0x)</label>
+          <input type="number" id="i2cRegAddr" value="0x00" style="width:80px" />
+          <label>Value (0x)</label>
+          <input type="number" id="i2cRegVal" value="0xFF" style="width:80px" />
+          <button class="btn btn-ghost" onclick="handleI2cSetReg()">Set Register</button>
+          <button class="btn btn-ghost" onclick="handleI2cGetRegs()">View Registers</button>
+        </div>
+        <div class="i2c-regs" id="i2cRegs">No register data</div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:28px;">
+      <span class="badge badge-trace">TRACE</span>
+      Logic Analyzer
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span>Trace Recorder</span>
+        <span id="traceStatus">Idle</span>
+      </div>
+      <div class="panel-body">
+        <div class="trace-controls">
+          <div class="trace-indicator" id="traceIndicator"></div>
+          <button class="btn btn-sm" style="background:var(--accent-green-bg);color:var(--accent-green);" onclick="handleTraceStart()" id="traceStartBtn">⏺ Record</button>
+          <button class="btn btn-sm" style="background:var(--accent-red-bg);color:var(--accent-red);" onclick="handleTraceStop()" id="traceStopBtn" disabled>■ Stop</button>
+          <button class="btn btn-sm btn-ghost" onclick="handleTraceClear()">Clear</button>
+          <button class="btn btn-sm" style="background:var(--accent-amber-bg);color:var(--accent-amber);" onclick="handleTraceExportCsv()">📁 Export CSV</button>
+        </div>
+        <div class="trace-stats">
+          <span>Events: <strong id="traceEventCount">0</strong></span>
+          <span id="traceRecLabel">Not recording</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <div class="panel-header">
+        <span>Event Log</span>
+        <button class="btn btn-ghost" style="padding:3px 8px;font-size:10px;" onclick="clearLog()">Clear</button>
+      </div>
+      <div class="log-body" id="logBody"></div>
+    </div>
+  </div>
+
+  <script>
+    const pins = new Map()
+    const pollingPins = new Set()
+    let nextGpio = 2
+    let i2cConfig = { sdaGpio: null, sclGpio: null, active: false, bitDelayMs: 50, deviceCount: 0 }
+    let i2cDevices = []
+    let traceRecording = false
+
+    window.gpioAPI.onChanged((data) => {
+      if (data.removed) {
+        pins.delete(data.gpio)
+        pollingPins.delete(data.gpio)
+      } else {
+        pins.set(data.gpio, data)
+      }
+      render()
+    })
+
+    window.gpioAPI.onInterrupt((data) => {
+      addLog(data.gpio, data.type, data.count)
+      const pin = pins.get(data.gpio)
+      if (pin) {
+        if (data.type === 'rising') pin.risingCount = data.count
+        if (data.type === 'falling') pin.fallingCount = data.count
+        render()
+      }
+    })
+
+    async function handlePoll(gpio) {
+      const select = document.getElementById(`pollTimeout-${gpio}`)
+      const timeout = parseInt(select.value, 10)
+      pollingPins.add(gpio)
+      render()
+      addLogPoll(gpio, `start poll (${timeout}ms)`)
+
+      const result = await window.gpioAPI.poll(gpio, timeout)
+      pollingPins.delete(gpio)
+
+      if (result.ok) {
+        addLogPoll(gpio, `woke by ${result.type} edge`)
+      } else if (result.type === 'timeout') {
+        addLogPoll(gpio, `poll timeout`)
+      } else if (result.type === 'cancelled') {
+        addLogPoll(gpio, `poll cancelled`)
+      } else {
+        addLogWarn(gpio, result.error)
+      }
+      render()
+    }
+
+    async function handleCancelPoll(gpio) {
+      const res = await window.gpioAPI.cancelPoll(gpio)
+      if (res.ok && res.count > 0) {
+        addLogPoll(gpio, `cancelled ${res.count} poller(s)`)
+      }
+    }
+
+    async function handleExport() {
+      const input = document.getElementById('gpioInput')
+      const gpio = input.value.trim()
+      if (!gpio) return
+      const res = await window.gpioAPI.exportPin(gpio)
+      if (!res.ok) { addLogWarn(gpio, res.error); return }
+      input.value = ''
+    }
+
+    async function handleExportBatch() {
+      for (let i = 0; i < 4; i++) {
+        const gpio = nextGpio++
+        await window.gpioAPI.exportPin(gpio)
+      }
+    }
+
+    async function handleUnexport(gpio) {
+      await window.gpioAPI.unexportPin(gpio)
+    }
+
+    async function handleSetDirection(gpio, dir) {
+      const res = await window.gpioAPI.setDirection(gpio, dir)
+      if (!res.ok) addLogWarn(gpio, res.error)
+    }
+
+    async function handleSetValue(gpio, val) {
+      const res = await window.gpioAPI.setValue(gpio, val)
+      if (!res.ok) addLogWarn(gpio, res.error)
+    }
+
+    async function handleSetEdge(gpio, edge) {
+      const res = await window.gpioAPI.setEdge(gpio, edge)
+      if (!res.ok) addLogWarn(gpio, res.error)
+    }
+
+    async function handleTriggerInterrupt(gpio, type) {
+      const res = await window.gpioAPI.triggerInterrupt(gpio, type)
+      if (!res.ok) addLogWarn(gpio, res.error)
+    }
+
+    function render() {
+      const container = document.getElementById('pinsContainer')
+      const empty = document.getElementById('emptyState')
+
+      if (pins.size === 0) {
+        container.innerHTML = ''
+        empty.style.display = ''
+        return
+      }
+
+      empty.style.display = 'none'
+      const sorted = [...pins.entries()].sort((a, b) => a[0] - b[0])
+
+      container.innerHTML = sorted.map(([gpio, pin]) => {
+        const isOut = pin.direction === 'out'
+        const highClass = pin.value === 1 ? 'active-high' : ''
+        const lowClass = pin.value === 0 ? 'active-low' : ''
+        const badgeClass = pin.value === 1 ? 'high' : 'low'
+        const isSda = i2cConfig.sdaGpio === gpio
+        const isScl = i2cConfig.sclGpio === gpio
+        const i2cTag = isSda ? ' <span style="color:var(--accent-cyan);font-size:10px;font-weight:700;">SDA</span>' : isScl ? ' <span style="color:var(--accent-cyan);font-size:10px;font-weight:700;">SCL</span>' : ''
+
+        return `
+          <div class="pin-card">
+            <div class="pin-header">
+              <div class="pin-label">
+                <span class="pin-num">GPIO ${gpio}</span>
+                ${i2cTag}
+                <span class="sysfs-label">gpio${gpio}</span>
+              </div>
+              <div class="pin-value-badge ${badgeClass}">${pin.value}</div>
+            </div>
+            <div class="pin-fields">
+              <div class="field-row">
+                <span class="field-label">Direction</span>
+                <select onchange="handleSetDirection(${gpio}, this.value)">
+                  <option value="in" ${pin.direction === 'in' ? 'selected' : ''}>in (input)</option>
+                  <option value="out" ${pin.direction === 'out' ? 'selected' : ''}>out (output)</option>
+                </select>
+              </div>
+              <div class="field-row">
+                <span class="field-label">Value</span>
+                <div class="value-toggle">
+                  <button ${!isOut ? 'disabled' : ''} class="${lowClass}" onclick="handleSetValue(${gpio}, 0)">0</button>
+                  <button ${!isOut ? 'disabled' : ''} class="${highClass}" onclick="handleSetValue(${gpio}, 1)">1</button>
+                </div>
+              </div>
+              <div class="field-row">
+                <span class="field-label">Edge</span>
+                <select onchange="handleSetEdge(${gpio}, this.value)">
+                  <option value="none" ${pin.edge === 'none' ? 'selected' : ''}>none</option>
+                  <option value="rising" ${pin.edge === 'rising' ? 'selected' : ''}>rising</option>
+                  <option value="falling" ${pin.edge === 'falling' ? 'selected' : ''}>falling</option>
+                  <option value="both" ${pin.edge === 'both' ? 'selected' : ''}>both</option>
+                </select>
+              </div>
+            </div>
+            <div class="interrupt-section">
+              <span class="field-label" style="width:auto;">Interrupts</span>
+              <div class="interrupt-counters">
+                <div class="counter-chip rising"><span class="counter-arrow">↑</span> Rising: ${pin.risingCount}</div>
+                <div class="counter-chip falling"><span class="counter-arrow">↓</span> Falling: ${pin.fallingCount}</div>
+              </div>
+              <div class="interrupt-actions">
+                <button class="btn-sm btn-rising" onclick="handleTriggerInterrupt(${gpio}, 'rising')">↑ Sim Rising</button>
+                <button class="btn-sm btn-falling" onclick="handleTriggerInterrupt(${gpio}, 'falling')">↓ Sim Falling</button>
+              </div>
+            </div>
+            <div class="poll-section">
+              <span class="field-label" style="width:auto;">Poll Queue</span>
+              <div class="poll-status">
+                <div class="poll-indicator ${pin.pollCount > 0 ? 'waiting' : ''}"></div>
+                <div class="counter-chip poll"><span>⚡</span> Waiters: ${pin.pollCount || 0}</div>
+              </div>
+              <div class="poll-controls">
+                <select id="pollTimeout-${gpio}">
+                  <option value="2000">2s</option>
+                  <option value="5000" selected>5s</option>
+                  <option value="10000">10s</option>
+                  <option value="30000">30s</option>
+                </select>
+                <button class="btn-sm btn-poll" ${pin.edge === 'none' || pollingPins.has(gpio) ? 'disabled' : ''} onclick="handlePoll(${gpio})">▶ Poll</button>
+                <button class="btn-sm btn-poll-cancel" ${pin.pollCount === 0 ? 'disabled' : ''} onclick="handleCancelPoll(${gpio})">■ Cancel</button>
+              </div>
+            </div>
+            <button class="btn btn-danger btn-unexport" onclick="handleUnexport(${gpio})">Unexport gpio${gpio}</button>
+          </div>
+        `
+      }).join('')
+    }
+
+    async function handleI2cConfigure() {
+      const sda = document.getElementById('i2cSda').value
+      const scl = document.getElementById('i2cScl').value
+      const res = await window.i2cAPI.configure(sda, scl)
+      if (!res.ok) { addLogI2c(res.error); return }
+      for (const g of [parseInt(sda), parseInt(scl)]) {
+        if (!pins.has(g)) await window.gpioAPI.exportPin(g)
+        await window.gpioAPI.setDirection(g, 'out')
+      }
+      addLogI2c(`bus configured: SDA=GPIO${sda}, SCL=GPIO${scl}`)
+      await refreshI2cConfig()
+    }
+
+    async function handleI2cSetDelay() {
+      const ms = document.getElementById('i2cBitDelay').value
+      await window.i2cAPI.setBitDelay(ms)
+      addLogI2c(`bit delay set to ${ms}ms`)
+      await refreshI2cConfig()
+    }
+
+    async function handleI2cAddDevice() {
+      const val = document.getElementById('i2cDevAddr').value
+      const addr = val.startsWith('0x') ? parseInt(val, 16) : parseInt(val, 10)
+      const res = await window.i2cAPI.addDevice(addr)
+      if (!res.ok) { addLogI2c(res.error); return }
+      addLogI2c(`device added at 0x${addr.toString(16).toUpperCase()}`)
+      await refreshI2cDevices()
+    }
+
+    async function handleI2cAddSampleDevice() {
+      const res = await window.i2cAPI.addDevice(0x50)
+      if (!res.ok) { addLogI2c(res.error); return }
+      const regs = new Array(256).fill(0)
+      for (let i = 0; i < 16; i++) regs[i] = i * 0x11
+      await window.i2cAPI.addDevice(0x50, regs)
+      addLogI2c('sample device added at 0x50 (with init data)')
+      await refreshI2cDevices()
+    }
+
+    async function handleI2cRemoveDevice(addr) {
+      await window.i2cAPI.removeDevice(addr)
+      addLogI2c(`device 0x${addr.toString(16).toUpperCase()} removed`)
+      await refreshI2cDevices()
+    }
+
+    async function handleI2cWrite() {
+      const addrVal = document.getElementById('i2cXferAddr').value
+      const addr = addrVal.startsWith('0x') ? parseInt(addrVal, 16) : parseInt(addrVal, 10)
+      const dataStr = document.getElementById('i2cWriteData').value.trim()
+      const data = dataStr.split(',').map(s => {
+        const v = s.trim()
+        return v.startsWith('0x') ? parseInt(v, 16) : parseInt(v, 10)
+      }).filter(n => !isNaN(n))
+
+      if (data.length === 0) { addLogI2c('no valid data bytes'); return }
+
+      addLogI2c(`write to 0x${addr.toString(16).toUpperCase()}: [${data.map(b => '0x' + b.toString(16).toUpperCase()).join(',')}]`)
+      const res = await window.i2cAPI.write(addr, data)
+      if (res.ok) {
+        addLogI2c(`write OK, events: ${res.events.map(e => e.phase).join(' → ')}`)
+      } else {
+        addLogI2c(`write FAILED: ${res.error}`)
+      }
+      await refreshI2cConfig()
+      render()
+    }
+
+    async function handleI2cRead() {
+      const addrVal = document.getElementById('i2cXferAddr').value
+      const addr = addrVal.startsWith('0x') ? parseInt(addrVal, 16) : parseInt(addrVal, 10)
+      const count = parseInt(document.getElementById('i2cReadCount').value, 10) || 1
+
+      addLogI2c(`read from 0x${addr.toString(16).toUpperCase()}, ${count} byte(s)`)
+      const res = await window.i2cAPI.read(addr, count)
+      if (res.ok) {
+        const hex = res.data.map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(' ')
+        addLogI2c(`read OK: [${hex}]`)
+      } else {
+        addLogI2c(`read FAILED: ${res.error}`)
+      }
+      await refreshI2cConfig()
+      render()
+    }
+
+    async function handleI2cSetReg() {
+      const addrVal = document.getElementById('i2cXferAddr').value
+      const addr = addrVal.startsWith('0x') ? parseInt(addrVal, 16) : parseInt(addrVal, 10)
+      const regVal = document.getElementById('i2cRegAddr').value
+      const reg = regVal.startsWith('0x') ? parseInt(regVal, 16) : parseInt(regVal, 10)
+      const valVal = document.getElementById('i2cRegVal').value
+      const val = valVal.startsWith('0x') ? parseInt(valVal, 16) : parseInt(valVal, 10)
+
+      const res = await window.i2cAPI.setDeviceRegister(addr, reg, val)
+      if (res.ok) {
+        addLogI2c(`reg[0x${reg.toString(16).toUpperCase()}] = 0x${val.toString(16).toUpperCase().padStart(2, '0')}`)
+      } else {
+        addLogI2c(res.error)
+      }
+    }
+
+    async function handleI2cGetRegs() {
+      const addrVal = document.getElementById('i2cXferAddr').value
+      const addr = addrVal.startsWith('0x') ? parseInt(addrVal, 16) : parseInt(addrVal, 10)
+      const res = await window.i2cAPI.getDeviceRegisters(addr, 0, 32)
+      const container = document.getElementById('i2cRegs')
+      if (!res.ok) { container.textContent = res.error; return }
+
+      let html = ''
+      for (let i = 0; i < res.registers.length; i += 8) {
+        const chunk = res.registers.slice(i, i + 8)
+        html += `<div class="i2c-reg-row"><span class="i2c-reg-addr">${i.toString(16).toUpperCase().padStart(2, '0')}:</span>`
+        html += chunk.map(r => `<span class="i2c-reg-val">${r.value.toString(16).toUpperCase().padStart(2, '0')}</span>`).join(' ')
+        html += '</div>'
+      }
+      container.innerHTML = html
+    }
+
+    async function refreshI2cConfig() {
+      i2cConfig = await window.i2cAPI.getConfig()
+      const statusEl = document.getElementById('i2cStatus')
+      if (i2cConfig.sdaGpio !== null) {
+        statusEl.textContent = `SDA=GPIO${i2cConfig.sdaGpio} SCL=GPIO${i2cConfig.sclGpio} ${i2cConfig.active ? '(BUSY)' : '(IDLE)'}`
+        statusEl.style.color = i2cConfig.active ? 'var(--accent-amber)' : 'var(--accent-green)'
+      } else {
+        statusEl.textContent = 'Not configured'
+        statusEl.style.color = 'var(--text-muted)'
+      }
+    }
+
+    async function refreshI2cDevices() {
+      i2cDevices = await window.i2cAPI.getDevices()
+      const container = document.getElementById('i2cDevices')
+      if (i2cDevices.length === 0) {
+        container.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">No I2C devices</span>'
+        return
+      }
+      container.innerHTML = i2cDevices.map(d =>
+        `<div class="i2c-device-chip">0x${d.address.toString(16).toUpperCase()}<button onclick="handleI2cRemoveDevice(${d.address})">✕</button></div>`
+      ).join('')
+    }
+
+    async function handleTraceStart() {
+      await window.traceAPI.start()
+      traceRecording = true
+      updateTraceUI()
+      addLogTrace('recording started')
+    }
+
+    async function handleTraceStop() {
+      await window.traceAPI.stop()
+      traceRecording = false
+      updateTraceUI()
+      const traces = await window.traceAPI.getTraces()
+      addLogTrace(`recording stopped, ${traces.length} events captured`)
+    }
+
+    async function handleTraceClear() {
+      await window.traceAPI.stop()
+      await window.traceAPI.clear()
+      traceRecording = false
+      updateTraceUI()
+      addLogTrace('trace cleared')
+    }
+
+    async function handleTraceExportCsv() {
+      const res = await window.traceAPI.exportCsv()
+      if (res.ok) {
+        addLogTrace(`CSV exported to ${res.path}`)
+      } else if (res.error !== 'Cancelled') {
+        addLogTrace(`export failed: ${res.error}`)
+      }
+    }
+
+    async function updateTraceUI() {
+      const indicator = document.getElementById('traceIndicator')
+      const startBtn = document.getElementById('traceStartBtn')
+      const stopBtn = document.getElementById('traceStopBtn')
+      const label = document.getElementById('traceRecLabel')
+
+      indicator.className = 'trace-indicator' + (traceRecording ? ' recording' : '')
+      startBtn.disabled = traceRecording
+      stopBtn.disabled = !traceRecording
+      label.textContent = traceRecording ? 'Recording...' : 'Not recording'
+      label.style.color = traceRecording ? 'var(--accent-red)' : 'var(--text-muted)'
+
+      const traces = await window.traceAPI.getTraces()
+      document.getElementById('traceEventCount').textContent = traces.length
+    }
+
+    function addLog(gpio, type, count) {
+      const body = document.getElementById('logBody')
+      const time = new Date().toLocaleTimeString('en-US', { hour12: false })
+      const cls = type === 'rising' ? 'log-type-rising' : 'log-type-falling'
+      const arrow = type === 'rising' ? '↑' : '↓'
+      body.innerHTML += `<div class="log-entry"><span class="log-time">${time}</span><span class="${cls}">[IRQ] gpio${gpio} ${arrow} ${type} edge #${count}</span></div>`
+      body.scrollTop = body.scrollHeight
+    }
+
+    function addLogWarn(gpio, error) {
+      const body = document.getElementById('logBody')
+      const time = new Date().toLocaleTimeString('en-US', { hour12: false })
+      body.innerHTML += `<div class="log-entry"><span class="log-time">${time}</span><span class="log-type-warn">[ERR] gpio${gpio}: ${error}</span></div>`
+      body.scrollTop = body.scrollHeight
+    }
+
+    function addLogPoll(gpio, msg) {
+      const body = document.getElementById('logBody')
+      const time = new Date().toLocaleTimeString('en-US', { hour12: false })
+      body.innerHTML += `<div class="log-entry"><span class="log-time">${time}</span><span class="log-type-poll">[POLL] gpio${gpio}: ${msg}</span></div>`
+      body.scrollTop = body.scrollHeight
+    }
+
+    function addLogI2c(msg) {
+      const body = document.getElementById('logBody')
+      const time = new Date().toLocaleTimeString('en-US', { hour12: false })
+      body.innerHTML += `<div class="log-entry"><span class="log-time">${time}</span><span class="log-type-i2c">[I2C] ${msg}</span></div>`
+      body.scrollTop = body.scrollHeight
+    }
+
+    function addLogTrace(msg) {
+      const body = document.getElementById('logBody')
+      const time = new Date().toLocaleTimeString('en-US', { hour12: false })
+      body.innerHTML += `<div class="log-entry"><span class="log-time">${time}</span><span class="log-type-warn">[TRACE] ${msg}</span></div>`
+      body.scrollTop = body.scrollHeight
+    }
+
+    function clearLog() {
+      document.getElementById('logBody').innerHTML = ''
+    }
+
+    async function init() {
+      const all = await window.gpioAPI.getAll()
+      for (const [gpio, pin] of Object.entries(all)) {
+        pins.set(parseInt(gpio), pin)
+      }
+      render()
+      await refreshI2cConfig()
+      await refreshI2cDevices()
+      traceRecording = await window.traceAPI.isRecording()
+      updateTraceUI()
+    }
+
+    setInterval(updateTraceUI, 2000)
+
+    init()
+  </script>
+</body>
+</html>

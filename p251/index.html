@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>W25Q128 SPI Flash 模拟器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .chip-info {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .chip-info h2 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .info-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .info-label {
+            color: #888;
+            font-size: 0.8em;
+        }
+
+        .info-value {
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            font-size: 1em;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .panel h2 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .command-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        .command-group h3 {
+            color: #ffaa00;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+
+        button {
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        input[type="text"], input[type="number"] {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+
+        label {
+            color: #aaa;
+            font-size: 0.9em;
+            min-width: 80px;
+        }
+
+        .output {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-left: 3px solid #00d4ff;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .log-time {
+            color: #888;
+            font-size: 0.8em;
+        }
+
+        .log-command {
+            color: #ffaa00;
+        }
+
+        .log-result {
+            color: #00ff88;
+        }
+
+        .error {
+            color: #ff4444;
+        }
+
+        .hex-view {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+            line-height: 1.5;
+        }
+
+        .hex-address {
+            color: #888;
+        }
+
+        .hex-byte {
+            color: #00d4ff;
+        }
+
+        .hex-ascii {
+            color: #00ff88;
+        }
+
+        .mode-indicator {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .mode-spi {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+        }
+
+        .mode-qspi {
+            background: rgba(255, 170, 0, 0.2);
+            color: #ffaa00;
+        }
+
+        .mode-ddr {
+            background: rgba(255, 0, 170, 0.2);
+            color: #ff00aa;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #666 0%, #444 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffaa00 0%, #ff8800 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+        }
+
+        .mode-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>W25Q128 SPI Flash 模拟器</h1>
+
+        <div class="chip-info">
+            <h2>芯片信息 <span class="mode-indicator" id="current-mode">SPI</span></h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">制造商 ID</div>
+                    <div class="info-value" id="mfr-id">--</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">内存类型</div>
+                    <div class="info-value" id="mem-type">--</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">容量</div>
+                    <div class="info-value" id="capacity">--</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">制造商</div>
+                    <div class="info-value" id="mfr-name">--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="panel">
+                <h2>命令控制</h2>
+
+                <div class="command-group">
+                    <h3>识别命令</h3>
+                    <button onclick="readJEDECId()">读取 JEDEC ID (0x9F)</button>
+                    <button onclick="readSFDP()">读取 SFDP 参数表 (0x5A)</button>
+                </div>
+
+                <div class="command-group">
+                    <h3>SPI/QSPI 模式控制</h3>
+                    <button class="btn-warning" onclick="enableQSPI()">启用 QSPI</button>
+                    <button class="btn-secondary" onclick="disableQSPI()">禁用 QSPI</button>
+                    <button class="btn-success" onclick="enableDDR()">启用 DDR (双倍数据率)</button>
+                    <button class="btn-secondary" onclick="disableDDR()">禁用 DDR</button>
+                    <div style="margin-top: 10px; color: #888; font-size: 0.8em;">
+                        当前数据宽度: <span id="data-width" style="color: #00d4ff;">1位 (SPI)</span>
+                    </div>
+                </div>
+
+                <div class="command-group">
+                    <h3>擦除命令</h3>
+                    <div class="input-group">
+                        <label>地址:</label>
+                        <input type="text" id="erase-address" placeholder="0x000000" value="0x000000">
+                    </div>
+                    <button onclick="eraseSector()">扇区擦除 (4KB) 0x20</button>
+                    <button onclick="eraseBlock()">块擦除 (64KB) 0xD8</button>
+                    <button onclick="eraseChip()">整片擦除 0xC7</button>
+                </div>
+
+                <div class="command-group">
+                    <h3>编程/写入命令 (0x02)</h3>
+                    <div class="input-group">
+                        <label>地址:</label>
+                        <input type="text" id="prog-address" placeholder="0x000000" value="0x000000">
+                    </div>
+                    <div class="input-group">
+                        <label>数据:</label>
+                        <input type="text" id="prog-data" placeholder="十六进制, 如: 48656C6C6F" value="48656C6C6F">
+                    </div>
+                    <button onclick="program()">页编程 (0x02)</button>
+                    <button class="btn-warning" onclick="quadProgram()">Quad 编程 (0x32)</button>
+                </div>
+
+                <div class="command-group">
+                    <h3>读取命令 (0x03)</h3>
+                    <div class="input-group">
+                        <label>地址:</label>
+                        <input type="text" id="read-address" placeholder="0x000000" value="0x000000">
+                    </div>
+                    <div class="input-group">
+                        <label>长度:</label>
+                        <input type="number" id="read-length" placeholder="字节数" value="32" min="1" max="256">
+                    </div>
+                    <button onclick="read()">普通读取 (0x03)</button>
+                    <button class="btn-warning" onclick="fastReadQuad()">Quad 快读 (0x6B)</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>输出日志
+                    <button class="btn-success" style="float: right; padding: 5px 15px; font-size: 0.8em;" onclick="exportLog()">导出日志</button>
+                    <button class="btn-danger" style="float: right; padding: 5px 15px; font-size: 0.8em; margin-right: 5px;" onclick="clearLog()">清空</button>
+                </h2>
+                <div class="output" id="output"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

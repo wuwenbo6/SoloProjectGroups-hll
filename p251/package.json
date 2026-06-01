@@ -1,0 +1,12 @@
+{
+  "name": "w25q128-simulator",
+  "version": "1.0.0",
+  "description": "W25Q128 SPI Nor Flash Simulator",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}

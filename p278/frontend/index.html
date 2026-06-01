@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EtherNet/IP 标签读写工具</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>EtherNet/IP 标签读写工具</h1>
+            <p class="subtitle">解析 EtherNet/IP 帧 | CIP 协议分析 | 标签读写操作</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="connection">连接配置</button>
+            <button class="tab-btn" data-tab="tag-ops">标签读写</button>
+            <button class="tab-btn" data-tab="tag-db">标签数据库</button>
+            <button class="tab-btn" data-tab="explicit">显式消息</button>
+            <button class="tab-btn" data-tab="parser">报文解析</button>
+        </div>
+
+        <div id="connection" class="tab-content active">
+            <div class="card">
+                <h2>PLC 连接配置</h2>
+                <div class="form-group">
+                    <label for="host">PLC IP 地址:</label>
+                    <input type="text" id="host" placeholder="例如: 192.168.1.100" value="127.0.0.1">
+                </div>
+                <div class="form-group">
+                    <label for="port">端口 (默认 44818):</label>
+                    <input type="number" id="port" value="44818">
+                </div>
+                <div class="button-group">
+                    <button id="connectBtn" class="btn btn-primary">连接</button>
+                    <button id="disconnectBtn" class="btn btn-danger" disabled>断开连接</button>
+                </div>
+                <div id="connectionStatus" class="status-box">
+                    <span class="status-indicator disconnected"></span>
+                    <span class="status-text">未连接</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="tag-ops" class="tab-content">
+            <div class="card">
+                <h2>读取标签</h2>
+                <div class="form-group">
+                    <label for="readTag">标签名称:</label>
+                    <input type="text" id="readTag" placeholder="例如: TestTag">
+                </div>
+                <div class="form-group">
+                    <label for="readDataType">数据类型:</label>
+                    <select id="readDataType">
+                        <option value="DINT">DINT (32位整数)</option>
+                        <option value="INT">INT (16位整数)</option>
+                        <option value="REAL">REAL (32位浮点数)</option>
+                        <option value="BOOL">BOOL (布尔值)</option>
+                        <option value="UINT">UINT (16位无符号)</option>
+                        <option value="UDINT">UDINT (32位无符号)</option>
+                    </select>
+                </div>
+                <button id="readBtn" class="btn btn-success">读取标签</button>
+                <div id="readResult" class="result-box"></div>
+            </div>
+
+            <div class="card">
+                <h2>写入标签</h2>
+                <div class="form-group">
+                    <label for="writeTag">标签名称:</label>
+                    <input type="text" id="writeTag" placeholder="例如: TestTag">
+                </div>
+                <div class="form-group">
+                    <label for="writeDataType">数据类型:</label>
+                    <select id="writeDataType">
+                        <option value="DINT">DINT (32位整数)</option>
+                        <option value="INT">INT (16位整数)</option>
+                        <option value="REAL">REAL (32位浮点数)</option>
+                        <option value="BOOL">BOOL (布尔值)</option>
+                        <option value="UINT">UINT (16位无符号)</option>
+                        <option value="UDINT">UDINT (32位无符号)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="writeValue">写入值:</label>
+                    <input type="text" id="writeValue" placeholder="例如: 12345">
+                </div>
+                <button id="writeBtn" class="btn btn-warning">写入标签</button>
+                <div id="writeResult" class="result-box"></div>
+            </div>
+
+            <div class="card">
+                <h2>操作历史</h2>
+                <div id="historyList" class="history-list">
+                    <p class="empty-history">暂无操作记录</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="tag-db" class="tab-content">
+            <div class="card">
+                <h2>标签数据库管理</h2>
+                <div class="button-group">
+                    <button id="refreshTagsBtn" class="btn btn-primary">刷新标签列表</button>
+                    <button id="exportJsonBtn" class="btn btn-success">导出 JSON</button>
+                    <button id="exportCsvBtn" class="btn btn-success">导出 CSV</button>
+                    <button id="resetTagsBtn" class="btn btn-warning">重置默认</button>
+                </div>
+                <div id="tagsList" class="tags-list">
+                    <p class="empty-history">点击"刷新标签列表"加载标签数据</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>添加新标签</h2>
+                <div class="form-group">
+                    <label for="newTagName">标签名称:</label>
+                    <input type="text" id="newTagName" placeholder="例如: MyTag">
+                </div>
+                <div class="form-group">
+                    <label for="newTagType">数据类型:</label>
+                    <select id="newTagType">
+                        <option value="0xC1">BOOL</option>
+                        <option value="0xC2">SINT</option>
+                        <option value="0xC3">INT</option>
+                        <option value="0xC4" selected>DINT</option>
+                        <option value="0xC5">LINT</option>
+                        <option value="0xC6">USINT</option>
+                        <option value="0xC7">UINT</option>
+                        <option value="0xC8">UDINT</option>
+                        <option value="0xC9">ULINT</option>
+                        <option value="0xCA">REAL</option>
+                        <option value="0xCB">LREAL</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="newTagInstanceId">Instance ID:</label>
+                    <input type="number" id="newTagInstanceId" value="0">
+                </div>
+                <div class="form-group">
+                    <label for="newTagDesc">描述:</label>
+                    <input type="text" id="newTagDesc" placeholder="标签描述">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="newTagReadOnly"> 只读
+                    </label>
+                </div>
+                <button id="addTagBtn" class="btn btn-primary">添加标签</button>
+                <div id="addTagResult" class="result-box"></div>
+            </div>
+        </div>
+
+        <div id="explicit" class="tab-content">
+            <div class="card">
+                <h2>显式消息发送</h2>
+                <div class="form-group">
+                    <label for="explicitService">服务码 (Service Code):</label>
+                    <select id="explicitService">
+                        <option value="0x01">GET_ATTRIBUTE_ALL (0x01)</option>
+                        <option value="0x0E" selected>GET_ATTRIBUTE_SINGLE (0x0E)</option>
+                        <option value="0x10">SET_ATTRIBUTE_SINGLE (0x10)</option>
+                        <option value="0x4C">READ_TAG (0x4C)</option>
+                        <option value="0x4D">WRITE_TAG (0x4D)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="explicitClass">Class ID:</label>
+                    <input type="text" id="explicitClass" placeholder="十进制或0x开头十六进制" value="0x04">
+                </div>
+                <div class="form-group">
+                    <label for="explicitInstance">Instance ID:</label>
+                    <input type="text" id="explicitInstance" placeholder="十进制或0x开头十六进制" value="0x01">
+                </div>
+                <div class="form-group">
+                    <label for="explicitAttribute">Attribute ID (可选):</label>
+                    <input type="text" id="explicitAttribute" placeholder="十进制或0x开头十六进制" value="0x03">
+                </div>
+                <div class="form-group">
+                    <label for="explicitData">附加数据 (Hex, 可选):</label>
+                    <input type="text" id="explicitData" placeholder="例如: 0100">
+                </div>
+                <button id="sendExplicitBtn" class="btn btn-primary">发送显式消息</button>
+                <div id="explicitResult" class="result-box"></div>
+            </div>
+
+            <div class="card">
+                <h2>显式消息历史</h2>
+                <div id="explicitHistory" class="history-list">
+                    <p class="empty-history">暂无消息记录</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="parser" class="tab-content">
+            <div class="card">
+                <h2>EtherNet/IP 报文解析</h2>
+                <div class="form-group">
+                    <label for="hexInput">十六进制报文数据:</label>
+                    <textarea id="hexInput" rows="4" placeholder="输入十六进制字符串，例如: 6f003600..."></textarea>
+                </div>
+                <div class="button-group">
+                    <button id="parseBtn" class="btn btn-primary">解析报文</button>
+                    <button id="loadExampleBtn" class="btn btn-secondary">加载示例</button>
+                    <button id="clearParserBtn" class="btn btn-danger">清空</button>
+                </div>
+                <div id="parseResult" class="parse-result"></div>
+            </div>
+
+            <div class="card">
+                <h2>示例报文</h2>
+                <div id="examplesList" class="examples-list">
+                    <p>点击"加载示例"按钮查看可用的示例报文</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

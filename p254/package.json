@@ -1,0 +1,19 @@
+{
+  "name": "dali-light-controller",
+  "version": "1.0.0",
+  "description": "DALI lighting control application via serial port",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": ["dali", "lighting", "serial", "electron"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  },
+  "dependencies": {
+    "serialport": "^12.0.0"
+  }
+}

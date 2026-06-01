@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenFlow Meter 控制器监控面板</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>OpenFlow Meter 控制器监控面板</h1>
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-label">控制器状态:</span>
+                    <span id="controller-status" class="status-value disconnected">未连接</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Meter链级数:</span>
+                    <span id="chain-levels" class="status-value">{{ meter_chain|length }}</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">首次触发:</span>
+                    <span id="first-threshold" class="status-value">--</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">最终阈值:</span>
+                    <span id="last-threshold" class="status-value">--</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="alert-container">
+            <div id="threshold-alert" class="alert alert-info hidden">
+                <span class="alert-icon">🔄</span>
+                <span class="alert-message">流量速率超过阈值，Meter链正在处理...</span>
+            </div>
+            <div id="burst-alert" class="alert alert-danger hidden">
+                <span class="alert-icon">🚨</span>
+                <span class="alert-message">流量速率超过最高阈值，正在丢包！</span>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon rate-icon">📊</div>
+                <div class="stat-content">
+                    <div class="stat-label">实时速率</div>
+                    <div class="stat-value" id="current-rate">0.00</div>
+                    <div class="stat-unit">Mbps</div>
+                </div>
+                <div class="stat-trend" id="rate-trend">-</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon remark-icon">🔄</div>
+                <div class="stat-content">
+                    <div class="stat-label">DSCP降级速率</div>
+                    <div class="stat-value" id="remark-rate">0.00</div>
+                    <div class="stat-unit">pkts/s</div>
+                </div>
+                <div class="stat-trend" id="remark-trend">-</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon drop-icon">🚫</div>
+                <div class="stat-content">
+                    <div class="stat-label">丢包速率</div>
+                    <div class="stat-value" id="drop-rate">0.00</div>
+                    <div class="stat-unit">pkts/s</div>
+                </div>
+                <div class="stat-trend" id="drop-trend">-</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon total-icon">📦</div>
+                <div class="stat-content">
+                    <div class="stat-label">总包数</div>
+                    <div class="stat-value" id="total-packets">0</div>
+                    <div class="stat-unit">packets</div>
+                </div>
+                <div class="stat-subvalue" id="total-bytes">0 bytes</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon remarked-icon">🏷️</div>
+                <div class="stat-content">
+                    <div class="stat-label">DSCP降级包数</div>
+                    <div class="stat-value" id="total-remarked">0</div>
+                    <div class="stat-unit">packets</div>
+                </div>
+                <div class="stat-subvalue" id="remark-percentage">0.00%</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon loss-icon">💔</div>
+                <div class="stat-content">
+                    <div class="stat-label">丢包总数</div>
+                    <div class="stat-value" id="total-dropped">0</div>
+                    <div class="stat-unit">packets</div>
+                </div>
+                <div class="stat-subvalue" id="loss-percentage">0.00%</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon exceed-icon">⚡</div>
+                <div class="stat-content">
+                    <div class="stat-label">超限次数</div>
+                    <div class="stat-value" id="exceed-count">0</div>
+                    <div class="stat-unit">times</div>
+                </div>
+                <div class="stat-subvalue" id="last-exceed">-</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon burst-icon">💥</div>
+                <div class="stat-content">
+                    <div class="stat-label">最高阈值超限</div>
+                    <div class="stat-value" id="burst-exceed-count">0</div>
+                    <div class="stat-unit">times</div>
+                </div>
+                <div class="stat-subvalue" id="last-burst-exceed">-</div>
+            </div>
+        </div>
+
+        <div id="meter-chain-container" class="meter-chain-container">
+            <div class="meter-chain-header">
+                <h2>Meter 链</h2>
+                <span class="chain-direction">Table 0 → Table 1 → Table 2 → OUTPUT</span>
+            </div>
+            <div id="meter-chain-visual" class="meter-chain-visual">
+            </div>
+        </div>
+
+        <div class="charts-container">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h2>实时流量速率</h2>
+                    <div class="chart-controls">
+                        <button class="btn btn-sm" onclick="clearRateChart()">清除</button>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="rateChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h2>DSCP降级统计</h2>
+                    <div class="chart-controls">
+                        <button class="btn btn-sm" onclick="clearRemarkChart()">清除</button>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="remarkChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h2>丢包统计</h2>
+                    <div class="chart-controls">
+                        <button class="btn btn-sm" onclick="clearDropChart()">清除</button>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="dropChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h2>包处理分布</h2>
+                    <div class="chart-controls">
+                        <button class="btn btn-sm" onclick="clearDistChart()">清除</button>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="distChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="control-section">
+                <h3>Meter链配置</h3>
+                <div id="meter-chain-editor" class="chain-editor">
+                </div>
+                <div class="control-row" style="margin-top: 12px;">
+                    <button class="btn btn-primary" onclick="updateMeterChain()">更新Meter链</button>
+                    <button class="btn btn-secondary" onclick="addMeterLevel()">+ 添加级别</button>
+                </div>
+                <div id="chain-message" class="message"></div>
+            </div>
+
+            <div class="control-section">
+                <h3>数据导出与控制</h3>
+                <div class="control-row">
+                    <button class="btn btn-primary" onclick="exportJSON()">导出JSON</button>
+                    <button class="btn btn-secondary" onclick="downloadJSON()">下载JSON文件</button>
+                    <button class="btn btn-warning" onclick="resetStats()">重置统计数据</button>
+                    <button class="btn btn-secondary" onclick="requestHistory()">获取历史数据</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="logs-container">
+            <div class="logs-header">
+                <h3>事件日志</h3>
+                <button class="btn btn-sm" onclick="clearLogs()">清除日志</button>
+            </div>
+            <div id="logs" class="logs-content">
+                <div class="log-entry log-info">系统启动，等待数据...</div>
+                <div class="log-entry log-info">Meter链已配置: {{ meter_chain|length }} 级</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.meterChain = {{ meter_chain | tojson }};
+        window.dscpMap = {{ dscp_map | tojson }};
+    </script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
