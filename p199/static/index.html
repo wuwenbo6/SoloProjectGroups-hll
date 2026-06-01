@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UEFI Variable Manager</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>UEFI Variable <span>Manager</span></h1>
+  <div id="status"></div>
+</header>
+<main>
+  <div class="panel">
+    <div class="panel-header">
+      <span>Variables</span>
+      <button onclick="loadVars()">Refresh</button>
+      <button onclick="exportBackup()" style="margin-left: 8px;">Export</button>
+      <label class="file-upload" style="margin-left: 8px;">
+        <input type="file" accept=".bin" onchange="importBackup(this)">
+        <span>Import</span>
+      </label>
+      <button onclick="toggleBootManager()" style="margin-left: 8px;">Boot Order</button>
+      <label class="new-checkbox" style="margin-left: 12px;">
+        <input type="checkbox" id="is-new-var">
+        <span>Create New</span>
+      </label>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>GUID</th><th>Size</th><th>Attributes</th><th>Data (hex)</th></tr></thead>
+        <tbody id="var-table"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-header"><span>Variable Detail</span></div>
+    <div class="detail-content" id="detail-panel">
+      <div class="empty-state" id="detail-empty">Select a variable to view details</div>
+      <div id="detail-fields" style="display:none">
+        <div class="warning-box" id="det-warning" style="display:none"></div>
+        <div class="field">
+          <label>Name</label>
+          <div class="value" id="det-name"></div>
+        </div>
+        <div class="field">
+          <label>GUID</label>
+          <div class="value" id="det-guid"></div>
+        </div>
+        <div class="field">
+          <label>Size</label>
+          <div class="value" id="det-size"></div>
+        </div>
+        <div class="field">
+          <label>Attributes</label>
+          <div class="value" id="det-attr"></div>
+          <div class="attr-flags" id="det-attr-flags"></div>
+        </div>
+        <div class="field">
+          <label>Hex Data</label>
+          <div class="value hex-data" id="det-hex"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-danger" id="btn-delete" onclick="deleteVar()">Delete Variable</button>
+        </div>
+      </div>
+    </div>
+    <form id="var-form" onsubmit="submitForm(event)">
+      <h3>Create / Modify Variable</h3>
+      <div class="form-row">
+        <label for="f-name">Name</label>
+        <input type="text" id="f-name" placeholder="e.g. BootOrder" required>
+      </div>
+      <div class="form-row">
+        <label for="f-guid">GUID</label>
+        <input type="text" id="f-guid" placeholder="e.g. 8be4df61-93ca-11d2-aa0d-00e098032b8c" required>
+      </div>
+      <div class="form-row">
+        <label for="f-hex">Hex Data</label>
+        <textarea id="f-hex" placeholder="e.g. 48656c6c6f" required></textarea>
+      </div>
+      <div class="form-row">
+        <label for="f-attr">Attributes (for new variables only)</label>
+        <input type="number" id="f-attr" placeholder="7" min="0" max="4294967295">
+        <span class="hint">7 = Non-Volatile | BootService | Runtime (default)</span>
+      </div>
+      <div class="btn-row">
+        <button type="submit" class="btn btn-primary" id="save-btn">Submit</button>
+        <button type="button" class="btn btn-secondary" onclick="clearForm()">Clear</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<div id="boot-modal" class="modal" style="display:none">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Boot Order Manager</h3>
+      <span class="close" onclick="closeBootModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <p class="modal-hint">Drag items to reorder boot priority. First item boots first.</p>
+      <ul id="boot-list" class="boot-list"></ul>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeBootModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBootOrder()">Save Order</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
