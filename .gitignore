@@ -1,3 +1,7 @@
+
+# 忽略 node_modules 目录
+node_modules/
+
 # 忽略 Electron 框架二进制文件
 Framework.framework/
 **/Electron Framework
@@ -13,3 +17,4 @@ out/
 
 # 忽略 macOS 系统文件
 .DS_Store
+
