@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAuthn 无密码认证</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 450px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            margin-top: 10px;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .auth-methods {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .auth-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .auth-icon svg {
+            width: 40px;
+            height: 40px;
+            fill: #667eea;
+        }
+        
+        .message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+        
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            display: block;
+        }
+        
+        .dashboard {
+            display: none;
+        }
+        
+        .dashboard.active {
+            display: block;
+        }
+        
+        .auth-form.active {
+            display: block;
+        }
+        
+        .auth-form {
+            display: none;
+        }
+        
+        .user-info {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .user-info h2 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .user-info p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .devices-list {
+            margin-top: 20px;
+        }
+        
+        .devices-list h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        
+        .device-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .device-info {
+            flex: 1;
+        }
+        
+        .device-type {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .device-date {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+        
+        .device-badge {
+            padding: 4px 8px;
+            background: #667eea;
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .device-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-delete {
+            padding: 6px 12px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-delete:hover {
+            background: #c82333;
+        }
+        
+        .btn-delete:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .confirm-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .confirm-dialog.hidden {
+            display: none;
+        }
+        
+        .confirm-content {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .confirm-content h3 {
+            margin-bottom: 12px;
+            color: #333;
+        }
+        
+        .confirm-content p {
+            margin-bottom: 20px;
+            color: #666;
+        }
+        
+        .confirm-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        
+        .confirm-btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .confirm-btn.cancel {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .confirm-btn.confirm {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e0e0e0;
+        }
+        
+        .divider span {
+            padding: 0 15px;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        .security-tabs {
+            display: flex;
+            gap: 8px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .security-tab {
+            flex: 1;
+            min-width: 80px;
+            padding: 10px;
+            background: #f8f9fa;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #666;
+        }
+        
+        .security-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .security-section {
+            display: none;
+        }
+        
+        .security-section.active {
+            display: block;
+        }
+        
+        .recovery-codes-section {
+            margin-top: 20px;
+        }
+        
+        .recovery-code {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .recovery-code.used {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+        
+        .recovery-code-prefix {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .recovery-code-status {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        
+        .recovery-code-status.unused {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .recovery-code-status.used {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .recovery-codes-display {
+            background: #fffbeb;
+            border: 2px dashed #f59e0b;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .recovery-codes-display h4 {
+            color: #d97706;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .recovery-codes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .recovery-code-item {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            text-align: center;
+        }
+        
+        .warning-text {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+        
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 13px;
+            margin: 5px;
+        }
+        
+        .risk-alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .risk-alert.high {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+        
+        .risk-alert.medium {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            color: #92400e;
+        }
+        
+        .risk-alert.low {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+        }
+        
+        .audit-log-item {
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .audit-log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        
+        .audit-log-type {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .audit-log-time {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .audit-log-details {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .audit-log-ip {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+        }
+        
+        .event-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        
+        .event-badge.login_success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .event-badge.device_registered {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .event-badge.device_removed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .event-badge.recovery_code_used {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 WebAuthn 认证</h1>
+        <p class="subtitle">使用指纹、面部识别或安全密钥进行无密码登录</p>
+        
+        <div id="message" class="message"></div>
+        
+        <div id="authForm" class="auth-form active">
+            <div class="tabs">
+                <button class="tab active" data-tab="register">注册</button>
+                <button class="tab" data-tab="login">登录</button>
+            </div>
+            
+            <div id="registerForm">
+                <div class="form-group">
+                    <label for="registerUsername">用户名</label>
+                    <input type="text" id="registerUsername" placeholder="请输入用户名">
+                </div>
+                
+                <div class="auth-methods">
+                    <div class="auth-icon">
+                        <svg viewBox="0 0 24 24"><path d="M12 12c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0-10c2.21 0 4 1.79 4 4 0 2.21-1.79 4-4 4s-4-1.79-4-4 0-2.21 1.79-4 4 4zm0 11.54c2.33 0 7 1.17 7 3.5V20H5v-2.96c0-2.33 4.67-3.5 7-3.54z"/></svg>
+                        <span>指纹/面容</span>
+                    </div>
+                    <div class="auth-icon">
+                        <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10zM6 10h3v4H6z"/></svg>
+                        <span>Windows Hello</span>
+                    </div>
+                    <div class="auth-icon">
+                        <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                        <span>YubiKey</span>
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary" id="registerBtn">
+                    <span>注册新设备</span>
+                </button>
+            </div>
+            
+            <div id="loginForm" style="display: none;">
+                <div class="form-group">
+                    <label for="loginUsername">用户名</label>
+                    <input type="text" id="loginUsername" placeholder="请输入用户名">
+                </div>
+                
+                <button class="btn btn-primary" id="loginBtn">
+                    <span>使用认证设备登录</span>
+                </button>
+            </div>
+        </div>
+        
+        <div id="dashboard" class="dashboard">
+            <div class="user-info">
+                <h2>👋 欢迎回来</h2>
+                <p id="welcomeUser"></p>
+            </div>
+            
+            <div id="riskAlert"></div>
+            
+            <div class="dashboard-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="statDevices">0</div>
+                    <div class="stat-label">认证设备</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statRecoveryCodes">0</div>
+                    <div class="stat-label">可用恢复码</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statKnownIps">0</div>
+                    <div class="stat-label">已知IP</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statLogs">0</div>
+                    <div class="stat-label">安全记录</div>
+                </div>
+            </div>
+            
+            <div class="security-tabs">
+                <button class="security-tab active" data-sec-tab="devices">设备</button>
+                <button class="security-tab" data-sec-tab="recovery">恢复码</button>
+                <button class="security-tab" data-sec-tab="logs">日志</button>
+            </div>
+            
+            <div id="section-devices" class="security-section active">
+                <div class="devices-list">
+                    <h3 style="margin-bottom: 15px;">已绑定的认证设备</h3>
+                    <div id="devicesContainer"></div>
+                </div>
+                <button class="btn btn-primary" id="addDeviceBtn" style="margin-top: 15px;">
+                    <span>绑定新设备</span>
+                </button>
+            </div>
+            
+            <div id="section-recovery" class="security-section">
+                <div class="recovery-codes-section">
+                    <div class="warning-text">
+                        ⚠️ 恢复码用于在丢失所有认证设备时恢复账户访问。
+                        请妥善保存这些代码，每个只能使用一次。
+                    </div>
+                    
+                    <div id="recoveryCodesDisplay"></div>
+                    
+                    <div id="recoveryCodesList"></div>
+                    
+                    <button class="btn btn-primary" id="generateRecoveryCodesBtn" style="margin-top: 15px;">
+                        <span>生成恢复码</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="section-logs" class="security-section">
+                <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0;">安全审计日志</h3>
+                    <button class="btn btn-secondary btn-small" id="exportLogsBtn" style="margin: 0;">
+                        导出CSV
+                    </button>
+                </div>
+                <div id="auditLogsContainer"></div>
+            </div>
+            
+            <div class="divider" style="margin: 20px 0;"><span>或</span></div>
+            
+            <button class="btn btn-secondary" id="logoutBtn">退出登录</button>
+        </div>
+    </div>
+
+    <div id="confirmDialog" class="confirm-dialog hidden">
+        <div class="confirm-content">
+            <h3>确认解绑</h3>
+            <p id="confirmMessage">确定要解绑此认证设备吗？</p>
+            <div class="confirm-buttons">
+                <button class="confirm-btn cancel" id="confirmCancel">取消</button>
+                <button class="confirm-btn confirm" id="confirmOK">确认解绑</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="webauthn-browser.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
