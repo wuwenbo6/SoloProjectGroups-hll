@@ -1,0 +1,14 @@
+<device>
+    <device-info>
+        <ip-address>192.168.1.1</ip-address>
+        <port>99999</port>
+        <enabled>yes</enabled>
+        <status>unknown</status>
+        <location>
+            <rack>100</rack>
+        </location>
+        <interface>
+            <mtu>9999</mtu>
+        </interface>
+    </device-info>
+</device>

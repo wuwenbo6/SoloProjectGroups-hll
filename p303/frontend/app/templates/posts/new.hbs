@@ -1,0 +1,48 @@
+<div class="new-post-page">
+  <div class="page-header">
+    <LinkTo @route="posts" class="btn btn-secondary">← 返回列表</LinkTo>
+    <h2>新建文章</h2>
+  </div>
+
+  <form {{on "submit" this.savePost}} class="post-form">
+    <div class="form-group">
+      <label>标题 *</label>
+      <Input @value={{this.model.title}} required class="form-input" placeholder="请输入文章标题" />
+    </div>
+    
+    <div class="form-group">
+      <label>内容 *</label>
+      <textarea 
+        {{on "input" (fn (mut this.model.body) value="target.value")}} 
+        value={{this.model.body}} 
+        required 
+        class="form-textarea"
+        placeholder="请输入文章内容"
+      ></textarea>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>作者 *</label>
+        <Input @value={{this.model.author}} required class="form-input" placeholder="请输入作者名" />
+      </div>
+      
+      <div class="form-group">
+        <label>状态</label>
+        <select 
+          {{on "change" (fn (mut this.model.status) value="target.value")}} 
+          value={{this.model.status}} 
+          class="form-input"
+        >
+          <option value="draft">草稿</option>
+          <option value="published">已发布</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">创建文章</button>
+      <button type="button" {{on "click" this.cancel}} class="btn btn-secondary">取消</button>
+    </div>
+  </form>
+</div>

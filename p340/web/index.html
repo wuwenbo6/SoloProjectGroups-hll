@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSAN 存储模拟器 - Zone 管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 1px solid #333;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-top: 10px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #00d4ff, #7b2ff7);
+            border-color: transparent;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .zone-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+            transition: all 0.3s;
+        }
+
+        .zone-card:hover {
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+
+        .zone-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .zone-title {
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+
+        .zone-status {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .zone-status.active {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+
+        .zone-status.inactive {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+        }
+
+        .zone-type-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+
+        .zone-type-normal {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+        }
+
+        .zone-type-default {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .zone-type-broadcast {
+            background: rgba(233, 30, 99, 0.2);
+            color: #e91e63;
+        }
+
+        .zone-description {
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .members-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .member-section h3 {
+            font-size: 1.1em;
+            margin-bottom: 12px;
+            color: #00d4ff;
+        }
+
+        .member-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .member-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px 16px;
+            border-radius: 8px;
+            border-left: 3px solid;
+        }
+
+        .member-item.hba {
+            border-left-color: #7b2ff7;
+        }
+
+        .member-item.target {
+            border-left-color: #00d4ff;
+        }
+
+        .member-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .member-details {
+            font-size: 0.85em;
+            color: #888;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            margin-left: 8px;
+        }
+
+        .status-online {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+
+        .status-offline {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+        }
+
+        .access-check-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid #333;
+            margin-bottom: 30px;
+        }
+
+        .access-check-section h2 {
+            margin-bottom: 20px;
+        }
+
+        .access-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 15px;
+            align-items: end;
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #888;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 1em;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #00d4ff, #7b2ff7);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .access-result {
+            padding: 16px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .access-result.allowed {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            display: block;
+        }
+
+        .access-result.denied {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid #ff6b6b;
+            display: block;
+        }
+
+        .grid-table {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+
+        .grid-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .grid-table th,
+        .grid-table td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+
+        .grid-table th {
+            background: rgba(255, 255, 255, 0.05);
+            font-weight: 600;
+        }
+
+        .grid-table tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .visualization-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid #333;
+        }
+
+        .visualization-section h2 {
+            margin-bottom: 20px;
+        }
+
+        .zone-viz {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            justify-content: center;
+        }
+
+        .zone-circle {
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            border: 3px dashed;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 20px;
+        }
+
+        .zone-circle.active {
+            border-color: #00ff88;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+        }
+
+        .zone-circle.inactive {
+            border-color: #666;
+            opacity: 0.6;
+        }
+
+        .zone-circle-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .member-dots {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .dot.hba {
+            background: #7b2ff7;
+        }
+
+        .dot.target {
+            background: #00d4ff;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.hba {
+            background: #7b2ff7;
+        }
+
+        .legend-dot.target {
+            background: #00d4ff;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #333;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: #888;
+            margin-top: 8px;
+        }
+
+        .connections {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .version-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 3px solid #00d4ff;
+        }
+
+        .version-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .version-number {
+            font-weight: 600;
+            color: #00d4ff;
+        }
+
+        .version-type {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            background: rgba(123, 47, 247, 0.2);
+            color: #b388ff;
+        }
+
+        .version-info {
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .checksum {
+            font-family: monospace;
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .sync-status-bar {
+            display: flex;
+            gap: 20px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .sync-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sync-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .sync-indicator.synced {
+            background: #00ff88;
+            box-shadow: 0 0 10px #00ff88;
+        }
+
+        .sync-indicator.syncing {
+            background: #ffd700;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .node-status-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .node-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .status-dot.online {
+            background: #00ff88;
+        }
+
+        .status-dot.offline {
+            background: #ff6b6b;
+        }
+
+        .acl-entry {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            border-left: 2px solid #00ff88;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #7b2ff7, #00d4ff);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+
+        .action-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .action-btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .config-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>VSAN 存储模拟器</h1>
+            <p class="subtitle">虚拟存储区域网络 Zone 管理系统</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="zone-count">0</div>
+                <div class="stat-label">Zone 数量</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="hba-count">0</div>
+                <div class="stat-label">HBA 适配器</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="target-count">0</div>
+                <div class="stat-label">存储目标</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="active-zone-count">0</div>
+                <div class="stat-label">活动 Zone</div>
+            </div>
+        </div>
+
+        <div class="access-check-section">
+            <h2>访问控制检查</h2>
+            <div class="access-form">
+                <div class="form-group">
+                    <label>选择 HBA 适配器</label>
+                    <select id="hba-select"></select>
+                </div>
+                <div class="form-group">
+                    <label>选择存储目标</label>
+                    <select id="target-select"></select>
+                </div>
+                <button class="btn" onclick="checkAccess()">检查访问</button>
+            </div>
+            <div class="access-result" id="access-result"></div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('zones', this)">Zone 列表</div>
+            <div class="tab" onclick="switchTab('visualization', this)">可视化展示</div>
+            <div class="tab" onclick="switchTab('config', this)">配置同步</div>
+            <div class="tab" onclick="switchTab('acl', this)">ACL 配置</div>
+            <div class="tab" onclick="switchTab('hbas', this)">HBA 列表</div>
+            <div class="tab" onclick="switchTab('targets', this)">存储目标</div>
+        </div>
+
+        <div id="zones-tab" class="tab-content active">
+            <div id="zones-container"></div>
+        </div>
+
+        <div id="visualization-tab" class="tab-content">
+            <div class="visualization-section">
+                <h2>Zone 成员关系可视化</h2>
+                <div class="zone-viz" id="zone-viz"></div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-dot hba"></div>
+                        <span>HBA 适配器</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot target"></div>
+                        <span>存储目标</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #00ff88;"></div>
+                        <span>普通Zone</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #ffc107;"></div>
+                        <span>默认Zone</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #e91e63;"></div>
+                        <span>广播Zone</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="config-tab" class="tab-content">
+            <div class="config-header">
+                <h2>配置同步状态</h2>
+                <div>
+                    <button class="action-btn secondary" onclick="refreshConfigData()">刷新</button>
+                    <button class="action-btn" onclick="forceACLUpdate()">强制同步 ACL</button>
+                </div>
+            </div>
+            <div class="sync-status-bar" id="sync-status-bar">
+                <div class="sync-item">
+                    <div class="sync-indicator synced"></div>
+                    <span>当前版本: <strong id="current-version">-</strong></span>
+                </div>
+                <div class="sync-item">
+                    <span>最后同步: <strong id="last-sync">-</strong></span>
+                </div>
+                <div class="sync-item">
+                    <span>节点状态: <strong id="node-sync-status">-</strong></span>
+                </div>
+            </div>
+
+            <h3 style="margin-bottom: 16px;">交换机节点状态</h3>
+            <div id="switch-nodes-container"></div>
+
+            <h3 style="margin: 24px 0 16px;">版本历史</h3>
+            <div id="version-history-container"></div>
+        </div>
+
+        <div id="acl-tab" class="tab-content">
+            <div class="config-header">
+                <h2>ACL 配置详情</h2>
+                <button class="action-btn secondary" onclick="refreshACLData()">刷新</button>
+            </div>
+            <div class="zone-card">
+                <div class="zone-header">
+                    <div>
+                        <div class="zone-title" id="acl-version">当前 ACL 版本</div>
+                        <div class="zone-description" id="acl-info">加载中...</div>
+                    </div>
+                </div>
+                <div id="acl-entries-container" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+
+        <div id="hbas-tab" class="tab-content">
+            <div class="grid-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>名称</th>
+                            <th>WWN</th>
+                            <th>厂商</th>
+                            <th>型号</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hbas-table"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="targets-tab" class="tab-content">
+            <div class="grid-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>名称</th>
+                            <th>WWN</th>
+                            <th>类型</th>
+                            <th>容量</th>
+                            <th>厂商</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="targets-table"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        async function fetchData(endpoint) {
+            const response = await fetch(`${API_BASE}${endpoint}`);
+            return response.json();
+        }
+
+        async function loadAllData() {
+            const [zones, hbas, targets, zoneMembers] = await Promise.all([
+                fetchData('/zones'),
+                fetchData('/hbas'),
+                fetchData('/targets'),
+                fetchData('/zone-members')
+            ]);
+
+            updateStats(zones, hbas, targets);
+            renderZones(zoneMembers);
+            renderHBATable(hbas);
+            renderTargetsTable(targets);
+            renderVisualization(zoneMembers);
+            populateSelects(hbas, targets);
+            loadConfigData();
+            loadACLData();
+        }
+
+        async function loadConfigData() {
+            const [syncStatus, switchNodes, versionHistory] = await Promise.all([
+                fetchData('/sync-status'),
+                fetchData('/switch-nodes'),
+                fetchData('/version-history')
+            ]);
+
+            renderSyncStatus(syncStatus);
+            renderSwitchNodes(switchNodes);
+            renderVersionHistory(versionHistory);
+        }
+
+        async function loadACLData() {
+            const acl = await fetchData('/acl');
+            renderACLConfig(acl);
+        }
+
+        function refreshConfigData() {
+            loadConfigData();
+        }
+
+        function refreshACLData() {
+            loadACLData();
+        }
+
+        async function forceACLUpdate() {
+            const response = await fetch(`${API_BASE}/acl`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description: 'Manual sync triggered by user' })
+            });
+
+            const result = await response.json();
+            alert(`ACL 更新成功！新版本: ${result.version}`);
+            loadConfigData();
+            loadACLData();
+        }
+
+        function renderSyncStatus(status) {
+            document.getElementById('current-version').textContent = status.current_version || '-';
+            document.getElementById('last-sync').textContent = status.last_sync_at ? 
+                new Date(status.last_sync_at).toLocaleString() : '-';
+            
+            const syncedCount = Object.values(status.node_status).filter(s => s === 'synced').length;
+            const totalCount = Object.keys(status.node_status).length;
+            document.getElementById('node-sync-status').textContent = `${syncedCount}/${totalCount} 已同步`;
+        }
+
+        function renderSwitchNodes(nodes) {
+            const container = document.getElementById('switch-nodes-container');
+            container.innerHTML = nodes.map(node => `
+                <div class="node-status-card">
+                    <div class="node-info">
+                        <div class="status-dot ${node.status}"></div>
+                        <div>
+                            <div style="font-weight: 500;">${node.name}</div>
+                            <div style="font-size: 0.85em; color: #888;">ID: ${node.id}</div>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.85em; color: #888;">ACL 版本</div>
+                        <div style="font-family: monospace; font-size: 0.9em;">${node.acl_version || '-'}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderVersionHistory(history) {
+            const container = document.getElementById('version-history-container');
+            const sortedHistory = [...history].reverse();
+            
+            container.innerHTML = sortedHistory.map((v, index) => `
+                <div class="version-card" style="opacity: ${index === 0 ? 1 : 0.7}">
+                    <div class="version-header">
+                        <span class="version-number">${v.version}</span>
+                        <span class="version-type">${v.change_type}</span>
+                    </div>
+                    <div class="version-info">${v.description}</div>
+                    <div class="version-info">
+                        创建时间: ${new Date(v.created_at).toLocaleString()}
+                    </div>
+                    <div class="checksum">Checksum: ${v.checksum.substring(0, 32)}...</div>
+                    ${index !== 0 ? `<button class="action-btn secondary" style="margin-top: 8px;" onclick="rollbackToVersion('${v.version}')">回滚到此版本</button>` : ''}
+                </div>
+            `).join('');
+        }
+
+        async function rollbackToVersion(version) {
+            if (!confirm(`确定要回滚到版本 ${version}？`)) {
+                return;
+            }
+
+            const response = await fetch(`${API_BASE}/rollback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ version: version })
+            });
+
+            const result = await response.json();
+            alert(result.message);
+            loadConfigData();
+            loadACLData();
+        }
+
+        function renderACLConfig(acl) {
+            document.getElementById('acl-version').textContent = `ACL 版本: ${acl.version}`;
+            document.getElementById('acl-info').textContent = 
+                `生成时间: ${new Date(acl.generated_at).toLocaleString()} | Zone数量: ${acl.zone_count} | ACL条目: ${acl.entry_count}`;
+
+            const container = document.getElementById('acl-entries-container');
+            container.innerHTML = acl.entries.map(entry => `
+                <div class="acl-entry">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>${entry.zone_name}</strong>
+                            <span style="margin-left: 8px; padding: 2px 8px; background: rgba(0,255,136,0.2); color: #00ff88; border-radius: 4px; font-size: 0.75em;">
+                                ${entry.permission}
+                            </span>
+                        </div>
+                        <span style="font-size: 0.85em; color: #888;">优先级: ${entry.priority}</span>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 0.85em;">
+                        <div style="color: #7b2ff7;">HBA: ${entry.hba_wwn}</div>
+                        <div style="color: #00d4ff;">Target: ${entry.target_wwn}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats(zones, hbas, targets) {
+            document.getElementById('zone-count').textContent = zones.length;
+            document.getElementById('hba-count').textContent = hbas.length;
+            document.getElementById('target-count').textContent = targets.length;
+            document.getElementById('active-zone-count').textContent = zones.filter(z => z.active).length;
+
+            const normalZones = zones.filter(z => z.zone_type === 'normal').length;
+            const defaultZones = zones.filter(z => z.zone_type === 'default').length;
+            const broadcastZones = zones.filter(z => z.zone_type === 'broadcast').length;
+
+            const zoneCountEl = document.getElementById('zone-count');
+            zoneCountEl.innerHTML = `${zones.length}<br><span style="font-size: 0.4em; color: #888;">
+                普通:${normalZones} | 默认:${defaultZones} | 广播:${broadcastZones}
+            </span>`;
+        }
+
+        function getZoneTypeLabel(type) {
+            switch(type) {
+                case 'default': return '默认';
+                case 'broadcast': return '广播';
+                default: return '普通';
+            }
+        }
+
+        function getZoneTypeClass(type) {
+            switch(type) {
+                case 'default': return 'zone-type-default';
+                case 'broadcast': return 'zone-type-broadcast';
+                default: return 'zone-type-normal';
+            }
+        }
+
+        function renderZones(zoneMembers) {
+            const sortedMembers = [...zoneMembers].sort((a, b) => {
+                const typeOrder = { 'broadcast': 0, 'default': 1, 'normal': 2 };
+                return (typeOrder[a.zone.zone_type] || 2) - (typeOrder[b.zone.zone_type] || 2);
+            });
+
+            const container = document.getElementById('zones-container');
+            container.innerHTML = sortedMembers.map(zm => `
+                <div class="zone-card">
+                    <div class="zone-header">
+                        <div class="zone-title">
+                            ${zm.zone.name}
+                            <span class="zone-type-badge ${getZoneTypeClass(zm.zone.zone_type)}">
+                                ${getZoneTypeLabel(zm.zone.zone_type)}
+                            </span>
+                        </div>
+                        <span class="zone-status ${zm.zone.active ? 'active' : 'inactive'}">
+                            ${zm.zone.active ? '活动' : '未激活'}
+                        </span>
+                    </div>
+                    <div class="zone-description">${zm.zone.description}</div>
+                    <div class="members-container">
+                        <div class="member-section">
+                            <h3>HBA 适配器 (${zm.hbas.length})</h3>
+                            <div class="member-list">
+                                ${zm.hbas.map(hba => `
+                                    <div class="member-item hba">
+                                        <div class="member-name">
+                                            ${hba.name}
+                                            <span class="status-badge ${hba.status === 'online' ? 'status-online' : 'status-offline'}">
+                                                ${hba.status}
+                                            </span>
+                                        </div>
+                                        <div class="member-details">WWN: ${hba.wwn} | ${hba.vendor} ${hba.model}</div>
+                                    </div>
+                                `).join('')}
+                                ${zm.hbas.length === 0 ? '<div style="color: #666;">暂无 HBA</div>' : ''}
+                            </div>
+                        </div>
+                        <div class="member-section">
+                            <h3>存储目标 (${zm.storage_targets.length})</h3>
+                            <div class="member-list">
+                                ${zm.storage_targets.map(target => `
+                                    <div class="member-item target">
+                                        <div class="member-name">
+                                            ${target.name}
+                                            <span class="status-badge ${target.status === 'online' ? 'status-online' : 'status-offline'}">
+                                                ${target.status}
+                                            </span>
+                                        </div>
+                                        <div class="member-details">WWN: ${target.wwn} | ${target.type} | ${target.capacity_gb} GB</div>
+                                    </div>
+                                `).join('')}
+                                ${zm.storage_targets.length === 0 ? '<div style="color: #666;">暂无存储目标</div>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderHBATable(hbas) {
+            document.getElementById('hbas-table').innerHTML = hbas.map(hba => `
+                <tr>
+                    <td>${hba.id}</td>
+                    <td>${hba.name}</td>
+                    <td><code>${hba.wwn}</code></td>
+                    <td>${hba.vendor}</td>
+                    <td>${hba.model}</td>
+                    <td><span class="status-badge ${hba.status === 'online' ? 'status-online' : 'status-offline'}">${hba.status}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderTargetsTable(targets) {
+            document.getElementById('targets-table').innerHTML = targets.map(target => `
+                <tr>
+                    <td>${target.id}</td>
+                    <td>${target.name}</td>
+                    <td><code>${target.wwn}</code></td>
+                    <td>${target.type}</td>
+                    <td>${target.capacity_gb} GB</td>
+                    <td>${target.vendor}</td>
+                    <td><span class="status-badge ${target.status === 'online' ? 'status-online' : 'status-offline'}">${target.status}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function getZoneVizBorder(zoneType, active) {
+            if (!active) return '#666';
+            switch(zoneType) {
+                case 'broadcast': return '#e91e63';
+                case 'default': return '#ffc107';
+                default: return '#00ff88';
+            }
+        }
+
+        function getZoneVizShadow(zoneType, active) {
+            if (!active) return '';
+            const color = getZoneVizBorder(zoneType, active);
+            return `0 0 30px ${color}4d`;
+        }
+
+        function renderVisualization(zoneMembers) {
+            const sortedMembers = [...zoneMembers].sort((a, b) => {
+                const typeOrder = { 'broadcast': 0, 'default': 1, 'normal': 2 };
+                return (typeOrder[a.zone.zone_type] || 2) - (typeOrder[b.zone.zone_type] || 2);
+            });
+
+            const container = document.getElementById('zone-viz');
+            container.innerHTML = sortedMembers.map(zm => `
+                <div class="zone-circle ${zm.zone.active ? 'active' : 'inactive'}"
+                     style="border-color: ${getZoneVizBorder(zm.zone.zone_type, zm.zone.active)};
+                            box-shadow: ${getZoneVizShadow(zm.zone.zone_type, zm.zone.active)}">
+                    <div class="zone-circle-title">${zm.zone.name}</div>
+                    <div style="font-size: 0.8em; color: #888; margin-bottom: 10px;">
+                        <span class="zone-type-badge ${getZoneTypeClass(zm.zone.zone_type)}" style="margin-left: 0;">
+                            ${getZoneTypeLabel(zm.zone.zone_type)}
+                        </span>
+                    </div>
+                    <div style="font-size: 0.8em; color: #888; margin-bottom: 10px;">
+                        ${zm.zone.active ? '活动' : '未激活'}
+                    </div>
+                    <div class="member-dots">
+                        ${zm.hbas.map((_, i) => `<div class="dot hba">H${i + 1}</div>`).join('')}
+                        ${zm.storage_targets.map((_, i) => `<div class="dot target">T${i + 1}</div>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function populateSelects(hbas, targets) {
+            const hbaSelect = document.getElementById('hba-select');
+            const targetSelect = document.getElementById('target-select');
+
+            hbaSelect.innerHTML = hbas.map(hba => `
+                <option value="${hba.id}">${hba.name}</option>
+            `).join('');
+
+            targetSelect.innerHTML = targets.map(target => `
+                <option value="${target.id}">${target.name}</option>
+            `).join('');
+        }
+
+        async function checkAccess() {
+            const hbaId = document.getElementById('hba-select').value;
+            const targetId = document.getElementById('target-select').value;
+
+            const response = await fetch(`${API_BASE}/access-check`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hba_id: hbaId, target_id: targetId })
+            });
+
+            const result = await response.json();
+            const resultDiv = document.getElementById('access-result');
+            resultDiv.className = `access-result ${result.allowed ? 'allowed' : 'denied'}`;
+
+            let zoneTypeLabel = '';
+            if (result.allowed && result.zone_name === 'Broadcast Zone') {
+                zoneTypeLabel = '<span class="zone-type-badge zone-type-broadcast" style="margin-left: 8px;">广播</span>';
+            } else if (result.allowed && result.zone_name === 'Default Zone') {
+                zoneTypeLabel = '<span class="zone-type-badge zone-type-default" style="margin-left: 8px;">默认</span>';
+            }
+
+            resultDiv.innerHTML = `
+                <strong>${result.allowed ? '✓ 访问允许' : '✗ 访问拒绝'}</strong>
+                ${zoneTypeLabel}
+                <br>
+                ${result.message}
+            `;
+        }
+
+        function switchTab(tabName, elem) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if (elem) {
+                elem.classList.add('active');
+            } else if (event && event.target) {
+                event.target.classList.add('active');
+            }
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        loadAllData();
+    </script>
+</body>
+</html>

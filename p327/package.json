@@ -1,0 +1,16 @@
+{
+  "name": "ble-beacon-scanner",
+  "version": "1.0.0",
+  "description": "Electron BLE Beacon Scanner - iBeacon & Eddystone",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "dependencies": {
+    "@abandonware/noble": "^1.9.2-23"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}

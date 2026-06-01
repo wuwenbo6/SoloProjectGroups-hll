@@ -1,0 +1,40 @@
+{
+  "name": "spice-usb-redirector",
+  "version": "1.0.0",
+  "description": "Electron应用 - 通过SPICE协议将本地USB设备重定向到远程虚拟机",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "rebuild": "electron-rebuild -f -w usb"
+  },
+  "keywords": ["electron", "spice", "usb", "redirect", "virtual-machine"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "electron-rebuild": "^3.2.9"
+  },
+  "dependencies": {
+    "usb": "^2.11.0",
+    "usb-detection": "^4.14.2"
+  },
+  "build": {
+    "appId": "com.spice.usbredirector",
+    "productName": "SPICE USB Redirector",
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.utilities"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "deb"
+    }
+  }
+}

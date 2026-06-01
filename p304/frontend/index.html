@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIX SeqNum 攻击检测监控台</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0e17;--surface:#111827;--surface2:#1f2937;--border:#374151;
+  --text:#e5e7eb;--text2:#9ca3af;--accent:#3b82f6;--accent2:#60a5fa;
+  --green:#10b981;--red:#ef4444;--orange:#f59e0b;--purple:#8b5cf6;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:20px;font-weight:600;display:flex;align-items:center;gap:10px}
+.header h1 .icon{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.header-right{display:flex;align-items:center;gap:16px}
+.btn-export{background:var(--green);color:#fff;padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px}
+.btn-export:hover{background:#059669}
+.status-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.status-dot.connected{background:var(--green);box-shadow:0 0 8px var(--green)}
+.status-dot.disconnected{background:var(--red)}
+.status-dot.under_attack{background:var(--red);animation:pulse 1s infinite}
+.status-dot.compromised{background:var(--orange);animation:pulse 1.5s infinite}
+.status-dot.logging_out{background:var(--orange)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.container{display:grid;grid-template-columns:340px 1fr;grid-template-rows:auto 1fr;gap:16px;padding:16px 24px;height:calc(100vh - 68px)}
+.sidebar{grid-row:1/3;display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.panel-header{padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);display:flex;justify-content:space-between;align-items:center}
+
+.session-list{display:flex;flex-direction:column;gap:2px}
+.session-item{padding:12px 16px;cursor:pointer;transition:background .15s;display:flex;align-items:center;gap:12px;border-left:3px solid transparent}
+.session-item:hover{background:var(--surface2)}
+.session-item.active{background:var(--surface2);border-left-color:var(--accent)}
+.session-info{flex:1}
+.session-name{font-weight:500;font-size:14px}
+.session-meta{font-size:12px;color:var(--text2);margin-top:2px}
+.session-status{font-size:12px;font-weight:500;padding:2px 8px;border-radius:4px}
+.session-status.connected{background:rgba(16,185,129,.15);color:var(--green)}
+.session-status.disconnected{background:rgba(239,68,68,.15);color:var(--red)}
+.session-status.under_attack{background:rgba(239,68,68,.25);color:var(--red);animation:pulse 1s infinite}
+.session-status.compromised{background:rgba(245,158,11,.15);color:var(--orange)}
+.session-status.logging_out{background:rgba(245,158,11,.15);color:var(--orange)}
+
+.controls{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.btn{padding:8px 14px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover{background:#dc2626}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-row{display:flex;gap:8px}
+.btn-row .btn{flex:1}
+
+.main-area{display:flex;flex-direction:column;gap:16px;overflow:hidden}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.stat-label{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.stat-value{font-size:28px;font-weight:700;margin-top:4px}
+.stat-value.green{color:var(--green)}
+.stat-value.red{color:var(--red)}
+.stat-value.orange{color:var(--orange)}
+.stat-value.blue{color:var(--accent2)}
+
+.chart-area{flex:1;display:flex;flex-direction:column;gap:16px;min-height:0}
+.chart-panel{flex:1;min-height:0;display:flex;flex-direction:column}
+.chart-container{flex:1;padding:12px 16px;position:relative;min-height:280px}
+
+.bottom-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-height:260px}
+.alert-list{display:flex;flex-direction:column;gap:4px;overflow-y:auto;max-height:200px;padding:8px 12px}
+.alert-item{padding:8px 12px;border-radius:6px;font-size:13px;display:flex;align-items:flex-start;gap:8px}
+.alert-item.critical{background:rgba(239,68,68,.1);border-left:3px solid var(--red)}
+.alert-item.warning{background:rgba(245,158,11,.1);border-left:3px solid var(--orange)}
+.alert-item.info{background:rgba(59,130,246,.1);border-left:3px solid var(--accent)}
+.alert-time{color:var(--text2);font-size:11px;white-space:nowrap}
+.alert-desc{flex:1}
+
+.msg-log{overflow-y:auto;max-height:200px;padding:8px 12px;font-family:'SF Mono',Monaco,'Cascadia Code',monospace;font-size:12px}
+.msg-item{padding:4px 8px;border-radius:4px;margin-bottom:2px;display:flex;gap:8px}
+.msg-item.attack{background:rgba(239,68,68,.1)}
+.msg-item.normal{background:rgba(16,185,129,.05)}
+.msg-dir{color:var(--text2)}
+.msg-type{color:var(--accent2)}
+.msg-seq{color:var(--purple)}
+.msg-time{color:var(--text2);margin-left:auto}
+
+.empty-state{display:flex;align-items:center;justify-content:center;height:100%;color:var(--text2);font-size:14px;flex-direction:column;gap:8px}
+.empty-state .big{font-size:40px;opacity:.3}
+
+.badge{background:var(--red);color:#fff;font-size:11px;padding:1px 6px;border-radius:10px;margin-left:6px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span class="icon">⚡</span> FIX SeqNum 攻击检测监控台</h1>
+  <div class="header-right">
+    <button class="btn-export" onclick="exportLogs()">📥 导出会话日志</button>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:13px;color:var(--text2)">WebSocket:</span>
+      <span id="ws-status" class="status-dot disconnected"></span>
+      <span id="ws-label" style="font-size:13px;color:var(--red)">未连接</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="sidebar">
+    <div class="panel">
+      <div class="panel-header">会话列表</div>
+      <div class="session-list" id="session-list"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">攻击模拟</div>
+      <div class="controls">
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-add-session" onclick="addSession()">+ 新增会话</button>
+        </div>
+        <button class="btn btn-danger" id="btn-attack-reset" onclick="injectAttackReset()" disabled>⚠ 注入: SeqNum 重置攻击</button>
+        <button class="btn btn-danger" id="btn-attack-checksum" onclick="injectAttackChecksum()" disabled>🛡 注入: CheckSum 篡改攻击</button>
+        <button class="btn btn-outline" id="btn-attack-gap" onclick="injectLogGap()" disabled>⏸ 注入: 日志断档</button>
+        <button class="btn btn-outline" id="btn-normal-gap" onclick="injectNormalGap()" disabled>⏳ 模拟: 正常间隙</button>
+        <p style="font-size:11px;color:var(--text2);line-height:1.5;margin-top:4px">
+          SeqNum重置攻击：先制造日志断档，再发送低序列号消息。<br>
+          引擎检测到后同时发送Logout(reason=SEQNUM_RESET)和ResendRequest。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card"><div class="stat-label">活跃会话</div><div class="stat-value blue" id="stat-sessions">0</div></div>
+      <div class="stat-card"><div class="stat-label">总消息数</div><div class="stat-value green" id="stat-messages">0</div></div>
+      <div class="stat-card"><div class="stat-label">检测到的攻击</div><div class="stat-value red" id="stat-attacks">0</div></div>
+      <div class="stat-card"><div class="stat-label">Logout / ResendReq</div><div class="stat-value orange" id="stat-logouts">0 / 0</div></div>
+    </div>
+
+    <div class="chart-area">
+      <div class="panel chart-panel">
+        <div class="panel-header">
+          <span>序列号趋势图</span>
+          <span id="chart-session-label" style="color:var(--accent2);font-size:12px;text-transform:none">选择一个会话</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="seqnum-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-row">
+      <div class="panel" style="display:flex;flex-direction:column">
+        <div class="panel-header">告警记录 <span id="alert-count" class="badge" style="display:none">0</span></div>
+        <div class="alert-list" id="alert-list">
+          <div class="empty-state"><span class="big">🛡</span>暂无告警</div>
+        </div>
+      </div>
+      <div class="panel" style="display:flex;flex-direction:column">
+        <div class="panel-header">消息日志</div>
+        <div class="msg-log" id="msg-log">
+          <div class="empty-state"><span class="big">📡</span>等待消息...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let ws = null;
+let sessions = {};
+let selectedSession = null;
+let totalMessages = 0;
+let totalAttacks = 0;
+let totalLogouts = 0;
+let totalResendRequests = 0;
+let sessionCounter = 0;
+let seqnumChart = null;
+let allAlerts = [];
+
+function initChart() {
+  const ctx = document.getElementById('seqnum-chart').getContext('2d');
+  seqnumChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Inbound SeqNum',
+        data: [],
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59,130,246,0.1)',
+        fill: true,
+        tension: 0.1,
+        pointRadius: 2,
+        pointHoverRadius: 5,
+      },{
+        label: 'Attack Point',
+        data: [],
+        borderColor: '#ef4444',
+        backgroundColor: 'rgba(239,68,68,0.3)',
+        pointRadius: 6,
+        pointHoverRadius: 8,
+        showLine: false,
+        pointStyle: 'triangle',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 300 },
+      scales: {
+        x: {
+          display: true,
+          title: { display: true, text: '时间', color: '#9ca3af' },
+          ticks: { color: '#6b7280', maxTicksLimit: 10, font: { size: 10 } },
+          grid: { color: 'rgba(55,65,81,0.5)' }
+        },
+        y: {
+          display: true,
+          title: { display: true, text: 'MsgSeqNum', color: '#9ca3af' },
+          ticks: { color: '#6b7280' },
+          grid: { color: 'rgba(55,65,81,0.5)' },
+          beginAtZero: false,
+        }
+      },
+      plugins: {
+        legend: { labels: { color: '#e5e7eb', usePointStyle: true } },
+        tooltip: {
+          backgroundColor: '#1f2937',
+          borderColor: '#374151',
+          borderWidth: 1,
+          titleColor: '#e5e7eb',
+          bodyColor: '#9ca3af',
+          callbacks: {
+            afterBody: function(items) {
+              if (items[0] && items[0].datasetIndex === 1) return '⚠ SeqNum 重置攻击!';
+              return '';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${location.host}/ws`);
+
+  ws.onopen = () => {
+    document.getElementById('ws-status').className = 'status-dot connected';
+    document.getElementById('ws-label').textContent = '已连接';
+    document.getElementById('ws-label').style.color = 'var(--green)';
+  };
+
+  ws.onclose = () => {
+    document.getElementById('ws-status').className = 'status-dot disconnected';
+    document.getElementById('ws-label').textContent = '未连接';
+    document.getElementById('ws-label').style.color = 'var(--red)';
+    setTimeout(connectWS, 3000);
+  };
+
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.type === 'state_update') handleStateUpdate(data);
+    else if (data.type === 'message') handleMessage(data);
+    else if (data.type === 'alert') handleAlert(data);
+    else if (data.type === 'logout_sent') handleLogout(data);
+    else if (data.type === 'resend_request_sent') handleResendRequest(data);
+  };
+}
+
+function handleStateUpdate(data) {
+  sessions = data.sessions;
+  renderSessionList();
+  updateStats();
+  if (selectedSession) updateChart();
+}
+
+function handleMessage(data) {
+  totalMessages++;
+  const msg = data.message;
+  const logEl = document.getElementById('msg-log');
+  if (totalMessages === 1) logEl.innerHTML = '';
+
+  const item = document.createElement('div');
+  item.className = `msg-item ${msg.is_attack ? 'attack' : 'normal'}`;
+  const time = new Date(msg.timestamp).toLocaleTimeString();
+  const checksumStatus = msg.checksum_valid
+    ? '<span style="color:var(--green)">✓</span>'
+    : '<span style="color:var(--red)">✗ CheckSum ERROR</span>';
+  item.innerHTML = `
+    <span class="msg-dir">${msg.direction === 'inbound' ? '◀' : '▶'}</span>
+    <span class="msg-type">${msg.msg_type}</span>
+    <span class="msg-seq">Seq=${msg.seq_num}</span>
+    ${checksumStatus}
+    ${msg.is_attack ? '<span style="color:var(--red)">⚠ ATTACK</span>' : ''}
+    <span class="msg-time">${time}</span>
+  `;
+  logEl.insertBefore(item, logEl.firstChild);
+  while (logEl.children.length > 100) logEl.removeChild(logEl.lastChild);
+  updateStats();
+}
+
+function handleAlert(data) {
+  const alert = data.alert;
+  if (alert.severity === 'critical') totalAttacks++;
+  allAlerts.unshift(alert);
+
+  const alertEl = document.getElementById('alert-list');
+  if (allAlerts.length === 1) alertEl.innerHTML = '';
+
+  const item = document.createElement('div');
+  item.className = `alert-item ${alert.severity}`;
+  const time = new Date(alert.timestamp).toLocaleTimeString();
+  item.innerHTML = `
+    <span class="alert-time">${time}</span>
+    <span class="alert-desc">
+      <strong>${alert.alert_type.replace(/_/g, ' ')}</strong><br>
+      ${alert.description}
+    </span>
+  `;
+  alertEl.insertBefore(item, alertEl.firstChild);
+  while (alertEl.children.length > 50) alertEl.removeChild(alertEl.lastChild);
+
+  const badge = document.getElementById('alert-count');
+  badge.style.display = 'inline';
+  badge.textContent = allAlerts.filter(a => a.severity === 'critical').length;
+  updateStats();
+}
+
+function handleLogout(data) {
+  totalLogouts++;
+  const logEl = document.getElementById('msg-log');
+  const item = document.createElement('div');
+  item.className = 'msg-item attack';
+  const time = new Date().toLocaleTimeString();
+  item.innerHTML = `
+    <span class="msg-dir">▶</span>
+    <span class="msg-type" style="color:var(--orange)">Logout</span>
+    <span class="msg-seq">Seq=${data.message.seq_num}</span>
+    <span style="color:var(--orange)">🔒 Logout(reason=SEQNUM_RESET)</span>
+    <span class="msg-time">${time}</span>
+  `;
+  logEl.insertBefore(item, logEl.firstChild);
+  updateStats();
+}
+
+function handleResendRequest(data) {
+  totalResendRequests++;
+  const logEl = document.getElementById('msg-log');
+  const item = document.createElement('div');
+  item.className = 'msg-item attack';
+  const time = new Date().toLocaleTimeString();
+  const msg = data.message;
+  const beginSeq = msg.raw ? (msg.raw.match(/7=(\d+)/) || ['','?'])[1] : '?';
+  const endSeq = msg.raw ? (msg.raw.match(/16=(\d+)/) || ['','?'])[1] : '?';
+  item.innerHTML = `
+    <span class="msg-dir">▶</span>
+    <span class="msg-type" style="color:var(--purple)">ResendRequest</span>
+    <span class="msg-seq">Seq=${msg.seq_num}</span>
+    <span style="color:var(--purple)">🔄 ResendReq(${beginSeq}→${endSeq})</span>
+    <span class="msg-time">${time}</span>
+  `;
+  logEl.insertBefore(item, logEl.firstChild);
+  updateStats();
+}
+
+function renderSessionList() {
+  const listEl = document.getElementById('session-list');
+  const sids = Object.keys(sessions);
+  if (sids.length === 0) {
+    listEl.innerHTML = '<div class="empty-state" style="padding:24px"><span class="big">🔗</span>暂无会话<br><span style="font-size:12px">点击"新增会话"开始</span></div>';
+    return;
+  }
+
+  listEl.innerHTML = sids.map(sid => {
+    const s = sessions[sid];
+    const active = sid === selectedSession ? 'active' : '';
+    const attackBadge = s.attack_count > 0 ? `<span class="badge">${s.attack_count}</span>` : '';
+    return `
+      <div class="session-item ${active}" onclick="selectSession('${sid}')">
+        <span class="status-dot ${s.status}"></span>
+        <div class="session-info">
+          <div class="session-name">${s.sender_comp_id} → ${s.target_comp_id}${attackBadge}</div>
+          <div class="session-meta">In: ${s.incoming_seq_num} | Out: ${s.outgoing_seq_num}</div>
+        </div>
+        <span class="session-status ${s.status}">${statusLabel(s.status)}</span>
+      </div>
+    `;
+  }).join('');
+
+  const hasSelection = !!selectedSession && sessions[selectedSession];
+  document.getElementById('btn-attack-reset').disabled = !hasSelection;
+  document.getElementById('btn-attack-checksum').disabled = !hasSelection;
+  document.getElementById('btn-attack-gap').disabled = !hasSelection;
+  document.getElementById('btn-normal-gap').disabled = !hasSelection;
+}
+
+function statusLabel(status) {
+  const map = {
+    connected: '已连接', disconnected: '已断开', logging_out: '登出中',
+    compromised: '已妥协', under_attack: '遭攻击'
+  };
+  return map[status] || status;
+}
+
+function selectSession(sid) {
+  selectedSession = sid;
+  renderSessionList();
+  updateChart();
+  const s = sessions[sid];
+  if (s) {
+    document.getElementById('chart-session-label').textContent =
+      `${s.sender_comp_id} → ${s.target_comp_id}`;
+  }
+}
+
+function updateChart() {
+  if (!seqnumChart || !selectedSession || !sessions[selectedSession]) return;
+
+  const s = sessions[selectedSession];
+  const history = s.seq_num_history || [];
+
+  const labels = history.map(h => {
+    const d = new Date(h.timestamp);
+    return d.toLocaleTimeString();
+  });
+  const seqData = history.map(h => h.seq_num);
+  const attackData = history.map(h => h.is_attack ? h.seq_num : null);
+
+  seqnumChart.data.labels = labels;
+  seqnumChart.data.datasets[0].data = seqData;
+  seqnumChart.data.datasets[1].data = attackData;
+  seqnumChart.update('none');
+}
+
+function updateStats() {
+  const activeCount = Object.values(sessions).filter(s => s.status === 'connected').length;
+  document.getElementById('stat-sessions').textContent = activeCount;
+  document.getElementById('stat-messages').textContent = totalMessages;
+  document.getElementById('stat-attacks').textContent = totalAttacks;
+  document.getElementById('stat-logouts').textContent = `${totalLogouts} / ${totalResendRequests}`;
+}
+
+function addSession() {
+  sessionCounter++;
+  const sid = `SESSION-${sessionCounter}`;
+  ws.send(JSON.stringify({
+    action: 'add_session',
+    session_id: sid,
+    sender: `SENDER${sessionCounter}`,
+    target: `TARGET${sessionCounter}`,
+  }));
+}
+
+function injectAttackReset() {
+  if (!selectedSession) return;
+  ws.send(JSON.stringify({
+    action: 'inject_attack_seqnum_reset',
+    session_id: selectedSession,
+  }));
+}
+
+function injectAttackChecksum() {
+  if (!selectedSession) return;
+  ws.send(JSON.stringify({
+    action: 'inject_attack_checksum_tamper',
+    session_id: selectedSession,
+  }));
+}
+
+function injectLogGap() {
+  if (!selectedSession) return;
+  ws.send(JSON.stringify({
+    action: 'inject_attack_log_gap',
+    session_id: selectedSession,
+    gap_seconds: 10,
+  }));
+}
+
+function injectNormalGap() {
+  if (!selectedSession) return;
+  ws.send(JSON.stringify({
+    action: 'inject_normal_gap',
+    session_id: selectedSession,
+    gap_seconds: 3,
+  }));
+}
+
+function exportLogs() {
+  window.open('/api/logs/export', '_blank');
+}
+
+initChart();
+connectWS();
+</script>
+</body>
+</html>

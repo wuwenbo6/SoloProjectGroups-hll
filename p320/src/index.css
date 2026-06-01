@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0a0e1a;
+  color: #e2e8f0;
+}
+
+body {
+  min-height: 100vh;
+  background-color: #0a0e1a;
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(0, 255, 200, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 50%, rgba(79, 195, 247, 0.03) 0%, transparent 50%);
+}
+
+@layer components {
+  .cyber-card {
+    @apply bg-cyber-surface border border-cyber-border rounded-lg;
+  }
+
+  .cyber-input {
+    @apply bg-cyber-bg border border-cyber-border rounded-lg px-3 py-2 text-sm
+           text-cyber-accent font-mono focus:outline-none focus:border-cyber-accent
+           focus:ring-1 focus:ring-cyber-accent/30 transition-all;
+  }
+
+  .hex-data {
+    @apply font-mono text-xs break-all leading-relaxed text-cyber-muted;
+  }
+
+  .glow-text {
+    @apply text-cyber-accent;
+    text-shadow: 0 0 10px rgba(0, 255, 200, 0.5), 0 0 20px rgba(0, 255, 200, 0.2);
+  }
+
+  .scanline {
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 255, 200, 0.015) 2px,
+      rgba(0, 255, 200, 0.015) 4px
+    );
+    pointer-events: none;
+  }
+}
+
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(0, 255, 200, 0.2); }
+  50% { border-color: rgba(0, 255, 200, 0.6); }
+}
+
+.animate-border-glow {
+  animation: borderGlow 2s ease-in-out infinite;
+}

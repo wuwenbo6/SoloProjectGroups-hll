@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPFIX Flow Collector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            padding: 20px 30px;
+            border-bottom: 1px solid #475569;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #94a3b8;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 18px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: #60a5fa;
+        }
+
+        .stat-card .label {
+            color: #94a3b8;
+            font-size: 13px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #60a5fa;
+        }
+
+        .stat-card .value.green { color: #4ade80; }
+        .stat-card .value.purple { color: #a78bfa; }
+        .stat-card .value.orange { color: #fb923c; }
+        .stat-card .value.red { color: #f87171; }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #334155;
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        input, select, button {
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #60a5fa;
+        }
+
+        button {
+            cursor: pointer;
+            background: #3b82f6;
+            border-color: #3b82f6;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+
+        button.secondary {
+            background: #475569;
+            border-color: #475569;
+        }
+
+        button.secondary:hover {
+            background: #64748b;
+        }
+
+        button.danger {
+            background: #ef4444;
+            border-color: #ef4444;
+        }
+
+        button.danger:hover {
+            background: #dc2626;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            background: #334155;
+            color: #cbd5e1;
+            font-weight: 600;
+            text-align: left;
+            padding: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #334155;
+            color: #e2e8f0;
+        }
+
+        tr:hover {
+            background: #334155;
+        }
+
+        .protocol-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .protocol-tcp { background: #3b82f6; color: white; }
+        .protocol-udp { background: #8b5cf6; color: white; }
+        .protocol-icmp { background: #f59e0b; color: white; }
+        .protocol-other { background: #6b7280; color: white; }
+
+        .ip-address {
+            font-family: 'Monaco', 'Menlo', monospace;
+            color: #60a5fa;
+        }
+
+        .port {
+            font-family: 'Monaco', 'Menlo', monospace;
+            color: #a78bfa;
+        }
+
+        .bytes {
+            color: #4ade80;
+        }
+
+        .packets {
+            color: #fbbf24;
+        }
+
+        .talker-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            background: #0f172a;
+            border: 1px solid #334155;
+        }
+
+        .talker-item:hover {
+            border-color: #60a5fa;
+        }
+
+        .talker-ip {
+            font-family: 'Monaco', 'Menlo', monospace;
+            color: #60a5fa;
+            font-size: 13px;
+        }
+
+        .talker-stats {
+            display: flex;
+            gap: 12px;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        .talker-stats span {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #94a3b8;
+            border-radius: 6px 6px 0 0;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .template-info {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .template-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #334155;
+        }
+
+        .template-id {
+            font-weight: 600;
+            color: #a78bfa;
+        }
+
+        .template-ie {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            color: #94a3b8;
+            padding: 3px 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            margin: 2px;
+            display: inline-block;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .badge-green { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
+        .badge-blue { background: rgba(96, 165, 250, 0.2); color: #60a5fa; }
+
+        .timestamp {
+            color: #64748b;
+            font-size: 11px;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #334155;
+        }
+
+        .pagination button {
+            min-width: 36px;
+            padding: 6px 12px;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            display: flex;
+            align-items: center;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+        }
+
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toggle-label {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            cursor: pointer;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #475569;
+            border-radius: 24px;
+            transition: 0.3s;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: #3b82f6;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        button.export {
+            background: #059669;
+            border-color: #059669;
+        }
+
+        button.export:hover {
+            background: #047857;
+        }
+
+        .anon-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
+            background: rgba(249, 115, 22, 0.2);
+            color: #fb923c;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>IPFIX Flow Collector</h1>
+        <p>实时监控网络流记录 - 源IP / 目的IP / 端口 / 协议</p>
+    </div>
+
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label">接收报文</div>
+                <div class="value" id="stat-packets">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">流记录</div>
+                <div class="value green" id="stat-records">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">模板数</div>
+                <div class="value purple" id="stat-templates">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">运行时间</div>
+                <div class="value orange" id="stat-uptime">0s</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">错误数</div>
+                <div class="value red" id="stat-errors">0</div>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <div class="toggle-container">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="anonymize-toggle" onchange="toggleAnonymize()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">IP匿名化 <span id="anon-status" class="anon-badge" style="display:none;">已启用</span></span>
+                </div>
+                <div class="toggle-container" id="prefix-container" style="display:none;">
+                    <span class="toggle-label">前缀长度:</span>
+                    <select id="prefix-len" onchange="updatePrefixLen()" style="padding:4px 8px;font-size:12px;">
+                        <option value="16">/16</option>
+                        <option value="24" selected>/24</option>
+                        <option value="32">/32</option>
+                    </select>
+                </div>
+            </div>
+            <div class="toolbar-right">
+                <button class="export" onclick="exportParquet()">
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20" style="vertical-align:middle;margin-right:4px;">
+                        <path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"/>
+                    </svg>
+                    导出 Parquet
+                </button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">流记录</div>
+                    <div>
+                        <button class="secondary" onclick="refreshRecords()">刷新</button>
+                        <button class="danger" onclick="clearRecords()">清空</button>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <div class="control-group">
+                        <input type="text" id="filter-source" placeholder="源IP">
+                    </div>
+                    <div class="control-group">
+                        <input type="text" id="filter-dest" placeholder="目的IP">
+                    </div>
+                    <div class="control-group">
+                        <select id="filter-protocol">
+                            <option value="">所有协议</option>
+                            <option value="TCP">TCP</option>
+                            <option value="UDP">UDP</option>
+                            <option value="ICMP">ICMP</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <button onclick="searchRecords()">搜索</button>
+                        <button class="secondary" onclick="resetFilters()">重置</button>
+                    </div>
+                </div>
+
+                <div class="table-container" id="records-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>源IP:端口</th>
+                                <th>目的IP:端口</th>
+                                <th>协议</th>
+                                <th>字节数</th>
+                                <th>包数</th>
+                                <th>模板ID</th>
+                            </tr>
+                        </thead>
+                        <tbody id="records-tbody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination">
+                    <button onclick="prevPage()" id="prev-btn">上一页</button>
+                    <div class="page-info">
+                        <span id="page-info">第 1 页 / 共 0 页</span>
+                    </div>
+                    <button onclick="nextPage()" id="next-btn">下一页</button>
+                </div>
+            </div>
+
+            <div>
+                <div class="panel" style="margin-bottom: 20px;">
+                    <div class="panel-header">
+                        <div class="panel-title">Top 会话</div>
+                    </div>
+
+                    <div class="tab-buttons">
+                        <button class="tab-btn active" onclick="switchTab('source')">源IP</button>
+                        <button class="tab-btn" onclick="switchTab('dest')">目的IP</button>
+                    </div>
+
+                    <div id="talkers-source" class="tab-content active">
+                    </div>
+
+                    <div id="talkers-dest" class="tab-content">
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">模板信息</div>
+                        <button class="secondary" onclick="refreshTemplates()">刷新</button>
+                    </div>
+                    <div id="templates-container">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        const pageSize = 50;
+        let currentTab = 'source';
+
+        async function toggleAnonymize() {
+            const enabled = document.getElementById('anonymize-toggle').checked;
+            const prefixLen = parseInt(document.getElementById('prefix-len').value);
+            
+            try {
+                const response = await fetch('/api/anonymize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: enabled, prefix_len: prefixLen })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('anon-status').style.display = enabled ? 'inline-block' : 'none';
+                    document.getElementById('prefix-container').style.display = enabled ? 'flex' : 'none';
+                    fetchRecords();
+                    fetchTalkers();
+                }
+            } catch (e) {
+                console.error('Failed to toggle anonymize:', e);
+            }
+        }
+
+        async function updatePrefixLen() {
+            const enabled = document.getElementById('anonymize-toggle').checked;
+            const prefixLen = parseInt(document.getElementById('prefix-len').value);
+            
+            try {
+                await fetch('/api/anonymize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: enabled, prefix_len: prefixLen })
+                });
+                fetchRecords();
+                fetchTalkers();
+            } catch (e) {
+                console.error('Failed to update prefix len:', e);
+            }
+        }
+
+        async function loadAnonymizeConfig() {
+            try {
+                const response = await fetch('/api/anonymize');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('anonymize-toggle').checked = data.data.enabled;
+                    document.getElementById('anon-status').style.display = data.data.enabled ? 'inline-block' : 'none';
+                    document.getElementById('prefix-container').style.display = data.data.enabled ? 'flex' : 'none';
+                    if (data.data.prefix_len) {
+                        const sel = document.getElementById('prefix-len');
+                        sel.value = String(data.data.prefix_len);
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load anonymize config:', e);
+            }
+        }
+
+        function exportParquet() {
+            window.open('/api/export/parquet', '_blank');
+        }
+
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('stat-packets').textContent = data.data.packets_received;
+                    document.getElementById('stat-records').textContent = data.data.current_records;
+                    document.getElementById('stat-templates').textContent = data.data.templates_received;
+                    document.getElementById('stat-uptime').textContent = data.data.uptime;
+                    document.getElementById('stat-errors').textContent = data.data.errors;
+                }
+            } catch (e) {
+                console.error('Failed to fetch stats:', e);
+            }
+        }
+
+        async function fetchRecords() {
+            try {
+                const sourceIp = document.getElementById('filter-source').value;
+                const destIp = document.getElementById('filter-dest').value;
+                const protocol = document.getElementById('filter-protocol').value;
+
+                let url = '/api/records';
+                let params = new URLSearchParams();
+
+                if (sourceIp || destIp || protocol) {
+                    url = '/api/records/search';
+                    if (sourceIp) params.append('source_ip', sourceIp);
+                    if (destIp) params.append('destination_ip', destIp);
+                    if (protocol) params.append('protocol', protocol);
+                }
+
+                params.append('limit', pageSize);
+                params.append('offset', (currentPage - 1) * pageSize);
+
+                const response = await fetch(`${url}?${params.toString()}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    renderRecords(data.data);
+                    updatePagination(data.total);
+                }
+            } catch (e) {
+                console.error('Failed to fetch records:', e);
+            }
+        }
+
+        function renderRecords(records) {
+            const tbody = document.getElementById('records-tbody');
+
+            if (records.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <p>暂无流记录</p>
+                                <p style="font-size: 12px; margin-top: 8px;">等待IPFIX报文发送到端口 4739</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = records.map(r => {
+                const protoClass = r.protocol.toLowerCase() === 'tcp' ? 'protocol-tcp' :
+                                  r.protocol.toLowerCase() === 'udp' ? 'protocol-udp' :
+                                  r.protocol.toLowerCase() === 'icmp' ? 'protocol-icmp' : 'protocol-other';
+
+                const time = new Date(r.timestamp).toLocaleTimeString();
+
+                return `
+                    <tr>
+                        <td><span class="timestamp">${time}</span></td>
+                        <td>
+                            <span class="ip-address">${r.source_ip}</span>:<span class="port">${r.source_port}</span>
+                        </td>
+                        <td>
+                            <span class="ip-address">${r.destination_ip}</span>:<span class="port">${r.destination_port}</span>
+                        </td>
+                        <td><span class="protocol-badge ${protoClass}">${r.protocol}</span></td>
+                        <td class="bytes">${formatBytes(r.octets)}</td>
+                        <td class="packets">${r.packets.toLocaleString()}</td>
+                        <td><span class="badge badge-blue">${r.template_id}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updatePagination(total) {
+            const totalPages = Math.ceil(total / pageSize) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            document.getElementById('page-info').textContent = `第 ${currentPage} 页 / 共 ${totalPages} 页 (${total} 条)`;
+            document.getElementById('prev-btn').disabled = currentPage <= 1;
+            document.getElementById('next-btn').disabled = currentPage >= totalPages;
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                fetchRecords();
+            }
+        }
+
+        function nextPage() {
+            currentPage++;
+            fetchRecords();
+        }
+
+        function searchRecords() {
+            currentPage = 1;
+            fetchRecords();
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-source').value = '';
+            document.getElementById('filter-dest').value = '';
+            document.getElementById('filter-protocol').value = '';
+            currentPage = 1;
+            fetchRecords();
+        }
+
+        function refreshRecords() {
+            currentPage = 1;
+            fetchRecords();
+            fetchTemplates();
+            fetchTalkers();
+        }
+
+        async function clearRecords() {
+            if (confirm('确定要清空所有流记录吗？')) {
+                try {
+                    await fetch('/api/records/clear', { method: 'POST' });
+                    currentPage = 1;
+                    fetchRecords();
+                    fetchTalkers();
+                } catch (e) {
+                    console.error('Failed to clear records:', e);
+                }
+            }
+        }
+
+        async function fetchTalkers() {
+            try {
+                const [sourceRes, destRes] = await Promise.all([
+                    fetch('/api/top-talkers?by_source=true'),
+                    fetch('/api/top-talkers?by_source=false')
+                ]);
+
+                const sourceData = await sourceRes.json();
+                const destData = await destRes.json();
+
+                if (sourceData.success) {
+                    renderTalkers('source', sourceData.data);
+                }
+                if (destData.success) {
+                    renderTalkers('dest', destData.data);
+                }
+            } catch (e) {
+                console.error('Failed to fetch talkers:', e);
+            }
+        }
+
+        function renderTalkers(type, talkers) {
+            const container = document.getElementById(`talkers-${type}`);
+
+            if (talkers.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p style="font-size: 13px;">暂无数据</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = talkers.map(t => `
+                <div class="talker-item">
+                    <div>
+                        <div class="talker-ip">${t.ip}</div>
+                    </div>
+                    <div class="talker-stats">
+                        <span>
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            ${t.flows}
+                        </span>
+                        <span style="color: #4ade80;">${formatBytes(t.octets)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function fetchTemplates() {
+            try {
+                const response = await fetch('/api/templates');
+                const data = await response.json();
+
+                if (data.success) {
+                    renderTemplates(data.data);
+                }
+            } catch (e) {
+                console.error('Failed to fetch templates:', e);
+            }
+        }
+
+        function renderTemplates(templates) {
+            const container = document.getElementById('templates-container');
+
+            if (templates.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p style="font-size: 13px;">暂无模板</p>
+                        <p style="font-size: 11px; margin-top: 5px;">等待模板报文</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = templates.map(t => `
+                <div class="template-info">
+                    <div class="template-header">
+                        <div>
+                            <span class="template-id">模板 #${t.template_id}</span>
+                            ${t.is_options ? '<span class="badge badge-green">Options</span>' : ''}
+                        </div>
+                        <div class="timestamp">域: ${t.domain_id} | ${t.total_length} 字节</div>
+                    </div>
+                    <div>
+                        ${t.scope_ies.map(ie => `<span class="template-ie" style="background: rgba(74, 222, 128, 0.2); color: #4ade80;">${ie.name}(${ie.length})</span>`).join('')}
+                        ${t.ies.map(ie => `<span class="template-ie">${ie.name}(${ie.length})</span>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(`talkers-${tab}`).classList.add('active');
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function init() {
+            loadAnonymizeConfig();
+            fetchStats();
+            fetchRecords();
+            fetchTalkers();
+            fetchTemplates();
+
+            setInterval(() => {
+                fetchStats();
+            }, 2000);
+
+            setInterval(() => {
+                fetchRecords();
+                fetchTalkers();
+            }, 5000);
+        }
+
+        init();
+    </script>
+</body>
+</html>

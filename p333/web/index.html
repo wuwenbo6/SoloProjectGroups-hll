@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGP EVPN 模拟器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>BGP EVPN 模拟器</h1>
+            <p class="subtitle">VXLAN 隧道管理 · MAC/IP 通告 (Type 2) · L2/L3 VNI</p>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-value" id="vtep-count">0</div>
+                <div class="stat-label">VTEP 数量</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="tunnel-count">0</div>
+                <div class="stat-label">VXLAN 隧道</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="mac-count">0</div>
+                <div class="stat-label">MAC 地址条目</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="route-count">0</div>
+                <div class="stat-label">EVPN 路由</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="createDemoTopology()">创建演示拓扑</button>
+            <button onclick="startSimulation()">开始模拟</button>
+            <button onclick="advertiseRandomMAC()">通告随机 MAC</button>
+            <button onclick="advertiseRandomMulticast()">通告组播组</button>
+            <button onclick="exportRoutes()">导出路由表</button>
+            <button onclick="refreshAll()">刷新数据</button>
+        </div>
+
+        <div class="main-content">
+            <div class="section">
+                <h2>VTEP 列表</h2>
+                <div class="table-container">
+                    <table id="vtep-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>名称</th>
+                                <th>IP 地址</th>
+                                <th>Loopback</th>
+                                <th>L2 VNI</th>
+                                <th>L3 VNI</th>
+                                <th>MAC 地址</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vtep-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>VXLAN 隧道</h2>
+                <div class="table-container">
+                    <table id="tunnel-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>VNI</th>
+                                <th>源 VTEP</th>
+                                <th>目的 VTEP</th>
+                                <th>状态</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tunnel-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>MAC 地址表 <span class="index-hint">(索引: RD + L2 VNI)</span></h2>
+                <div class="vtep-selector">
+                    <label for="vtep-select">选择 VTEP:</label>
+                    <select id="vtep-select" onchange="loadMACTable()">
+                        <option value="">-- 请选择 --</option>
+                    </select>
+                </div>
+                <div class="table-container">
+                    <table id="mac-table">
+                        <thead>
+                            <tr>
+                                <th>RD</th>
+                                <th>MAC 地址</th>
+                                <th>IP 地址</th>
+                                <th>L2 VNI</th>
+                                <th>L3 VNI</th>
+                                <th>类型</th>
+                                <th>下一跳</th>
+                                <th>VTEP ID</th>
+                                <th>时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mac-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>EVPN 类型 2 路由 (MAC/IP 通告)</h2>
+                <div class="vtep-selector">
+                    <label for="route-vtep-select">选择 VTEP:</label>
+                    <select id="route-vtep-select" onchange="loadRoutes()">
+                        <option value="">-- 请选择 --</option>
+                    </select>
+                    <button class="small-btn" onclick="exportType2Routes()">导出 Type 2</button>
+                </div>
+                <div class="table-container">
+                    <table id="route-table">
+                        <thead>
+                            <tr>
+                                <th>路由类型</th>
+                                <th>RD</th>
+                                <th>ESI</th>
+                                <th>MAC 地址</th>
+                                <th>IP 地址</th>
+                                <th>L2 VNI</th>
+                                <th>L3 VNI</th>
+                                <th>下一跳</th>
+                                <th>源 VTEP</th>
+                                <th>时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="route-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>EVPN 类型 3 路由 (Inclusive Multicast)</h2>
+                <div class="vtep-selector">
+                    <label for="type3-vtep-select">选择 VTEP:</label>
+                    <select id="type3-vtep-select" onchange="loadType3Routes()">
+                        <option value="">-- 请选择 --</option>
+                    </select>
+                    <button class="small-btn" onclick="exportType3Routes()">导出 Type 3</button>
+                </div>
+                <div class="table-container">
+                    <table id="type3-route-table">
+                        <thead>
+                            <tr>
+                                <th>路由类型</th>
+                                <th>RD</th>
+                                <th>Eth Tag</th>
+                                <th>L2 VNI</th>
+                                <th>PMSI 隧道类型</th>
+                                <th>隧道 ID</th>
+                                <th>组播组 IP</th>
+                                <th>源 IP</th>
+                                <th>下一跳</th>
+                                <th>源 VTEP</th>
+                                <th>时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="type3-route-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="log-container">
+            <h3>操作日志</h3>
+            <div id="log-content"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PON系统模拟器 - OLT/ONU注册测距</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e4e4e4;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid #0f3460;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            color: #00d9ff;
+            text-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+        }
+
+        header p {
+            color: #888;
+            margin-top: 10px;
+        }
+
+        .control-panel {
+            background: rgba(15, 52, 96, 0.6);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-panel label {
+            color: #00d9ff;
+            font-weight: 600;
+        }
+
+        .control-panel input {
+            width: 80px;
+            padding: 8px 12px;
+            background: #1a1a2e;
+            border: 1px solid #0f3460;
+            border-radius: 6px;
+            color: #e4e4e4;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d9ff, #0099cc);
+            color: #1a1a2e;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffd93d, #f5c800);
+            color: #1a1a2e;
+        }
+
+        .btn-warning:hover {
+            box-shadow: 0 0 20px rgba(255, 217, 61, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .main-grid > .card-full {
+            grid-column: span 2;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .main-grid > .card-full {
+                grid-column: span 1;
+            }
+        }
+
+        .card {
+            background: rgba(15, 52, 96, 0.4);
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid rgba(0, 217, 255, 0.2);
+        }
+
+        .card h2 {
+            color: #00d9ff;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: #00d9ff;
+            border-radius: 2px;
+        }
+
+        .onu-status-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .onu-card {
+            background: rgba(26, 26, 46, 0.8);
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #0f3460;
+            transition: all 0.3s ease;
+        }
+
+        .onu-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .onu-card.oprational {
+            border-left-color: #00ff88;
+        }
+
+        .onu-card.ranging {
+            border-left-color: #ffd93d;
+        }
+
+        .onu-card.init {
+            border-left-color: #888;
+        }
+
+        .onu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .onu-id {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #00d9ff;
+        }
+
+        .onu-state {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .state-INIT {
+            background: #333;
+            color: #aaa;
+        }
+
+        .state-STANDBY {
+            background: #5c4d00;
+            color: #ffd93d;
+        }
+
+        .state-SERIAL_NUMBER {
+            background: #004d5c;
+            color: #00d9ff;
+        }
+
+        .state-RANGING {
+            background: #5c4d00;
+            color: #ffd93d;
+        }
+
+        .state-WAITING {
+            background: #004d5c;
+            color: #00d9ff;
+        }
+
+        .state-OPERATIONAL {
+            background: #005c3d;
+            color: #00ff88;
+        }
+
+        .onu-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+        }
+
+        .detail-label {
+            color: #888;
+        }
+
+        .detail-value {
+            color: #e4e4e4;
+            font-weight: 600;
+        }
+
+        .detail-value.highlight {
+            color: #00ff88;
+        }
+
+        .chart-container {
+            height: 300px;
+            margin-top: 15px;
+        }
+
+        .chart-bar-container {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 250px;
+            padding: 20px 0;
+            border-bottom: 2px solid #0f3460;
+        }
+
+        .chart-bar {
+            width: 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bar {
+            width: 100%;
+            border-radius: 6px 6px 0 0;
+            transition: height 0.5s ease;
+            min-height: 5px;
+        }
+
+        .bar-eqd {
+            background: linear-gradient(to top, #00d9ff, #00ff88);
+        }
+
+        .bar-rtt {
+            background: linear-gradient(to top, #ff6b6b, #ffa500);
+        }
+
+        .bar-label {
+            font-size: 11px;
+            color: #888;
+        }
+
+        .bar-value {
+            font-size: 10px;
+            color: #e4e4e4;
+            font-weight: 600;
+        }
+
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .event-log {
+            max-height: 400px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .event-log::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .event-log::-webkit-scrollbar-track {
+            background: #1a1a2e;
+        }
+
+        .event-log::-webkit-scrollbar-thumb {
+            background: #0f3460;
+            border-radius: 3px;
+        }
+
+        .log-entry {
+            display: flex;
+            gap: 12px;
+            padding: 10px 15px;
+            background: rgba(26, 26, 46, 0.6);
+            border-radius: 8px;
+            font-size: 13px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .log-time {
+            color: #888;
+            font-family: monospace;
+            white-space: nowrap;
+        }
+
+        .log-source {
+            color: #00d9ff;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .log-source.OLT {
+            color: #ff6b6b;
+        }
+
+        .log-message {
+            color: #e4e4e4;
+            flex: 1;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 20px;
+            color: #00ff88;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status-indicator.complete {
+            background: rgba(0, 255, 136, 0.2);
+        }
+
+        .status-indicator.pending {
+            background: rgba(255, 217, 61, 0.2);
+            color: #ffd93d;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .diagram-container {
+            background: rgba(26, 26, 46, 0.6);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .pon-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            height: 300px;
+        }
+
+        .olt-box {
+            width: 100px;
+            padding: 20px 10px;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 700;
+            color: white;
+            box-shadow: 0 0 30px rgba(255, 107, 107, 0.4);
+            z-index: 10;
+        }
+
+        .fiber-line {
+            flex: 1;
+            height: 4px;
+            background: linear-gradient(90deg, #ff6b6b, #ffd93d, #00d9ff);
+            position: relative;
+        }
+
+        .onu-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .onu-box {
+            width: 100px;
+            padding: 12px 8px;
+            background: #1a1a2e;
+            border: 2px solid #555;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .onu-box.oprational {
+            border-color: #00ff88;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+        }
+
+        .onu-box.ranging {
+            border-color: #ffd93d;
+            box-shadow: 0 0 15px rgba(255, 217, 61, 0.4);
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .discovery-info {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .discovery-item {
+            background: rgba(0, 217, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border-left: 3px solid #00d9ff;
+        }
+
+        .discovery-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .discovery-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #00d9ff;
+        }
+
+        .discovery-value.active {
+            color: #00ff88;
+            animation: pulse 1s infinite;
+        }
+
+        .timeslot-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: rgba(255, 217, 61, 0.2);
+            color: #ffd93d;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .collision-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        .delay-breakdown {
+            display: flex;
+            gap: 10px;
+            font-size: 11px;
+            margin-top: 5px;
+        }
+
+        .delay-item {
+            padding: 2px 6px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+
+        .delay-down {
+            color: #00d9ff;
+        }
+
+        .delay-up {
+            color: #ff6b6b;
+        }
+
+        .dba-info {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .dba-item {
+            background: rgba(0, 255, 136, 0.1);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border-left: 3px solid #00ff88;
+        }
+
+        .bandwidth-bar-container {
+            margin-top: 15px;
+        }
+
+        .bandwidth-row {
+            margin-bottom: 12px;
+        }
+
+        .bandwidth-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .bandwidth-bar-bg {
+            height: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bandwidth-bar {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .bw-fixed {
+            background: linear-gradient(90deg, #00d9ff, #0099cc);
+        }
+
+        .bw-guaranteed {
+            background: linear-gradient(90deg, #00ff88, #00cc6a);
+        }
+
+        .bw-besteffort {
+            background: linear-gradient(90deg, #ffd93d, #f5c800);
+        }
+
+        .queue-bar {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100%;
+            background: rgba(255, 107, 107, 0.3);
+            border-left: 2px solid #ff6b6b;
+        }
+
+        .timeline-container {
+            margin-top: 20px;
+            position: relative;
+        }
+
+        .timeline-grid {
+            position: relative;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .timeline-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            height: 30px;
+        }
+
+        .timeline-label {
+            width: 80px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #00d9ff;
+        }
+
+        .timeline-track {
+            flex: 1;
+            height: 24px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timeline-block {
+            position: absolute;
+            height: 100%;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-block.INIT { background: #666; }
+        .timeline-block.STANDBY { background: #ffd93d; }
+        .timeline-block.SERIAL_NUMBER { background: #00d9ff; }
+        .timeline-block.WAITING { background: #0099cc; }
+        .timeline-block.RANGING { background: #ffa500; }
+        .timeline-block.OPERATIONAL { background: #00ff88; }
+
+        .timeline-scale {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 10px;
+            color: #666;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: flex-end;
+        }
+
+        .btn-export {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-export:hover {
+            box-shadow: 0 0 15px rgba(155, 89, 182, 0.6);
+            transform: translateY(-1px);
+        }
+
+        .state-legend {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .state-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+        }
+
+        .state-legend-color {
+            width: 16px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .dba-type-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        .type-fixed { background: rgba(0, 217, 255, 0.2); color: #00d9ff; }
+        .type-guaranteed { background: rgba(0, 255, 136, 0.2); color: #00ff88; }
+        .type-besteffort { background: rgba(255, 217, 61, 0.2); color: #ffd93d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔌 PON系统模拟器</h1>
+            <p>OLT与ONU注册测距过程演示 - 均衡延时(EqD)计算可视化</p>
+        </header>
+
+        <div class="control-panel">
+            <label for="onuCount">ONU数量:</label>
+            <input type="number" id="onuCount" value="4" min="1" max="16">
+            <button class="btn btn-primary" onclick="startSimulation()">▶ 开始模拟</button>
+            <button class="btn btn-danger" onclick="stopSimulation()">⏹ 停止</button>
+            <button class="btn btn-warning" onclick="resetSimulation()">↺ 重置</button>
+            <button class="btn-export" onclick="exportTimeline()">📊 导出时序图</button>
+            <button class="btn-export" onclick="exportDBA()">📈 导出DBA记录</button>
+            <div style="margin-left: auto;" id="statusIndicator">
+                <span class="status-indicator pending">
+                    <span class="status-dot"></span>
+                    等待开始
+                </span>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="card">
+                <h2>发现窗口状态 (Discovery Window)</h2>
+                <div class="discovery-info" id="discoveryInfo">
+                    <div class="discovery-item">
+                        <div class="discovery-label">窗口状态</div>
+                        <div class="discovery-value" id="windowStatus">等待</div>
+                    </div>
+                    <div class="discovery-item">
+                        <div class="discovery-label">窗口计数</div>
+                        <div class="discovery-value" id="windowCount">0</div>
+                    </div>
+                    <div class="discovery-item">
+                        <div class="discovery-label">时隙数量</div>
+                        <div class="discovery-value" id="slotCount">8</div>
+                    </div>
+                    <div class="discovery-item">
+                        <div class="discovery-label">窗口时长</div>
+                        <div class="discovery-value" id="windowDuration">200ms</div>
+                    </div>
+                </div>
+                <h2 style="margin-top: 20px;">PON拓扑结构</h2>
+                <div class="diagram-container">
+                    <div class="pon-diagram" id="ponDiagram">
+                        <div class="olt-box">OLT</div>
+                        <div class="fiber-line"></div>
+                        <div class="onu-stack" id="onuStack">
+                            <div class="onu-box">等待配置</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>测距结果对比 (EqD / RTT)</h2>
+                <div class="chart-container">
+                    <div class="chart-bar-container" id="chartContainer">
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 3v18h18"/>
+                                <path d="M18 17V9"/>
+                                <path d="M13 17V5"/>
+                                <path d="M8 17v-3"/>
+                            </svg>
+                            <p>开始模拟后显示测距数据图表</p>
+                        </div>
+                    </div>
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: linear-gradient(to right, #00d9ff, #00ff88);"></div>
+                            <span>均衡延时 (EqD)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: linear-gradient(to right, #ff6b6b, #ffa500);"></div>
+                            <span>测量RTT</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>ONU状态详情</h2>
+                <div class="onu-status-container" id="onuStatusContainer">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 8v4"/>
+                            <path d="M12 16h.01"/>
+                        </svg>
+                        <p>等待模拟开始...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>事件日志</h2>
+                <div class="event-log" id="eventLog">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <path d="M14 2v6h6"/>
+                            <path d="M16 13H8"/>
+                            <path d="M16 17H8"/>
+                        </svg>
+                        <p>暂无事件记录</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-full">
+                <h2>动态带宽分配 (DBA)</h2>
+                <div class="dba-info" id="dbaInfo">
+                    <div class="dba-item">
+                        <div class="discovery-label">DBA状态</div>
+                        <div class="discovery-value" id="dbaStatus">未激活</div>
+                    </div>
+                    <div class="dba-item">
+                        <div class="discovery-label">总带宽</div>
+                        <div class="discovery-value" id="dbaTotal">1000 Mbps</div>
+                    </div>
+                    <div class="dba-item">
+                        <div class="discovery-label">分配次数</div>
+                        <div class="discovery-value" id="dbaCount">0</div>
+                    </div>
+                    <div class="dba-item">
+                        <div class="discovery-label">分配周期</div>
+                        <div class="discovery-value" id="dbaInterval">100ms</div>
+                    </div>
+                </div>
+                <div class="state-legend">
+                    <div class="state-legend-item">
+                        <div class="state-legend-color bw-fixed"></div>
+                        <span>固定带宽</span>
+                    </div>
+                    <div class="state-legend-item">
+                        <div class="state-legend-color bw-guaranteed"></div>
+                        <span>保证带宽</span>
+                    </div>
+                    <div class="state-legend-item">
+                        <div class="state-legend-color bw-besteffort"></div>
+                        <span>尽力而为</span>
+                    </div>
+                    <div class="state-legend-item">
+                        <div class="state-legend-color" style="background: rgba(255, 107, 107, 0.3); border-left: 2px solid #ff6b6b;"></div>
+                        <span>队列占用</span>
+                    </div>
+                </div>
+                <div class="bandwidth-bar-container" id="bandwidthContainer">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3v18h18"/>
+                            <path d="M18 17V9"/>
+                            <path d="M13 17V5"/>
+                            <path d="M8 17v-3"/>
+                        </svg>
+                        <p>ONU进入运行状态后显示带宽分配</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-full">
+                <h2>注册历史时序图</h2>
+                <div class="state-legend">
+                    <div class="state-legend-item">
+                        <div class="state-legend-color timeline-block INIT"></div>
+                        <span>初始化</span>
+                    </div>
+                    <div class="state-legend-item">
+                        <div class="state-legend-color timeline-block STANDBY"></div>
+                        <span>待机</span>
+                    </div>
+                    <div class="state-legend-item">
+                        <div class="state-legend-color timeline-block SERIAL_NUMBER"></div>
+                        <span>序列号</span>
+                    </div>
+                    <div class="state-legend-item">
+                        <div class="state-legend-color timeline-block WAITING"></div>
+                        <span>等待测距</span>
+                    </div>
+                    <div class="state-legend-item">
+                        <div class="state-legend-color timeline-block RANGING"></div>
+                        <span>测距中</span>
+                    </div>
+                    <div class="state-legend-item">
+                        <div class="state-legend-color timeline-block OPERATIONAL"></div>
+                        <span>运行</span>
+                    </div>
+                </div>
+                <div class="timeline-container" id="timelineContainer">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 8v4l3 3"/>
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                        <p>开始模拟后显示状态时序图</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let updateInterval = null;
+        let lastLogCount = 0;
+
+        async function apiRequest(endpoint, method = 'GET', data = null) {
+            const options = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            };
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+            try {
+                const response = await fetch(`/api/${endpoint}`, options);
+                return await response.json();
+            } catch (error) {
+                console.error('API请求失败:', error);
+                return null;
+            }
+        }
+
+        function startSimulation() {
+            const onuCount = parseInt(document.getElementById('onuCount').value);
+            apiRequest('start', 'POST', { onu_count: onuCount });
+            startStatusUpdate();
+        }
+
+        function stopSimulation() {
+            apiRequest('stop', 'POST');
+            stopStatusUpdate();
+        }
+
+        function resetSimulation() {
+            apiRequest('reset', 'POST');
+            lastLogCount = 0;
+            updateUI({ onus: [], event_log: [], ranging_complete: false });
+        }
+
+        function startStatusUpdate() {
+            if (updateInterval) clearInterval(updateInterval);
+            updateInterval = setInterval(async () => {
+                const status = await apiRequest('status');
+                if (status) {
+                    updateUI(status);
+                }
+            }, 500);
+        }
+
+        function stopStatusUpdate() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+                updateInterval = null;
+            }
+        }
+
+        function updateUI(status) {
+            updateStatusIndicator(status.ranging_complete, status.onus);
+            updateDiscoveryWindow(status.discovery_window);
+            updateOnuCards(status.onus);
+            updateDiagram(status.onus);
+            updateChart(status.onus);
+            updateEventLog(status.event_log);
+            updateDBA(status.dba, status.onus);
+            updateTimeline(status.timeline, status.onus);
+        }
+
+        function updateDiscoveryWindow(dw) {
+            if (!dw) return;
+            
+            const statusEl = document.getElementById('windowStatus');
+            const countEl = document.getElementById('windowCount');
+            const slotEl = document.getElementById('slotCount');
+            const durationEl = document.getElementById('windowDuration');
+            
+            if (dw.active) {
+                statusEl.textContent = '进行中';
+                statusEl.className = 'discovery-value active';
+            } else {
+                statusEl.textContent = '等待';
+                statusEl.className = 'discovery-value';
+            }
+            
+            countEl.textContent = dw.discovery_counter || 0;
+            slotEl.textContent = dw.timeslot_count || 8;
+            durationEl.textContent = (dw.duration * 1000 || 200) + 'ms';
+        }
+
+        function updateStatusIndicator(complete, onus) {
+            const indicator = document.getElementById('statusIndicator');
+            if (onus.length === 0) {
+                indicator.innerHTML = `
+                    <span class="status-indicator pending">
+                        <span class="status-dot"></span>
+                        等待开始
+                    </span>
+                `;
+            } else if (complete) {
+                indicator.innerHTML = `
+                    <span class="status-indicator complete">
+                        <span class="status-dot"></span>
+                        测距完成
+                    </span>
+                `;
+            } else {
+                indicator.innerHTML = `
+                    <span class="status-indicator pending">
+                        <span class="status-dot"></span>
+                        测距进行中...
+                    </span>
+                `;
+            }
+        }
+
+        function updateOnuCards(onus) {
+            const container = document.getElementById('onuStatusContainer');
+            if (onus.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 8v4"/>
+                            <path d="M12 16h.01"/>
+                        </svg>
+                        <p>等待模拟开始...</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = onus.map(onu => `
+                <div class="onu-card ${onu.state.toLowerCase()}">
+                    <div class="onu-header">
+                        <div class="onu-id">
+                            ONU-${onu.onu_id}
+                            ${onu.selected_timeslot !== null ? `<span class="timeslot-badge">时隙 #${onu.selected_timeslot}</span>` : ''}
+                            ${onu.collision_count > 0 ? `<span class="collision-badge">碰撞×${onu.collision_count}</span>` : ''}
+                        </div>
+                        <span class="onu-state state-${onu.state}">${stateText(onu.state)}</span>
+                    </div>
+                    <div class="onu-details">
+                        <div class="detail-item">
+                            <span class="detail-label">序列号</span>
+                            <span class="detail-value">${onu.serial_number}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">距离</span>
+                            <span class="detail-value">${onu.distance}m</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">LLID</span>
+                            <span class="detail-value">${onu.assigned_llid || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">传播延时</span>
+                            <span class="detail-value">${onu.propagation_delay}ns</span>
+                        </div>
+                        <div class="detail-item" style="grid-column: span 2;">
+                            <span class="detail-label">RTT (下行+上行)</span>
+                            <span class="detail-value">
+                                ${onu.measured_rtt ? onu.measured_rtt : '-'}ns
+                                ${onu.measured_rtt ? `<div class="delay-breakdown">
+                                    <span class="delay-item delay-down">↓下行 ${onu.downstream_delay}ns</span>
+                                    <span class="delay-item delay-up">↑上行 ${onu.upstream_delay}ns</span>
+                                </div>` : ''}
+                            </span>
+                        </div>
+                        <div class="detail-item" style="grid-column: span 2;">
+                            <span class="detail-label">均衡延时(EqD)</span>
+                            <span class="detail-value highlight">${onu.equalization_delay || '-'}ns</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function stateText(state) {
+            const texts = {
+                'INIT': '初始化',
+                'STANDBY': '待机',
+                'SERIAL_NUMBER': '序列号',
+                'WAITING': '等待测距',
+                'RANGING': '测距中',
+                'OPERATIONAL': '运行'
+            };
+            return texts[state] || state;
+        }
+
+        function updateDiagram(onus) {
+            const stack = document.getElementById('onuStack');
+            if (onus.length === 0) {
+                stack.innerHTML = '<div class="onu-box">等待配置</div>';
+                return;
+            }
+
+            stack.innerHTML = onus.map(onu => `
+                <div class="onu-box ${onu.state === 'OPERATIONAL' ? 'oprational' : onu.state === 'RANGING' ? 'ranging' : ''}">
+                    ONU-${onu.onu_id}
+                </div>
+            `).join('');
+        }
+
+        function updateChart(onus) {
+            const container = document.getElementById('chartContainer');
+            if (onus.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3v18h18"/>
+                            <path d="M18 17V9"/>
+                            <path d="M13 17V5"/>
+                            <path d="M8 17v-3"/>
+                        </svg>
+                        <p>开始模拟后显示测距数据图表</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const maxValue = Math.max(...onus.map(o => Math.max(o.measured_rtt, o.equalization_delay, 1)));
+            const chartHeight = 220;
+
+            container.innerHTML = onus.map(onu => `
+                <div class="chart-bar">
+                    <div class="bar bar-rtt" style="height: ${(onu.measured_rtt / maxValue) * chartHeight}px;" title="RTT: ${onu.measured_rtt}ns"></div>
+                    <div class="bar bar-eqd" style="height: ${(onu.equalization_delay / maxValue) * chartHeight}px;" title="EqD: ${onu.equalization_delay}ns"></div>
+                    <div class="bar-label">ONU-${onu.onu_id}</div>
+                </div>
+            `).join('');
+        }
+
+        function updateEventLog(logs) {
+            const container = document.getElementById('eventLog');
+            if (logs.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <path d="M14 2v6h6"/>
+                            <path d="M16 13H8"/>
+                            <path d="M16 17H8"/>
+                        </svg>
+                        <p>暂无事件记录</p>
+                    </div>
+                `;
+                lastLogCount = 0;
+                return;
+            }
+
+            if (logs.length === lastLogCount) return;
+            lastLogCount = logs.length;
+
+            container.innerHTML = logs.slice().reverse().map(log => `
+                <div class="log-entry">
+                    <span class="log-time">+${log.timestamp}s</span>
+                    <span class="log-source ${log.source === 'OLT' ? 'OLT' : ''}">${log.source}</span>
+                    <span class="log-message">${log.message}</span>
+                </div>
+            `).join('');
+        }
+
+        function updateDBA(dba, onus) {
+            if (!dba) return;
+            
+            const statusEl = document.getElementById('dbaStatus');
+            const totalEl = document.getElementById('dbaTotal');
+            const countEl = document.getElementById('dbaCount');
+            const intervalEl = document.getElementById('dbaInterval');
+            
+            if (dba.active) {
+                statusEl.textContent = '运行中';
+                statusEl.className = 'discovery-value active';
+            } else {
+                statusEl.textContent = '未激活';
+                statusEl.className = 'discovery-value';
+            }
+            
+            totalEl.textContent = Math.round(dba.total_bandwidth / 1000) + ' Mbps';
+            countEl.textContent = dba.allocation_count || 0;
+            intervalEl.textContent = (dba.interval * 1000 || 100) + 'ms';
+            
+            const container = document.getElementById('bandwidthContainer');
+            const operationalOnus = onus.filter(o => o.state === 'OPERATIONAL');
+            
+            if (operationalOnus.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3v18h18"/>
+                            <path d="M18 17V9"/>
+                            <path d="M13 17V5"/>
+                            <path d="M8 17v-3"/>
+                        </svg>
+                        <p>ONU进入运行状态后显示带宽分配</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const maxBandwidth = dba.total_bandwidth;
+            
+            container.innerHTML = operationalOnus.map(onu => {
+                const types = onu.bandwidth_allocation_type ? onu.bandwidth_allocation_type.split('+') : [];
+                const typeBadges = types.map(t => {
+                    const cls = t === '固定' ? 'type-fixed' : t === '保证' ? 'type-guaranteed' : 'type-besteffort';
+                    return `<span class="dba-type-badge ${cls}">${t}</span>`;
+                }).join('');
+                
+                const requestPercent = (onu.current_bandwidth_request / maxBandwidth) * 100;
+                const allocPercent = (onu.allocated_bandwidth / maxBandwidth) * 100;
+                const queuePercent = onu.queue_occupancy * 100;
+                
+                return `
+                    <div class="bandwidth-row">
+                        <div class="bandwidth-label">
+                            <span>ONU-${onu.onu_id} ${typeBadges}</span>
+                            <span>${Math.round(onu.allocated_bandwidth/1000)} / ${Math.round(onu.current_bandwidth_request/1000)} Mbps</span>
+                        </div>
+                        <div class="bandwidth-bar-bg">
+                            <div class="bandwidth-bar bw-fixed" style="width: ${Math.min(allocPercent * 0.3, 100)}%"></div>
+                            <div class="bandwidth-bar bw-guaranteed" style="width: ${Math.min(allocPercent * 0.5, 100)}%"></div>
+                            <div class="bandwidth-bar bw-besteffort" style="width: ${Math.min(allocPercent * 0.2, 100)}%"></div>
+                            <div class="queue-bar" style="width: ${queuePercent}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateTimeline(timeline, onus) {
+            const container = document.getElementById('timelineContainer');
+            
+            if (!timeline || timeline.length === 0 || onus.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 8v4l3 3"/>
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                        <p>开始模拟后显示状态时序图</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const maxTime = Math.max(...timeline.map(t => t.end_time || t.start_time || 0), 0.1);
+            
+            let html = '<div class="timeline-grid">';
+            
+            for (let i = 1; i <= onus.length; i++) {
+                const onu = onus.find(o => o.onu_id === i);
+                if (!onu) continue;
+                
+                const onuTransitions = timeline.filter(t => t.onu_id === i);
+                html += `<div class="timeline-row"><div class="timeline-label">ONU-${i}</div><div class="timeline-track">`;
+                
+                for (const trans of onuTransitions) {
+                    if (!trans.start_time) continue;
+                    const startPercent = (trans.start_time / maxTime) * 100;
+                    const endTime = trans.end_time || maxTime;
+                    const duration = endTime - trans.start_time;
+                    const widthPercent = (duration / maxTime) * 100;
+                    
+                    html += `<div class="timeline-block ${trans.state}" 
+                                  style="left: ${startPercent}%; width: ${Math.max(widthPercent, 1)}%;"
+                                  title="${stateText(trans.state)}: ${trans.start_time}s - ${endTime}s (${duration.toFixed(3)}s)">
+                            </div>`;
+                }
+                
+                html += '</div></div>';
+            }
+            
+            html += '</div>';
+            html += '<div class="timeline-scale">';
+            html += `<span>0s</span>`;
+            for (let i = 1; i <= 4; i++) {
+                html += `<span>${(maxTime * i / 4).toFixed(1)}s</span>`;
+            }
+            html += '</div>';
+            
+            container.innerHTML = html;
+        }
+
+        function exportTimeline() {
+            window.open('/api/export/timeline', '_blank');
+        }
+
+        function exportDBA() {
+            window.open('/api/export/dba', '_blank');
+        }
+
+        window.onload = () => {
+            startStatusUpdate();
+        };
+    </script>
+</body>
+</html>

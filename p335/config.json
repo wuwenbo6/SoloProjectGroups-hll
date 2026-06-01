@@ -1,0 +1,7 @@
+{
+  "sn_addr": ":1884",
+  "mqtt_broker": "tcp://127.0.0.1:1883",
+  "mqtt_client_id": "mqtt-sn-gateway",
+  "topic_prefix": "sensor/",
+  "api_addr": ":8080"
+}

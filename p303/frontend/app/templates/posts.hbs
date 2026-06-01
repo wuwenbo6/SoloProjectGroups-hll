@@ -1,0 +1,116 @@
+<div class="posts-page">
+  <div class="page-header">
+    <h2>文章列表</h2>
+    <LinkTo @route="posts.new" class="btn btn-primary">+ 新建文章</LinkTo>
+  </div>
+
+  <div class="controls">
+    <div class="filter-group">
+      <h3>过滤条件</h3>
+      <div class="filter-row">
+        <label>
+          作者:
+          <Input @value={{this.filterAuthor}} placeholder="输入作者名" />
+        </label>
+        <label>
+          状态:
+          <select {{on "change" (fn (mut this.filterStatus) value="target.value")}}>
+            <option value="">全部</option>
+            <option value="published">已发布</option>
+            <option value="draft">草稿</option>
+          </select>
+        </label>
+        <button {{on "click" this.applyFilters}} class="btn">应用过滤</button>
+        <button {{on "click" this.clearFilters}} class="btn btn-secondary">清除</button>
+      </div>
+    </div>
+
+    <div class="sort-group">
+      <h3>排序</h3>
+      <div class="sort-row">
+        <label>
+          字段:
+          <select {{on "change" (fn (mut this.sortField) value="target.value")}}>
+            <option value="createdAt">创建时间</option>
+            <option value="title">标题</option>
+            <option value="author">作者</option>
+          </select>
+        </label>
+        <label>
+          方向:
+          <select {{on "change" (fn (mut this.sortDirection) value="target.value")}}>
+            <option value="desc">降序</option>
+            <option value="asc">升序</option>
+          </select>
+        </label>
+        <button {{on "click" this.applySort}} class="btn">应用排序</button>
+      </div>
+    </div>
+
+    <div class="pagination-group">
+      <h3>分页</h3>
+      <div class="pagination-row">
+        <label>
+          每页数量:
+          <select {{on "change" (fn (mut this.pageSize) value="target.value")}}>
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+          </select>
+        </label>
+        <button {{on "click" this.changePageSize}} class="btn">应用</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="posts-meta">
+    <p>共 {{this.totalRecords}} 条记录，第 {{this.currentPage}} / {{this.totalPages}} 页</p>
+  </div>
+
+  <div class="posts-list">
+    {{#each this.posts as |post|}}
+      <article class="post-card">
+        <div class="post-header">
+          <h3>
+            <LinkTo @route="posts.post" @model={{post}}>{{post.title}}</LinkTo>
+          </h3>
+          <span class="post-status {{post.status}}">{{post.status}}</span>
+        </div>
+        <p class="post-body">{{post.body}}</p>
+        <div class="post-meta">
+          <span class="post-author">作者: {{post.author}}</span>
+          <span class="post-date">{{format-date post.createdAt}}</span>
+          <span class="post-comments">评论: {{post.comments.length}}</span>
+        </div>
+        <div class="post-actions">
+          <LinkTo @route="posts.post" @model={{post}} class="btn btn-small">查看详情</LinkTo>
+          <button {{on "click" (fn this.deletePost post)}} class="btn btn-small btn-danger">删除</button>
+        </div>
+      </article>
+    {{else}}
+      <p class="no-results">没有找到文章</p>
+    {{/each}}
+  </div>
+
+  <div class="pagination-controls">
+    <button {{on "click" this.prevPage}} disabled={{not this.canGoPrev}} class="btn">
+      ← 上一页
+    </button>
+    
+    <div class="page-numbers">
+      {{#each (range 1 this.totalPages) as |pageNum|}}
+        <button 
+          {{on "click" (fn this.goToPage pageNum)}} 
+          class="btn btn-page {{if (eq pageNum this.currentPage) 'active'}}"
+        >
+          {{pageNum}}
+        </button>
+      {{/each}}
+    </div>
+
+    <button {{on "click" this.nextPage}} disabled={{not this.canGoNext}} class="btn">
+      下一页 →
+    </button>
+  </div>
+</div>

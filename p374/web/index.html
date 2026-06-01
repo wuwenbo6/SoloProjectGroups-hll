@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIP 模拟器 - VN2VN 模式</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>FIP 模拟器 - VN2VN 模式</h1>
+            <p class="subtitle">FCoE Initialization Protocol Simulator - VN2VN Mode</p>
+            <div id="primary-badge" class="primary-badge"></div>
+        </header>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>VN 端口列表</h2>
+                        <button class="btn btn-primary" onclick="refreshPorts()">刷新</button>
+                    </div>
+                    <div id="ports-list" class="ports-list"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>VFID 表 (TTL 生存期)</h2>
+                        <button class="btn btn-primary" onclick="refreshVFID()">刷新</button>
+                    </div>
+                    <div id="vfid-list" class="vfid-list"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>会话表</h2>
+                        <div class="export-buttons">
+                            <button class="btn btn-primary" onclick="refreshSessions()">刷新</button>
+                            <button class="btn btn-success" onclick="exportJSON()">导出 JSON</button>
+                            <button class="btn btn-warning" onclick="exportCSV()">导出 CSV</button>
+                        </div>
+                    </div>
+                    <div id="sessions-list" class="sessions-list"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>可用 VLAN</h2>
+                    </div>
+                    <div id="vlans-list" class="vlans-list"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>虚链路 (Virtual Links)</h2>
+                    </div>
+                    <div id="links-list" class="links-list"></div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>操作面板</h2>
+                    </div>
+                    <div class="operation-section">
+                        <h3>VLAN 发现</h3>
+                        <div class="form-group">
+                            <label>选择端口:</label>
+                            <select id="discovery-port" class="form-control"></select>
+                        </div>
+                        <button class="btn btn-success" onclick="startVLANDiscovery()">开始 VLAN 发现</button>
+                    </div>
+
+                    <div class="operation-section">
+                        <h3>参数交换 & 虚链路建立</h3>
+                        <div class="form-group">
+                            <label>源端口:</label>
+                            <select id="source-port" class="form-control"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>目标端口:</label>
+                            <select id="target-port" class="form-control"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>选择 VLAN:</label>
+                            <select id="exchange-vlan" class="form-control"></select>
+                        </div>
+                        <button class="btn btn-success" onclick="startParamExchange()">开始参数交换</button>
+                    </div>
+
+                    <div class="operation-section">
+                        <h3>VFID 管理</h3>
+                        <div class="form-group">
+                            <label>刷新端口 VFID (续期):</label>
+                            <select id="refresh-vfid-port" class="form-control"></select>
+                        </div>
+                        <button class="btn btn-warning" onclick="refreshVFIDByPort()">刷新 VFID (续期 TTL)</button>
+                    </div>
+
+                    <div class="operation-section">
+                        <h3>主端口选举</h3>
+                        <button class="btn btn-election" onclick="triggerElection()">手动触发选举</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>参数协商详情</h2>
+                    </div>
+                    <div id="negotiation-details" class="negotiation-details">
+                        <p class="text-muted">选择已建立的虚链路查看协商参数</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>会话流量统计</h2>
+                    </div>
+                    <div id="session-stats" class="session-stats">
+                        <p class="text-muted">选择会话查看流量统计</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card event-log">
+            <div class="card-header">
+                <h2>事件日志</h2>
+                <button class="btn btn-secondary" onclick="clearEvents()">清除</button>
+            </div>
+            <div id="event-log" class="event-log-content"></div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

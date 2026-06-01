@@ -1,0 +1,15 @@
+{
+  "name": "zigbee-ota-server",
+  "version": "1.0.0",
+  "description": "ZigBee OTA Upgrade Server with Node.js",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test-device": "node test-device.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2",
+    "crc": "^4.3.2"
+  }
+}

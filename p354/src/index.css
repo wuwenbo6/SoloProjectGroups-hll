@@ -1,0 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-navy: #0F172A;
+  --color-navy-dark: #0B1120;
+  --color-navy-light: #1E293B;
+  --color-cyan: #06B6D4;
+  --color-cyan-dark: #0891B2;
+  --color-amber: #F59E0B;
+  --color-red: #EF4444;
+  --color-green: #22C55E;
+  --color-text: #E2E8F0;
+  --color-text-muted: #94A3B8;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-navy);
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-navy-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-navy-light);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+.card-glow-cyan {
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.1);
+}
+
+.card-glow-amber {
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.1);
+}
+
+.card-glow-red {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
+}
+
+.card-glow-green {
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.1);
+}

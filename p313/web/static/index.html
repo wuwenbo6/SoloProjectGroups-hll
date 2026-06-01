@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCEP 服务器 - 拓扑可视化</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #fff; min-height: 100vh; }
+        .header { background: rgba(0,0,0,0.3); padding: 15px 30px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 24px; font-weight: 600; background: linear-gradient(90deg, #00d4ff, #7b2ff7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .header p { color: #888; font-size: 13px; }
+        .tabs { display: flex; gap: 5px; }
+        .tab { padding: 8px 18px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; cursor: pointer; font-size: 13px; color: #aaa; transition: all 0.3s; }
+        .tab:hover { background: rgba(0,212,255,0.1); color: #fff; }
+        .tab.active { background: rgba(0,212,255,0.2); border-color: #00d4ff; color: #00d4ff; }
+        .container { display: flex; height: calc(100vh - 70px); }
+        .sidebar { width: 380px; background: rgba(0,0,0,0.2); padding: 15px; border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; }
+        .sidebar h2 { font-size: 15px; margin-bottom: 12px; color: #00d4ff; }
+        .section { margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); }
+        .section h3 { font-size: 12px; margin-bottom: 10px; color: #7b2ff7; text-transform: uppercase; letter-spacing: 1px; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; margin-bottom: 4px; color: #aaa; font-size: 11px; }
+        .form-group select, .form-group input[type="number"] { width: 100%; padding: 8px 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff; font-size: 12px; outline: none; }
+        .form-group select:focus, .form-group input:focus { border-color: #00d4ff; background: rgba(0,212,255,0.1); }
+        .form-group select option { background: #1a1a2e; }
+        .checkbox-group { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+        .checkbox-item { display: flex; align-items: center; padding: 4px 8px; background: rgba(255,255,255,0.05); border-radius: 4px; cursor: pointer; font-size: 11px; }
+        .checkbox-item:hover { background: rgba(0,212,255,0.1); }
+        .checkbox-item input { margin-right: 5px; accent-color: #00d4ff; }
+        .checkbox-item.exclude-mode { background: rgba(248,113,113,0.1); }
+        .checkbox-item.exclude-mode input { accent-color: #f87171; }
+        .weight-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+        .weight-row label { min-width: 55px; margin-bottom: 0; font-size: 11px; color: #aaa; }
+        .weight-row input { flex: 1; padding: 6px 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #fff; font-size: 12px; outline: none; }
+        .btn { width: 100%; padding: 10px; background: linear-gradient(90deg, #00d4ff, #7b2ff7); border: none; border-radius: 6px; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,212,255,0.3); }
+        .btn-sm { width: auto; padding: 5px 12px; font-size: 11px; }
+        .btn-danger { background: linear-gradient(90deg, #f87171, #dc2626); }
+        .btn-warning { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+        .btn-success { background: linear-gradient(90deg, #4ade80, #22c55e); }
+        .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.3); }
+        .btn-outline:hover { background: rgba(255,255,255,0.1); }
+        .main-content { flex: 1; position: relative; overflow: hidden; }
+        .tab-content { display: none; width: 100%; height: 100%; }
+        .tab-content.active { display: flex; flex-direction: column; }
+        #tab-topology { position: relative; }
+        #topology-canvas { width: 100%; height: 100%; }
+        .result-panel { margin-top: 10px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 6px; border-left: 3px solid #00d4ff; }
+        .result-panel h3 { font-size: 13px; margin-bottom: 8px; color: #00d4ff; }
+        .result-item { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .result-item:last-child { border-bottom: none; }
+        .result-label { color: #888; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .result-value { color: #fff; font-size: 13px; margin-top: 2px; word-break: break-all; }
+        .success { color: #4ade80; } .error { color: #f87171; }
+        .path-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+        .path-node { background: rgba(0,212,255,0.2); padding: 3px 8px; border-radius: 12px; font-size: 11px; border: 1px solid #00d4ff; }
+        .path-arrow { display: flex; align-items: center; color: #00d4ff; font-size: 11px; }
+        .result-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+        .result-metric-card { padding: 6px; background: rgba(255,255,255,0.05); border-radius: 4px; text-align: center; }
+        .result-metric-value { font-size: 16px; font-weight: bold; color: #00d4ff; }
+        .result-metric-label { font-size: 9px; color: #888; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .stat-card { text-align: center; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; }
+        .stat-value { font-size: 20px; font-weight: bold; color: #00d4ff; }
+        .stat-label { font-size: 9px; color: #888; text-transform: uppercase; }
+        .lsp-list { margin-top: 10px; }
+        .lsp-card { background: rgba(0,0,0,0.3); border-radius: 6px; padding: 10px; margin-bottom: 8px; border-left: 3px solid #7b2ff7; }
+        .lsp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .lsp-name { font-weight: 600; color: #7b2ff7; font-size: 13px; }
+        .lsp-status { padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+        .lsp-status-active { background: rgba(74,222,128,0.2); color: #4ade80; }
+        .lsp-status-rerouted { background: rgba(251,191,36,0.2); color: #fbbf24; }
+        .lsp-detail { font-size: 11px; color: #aaa; margin: 2px 0; }
+        .lsp-actions { display: flex; gap: 5px; margin-top: 6px; }
+        .log-table-wrapper { flex: 1; overflow: auto; padding: 20px; }
+        .log-toolbar { display: flex; gap: 8px; margin-bottom: 15px; align-items: center; flex-wrap: wrap; }
+        .log-toolbar select, .log-toolbar input { padding: 6px 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #fff; font-size: 12px; }
+        .log-toolbar select option { background: #1a1a2e; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { background: rgba(0,0,0,0.4); padding: 10px 8px; text-align: left; color: #00d4ff; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; position: sticky; top: 0; }
+        td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #ccc; }
+        tr:hover td { background: rgba(0,212,255,0.05); }
+        .log-type { padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+        .log-type-compute { background: rgba(0,212,255,0.2); color: #00d4ff; }
+        .log-type-lsp_create { background: rgba(74,222,128,0.2); color: #4ade80; }
+        .log-type-lsp_delete { background: rgba(248,113,113,0.2); color: #f87171; }
+        .log-type-lsp_update { background: rgba(251,191,36,0.2); color: #fbbf24; }
+        .log-type-reoptimize { background: rgba(123,47,247,0.2); color: #7b2ff7; }
+        .log-type-reserve, .log-type-release { background: rgba(128,128,255,0.2); color: #8080ff; }
+        .legend { position: absolute; bottom: 15px; right: 15px; background: rgba(0,0,0,0.7); padding: 10px 14px; border-radius: 6px; font-size: 11px; }
+        .legend-item { display: flex; align-items: center; margin: 4px 0; }
+        .legend-color { width: 16px; height: 3px; margin-right: 6px; border-radius: 2px; }
+        .legend-node { width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+        .tooltip { position: absolute; background: rgba(0,0,0,0.9); padding: 8px 12px; border-radius: 6px; font-size: 10px; pointer-events: none; z-index: 100; border: 1px solid rgba(0,212,255,0.5); display: none; max-width: 220px; }
+        .tooltip-title { font-weight: bold; color: #00d4ff; margin-bottom: 3px; }
+        .affinity-tag { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 9px; margin: 1px; }
+        .affinity-gold { background: rgba(255,215,0,0.3); color: #ffd700; }
+        .affinity-silver { background: rgba(192,192,192,0.3); color: #c0c0c0; }
+        .affinity-bronze { background: rgba(205,127,50,0.3); color: #cd7f32; }
+        .affinity-protect { background: rgba(0,255,128,0.3); color: #00ff80; }
+        .affinity-lowlat { background: rgba(0,212,255,0.3); color: #00d4ff; }
+        .affinity-highpri { background: rgba(255,100,100,0.3); color: #ff6464; }
+        .affinity-backup { background: rgba(128,128,255,0.3); color: #8080ff; }
+        .affinity-encrypt { background: rgba(200,100,255,0.3); color: #c864ff; }
+        .loading { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.9); padding: 25px 40px; border-radius: 12px; z-index: 1000; }
+        .spinner { width: 35px; height: 35px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #00d4ff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { text-align: center; color: #00d4ff; font-size: 13px; }
+        .reoptimize-result { padding: 12px; background: rgba(123,47,247,0.1); border-radius: 6px; margin-top: 10px; border-left: 3px solid #7b2ff7; }
+        .reoptimize-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>PCEP 路径计算服务器</h1>
+            <p>CSPF 多约束路径计算 | 亲和属性 | 全局重优化</p>
+        </div>
+        <div class="tabs">
+            <div class="tab active" data-tab="topology" onclick="switchTab('topology')">拓扑视图</div>
+            <div class="tab" data-tab="lsp" onclick="switchTab('lsp')">LSP 管理</div>
+            <div class="tab" data-tab="logs" onclick="switchTab('logs')">计算日志</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="sidebar" id="sidebar">
+            <div class="section">
+                <h3>路径计算请求</h3>
+                <div class="form-group"><label>源节点</label><select id="source-node"><option value="">请选择</option></select></div>
+                <div class="form-group"><label>目的节点</label><select id="target-node"><option value="">请选择</option></select></div>
+                <div class="form-group"><label>带宽需求 (Mbps)</label><input type="number" id="bandwidth" value="100" min="0" step="10"></div>
+            </div>
+            <div class="section">
+                <h3>亲和属性约束</h3>
+                <div class="form-group"><label>Include-Any</label><div class="checkbox-group" id="include-any-group"></div></div>
+                <div class="form-group"><label>Include-All</label><div class="checkbox-group" id="include-all-group"></div></div>
+                <div class="form-group"><label>Exclude</label><div class="checkbox-group" id="exclude-group"></div></div>
+            </div>
+            <div class="section">
+                <h3>多约束权重</h3>
+                <div class="weight-row"><label>度量</label><input type="number" id="metric-weight" value="1.0" min="0" step="0.1"></div>
+                <div class="weight-row"><label>延迟</label><input type="number" id="latency-weight" value="0.0" min="0" step="0.1"></div>
+                <div class="weight-row"><label>带宽</label><input type="number" id="bandwidth-weight" value="0.0" min="0" step="0.1"></div>
+            </div>
+            <button class="btn" onclick="computePath()">计算路径</button>
+            <div class="result-panel" id="result-panel" style="display:none;">
+                <h3>计算结果</h3>
+                <div class="result-item"><div class="result-label">状态</div><div class="result-value" id="result-status"></div></div>
+                <div class="result-item"><div class="result-label">路径</div><div class="path-list" id="result-path"></div></div>
+                <div class="result-metrics">
+                    <div class="result-metric-card"><div class="result-metric-value" id="result-metric">-</div><div class="result-metric-label">度量</div></div>
+                    <div class="result-metric-card"><div class="result-metric-value" id="result-latency">-</div><div class="result-metric-label">延迟</div></div>
+                    <div class="result-metric-card"><div class="result-metric-value" id="result-cost">-</div><div class="result-metric-label">代价</div></div>
+                    <div class="result-metric-card"><div class="result-metric-value" id="result-minbw">-</div><div class="result-metric-label">最小带宽</div></div>
+                </div>
+                <div class="result-item" id="result-message-item" style="display:none;"><div class="result-label">消息</div><div class="result-value" id="result-message"></div></div>
+            </div>
+            <div class="section" style="margin-top:10px;">
+                <h3>拓扑统计</h3>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-value" id="node-count">0</div><div class="stat-label">节点</div></div>
+                    <div class="stat-card"><div class="stat-value" id="link-count">0</div><div class="stat-label">链路</div></div>
+                    <div class="stat-card"><div class="stat-value" id="lsp-count">0</div><div class="stat-label">LSP</div></div>
+                    <div class="stat-card"><div class="stat-value" id="utilization">0%</div><div class="stat-label">利用率</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="tab-content active" id="tab-topology">
+                <canvas id="topology-canvas"></canvas>
+                <div class="tooltip" id="tooltip"><div class="tooltip-title" id="tooltip-title"></div><div id="tooltip-content"></div></div>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-node" style="background:#4ade80;"></div><span>源</span></div>
+                    <div class="legend-item"><div class="legend-node" style="background:#f87171;"></div><span>目的</span></div>
+                    <div class="legend-item"><div class="legend-node" style="background:#60a5fa;"></div><span>中间</span></div>
+                    <div class="legend-item"><div class="legend-color" style="background:#00d4ff;"></div><span>计算路径</span></div>
+                    <div class="legend-item"><div class="legend-color" style="background:#7b2ff7;"></div><span>LSP路径</span></div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-lsp">
+                <div style="padding:20px;overflow-y:auto;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                        <h2 style="color:#00d4ff;font-size:18px;">LSP 管理</h2>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn btn-sm btn-warning" onclick="reoptimizeAll()">全局重优化</button>
+                            <button class="btn btn-sm btn-outline" onclick="loadLSPs()">刷新</button>
+                        </div>
+                    </div>
+                    <div id="reoptimize-result" style="display:none;"></div>
+                    <div class="lsp-list" id="lsp-list"><p style="color:#888;text-align:center;padding:40px;">暂无 LSP</p></div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-logs">
+                <div class="log-table-wrapper">
+                    <div class="log-toolbar">
+                        <select id="log-type-filter" onchange="loadLogs()">
+                            <option value="">全部类型</option>
+                            <option value="compute">路径计算</option>
+                            <option value="lsp_create">LSP创建</option>
+                            <option value="lsp_delete">LSP删除</option>
+                            <option value="lsp_update">LSP更新</option>
+                            <option value="reoptimize">重优化</option>
+                            <option value="reserve">带宽预留</option>
+                        </select>
+                        <input type="number" id="log-limit" value="50" min="1" max="500" style="width:80px;" placeholder="条数">
+                        <button class="btn btn-sm btn-outline" onclick="loadLogs()">查询</button>
+                        <div style="flex:1;"></div>
+                        <button class="btn btn-sm btn-success" onclick="exportLogs('json')">导出JSON</button>
+                        <button class="btn btn-sm btn-outline" onclick="exportLogs('csv')">导出CSV</button>
+                        <button class="btn btn-sm btn-danger" onclick="clearLogs()">清空</button>
+                    </div>
+                    <table>
+                        <thead><tr><th>ID</th><th>时间</th><th>类型</th><th>源→目的</th><th>带宽</th><th>成功</th><th>路径</th><th>度量</th><th>消息</th><th>耗时</th></tr></thead>
+                        <tbody id="log-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading" id="loading"><div class="spinner"></div><div class="loading-text">处理中...</div></div>
+
+    <script>
+        const AFFINITY_FLAGS = [
+            {bit:0x01,name:'GOLD',cssClass:'affinity-gold'},{bit:0x02,name:'SILVER',cssClass:'affinity-silver'},
+            {bit:0x04,name:'BRONZE',cssClass:'affinity-bronze'},{bit:0x08,name:'PROTECT',cssClass:'affinity-protect'},
+            {bit:0x10,name:'LOWLAT',cssClass:'affinity-lowlat'},{bit:0x20,name:'HIGHPRI',cssClass:'affinity-highpri'},
+            {bit:0x40,name:'BACKUP',cssClass:'affinity-backup'},{bit:0x80,name:'ENCRYPT',cssClass:'affinity-encrypt'},
+        ];
+        let topology={nodes:[],links:[]}, currentPath={nodes:[],links:[]}, lspPaths=[], canvas, ctx, canvasW, canvasH;
+
+        function initAffinityCheckboxes(){
+            ['include-any-group','include-all-group','exclude-group'].forEach(gid=>{
+                const g=document.getElementById(gid); g.innerHTML='';
+                const isEx=gid==='exclude-group';
+                AFFINITY_FLAGS.forEach(f=>{
+                    const l=document.createElement('label');
+                    l.className='checkbox-item'+(isEx?' exclude-mode':'');
+                    l.innerHTML=`<input type="checkbox" value="${f.bit}"><span class="affinity-tag ${f.cssClass}">${f.name}</span>`;
+                    g.appendChild(l);
+                });
+            });
+        }
+        function getAffinityMask(gid){let m=0;document.querySelectorAll(`#${gid} input:checked`).forEach(c=>{m|=parseInt(c.value)});return m;}
+        function formatAffinityTags(m){let h='';AFFINITY_FLAGS.forEach(f=>{if(m&f.bit)h+=`<span class="affinity-tag ${f.cssClass}">${f.name}</span> `});return h||'—';}
+
+        function switchTab(tab){
+            document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+            document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+            document.getElementById('tab-'+tab).classList.add('active');
+            if(tab==='topology'){resizeCanvas();drawTopology();}
+            if(tab==='lsp')loadLSPs();
+            if(tab==='logs')loadLogs();
+        }
+
+        function init(){
+            canvas=document.getElementById('topology-canvas');ctx=canvas.getContext('2d');
+            initAffinityCheckboxes();resizeCanvas();window.addEventListener('resize',()=>{resizeCanvas();drawTopology();});
+            canvas.addEventListener('mousemove',handleMouseMove);
+            loadTopology();loadStats();
+        }
+        function resizeCanvas(){const c=canvas.parentElement;canvasW=c.clientWidth;canvasH=c.clientHeight;canvas.width=canvasW;canvas.height=canvasH;}
+        async function loadTopology(){try{const r=await fetch('/api/topology');const d=await r.json();topology=d;updateNodeSelects();drawTopology();}catch(e){console.error(e);}}
+        function updateNodeSelects(){
+            ['source-node','target-node'].forEach(id=>{
+                const s=document.getElementById(id);const v=s.value;s.innerHTML='<option value="">请选择</option>';
+                topology.nodes.forEach(n=>s.add(new Option(`${n.name} (${n.ip})`,n.id)));s.value=v;
+            });
+        }
+        async function loadStats(){
+            try{const r=await fetch('/api/stats');const d=await r.json();
+                document.getElementById('node-count').textContent=d.nodes;
+                document.getElementById('link-count').textContent=d.links;
+                document.getElementById('lsp-count').textContent=d.active_lsps||0;
+                document.getElementById('utilization').textContent=(d.utilization||0).toFixed(1)+'%';
+            }catch(e){}
+        }
+
+        async function computePath(){
+            const src=document.getElementById('source-node').value,tgt=document.getElementById('target-node').value;
+            if(!src||!tgt){alert('请选择源和目的节点');return;}
+            if(src===tgt){alert('源和目的不能相同');return;}
+            const bw=parseFloat(document.getElementById('bandwidth').value)||0;
+            const ia=getAffinityMask('include-any-group'),al=getAffinityMask('include-all-group'),ex=getAffinityMask('exclude-group');
+            const mw=parseFloat(document.getElementById('metric-weight').value)||0;
+            const lw=parseFloat(document.getElementById('latency-weight').value)||0;
+            const bww=parseFloat(document.getElementById('bandwidth-weight').value)||0;
+            document.getElementById('loading').style.display='block';
+            try{
+                const r=await fetch('/api/compute-path',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:src,target:tgt,bandwidth:bw,include_any:ia,include_all:al,exclude:ex,metric_weight:mw,latency_weight:lw,bandwidth_weight:bww})});
+                const res=await r.json();showResult(res);
+                if(res.success)currentPath={nodes:res.nodes,links:res.links};else currentPath={nodes:[],links:[]};
+                drawTopology();loadStats();
+            }catch(e){showResult({success:false,message:e.message})}
+            document.getElementById('loading').style.display='none';
+        }
+
+        function showResult(res){
+            const p=document.getElementById('result-panel');p.style.display='block';
+            const st=document.getElementById('result-status'),pa=document.getElementById('result-path');
+            const me=document.getElementById('result-metric'),la=document.getElementById('result-latency');
+            const co=document.getElementById('result-cost'),mb=document.getElementById('result-minbw');
+            const mi=document.getElementById('result-message-item'),mm=document.getElementById('result-message');
+            if(res.success){
+                st.textContent='成功';st.className='result-value success';
+                pa.innerHTML='';res.nodes.forEach((n,i)=>{const info=topology.nodes.find(x=>x.id===n);
+                    const s=document.createElement('span');s.className='path-node';s.textContent=info?info.name:n;pa.appendChild(s);
+                    if(i<res.nodes.length-1){const a=document.createElement('span');a.className='path-arrow';a.textContent='→';pa.appendChild(a);}});
+                me.textContent=res.metric;la.textContent=res.total_latency!=null?res.total_latency.toFixed(1):'-';
+                co.textContent=res.cost!=null?res.cost.toFixed(2):'-';mb.textContent=res.min_bandwidth!=null?res.min_bandwidth.toFixed(0):'-';
+                mi.style.display='none';
+            }else{
+                st.textContent='失败';st.className='result-value error';pa.innerHTML='<span style="color:#f87171">无路径</span>';
+                me.textContent=la.textContent=co.textContent=mb.textContent='-';
+                if(res.message){mi.style.display='block';mm.textContent=res.message;mm.className='result-value error';}else mi.style.display='none';
+            }
+        }
+
+        function drawTopology(){
+            ctx.clearRect(0,0,canvasW,canvasH);const pad=80,uw=canvasW-pad*2,uh=canvasH-pad*2;
+            const np={};topology.nodes.forEach(n=>{np[n.id]={x:pad+(n.x/100)*uw,y:pad+(n.y/100)*uh,node:n}});
+            topology.links.forEach(l=>{const s=np[l.source],t=np[l.target];if(s&&t)drawLink(s,t,l)});
+            Object.values(np).forEach(p=>{drawNode(p,p.node)});
+        }
+        function drawLink(s,t,l){
+            const isPath=currentPath.links.includes(l.id);
+            const isLSP=lspPaths.some(lp=>lp.links.includes(l.id));
+            const g=ctx.createLinearGradient(s.x,s.y,t.x,t.y);
+            if(isPath){g.addColorStop(0,'#00d4ff');g.addColorStop(1,'#7b2ff7');ctx.lineWidth=4;}
+            else if(isLSP){g.addColorStop(0,'#7b2ff7');g.addColorStop(1,'#a855f7');ctx.lineWidth=3;}
+            else{g.addColorStop(0,'#4a5568');g.addColorStop(1,'#2d3748');ctx.lineWidth=2;}
+            ctx.strokeStyle=g;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(t.x,t.y);ctx.stroke();
+            const mx=(s.x+t.x)/2,my=(s.y+t.y)/2;
+            ctx.fillStyle=isPath?'#00d4ff':isLSP?'#7b2ff7':'#888';ctx.font='10px Arial';ctx.textAlign='center';
+            ctx.fillText(`${l.reserved_bw.toFixed(0)}/${l.bandwidth.toFixed(0)}`,mx,my-8);
+            if(l.affinity){let ts='';AFFINITY_FLAGS.forEach(f=>{if(l.affinity&f.bit)ts+=f.name[0]});ctx.font='9px Arial';ctx.fillText(ts,mx,my+14);}
+        }
+        function drawNode(pos,node){
+            const isSrc=pos.node.id===document.getElementById('source-node').value;
+            const isTgt=pos.node.id===document.getElementById('target-node').value;
+            const isPath=currentPath.nodes.includes(pos.node.id);
+            const isLSP=lspPaths.some(lp=>lp.nodes.includes(pos.node.id));
+            const r=isSrc||isTgt?26:20;
+            const g=ctx.createRadialGradient(pos.x-4,pos.y-4,0,pos.x,pos.y,r);
+            if(isSrc){g.addColorStop(0,'#86efac');g.addColorStop(1,'#22c55e');}
+            else if(isTgt){g.addColorStop(0,'#fca5a5');g.addColorStop(1,'#ef4444');}
+            else if(isPath){g.addColorStop(0,'#93c5fd');g.addColorStop(1,'#3b82f6');}
+            else if(isLSP){g.addColorStop(0,'#c4b5fd');g.addColorStop(1,'#8b5cf6');}
+            else{g.addColorStop(0,'#94a3b8');g.addColorStop(1,'#475569');}
+            if(isSrc||isTgt||isPath||isLSP){ctx.shadowColor=isSrc?'#22c55e':isTgt?'#ef4444':isPath?'#3b82f6':'#8b5cf6';ctx.shadowBlur=15;}
+            ctx.fillStyle=g;ctx.beginPath();ctx.arc(pos.x,pos.y,r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+            ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+            ctx.fillStyle='#fff';ctx.font='bold 11px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+            ctx.fillText(node.name,pos.x,pos.y-4);ctx.font='9px Arial';ctx.fillStyle='rgba(255,255,255,0.8)';ctx.fillText(node.ip,pos.x,pos.y+9);
+        }
+        function handleMouseMove(e){
+            const rect=canvas.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
+            const pad=80,uw=canvasW-pad*2,uh=canvasH-pad*2;
+            let hn=null;for(const n of topology.nodes){if(Math.hypot(x-(pad+(n.x/100)*uw),y-(pad+(n.y/100)*uh))<28){hn=n;break;}}
+            const tt=document.getElementById('tooltip');
+            if(hn){document.getElementById('tooltip-title').textContent=hn.name;document.getElementById('tooltip-content').innerHTML=`IP: ${hn.ip}`;tt.style.left=(e.clientX+12)+'px';tt.style.top=(e.clientY+12)+'px';tt.style.display='block';canvas.style.cursor='pointer';}
+            else{tt.style.display='none';canvas.style.cursor='default';}
+        }
+
+        async function loadLSPs(){
+            try{const r=await fetch('/api/lsp');const d=await r.json();const lsps=d.lsps||[];
+                lspPaths=lsps.map(l=>({id:l.id,nodes:l.nodes,links:l.links}));
+                const list=document.getElementById('lsp-list');
+                if(!lsps.length){list.innerHTML='<p style="color:#888;text-align:center;padding:40px">暂无 LSP，请通过路径计算创建</p>';return;}
+                list.innerHTML=lsps.map(l=>`<div class="lsp-card"><div class="lsp-header"><span class="lsp-name">${l.name} <small style="color:#888">${l.id}</small></span><span class="lsp-status lsp-status-${l.status}">${l.status}</span></div><div class="lsp-detail">${l.source} → ${l.target} | 带宽: ${l.bandwidth}Mbps</div><div class="lsp-detail">路径: ${l.nodes.join(' → ')}</div><div class="lsp-detail">度量: ${l.metric} | 代价: ${l.cost.toFixed(2)} | 延迟: ${l.total_latency.toFixed(1)}ms</div><div class="lsp-actions"><button class="btn btn-sm btn-danger" onclick="deleteLSP('${l.id}')">删除</button></div></div>`).join('');
+                loadStats();
+            }catch(e){console.error(e);}
+        }
+
+        async function deleteLSP(id){
+            if(!confirm('确认删除此 LSP？'))return;
+            try{await fetch(`/api/lsp/${id}`,{method:'DELETE'});loadLSPs();}catch(e){alert('删除失败');}
+        }
+
+        async function reoptimizeAll(){
+            document.getElementById('loading').style.display='block';
+            try{const r=await fetch('/api/reoptimize',{method:'POST'});const d=await r.json();
+                const rd=document.getElementById('reoptimize-result');rd.style.display='block';
+                rd.innerHTML=`<div class="reoptimize-result"><h3 style="color:#7b2ff7;margin-bottom:8px">重优化结果</h3><div class="reoptimize-summary"><div class="stat-card"><div class="stat-value">${d.total_lsps}</div><div class="stat-label">总计</div></div><div class="stat-card"><div class="stat-value" style="color:#4ade80">${d.reoptimized}</div><div class="stat-label">已优化</div></div><div class="stat-card"><div class="stat-value" style="color:#fbbf24">${d.unchanged}</div><div class="stat-label">未变化</div></div></div>${d.details?d.details.map(x=>`<div style="padding:4px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="color:${x.optimized?'#4ade80':'#aaa'}">●</span> ${x.lsp_name}: ${x.reason||'—'}</div>`).join(''):''}</div>`;
+                loadLSPs();loadStats();
+            }catch(e){alert('重优化失败: '+e.message)}
+            document.getElementById('loading').style.display='none';
+        }
+
+        async function loadLogs(){
+            const type=document.getElementById('log-type-filter').value;
+            const limit=document.getElementById('log-limit').value||'50';
+            try{const r=await fetch(`/api/logs?limit=${limit}&type=${type}`);const d=await r.json();
+                const tb=document.getElementById('log-tbody');
+                tb.innerHTML=(d.logs||[]).map(l=>`<tr><td>${l.id}</td><td style="white-space:nowrap">${new Date(l.timestamp).toLocaleString()}</td><td><span class="log-type log-type-${l.type}">${l.type}</span></td><td>${l.source&&l.target?l.source+'→'+l.target:'—'}</td><td>${l.bandwidth?l.bandwidth:'—'}</td><td class="${l.success?'success':'error'}">${l.success?'✓':'✗'}</td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${l.nodes?l.nodes.join('→'):'—'}</td><td>${l.metric||'—'}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${l.message||''}">${l.message||'—'}</td><td>${l.duration||'—'}</td></tr>`).join('');
+            }catch(e){console.error(e);}
+        }
+
+        function exportLogs(fmt){window.open(`/api/logs/export?format=${fmt}`,'_blank');}
+        async function clearLogs(){if(!confirm('确认清空所有日志？'))return;await fetch('/api/logs',{method:'DELETE'});loadLogs();}
+
+        window.onload=init;
+    </script>
+</body>
+</html>

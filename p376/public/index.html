@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZigBee OTA 升级服务器</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>ZigBee OTA 升级服务器</h1>
+      <div class="server-status">
+        <span class="status-indicator" id="serverStatus"></span>
+        <span id="serverStatusText">连接中...</span>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <div class="left-col">
+        <div class="firmware-panel">
+          <h2>固件信息</h2>
+          <div class="firmware-info" id="firmwareInfo">
+            <div class="info-item">
+              <span class="label">版本:</span>
+              <span class="value" id="firmwareVersion">--</span>
+            </div>
+            <div class="info-item">
+              <span class="label">大小:</span>
+              <span class="value" id="firmwareSize">--</span>
+            </div>
+            <div class="info-item">
+              <span class="label">CRC32:</span>
+              <span class="value" id="firmwareCrc">--</span>
+            </div>
+            <div class="info-item">
+              <span class="label">分块大小:</span>
+              <span class="value" id="blockSize">--</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-panel">
+          <h2>升级统计 <button class="btn-icon" id="exportStatsBtn" title="导出统计">📥</button></h2>
+          <div class="stats-summary" id="statsSummary">
+            <div class="stat-card stat-total">
+              <div class="stat-value" id="statTotalAttempts">0</div>
+              <div class="stat-label">总次数</div>
+            </div>
+            <div class="stat-card stat-success">
+              <div class="stat-value" id="statSuccesses">0</div>
+              <div class="stat-label">成功</div>
+            </div>
+            <div class="stat-card stat-failure">
+              <div class="stat-value" id="statFailures">0</div>
+              <div class="stat-label">失败</div>
+            </div>
+            <div class="stat-card stat-rate">
+              <div class="stat-value" id="statSuccessRate">0%</div>
+              <div class="stat-label">成功率</div>
+            </div>
+          </div>
+          <div class="stats-details" id="statsDetails">
+            <div class="empty-state small">
+              <p>暂无统计数据</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="group-panel">
+          <h2>组播升级</h2>
+          <div class="group-controls">
+            <button class="btn btn-primary" id="selectAllBtn">全选设备</button>
+            <button class="btn btn-accent" id="startGroupBtn">启动组播升级</button>
+          </div>
+          <div class="group-tasks" id="groupTasks">
+            <div class="empty-state small">
+              <p>选择设备后启动组播升级</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="right-col">
+        <div class="devices-panel">
+          <h2>设备列表 <span class="device-count" id="deviceCount">(0)</span></h2>
+          <div class="devices-list" id="devicesList">
+            <div class="empty-state">
+              <p>暂无设备连接</p>
+              <p class="hint">运行 <code>npm run test-device</code> 启动模拟设备</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="log-panel">
+      <h2>升级日志</h2>
+      <div class="log-container" id="logContainer"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="exportModal" style="display:none;">
+    <div class="modal">
+      <h3>导出升级统计</h3>
+      <div class="modal-body">
+        <button class="btn btn-primary btn-block" id="exportJsonBtn">导出 JSON</button>
+        <button class="btn btn-accent btn-block" id="exportCsvBtn">导出 CSV</button>
+      </div>
+      <button class="btn btn-ghost" id="closeExportModal">关闭</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCTP 多宿主路径切换模拟器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔗 SCTP 多宿主路径切换模拟器</h1>
+            <div class="status-badge" id="statusBadge">
+                <span class="status-dot"></span>
+                <span id="statusText">运行中</span>
+            </div>
+        </header>
+
+        <div class="main-grid">
+            <div class="topology-section">
+                <h2>网络拓扑</h2>
+                <div class="topology-container">
+                    <div class="endpoint endpoint-a">
+                        <h3>端点 A</h3>
+                        <div class="ip-list" id="endpointAIps"></div>
+                    </div>
+
+                    <div class="paths-container" id="pathsContainer"></div>
+
+                    <div class="endpoint endpoint-b">
+                        <h3>端点 B</h3>
+                        <div class="ip-list" id="endpointBIps"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <h2>控制面板</h2>
+                <div class="control-group">
+                    <button id="startBtn" class="btn btn-primary">启动</button>
+                    <button id="stopBtn" class="btn btn-warning">停止</button>
+                    <button id="resetBtn" class="btn btn-danger">重置</button>
+                </div>
+                <div class="config-info">
+                    <p><strong>心跳间隔:</strong> <span id="heartbeatInterval">1s</span></p>
+                    <p><strong>最大错过心跳:</strong> <span id="maxMissed">3</span></p>
+                </div>
+            </div>
+
+            <div class="simulate-section">
+                <h2>模拟故障/恢复</h2>
+                <div class="simulate-form">
+                    <label>
+                        端点:
+                        <select id="simEndpoint">
+                            <option value="A">端点 A</option>
+                            <option value="B">端点 B</option>
+                        </select>
+                    </label>
+                    <label>
+                        源IP:
+                        <select id="simSourceIP"></select>
+                    </label>
+                    <label>
+                        目的IP:
+                        <select id="simDestIP"></select>
+                    </label>
+                    <div class="button-group">
+                        <button id="simFailureBtn" class="btn btn-danger">模拟故障</button>
+                        <button id="simRecoveryBtn" class="btn btn-success">模拟恢复</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="data-section">
+                <h2>发送测试数据</h2>
+                <div class="data-form">
+                    <label>
+                        发送端点:
+                        <select id="sendEndpoint">
+                            <option value="A">端点 A</option>
+                            <option value="B">端点 B</option>
+                        </select>
+                    </label>
+                    <label>
+                        数据内容:
+                        <input type="text" id="dataContent" placeholder="输入要发送的数据..." value="测试数据">
+                    </label>
+                    <div class="button-group">
+                        <button id="sendDataBtn" class="btn btn-primary">发送数据</button>
+                        <button id="sendMultiBtn" class="btn btn-info">批量发送 5 条</button>
+                    </div>
+                </div>
+                <div class="buffer-status">
+                    <div class="buffer-item">
+                        <span class="buffer-label">路径验证状态:</span>
+                        <span class="buffer-value" id="pathVerifiedStatus">
+                            <span class="verified-badge verified">已验证</span>
+                        </span>
+                    </div>
+                    <div class="buffer-item">
+                        <span class="buffer-label">缓存队列大小:</span>
+                        <span class="buffer-value" id="bufferQueueSize">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="path-priority-section">
+                <h2>路径优先级管理</h2>
+                <div class="priority-form">
+                    <label>
+                        端点:
+                        <select id="priorityEndpoint">
+                            <option value="A">端点 A</option>
+                            <option value="B">端点 B</option>
+                        </select>
+                    </label>
+                    <label>
+                        源IP:
+                        <select id="prioritySourceIP"></select>
+                    </label>
+                    <label>
+                        目的IP:
+                        <select id="priorityDestIP"></select>
+                    </label>
+                    <label>
+                        优先级:
+                        <input type="number" id="priorityValue" min="1" value="1">
+                    </label>
+                    <div class="button-group">
+                        <button id="setPriorityBtn" class="btn btn-warning">设置优先级</button>
+                        <button id="setPrimaryBtn" class="btn btn-info">设为主路径</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-section">
+                <h2>切换延迟统计</h2>
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="stat-label">总切换次数</div>
+                        <div class="stat-value" id="totalSwitches">0</div>
+                        <div class="stat-unit">次</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">平均切换时间</div>
+                        <div class="stat-value" id="avgSwitchTimeMs">--</div>
+                        <div class="stat-unit">ms</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">中位数</div>
+                        <div class="stat-value" id="medianSwitchTime">--</div>
+                        <div class="stat-unit">ms</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">P95 切换时间</div>
+                        <div class="stat-value" id="p95SwitchTime">--</div>
+                        <div class="stat-unit">ms</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">P99 切换时间</div>
+                        <div class="stat-value" id="p99SwitchTime">--</div>
+                        <div class="stat-unit">ms</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">最小/最大</div>
+                        <div class="stat-value"><span id="minSwitchTime">--</span> / <span id="maxSwitchTime">--</span></div>
+                        <div class="stat-unit">ms</div>
+                    </div>
+                </div>
+                <div class="stats-export">
+                    <button id="refreshStatsBtn" class="btn btn-secondary">刷新统计</button>
+                    <button id="exportStatsBtn" class="btn btn-primary">导出统计报告 (CSV)</button>
+                    <button id="exportEventsBtn" class="btn btn-primary">导出事件明细 (CSV)</button>
+                </div>
+                <div class="failure-reasons">
+                    <h3>故障原因分布</h3>
+                    <div id="failureReasons" class="failure-reasons-grid"></div>
+                </div>
+            </div>
+
+            <div class="paths-section">
+                <h2>路径状态</h2>
+                <div class="paths-grid" id="pathsStatus"></div>
+            </div>
+
+            <div class="events-section">
+                <h2>路径切换历史 <span class="event-count" id="eventCount">0</span></h2>
+                <div class="switch-time-highlight">
+                    <div class="switch-time-label">最近切换时间</div>
+                    <div class="switch-time-value" id="lastSwitchTime">-- ms</div>
+                    <div class="switch-time-avg">平均: <span id="avgSwitchTime">-- ms</span></div>
+                </div>
+                <div class="events-table-container">
+                    <table class="events-table">
+                        <thead>
+                            <tr>
+                            <th>序号</th>
+                            <th>时间</th>
+                            <th>从路径</th>
+                            <th>到路径</th>
+                            <th>切换耗时</th>
+                            <th>原因</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eventsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="buffer-events-section">
+                <h2>数据缓存/发送日志 <span class="event-count" id="bufferEventCount">0</span></h2>
+                <div class="events-table-container">
+                    <table class="events-table">
+                        <thead>
+                            <tr>
+                            <th>序号</th>
+                            <th>时间</th>
+                            <th>类型</th>
+                            <th>数据#</th>
+                            <th>路径</th>
+                            <th>消息</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bufferEventsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

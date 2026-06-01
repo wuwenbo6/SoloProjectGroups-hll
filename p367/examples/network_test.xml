@@ -1,0 +1,28 @@
+<root>
+    <network>
+        <device>
+            <device-name>core-switch-01</device-name>
+            <mgmt-ip>192.168.1.1</mgmt-ip>
+            <allowed-vlans>10</allowed-vlans>
+            <allowed-vlans>20</allowed-vlans>
+            <allowed-vlans>10</allowed-vlans>
+            <dns-servers>8.8.8.8</dns-servers>
+            <dns-servers>8.8.4.4</dns-servers>
+            <dns-servers>8.8.8.8</dns-servers>
+            <max-bandwidth>10000</max-bandwidth>
+            <ssh-port>22</ssh-port>
+            <netconf-port>830</netconf-port>
+            <interface>
+                <name>GigabitEthernet0/1</name>
+                <type>ethernet</type>
+                <mtu>1500</mtu>
+                <status>up</status>
+                <bandwidth>1000</bandwidth>
+                <ip>10.0.0.1</ip>
+                <tagged-vlans>10</tagged-vlans>
+                <tagged-vlans>20</tagged-vlans>
+                <tagged-vlans>10</tagged-vlans>
+            </interface>
+        </device>
+    </network>
+</root>

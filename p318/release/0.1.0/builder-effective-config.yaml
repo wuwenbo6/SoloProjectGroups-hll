@@ -1,0 +1,23 @@
+directories:
+  output: release/${version}
+  buildResources: build
+appId: com.example.rs485simulator
+productName: RS-485 Bus Simulator
+files:
+  - filter:
+      - dist
+      - dist-electron
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.developer-tools
+win:
+  target:
+    - nsis
+    - zip
+linux:
+  target:
+    - AppImage
+    - deb
+electronVersion: 28.3.3

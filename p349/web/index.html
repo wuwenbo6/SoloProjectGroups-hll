@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SR-IOV 模拟器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        header p {
+            color: rgba(255,255,255,0.6);
+            margin-top: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .stat-card .value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .stat-card .label {
+            color: rgba(255,255,255,0.6);
+            margin-top: 5px;
+            font-size: 0.9rem;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .section {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(180deg, #00d4ff, #7b2cbf);
+            border-radius: 2px;
+        }
+
+        .pf-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .pf-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .pf-info h3 {
+            font-size: 1.1rem;
+            color: #00d4ff;
+        }
+
+        .pf-info p {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.5);
+            margin-top: 3px;
+        }
+
+        .pf-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+            color: #fff;
+        }
+
+        .vfs-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .vf-box {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.75rem;
+            text-align: center;
+            padding: 5px;
+        }
+
+        .vf-free {
+            background: rgba(72, 219, 153, 0.15);
+            border: 2px solid #48db99;
+        }
+
+        .vf-free:hover {
+            background: rgba(72, 219, 153, 0.3);
+            transform: scale(1.05);
+        }
+
+        .vf-allocated {
+            background: rgba(255, 107, 107, 0.15);
+            border: 2px solid #ff6b6b;
+        }
+
+        .vf-allocated:hover {
+            background: rgba(255, 107, 107, 0.3);
+        }
+
+        .vf-box .vf-id {
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .vf-box .vf-status {
+            font-size: 0.65rem;
+            opacity: 0.8;
+        }
+
+        .vf-box .vf-vm {
+            font-size: 0.6rem;
+            margin-top: 3px;
+            color: #ff6b6b;
+        }
+
+        .vf-box .vf-qos {
+            font-size: 0.55rem;
+            margin-top: 2px;
+            color: #ffd93d;
+        }
+
+        .context-menu {
+            position: fixed;
+            background: #1a1a2e;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            padding: 8px 0;
+            z-index: 1000;
+            min-width: 180px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .context-menu-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.9);
+            transition: background 0.2s;
+        }
+
+        .context-menu-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .context-menu-item.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .context-menu-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 5px 0;
+        }
+
+        .vm-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .vm-info h4 {
+            font-size: 0.95rem;
+        }
+
+        .vm-info p {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.5);
+            margin-top: 2px;
+        }
+
+        .vm-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .vm-badge.has-vf {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+        }
+
+        .vm-badge.no-vf {
+            background: rgba(72, 219, 153, 0.2);
+            color: #48db99;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1a2e;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            font-size: 1.2rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-actions .btn {
+            flex: 1;
+            padding: 12px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .legend-color.free {
+            background: rgba(72, 219, 153, 0.3);
+            border: 2px solid #48db99;
+        }
+
+        .legend-color.allocated {
+            background: rgba(255, 107, 107, 0.3);
+            border: 2px solid #ff6b6b;
+        }
+
+        .tooltip {
+            position: relative;
+        }
+
+        .tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            z-index: 100;
+            margin-bottom: 5px;
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #7b2cbf, #5a189a);
+            border: none;
+            color: #fff;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(123, 44, 191, 0.4);
+            transition: all 0.3s;
+        }
+
+        .refresh-btn:hover {
+            transform: rotate(180deg);
+        }
+
+        .add-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔌 SR-IOV 模拟器</h1>
+            <p>管理物理功能 (PF)、虚拟功能 (VF) 及虚拟机分配</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="value" id="total-pfs">0</div>
+                <div class="label">物理功能 (PF)</div>
+            </div>
+            <div class="stat-card">
+                <div class="value" id="total-vfs">0</div>
+                <div class="label">虚拟功能 (VF)</div>
+            </div>
+            <div class="stat-card">
+                <div class="value" id="allocated-vfs" style="color: #ff6b6b;">0</div>
+                <div class="label">已分配 VF</div>
+            </div>
+            <div class="stat-card">
+                <div class="value" id="free-vfs" style="color: #48db99;">0</div>
+                <div class="label">空闲 VF</div>
+            </div>
+            <div class="stat-card">
+                <div class="value" id="total-vms">0</div>
+                <div class="label">虚拟机 (VM)</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="section">
+                    <div class="section-title">物理功能 (PF) 列表</div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color free"></div>
+                            <span>空闲</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color allocated"></div>
+                            <span>已分配</span>
+                        </div>
+                    </div>
+                    <div class="add-section">
+                        <button class="btn btn-primary" onclick="openAddPFModal()">+ 添加 PF</button>
+                    </div>
+                    <div id="pfs-container"></div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="section">
+                    <div class="section-title">虚拟机 (VM) 列表</div>
+                    <div class="add-section">
+                        <button class="btn btn-primary" onclick="openAddVMModal()">+ 添加 VM</button>
+                    </div>
+                    <div id="vms-container"></div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">操作日志</div>
+                    <div class="add-section">
+                        <button class="btn btn-secondary" onclick="exportLogs('json')">📄 导出 JSON</button>
+                        <button class="btn btn-secondary" onclick="exportLogs('csv')">📊 导出 CSV</button>
+                        <button class="btn btn-secondary" onclick="loadLogs()">🔄 刷新</button>
+                    </div>
+                    <div id="logs-container" style="max-height: 300px; overflow-y: auto; font-size: 0.8rem;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="assignModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>分配 VF 给 VM</h3>
+                <button class="close-btn" onclick="closeModal('assignModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>选择 VM</label>
+                <select id="assign-vm-select"></select>
+            </div>
+            <div class="form-group">
+                <label>虚拟 PCI 地址</label>
+                <input type="text" id="assign-pci-input" placeholder="例如: 0000:03:00.0">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('assignModal')">取消</button>
+                <button class="btn btn-primary" onclick="assignVF()">分配</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="addPFModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加物理功能 (PF)</h3>
+                <button class="close-btn" onclick="closeModal('addPFModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>PF ID</label>
+                <input type="text" id="pf-id-input" placeholder="例如: pf2">
+            </div>
+            <div class="form-group">
+                <label>名称</label>
+                <input type="text" id="pf-name-input" placeholder="例如: Intel Ethernet Controller">
+            </div>
+            <div class="form-group">
+                <label>PCI 地址</label>
+                <input type="text" id="pf-pci-input" placeholder="例如: 0000:03:00.0">
+            </div>
+            <div class="form-group">
+                <label>最大 VF 数量</label>
+                <input type="number" id="pf-max-vfs-input" value="8" min="1">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('addPFModal')">取消</button>
+                <button class="btn btn-primary" onclick="addPF()">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="addVMModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加虚拟机 (VM)</h3>
+                <button class="close-btn" onclick="closeModal('addVMModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>VM ID</label>
+                <input type="text" id="vm-id-input" placeholder="例如: vm4">
+            </div>
+            <div class="form-group">
+                <label>名称</label>
+                <input type="text" id="vm-name-input" placeholder="例如: test-server">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('addVMModal')">取消</button>
+                <button class="btn btn-primary" onclick="addVM()">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="createVFModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>创建虚拟功能 (VF)</h3>
+                <button class="close-btn" onclick="closeModal('createVFModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>创建数量</label>
+                <input type="number" id="vf-count-input" value="1" min="1">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('createVFModal')">取消</button>
+                <button class="btn btn-primary" onclick="createVFs()">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="migrateVFModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>迁移 VF 到新宿主机 (PF)</h3>
+                <button class="close-btn" onclick="closeModal('migrateVFModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>源 VF</label>
+                <input type="text" id="migrate-source-vf" readonly>
+            </div>
+            <div class="form-group">
+                <label>目标 PF (宿主机)</label>
+                <select id="migrate-dest-pf"></select>
+            </div>
+            <div class="form-group">
+                <label>说明</label>
+                <p style="font-size: 0.85rem; color: rgba(255,255,255,0.6);">
+                    迁移将在目标 PF 上创建新 VF，并将当前 VM 绑定、虚拟 PCI 地址等状态迁移到新 VF，原 VF 将被释放并回收到空闲池。
+                </p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('migrateVFModal')">取消</button>
+                <button class="btn btn-primary" onclick="migrateVF()">迁移</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="qosModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>设置 VF QoS 带宽限制</h3>
+                <button class="close-btn" onclick="closeModal('qosModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>VF</label>
+                <input type="text" id="qos-vf-id" readonly>
+            </div>
+            <div class="form-group">
+                <label>发送带宽限制 (Mbps) <span style="color: rgba(255,255,255,0.5); font-size: 0.8rem;">(0 = 无限制)</span></label>
+                <input type="number" id="qos-tx-input" value="0" min="0">
+            </div>
+            <div class="form-group">
+                <label>接收带宽限制 (Mbps) <span style="color: rgba(255,255,255,0.5); font-size: 0.8rem;">(0 = 无限制)</span></label>
+                <input type="number" id="qos-rx-input" value="0" min="0">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('qosModal')">取消</button>
+                <button class="btn btn-primary" onclick="setQoS()">应用</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="context-menu" id="vfContextMenu" style="display: none;">
+        <div class="context-menu-item" id="menu-migrate" onclick="menuAction('migrate')">🔀 迁移 VF</div>
+        <div class="context-menu-item" id="menu-setqos" onclick="menuAction('setqos')">⚡ 设置 QoS</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" id="menu-release" onclick="menuAction('release')">✖ 释放 VF</div>
+    </div>
+
+    <button class="refresh-btn" onclick="loadData()" title="刷新">↻</button>
+
+    <script>
+        let selectedVF = null;
+        let selectedPF = null;
+        let currentCreateVFPF = null;
+
+        let contextMenuPF = null;
+        let contextMenuVF = null;
+        let contextMenuAllocated = false;
+
+        async function loadData() {
+            try {
+                await Promise.all([
+                    loadStats(),
+                    loadPFs(),
+                    loadVMs(),
+                    loadLogs()
+                ]);
+            } catch (error) {
+                console.error('加载数据失败:', error);
+            }
+        }
+
+        async function loadStats() {
+            const response = await fetch('/api/stats');
+            const stats = await response.json();
+            document.getElementById('total-pfs').textContent = stats.total_pfs;
+            document.getElementById('total-vfs').textContent = stats.total_vfs;
+            document.getElementById('allocated-vfs').textContent = stats.allocated_vfs;
+            document.getElementById('free-vfs').textContent = stats.free_vfs;
+            document.getElementById('total-vms').textContent = stats.total_vms;
+        }
+
+        async function loadPFs() {
+            const response = await fetch('/api/pfs');
+            const pfs = await response.json();
+            const container = document.getElementById('pfs-container');
+            container.innerHTML = '';
+
+            for (const pf of pfs) {
+                const vfsResponse = await fetch(`/api/pfs/${pf.id}/vfs`);
+                const vfs = await vfsResponse.json();
+                pf.vfs = vfs;
+
+                const pfCard = document.createElement('div');
+                pfCard.className = 'pf-card';
+                pfCard.innerHTML = `
+                    <div class="pf-header">
+                        <div class="pf-info">
+                            <h3>${pf.name}</h3>
+                            <p>ID: ${pf.id} | PCI: ${pf.pci_address} | VF: ${vfs.length}/${pf.max_vfs}</p>
+                        </div>
+                        <div class="pf-actions">
+                            <button class="btn btn-primary" onclick="openCreateVFModal('${pf.id}')">+ 创建 VF</button>
+                        </div>
+                    </div>
+                    <div class="vfs-container" id="vfs-${pf.id}">
+                        ${renderVFs(pf.id, vfs)}
+                    </div>
+                `;
+                container.appendChild(pfCard);
+            }
+        }
+
+        function renderVFs(pfId, vfs) {
+            if (vfs.length === 0) {
+                return '<p style="color: rgba(255,255,255,0.5); font-size: 0.9rem;">暂无 VF</p>';
+            }
+
+            return vfs.map(vf => {
+                const isAllocated = vf.state === 'allocated';
+                const vmName = vf.assigned_vm ? vf.assigned_vm.name : '';
+                const hasQoS = vf.qos && (vf.qos.max_tx_mbps > 0 || vf.qos.max_rx_mbps > 0);
+                const qosInfo = hasQoS ? `Tx:${vf.qos.max_tx_mbps} Rx:${vf.qos.max_rx_mbps}` : '';
+                const tooltip = isAllocated 
+                    ? `VM: ${vmName}\n虚拟PCI: ${vf.virt_pci_addr}\n${qosInfo}\n左键释放 | 右键菜单`
+                    : '点击分配给 VM';
+                
+                return `
+                    <div class="vf-box ${isAllocated ? 'vf-allocated' : 'vf-free'} tooltip"
+                         data-tooltip="${tooltip}"
+                         onclick="${isAllocated ? `releaseVF('${pfId}', '${vf.id}')` : `openAssignModal('${pfId}', '${vf.id}')`}"
+                         oncontextmenu="showVFContextMenu(event, '${pfId}', '${vf.id}', ${isAllocated}, ${hasQoS}); return false;">
+                        <div class="vf-id">VF${vf.vf_index}</div>
+                        <div class="vf-status">${isAllocated ? '已分配' : '空闲'}</div>
+                        ${isAllocated ? `<div class="vf-vm">${vmName}</div>` : ''}
+                        ${hasQoS ? `<div class="vf-qos">⚡${vf.qos.max_tx_mbps}/${vf.qos.max_rx_mbps}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function loadVMs() {
+            const response = await fetch('/api/vms');
+            const vms = await response.json();
+            const container = document.getElementById('vms-container');
+            container.innerHTML = '';
+
+            if (vms.length === 0) {
+                container.innerHTML = '<p style="color: rgba(255,255,255,0.5); font-size: 0.9rem;">暂无 VM</p>';
+                return;
+            }
+
+            for (const vm of vms) {
+                const hasVF = vm.assigned_vf != null;
+                const vmItem = document.createElement('div');
+                vmItem.className = 'vm-item';
+                vmItem.innerHTML = `
+                    <div class="vm-info">
+                        <h4>${vm.name}</h4>
+                        <p>ID: ${vm.id}${hasVF ? ` | VF: ${vm.assigned_vf.id}` : ''}</p>
+                    </div>
+                    <span class="vm-badge ${hasVF ? 'has-vf' : 'no-vf'}">
+                        ${hasVF ? '已分配 VF' : '等待 VF'}
+                    </span>
+                `;
+                container.appendChild(vmItem);
+            }
+
+            updateVMSelect(vms);
+        }
+
+        function updateVMSelect(vms) {
+            const select = document.getElementById('assign-vm-select');
+            select.innerHTML = '';
+            
+            const freeVMs = vms.filter(vm => vm.assigned_vf == null);
+            if (freeVMs.length === 0) {
+                select.innerHTML = '<option value="">没有可用的 VM</option>';
+            } else {
+                freeVMs.forEach(vm => {
+                    const option = document.createElement('option');
+                    option.value = vm.id;
+                    option.textContent = `${vm.name} (${vm.id})`;
+                    select.appendChild(option);
+                });
+            }
+        }
+
+        function openAssignModal(pfId, vfId) {
+            selectedPF = pfId;
+            selectedVF = vfId;
+            document.getElementById('assign-pci-input').value = `0000:03:0${vfId.slice(-1)}.0`;
+            document.getElementById('assignModal').classList.add('active');
+        }
+
+        function openCreateVFModal(pfId) {
+            currentCreateVFPF = pfId;
+            document.getElementById('vf-count-input').value = 1;
+            document.getElementById('createVFModal').classList.add('active');
+        }
+
+        function openAddPFModal() {
+            document.getElementById('pf-id-input').value = '';
+            document.getElementById('pf-name-input').value = '';
+            document.getElementById('pf-pci-input').value = '';
+            document.getElementById('pf-max-vfs-input').value = 8;
+            document.getElementById('addPFModal').classList.add('active');
+        }
+
+        function openAddVMModal() {
+            document.getElementById('vm-id-input').value = '';
+            document.getElementById('vm-name-input').value = '';
+            document.getElementById('addVMModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        async function assignVF() {
+            const vmId = document.getElementById('assign-vm-select').value;
+            const virtPCIAddr = document.getElementById('assign-pci-input').value;
+
+            if (!vmId) {
+                alert('请选择一个 VM');
+                return;
+            }
+
+            if (!virtPCIAddr) {
+                alert('请输入虚拟 PCI 地址');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/assign', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        pf_id: selectedPF,
+                        vf_id: selectedVF,
+                        vm_id: vmId,
+                        virt_pci_addr: virtPCIAddr
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error);
+                }
+
+                closeModal('assignModal');
+                loadData();
+            } catch (error) {
+                alert('分配失败: ' + error.message);
+            }
+        }
+
+        async function releaseVF(pfId, vfId) {
+            if (!confirm('确定要释放这个 VF 吗？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/release', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        pf_id: pfId,
+                        vf_id: vfId
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error);
+                }
+
+                loadData();
+            } catch (error) {
+                alert('释放失败: ' + error.message);
+            }
+        }
+
+        async function createVFs() {
+            const count = parseInt(document.getElementById('vf-count-input').value);
+            
+            if (!count || count < 1) {
+                alert('请输入有效的数量');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/pfs/${currentCreateVFPF}/vfs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ count })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error);
+                }
+
+                closeModal('createVFModal');
+                loadData();
+            } catch (error) {
+                alert('创建 VF 失败: ' + error.message);
+            }
+        }
+
+        async function addPF() {
+            const id = document.getElementById('pf-id-input').value;
+            const name = document.getElementById('pf-name-input').value;
+            const pciAddress = document.getElementById('pf-pci-input').value;
+            const maxVFs = parseInt(document.getElementById('pf-max-vfs-input').value);
+
+            if (!id || !name || !pciAddress) {
+                alert('请填写所有字段');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/pfs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id,
+                        name,
+                        pci_address: pciAddress,
+                        max_vfs: maxVFs
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error);
+                }
+
+                closeModal('addPFModal');
+                loadData();
+            } catch (error) {
+                alert('添加 PF 失败: ' + error.message);
+            }
+        }
+
+        async function addVM() {
+            const id = document.getElementById('vm-id-input').value;
+            const name = document.getElementById('vm-name-input').value;
+
+            if (!id || !name) {
+                alert('请填写所有字段');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/vms', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, name })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error);
+                }
+
+                closeModal('addVMModal');
+                loadData();
+            } catch (error) {
+                alert('添加 VM 失败: ' + error.message);
+            }
+        }
+
+        function showVFContextMenu(event, pfId, vfId, isAllocated, hasQoS) {
+            event.preventDefault();
+            
+            contextMenuPF = pfId;
+            contextMenuVF = vfId;
+            contextMenuAllocated = isAllocated;
+            
+            const menu = document.getElementById('vfContextMenu');
+            menu.style.left = event.clientX + 'px';
+            menu.style.top = event.clientY + 'px';
+            menu.style.display = 'block';
+            
+            document.getElementById('menu-migrate').classList.toggle('disabled', !isAllocated);
+            document.getElementById('menu-release').classList.toggle('disabled', !isAllocated);
+        }
+
+        function hideContextMenu() {
+            document.getElementById('vfContextMenu').style.display = 'none';
+        }
+
+        async function menuAction(action) {
+            hideContextMenu();
+            
+            if (action === 'migrate' && contextMenuAllocated) {
+                openMigrateModal(contextMenuPF, contextMenuVF);
+            } else if (action === 'setqos') {
+                openQoSModal(contextMenuPF, contextMenuVF);
+            } else if (action === 'release' && contextMenuAllocated) {
+                releaseVF(contextMenuPF, contextMenuVF);
+            }
+        }
+
+        async function openQoSModal(pfId, vfId) {
+            document.getElementById('qos-vf-id').value = `${vfId} (${pfId})`;
+            
+            try {
+                const response = await fetch(`/api/pfs/${pfId}/vfs`);
+                const vfs = await response.json();
+                const vf = vfs.find(v => v.id === vfId);
+                if (vf && vf.qos) {
+                    document.getElementById('qos-tx-input').value = vf.qos.max_tx_mbps || 0;
+                    document.getElementById('qos-rx-input').value = vf.qos.max_rx_mbps || 0;
+                }
+            } catch (e) {
+                document.getElementById('qos-tx-input').value = 0;
+                document.getElementById('qos-rx-input').value = 0;
+            }
+            
+            document.getElementById('qosModal').classList.add('active');
+        }
+
+        async function setQoS() {
+            const tx = parseInt(document.getElementById('qos-tx-input').value) || 0;
+            const rx = parseInt(document.getElementById('qos-rx-input').value) || 0;
+
+            try {
+                const response = await fetch('/api/vfs/qos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        pf_id: contextMenuPF,
+                        vf_id: contextMenuVF,
+                        max_tx_mbps: tx,
+                        max_rx_mbps: rx
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error);
+                }
+
+                closeModal('qosModal');
+                loadData();
+            } catch (error) {
+                alert('设置 QoS 失败: ' + error.message);
+            }
+        }
+
+        async function loadLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                const logs = await response.json();
+                const container = document.getElementById('logs-container');
+                
+                if (logs.length === 0) {
+                    container.innerHTML = '<p style="color: rgba(255,255,255,0.5);">暂无日志</p>';
+                    return;
+                }
+
+                const actionColors = {
+                    'create': '#48db99',
+                    'delete': '#ff6b6b',
+                    'assign': '#00d4ff',
+                    'release': '#ffd93d',
+                    'migrate': '#7b2cbf',
+                    'set_qos': '#ff9f43'
+                };
+
+                const actionNames = {
+                    'create': '创建',
+                    'delete': '删除',
+                    'assign': '分配',
+                    'release': '释放',
+                    'migrate': '迁移',
+                    'set_qos': 'QoS'
+                };
+
+                container.innerHTML = logs.slice().reverse().slice(0, 50).map(log => `
+                    <div style="padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: ${actionColors[log.action] || '#fff'}; font-weight: 500;">
+                                ${actionNames[log.action] || log.action}
+                            </span>
+                            <span style="color: rgba(255,255,255,0.4); font-size: 0.7rem;">
+                                ${new Date(log.timestamp).toLocaleTimeString()}
+                            </span>
+                        </div>
+                        <div style="color: rgba(255,255,255,0.6); font-size: 0.75rem; margin-top: 2px;">
+                            ${log.vf_id} ${log.vm_id ? '→ ' + log.vm_id : ''}
+                        </div>
+                        ${log.details ? `<div style="color: rgba(255,255,255,0.4); font-size: 0.7rem;">${log.details}</div>` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('加载日志失败:', error);
+            }
+        }
+
+        function exportLogs(format) {
+            window.open(`/api/logs/export/${format}`, '_blank');
+        }
+
+        let migrateSourcePF = null;
+        let migrateSourceVF = null;
+
+        async function openMigrateModal(pfId, vfId) {
+            migrateSourcePF = pfId;
+            migrateSourceVF = vfId;
+            
+            document.getElementById('migrate-source-vf').value = `${vfId} (${pfId})`;
+            
+            const response = await fetch('/api/pfs');
+            const pfs = await response.json();
+            
+            const destSelect = document.getElementById('migrate-dest-pf');
+            destSelect.innerHTML = '';
+            
+            for (const pf of pfs) {
+                if (pf.id !== pfId) {
+                    const option = document.createElement('option');
+                    option.value = pf.id;
+                    option.textContent = `${pf.name} (${pf.id}) - VF: ${pf.vfs?.length || 0}/${pf.max_vfs}`;
+                    destSelect.appendChild(option);
+                }
+            }
+            
+            if (destSelect.options.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = '没有可用的目标 PF';
+                destSelect.appendChild(option);
+            }
+            
+            document.getElementById('migrateVFModal').classList.add('active');
+        }
+
+        async function migrateVF() {
+            const destPFId = document.getElementById('migrate-dest-pf').value;
+            
+            if (!destPFId) {
+                alert('请选择目标 PF');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/migrate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        source_pf_id: migrateSourcePF,
+                        source_vf_id: migrateSourceVF,
+                        dest_pf_id: destPFId
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error);
+                }
+
+                const result = await response.json();
+                alert(`迁移成功!\n${result.message}`);
+                
+                closeModal('migrateVFModal');
+                loadData();
+            } catch (error) {
+                alert('迁移失败: ' + error.message);
+            }
+        }
+
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.context-menu') && !e.target.closest('.vf-box')) {
+                hideContextMenu();
+            }
+        });
+
+        loadData();
+        setInterval(loadData, 5000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<firewall>
+    <settings>
+        <enabled>true</enabled>
+        <default-policy>drop</default-policy>
+    </settings>
+    <rule>
+        <id>1</id>
+        <name>Invalid Rule</name>
+        <action>accept</action>
+        <destination-port>99999</destination-port>
+        <protocol>tcp</protocol>
+        <priority>5</priority>
+        <log>true</log>
+        <enabled>true</enabled>
+    </rule>
+    <rule>
+        <id>2</id>
+        <name>Priority Violation</name>
+        <action>accept</action>
+        <destination-port>8080</destination-port>
+        <protocol>tcp</protocol>
+        <priority>0</priority>
+        <log>true</log>
+        <enabled>true</enabled>
+    </rule>
+    <nat>
+        <external-ip>192.168.1.1</external-ip>
+        <internal-ip>192.168.1.1</internal-ip>
+        <enabled>true</enabled>
+    </nat>
+</firewall>

@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUIC MP-QUIC 连接迁移演示</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container { max-width: 1600px; margin: 0 auto; }
+
+        header { text-align: center; color: white; margin-bottom: 30px; }
+        header h1 { font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+        header p { font-size: 1.1em; opacity: 0.9; }
+
+        .status-bar {
+            display: flex; gap: 20px; background: white; padding: 15px 25px;
+            border-radius: 12px; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            flex-wrap: wrap; align-items: center;
+        }
+        .status-item { display: flex; align-items: center; gap: 10px; }
+        .status-dot { width: 12px; height: 12px; border-radius: 50%; background: #ccc; }
+        .status-dot.connected { background: #4ade80; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .export-btn {
+            margin-left: auto; padding: 8px 18px; border: none; border-radius: 6px;
+            font-size: 0.9em; cursor: pointer; font-weight: 600; color: white;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            transition: transform 0.1s;
+        }
+        .export-btn:hover { transform: scale(1.05); }
+        .export-btn:active { transform: scale(0.95); }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+
+        .card {
+            background: white; border-radius: 12px; padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            color: #333; margin-bottom: 20px; font-size: 1.4em;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .card h2::before {
+            content: ''; width: 4px; height: 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+
+        .connection-info { background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 15px; }
+        .info-row {
+            display: flex; justify-content: space-between; padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0; align-items: center; flex-wrap: wrap; gap: 10px;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: #64748b; font-weight: 500; }
+        .info-value { font-family: 'Monaco', 'Menlo', monospace; color: #1e293b; font-weight: 600; }
+
+        .connection-id {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; padding: 10px 15px; border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace; font-size: 0.9em;
+            word-break: break-all; text-align: right; flex: 1; min-width: 200px;
+        }
+        .reset-token {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white; padding: 8px 12px; border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace; font-size: 0.85em;
+            word-break: break-all; text-align: right; flex: 1; min-width: 200px;
+        }
+
+        .migration-status {
+            display: inline-block; padding: 4px 10px; border-radius: 4px;
+            font-size: 0.8em; font-weight: 600;
+        }
+        .migration-status.verified { background: #dcfce7; color: #166534; }
+        .migration-status.verifying { background: #fef3c7; color: #92400e; animation: blink 1s infinite; }
+        .migration-status.unverified { background: #fee2e2; color: #991b1b; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .path-visualization { background: #f1f5f9; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+
+        .mpath-diagram { display: flex; flex-direction: column; gap: 12px; padding: 10px 0; }
+
+        .path-row {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 15px; border-radius: 8px; background: white;
+            border: 2px solid #e2e8f0; transition: all 0.3s ease;
+        }
+        .path-row.primary { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+        .path-row.active { border-color: #22c55e; }
+        .path-row.validating { border-color: #f59e0b; animation: blink 1s infinite; }
+        .path-row.standby { border-color: #94a3b8; opacity: 0.7; }
+        .path-row.failed { border-color: #ef4444; }
+
+        .path-badge {
+            padding: 3px 10px; border-radius: 4px; font-size: 0.75em;
+            font-weight: 700; font-family: 'Monaco', 'Menlo', monospace;
+            min-width: 80px; text-align: center;
+        }
+        .path-badge.primary { background: #dbeafe; color: #1e40af; }
+        .path-badge.active { background: #dcfce7; color: #166534; }
+        .path-badge.validating { background: #fef3c7; color: #92400e; }
+        .path-badge.standby { background: #f1f5f9; color: #64748b; }
+        .path-badge.failed { background: #fee2e2; color: #991b1b; }
+
+        .path-addr { font-family: 'Monaco', 'Menlo', monospace; font-size: 0.85em; color: #334155; flex: 1; }
+        .path-arrow { color: #94a3b8; font-size: 1.2em; }
+        .path-stats { font-size: 0.8em; color: #64748b; font-family: 'Monaco', 'Menlo', monospace; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-card {
+            color: white; padding: 15px; border-radius: 8px; text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .stat-card.verified { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .stat-card.paths { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+        .stat-card.latency { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .stat-value { font-size: 1.8em; font-weight: 700; margin-bottom: 5px; }
+        .stat-label { font-size: 0.8em; opacity: 0.9; }
+
+        .latency-chart { width: 100%; height: 200px; position: relative; margin-top: 10px; }
+        .latency-bar-container {
+            display: flex; align-items: flex-end; gap: 4px; height: 160px;
+            padding: 0 10px; border-bottom: 2px solid #e2e8f0;
+        }
+        .latency-bar {
+            flex: 1; min-width: 20px; max-width: 50px; border-radius: 4px 4px 0 0;
+            background: linear-gradient(180deg, #667eea, #764ba2);
+            transition: height 0.5s ease; position: relative; cursor: pointer;
+        }
+        .latency-bar:hover { opacity: 0.8; }
+        .latency-bar .bar-tooltip {
+            display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+            background: #1e293b; color: white; padding: 4px 8px; border-radius: 4px;
+            font-size: 0.75em; white-space: nowrap; z-index: 10;
+        }
+        .latency-bar:hover .bar-tooltip { display: block; }
+        .latency-labels { display: flex; gap: 4px; padding: 5px 10px 0; }
+        .latency-label { flex: 1; min-width: 20px; max-width: 50px; text-align: center; font-size: 0.65em; color: #94a3b8; }
+
+        .latency-summary {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+            margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;
+        }
+        .latency-metric { text-align: center; }
+        .latency-metric-value { font-size: 1.2em; font-weight: 700; color: #667eea; }
+        .latency-metric-label { font-size: 0.75em; color: #94a3b8; }
+
+        .path-history { max-height: 350px; overflow-y: auto; }
+        .path-event {
+            background: #f8fafc; padding: 15px; border-radius: 8px;
+            margin-bottom: 10px; border-left: 4px solid #3b82f6; transition: all 0.3s ease;
+        }
+        .path-event.new { animation: slideIn 0.5s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+        .path-event.migration { border-left-color: #f59e0b; background: #fffbeb; }
+        .path-event.verification { border-left-color: #8b5cf6; background: #f5f3ff; }
+        .path-event.multipath { border-left-color: #06b6d4; background: #ecfeff; }
+        .path-event.latency { border-left-color: #f97316; background: #fff7ed; }
+
+        .event-time { font-size: 0.8em; color: #94a3b8; margin-bottom: 5px; }
+        .event-type {
+            display: inline-block; padding: 3px 8px; border-radius: 4px;
+            font-size: 0.75em; font-weight: 600; margin-bottom: 8px;
+        }
+        .event-type.connect { background: #dcfce7; color: #166534; }
+        .event-type.migration { background: #fef3c7; color: #92400e; }
+        .event-type.verification { background: #ede9fe; color: #5b21b6; }
+        .event-type.multipath { background: #cffafe; color: #155e75; }
+        .event-type.latency { background: #ffedd5; color: #9a3412; }
+        .event-content { color: #334155; font-size: 0.95em; }
+        .event-detail { font-family: 'Monaco', 'Menlo', monospace; font-size: 0.85em; color: #475569; margin-top: 5px; }
+
+        .arrow-change {
+            display: flex; align-items: center; gap: 10px;
+            font-family: 'Monaco', 'Menlo', monospace; font-size: 0.9em; margin-top: 8px;
+        }
+        .old-ip { color: #ef4444; text-decoration: line-through; }
+        .new-ip { color: #22c55e; font-weight: 600; }
+        .arrow { color: #64748b; font-size: 1.2em; }
+
+        .challenge-badge {
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-size: 0.7em; font-weight: 600; margin-left: 8px;
+        }
+        .challenge-badge.success { background: #dcfce7; color: #166534; }
+        .challenge-badge.pending { background: #fef3c7; color: #92400e; }
+
+        .messages-log { max-height: 400px; overflow-y: auto; }
+        .message-item { padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; font-size: 0.9em; }
+        .message-item.client { background: #dbeafe; border-left: 3px solid #3b82f6; margin-right: 20px; }
+        .message-item.server { background: #fce7f3; border-left: 3px solid #ec4899; margin-left: 20px; }
+        .message-path { font-size: 0.75em; color: #64748b; margin-top: 4px; font-family: 'Monaco', 'Menlo', monospace; }
+
+        .no-connection { text-align: center; padding: 40px 20px; color: #94a3b8; }
+
+        .legend { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px; padding-top: 15px; border-top: 1px solid #e2e8f0; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.85em; color: #64748b; }
+        .legend-color { width: 16px; height: 16px; border-radius: 4px; }
+
+        .full-width { grid-column: 1 / -1; }
+
+        @media (max-width: 1024px) {
+            .grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 QUIC MP-QUIC 连接迁移演示</h1>
+            <p>多路径传输 + 迁移耗时统计 · 基于 Go + quic-go</p>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot" id="wsStatus"></div>
+                <span>WebSocket</span>
+            </div>
+            <div class="status-item">
+                <span>连接: <strong id="activeCount">0</strong></span>
+            </div>
+            <div class="status-item">
+                <span>路径切换: <strong id="migrationCount">0</strong></span>
+            </div>
+            <div class="status-item">
+                <span>验证成功: <strong id="verifiedCount">0</strong></span>
+            </div>
+            <div class="status-item">
+                <span>消息: <strong id="messageCount">0</strong></span>
+            </div>
+            <div class="status-item">
+                <span>活跃路径: <strong id="pathCount">0</strong></span>
+            </div>
+            <button class="export-btn" onclick="exportStats('json')">📊 导出 JSON</button>
+            <button class="export-btn" onclick="exportStats('csv')" style="background: linear-gradient(135deg, #10b981, #059669);">📄 导出 CSV</button>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>📡 连接信息</h2>
+                <div id="connectionContainer">
+                    <div class="no-connection"><p>等待 QUIC 客户端连接...</p></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🛤️ 多路径拓扑</h2>
+                <div id="pathVisualization">
+                    <div class="no-connection"><p>等待路径建立...</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>📊 迁移耗时统计</h2>
+                <div id="latencyPanel">
+                    <div class="no-connection"><p>等待迁移数据...</p></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📜 路径变化历史</h2>
+                <div class="path-history" id="pathHistory">
+                    <div class="no-connection"><p>暂无路径变化记录</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>💬 消息日志</h2>
+                <div class="messages-log" id="messagesLog">
+                    <div class="no-connection"><p>暂无消息</p></div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #dbeafe; border-left: 3px solid #3b82f6;"></div>
+                        <span>客户端</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #fce7f3; border-left: 3px solid #ec4899;"></div>
+                        <span>服务器</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📋 统计概览</h2>
+                <div id="statsPanel">
+                    <div class="no-connection"><p>暂无统计数据</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const connections = new Map();
+        let migrationCount = 0;
+        let verifiedCount = 0;
+        let messageCount = 0;
+        let latencyRecords = [];
+
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws`);
+
+        const wsStatus = document.getElementById('wsStatus');
+        const activeCountEl = document.getElementById('activeCount');
+        const migrationCountEl = document.getElementById('migrationCount');
+        const verifiedCountEl = document.getElementById('verifiedCount');
+        const messageCountEl = document.getElementById('messageCount');
+        const pathCountEl = document.getElementById('pathCount');
+        const connectionContainer = document.getElementById('connectionContainer');
+        const pathVisualization = document.getElementById('pathVisualization');
+        const pathHistory = document.getElementById('pathHistory');
+        const messagesLog = document.getElementById('messagesLog');
+        const latencyPanel = document.getElementById('latencyPanel');
+        const statsPanel = document.getElementById('statsPanel');
+
+        ws.onopen = () => { wsStatus.classList.add('connected'); wsStatus.title = '已连接'; };
+        ws.onclose = () => { wsStatus.classList.remove('connected'); wsStatus.title = '已断开'; };
+        ws.onmessage = (event) => { handleMessage(JSON.parse(event.data)); };
+
+        function handleMessage(msg) {
+            switch (msg.type) {
+                case 'connection_info': handleConnectionInfo(msg.payload); break;
+                case 'path_change': handlePathChange(msg.payload); break;
+                case 'message': handleMessageEvent(msg.payload); break;
+                case 'migration_status': handleMigrationStatus(msg.payload); break;
+                case 'multi_path': handleMultiPathEvent(msg.payload); break;
+                case 'migration_latency': handleMigrationLatency(msg.payload); break;
+            }
+        }
+
+        function handleConnectionInfo(info) {
+            const isNew = !connections.has(info.connectionId);
+            connections.set(info.connectionId, info);
+            updateActiveCount();
+            renderConnections();
+            renderPathVisualization();
+
+            if (isNew) {
+                addPathEvent({
+                    type: 'connect', connectionId: info.connectionId,
+                    timestamp: new Date().toISOString(),
+                    content: '新连接建立',
+                    detail: `连接ID: ${info.connectionId}<br>初始地址: ${info.currentAddress}<br>重置令牌: ${info.resetToken || 'N/A'}<br>初始路径数: ${(info.activePaths || []).length}`
+                });
+            }
+        }
+
+        function handleMigrationStatus(status) {
+            const conn = connections.get(status.connectionId);
+            if (conn) {
+                conn.migrationStatus = status;
+                if (status.status === 'verified' && status.verified) {
+                    verifiedCount++;
+                    verifiedCountEl.textContent = verifiedCount;
+                }
+                connections.set(status.connectionId, conn);
+            }
+            renderConnections();
+
+            if (status.status === 'verified') {
+                addPathEvent({
+                    type: 'verification', connectionId: status.connectionId,
+                    timestamp: status.timestamp,
+                    content: '路径验证完成',
+                    detail: `路径: ${status.pathId || 'N/A'}<br>挑战序列: #${status.challengeSeq}<br>状态: 验证成功 ✓<br>重置令牌: ${status.resetToken || 'N/A'}`
+                });
+            } else if (status.status === 'migrating') {
+                addPathEvent({
+                    type: 'migration', connectionId: status.connectionId,
+                    timestamp: status.timestamp,
+                    content: '开始路径迁移中',
+                    oldAddress: status.oldAddress, newAddress: status.newAddress,
+                    detail: '等待路径验证中...'
+                });
+            }
+        }
+
+        function handlePathChange(event) {
+            migrationCount++;
+            migrationCountEl.textContent = migrationCount;
+
+            const conn = connections.get(event.connectionId);
+            if (conn) {
+                conn.currentAddress = event.newAddress;
+                connections.set(event.connectionId, conn);
+            }
+            renderConnections();
+            renderPathVisualization();
+
+            addPathEvent({
+                type: 'migration', connectionId: event.connectionId,
+                timestamp: event.timestamp,
+                content: 'IP 地址切换',
+                oldAddress: event.oldAddress, newAddress: event.newAddress,
+                detail: '连接迁移成功，连接保持不中断',
+                verified: event.pathVerified
+            });
+        }
+
+        function handleMultiPathEvent(event) {
+            const conn = connections.get(event.connectionId);
+            if (conn) {
+                conn.activePaths = event.allPaths;
+                connections.set(event.connectionId, conn);
+            }
+
+            renderConnections();
+            renderPathVisualization();
+
+            let actionText = '';
+            if (event.action === 'add') actionText = '添加新路径';
+            else if (event.action === 'remove') actionText = '移除路径';
+            else if (event.action === 'primary') actionText = '切换主路径';
+            else if (event.action === 'schedule') actionText = '路径调度';
+
+            addPathEvent({
+                type: 'multipath', connectionId: event.connectionId,
+                timestamp: event.timestamp,
+                content: `[MP-QUIC] ${actionText}: ${event.path.pathId}`,
+                detail: `路径地址: ${event.path.localAddr}<br>路径状态: ${event.path.state}<br>活跃路径总数: ${event.allPaths.length}`
+            });
+        }
+
+        function handleMigrationLatency(record) {
+            latencyRecords.push(record);
+            renderLatencyPanel();
+            renderStatsPanel();
+
+            addPathEvent({
+                type: 'latency', connectionId: record.connectionId,
+                timestamp: record.timestamp,
+                content: `迁移耗时统计 #${record.migrationSeq}`,
+                detail: `路径: ${record.pathId}<br>Socket切换: ${record.socketSwitchUs}μs<br>挑战往返: ${record.challengeSentMs}ms<br>总延迟: ${record.totalLatencyMs}ms<br>验证: ${record.verified ? '✓' : '✗'}`
+            });
+        }
+
+        function handleMessageEvent(event) {
+            messageCount++;
+            messageCountEl.textContent = messageCount;
+            if (event.fromClient) {
+                addMessage({ type: 'client', content: event.content, path: event.path, timestamp: event.timestamp });
+            }
+        }
+
+        function updateActiveCount() {
+            activeCountEl.textContent = connections.size;
+            let totalPaths = 0;
+            for (const [, conn] of connections) {
+                totalPaths += (conn.activePaths || []).length || 1;
+            }
+            pathCountEl.textContent = totalPaths;
+        }
+
+        function getMigrationStatusText(conn) {
+            if (conn.migrationStatus) {
+                const s = conn.migrationStatus;
+                if (s.status === 'verified') return 'verified';
+                if (s.status === 'migrating') return 'verifying';
+            }
+            return 'verified';
+        }
+
+        function renderConnections() {
+            if (connections.size === 0) {
+                connectionContainer.innerHTML = '<div class="no-connection"><p>等待 QUIC 客户端连接...</p></div>';
+                return;
+            }
+
+            let html = '';
+            for (const [cid, info] of connections) {
+                const statusClass = getMigrationStatusText(info);
+                const statusText = statusClass === 'verified' ? '已验证' : statusClass === 'verifying' ? '验证中' : '未验证';
+                const resetToken = info.resetToken || 'N/A';
+                const pathCount = (info.activePaths || []).length || 1;
+
+                html += `
+                    <div class="connection-info">
+                        <div class="info-row">
+                            <span class="info-label">连接 ID</span>
+                            <span class="connection-id">${cid}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">重置令牌</span>
+                            <span class="reset-token" title="用于快速重建连接">${resetToken}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">原始地址</span>
+                            <span class="info-value">${info.originalAddress}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">当前地址</span>
+                            <span class="info-value" style="color: #22c55e;">${info.currentAddress}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">路径状态</span>
+                            <span class="migration-status ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">活跃路径</span>
+                            <span class="info-value" style="color: #8b5cf6;">${pathCount}</span>
+                        </div>
+                    </div>
+                `;
+            }
+            connectionContainer.innerHTML = html;
+        }
+
+        function renderPathVisualization() {
+            if (connections.size === 0) {
+                pathVisualization.innerHTML = '<div class="no-connection"><p>等待路径建立...</p></div>';
+                return;
+            }
+
+            let html = '<div class="path-visualization"><div class="mpath-diagram">';
+
+            for (const [cid, info] of connections) {
+                const paths = info.activePaths || [];
+                if (paths.length === 0) {
+                    const clientIP = info.currentAddress.split(':')[0];
+                    html += `
+                        <div class="path-row primary">
+                            <span class="path-badge primary">PRIMARY</span>
+                            <span class="path-addr">${clientIP}</span>
+                            <span class="path-arrow">→</span>
+                            <span class="path-addr">server:4242</span>
+                        </div>
+                    `;
+                } else {
+                    for (const path of paths) {
+                        const stateClass = path.state || 'active';
+                        const badgeClass = path.isPrimary ? 'primary' : stateClass;
+                        const badgeText = path.isPrimary ? 'PRIMARY' : stateClass.toUpperCase();
+                        const localIP = path.localAddr.split(':')[0];
+                        const pktInfo = `↑${path.packetsSent} ↓${path.packetsRecv}`;
+
+                        html += `
+                            <div class="path-row ${path.isPrimary ? 'primary' : stateClass}">
+                                <span class="path-badge ${badgeClass}">${badgeText}</span>
+                                <span class="path-addr">${path.pathId}</span>
+                                <span class="path-addr">${localIP}</span>
+                                <span class="path-arrow">→</span>
+                                <span class="path-addr">server:4242</span>
+                                <span class="path-stats">${pktInfo}</span>
+                            </div>
+                        `;
+                    }
+                }
+            }
+
+            html += '</div>';
+
+            html += '<div class="stats-grid">';
+            html += `<div class="stat-card"><div class="stat-value">${connections.size}</div><div class="stat-label">活跃连接</div></div>`;
+            html += `<div class="stat-card paths"><div class="stat-value">${pathCountEl.textContent}</div><div class="stat-label">活跃路径</div></div>`;
+            html += `<div class="stat-card verified"><div class="stat-value">${verifiedCount}</div><div class="stat-label">验证成功</div></div>`;
+            html += `<div class="stat-card latency"><div class="stat-value">${latencyRecords.length}</div><div class="stat-label">迁移记录</div></div>`;
+            html += '</div></div>';
+
+            pathVisualization.innerHTML = html;
+        }
+
+        function renderLatencyPanel() {
+            if (latencyRecords.length === 0) {
+                latencyPanel.innerHTML = '<div class="no-connection"><p>等待迁移数据...</p></div>';
+                return;
+            }
+
+            const recentRecords = latencyRecords.slice(-20);
+            const maxLatency = Math.max(...recentRecords.map(r => r.totalLatencyMs), 1);
+
+            let barsHtml = '<div class="latency-bar-container">';
+            let labelsHtml = '<div class="latency-labels">';
+            for (const r of recentRecords) {
+                const heightPct = Math.max((r.totalLatencyMs / maxLatency) * 100, 5);
+                const color = r.verified
+                    ? 'background: linear-gradient(180deg, #667eea, #764ba2);'
+                    : 'background: linear-gradient(180deg, #ef4444, #dc2626);';
+                barsHtml += `<div class="latency-bar" style="height: ${heightPct}%; ${color}">
+                    <span class="bar-tooltip">#${r.migrationSeq}: ${r.totalLatencyMs}ms (socket: ${r.socketSwitchUs}μs)</span>
+                </div>`;
+                labelsHtml += `<div class="latency-label">#${r.migrationSeq}</div>`;
+            }
+            barsHtml += '</div>';
+            labelsHtml += '</div>';
+
+            const avgMs = latencyRecords.reduce((s, r) => s + r.totalLatencyMs, 0) / latencyRecords.length;
+            const avgSocket = latencyRecords.reduce((s, r) => s + r.socketSwitchUs, 0) / latencyRecords.length;
+            const minMs = Math.min(...latencyRecords.map(r => r.totalLatencyMs));
+            const maxMs = Math.max(...latencyRecords.map(r => r.totalLatencyMs));
+
+            let html = `<div class="latency-chart">${barsHtml}${labelsHtml}</div>`;
+            html += '<div class="latency-summary">';
+            html += `<div class="latency-metric"><div class="latency-metric-value">${avgMs.toFixed(1)}ms</div><div class="latency-metric-label">平均延迟</div></div>`;
+            html += `<div class="latency-metric"><div class="latency-metric-value">${avgSocket.toFixed(0)}μs</div><div class="latency-metric-label">平均Socket切换</div></div>`;
+            html += `<div class="latency-metric"><div class="latency-metric-value">${minMs}~${maxMs}ms</div><div class="latency-metric-label">延迟范围</div></div>`;
+            html += '</div>';
+
+            latencyPanel.innerHTML = html;
+        }
+
+        function renderStatsPanel() {
+            if (latencyRecords.length === 0) {
+                statsPanel.innerHTML = '<div class="no-connection"><p>暂无统计数据</p></div>';
+                return;
+            }
+
+            fetch('/api/stats')
+                .then(r => r.json())
+                .then(stats => {
+                    let html = '<div class="stats-grid">';
+                    html += `<div class="stat-card"><div class="stat-value">${stats.totalMigrations}</div><div class="stat-label">总迁移次数</div></div>`;
+                    html += `<div class="stat-card verified"><div class="stat-value">${stats.totalVerified}</div><div class="stat-label">验证成功</div></div>`;
+                    html += `<div class="stat-card latency"><div class="stat-value">${stats.avgLatencyMs.toFixed(1)}ms</div><div class="stat-label">平均延迟</div></div>`;
+                    html += `<div class="stat-card paths"><div class="stat-value">${stats.activePaths}</div><div class="stat-label">活跃路径</div></div>`;
+                    html += '</div>';
+
+                    html += '<div style="padding: 10px 0;">';
+                    html += '<div class="info-row"><span class="info-label">P50 延迟</span><span class="info-value">' + stats.p50LatencyMs + 'ms</span></div>';
+                    html += '<div class="info-row"><span class="info-label">P95 延迟</span><span class="info-value" style="color: #f59e0b;">' + stats.p95LatencyMs + 'ms</span></div>';
+                    html += '<div class="info-row"><span class="info-label">P99 延迟</span><span class="info-value" style="color: #ef4444;">' + stats.p99LatencyMs + 'ms</span></div>';
+                    html += '<div class="info-row"><span class="info-label">最小延迟</span><span class="info-value" style="color: #22c55e;">' + stats.minLatencyMs + 'ms</span></div>';
+                    html += '<div class="info-row"><span class="info-label">最大延迟</span><span class="info-value" style="color: #ef4444;">' + stats.maxLatencyMs + 'ms</span></div>';
+                    html += '<div class="info-row"><span class="info-label">平均Socket切换</span><span class="info-value">' + stats.avgSocketSwitch.toFixed(1) + 'μs</span></div>';
+                    html += '<div class="info-row"><span class="info-label">平均挑战往返</span><span class="info-value">' + stats.avgChallengeSent.toFixed(1) + 'ms</span></div>';
+                    html += '</div>';
+
+                    statsPanel.innerHTML = html;
+                })
+                .catch(() => {
+                    statsPanel.innerHTML = '<div class="no-connection"><p>统计服务不可用</p></div>';
+                });
+        }
+
+        function exportStats(format) {
+            window.open(`/api/stats/export?format=${format}`, '_blank');
+        }
+
+        function addPathEvent(event) {
+            const timestamp = new Date(event.timestamp).toLocaleTimeString('zh-CN', {
+                hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3
+            });
+
+            let typeLabel = '', typeClass = '';
+            if (event.type === 'connect') { typeLabel = '连接建立'; typeClass = 'connect'; }
+            else if (event.type === 'migration') { typeLabel = '路径切换'; typeClass = 'migration'; }
+            else if (event.type === 'verification') { typeLabel = '路径验证'; typeClass = 'verification'; }
+            else if (event.type === 'multipath') { typeLabel = '多路径'; typeClass = 'multipath'; }
+            else if (event.type === 'latency') { typeLabel = '耗时统计'; typeClass = 'latency'; }
+
+            let content = event.content;
+            if (event.oldAddress && event.newAddress) {
+                content += `
+                    <div class="arrow-change">
+                        <span class="old-ip">${event.oldAddress}</span>
+                        <span class="arrow">→</span>
+                        <span class="new-ip">${event.newAddress}</span>
+                    </div>
+                `;
+                if (event.verified !== undefined) {
+                    content += `<span class="challenge-badge ${event.verified ? 'success' : 'pending'}">${event.verified ? '已验证' : '待验证'}</span>`;
+                }
+            }
+
+            const div = document.createElement('div');
+            div.className = `path-event new ${event.type}`;
+            div.innerHTML = `
+                <div class="event-time">${timestamp}</div>
+                <span class="event-type ${typeClass}">${typeLabel}</span>
+                <div class="event-content">${content}</div>
+                <div class="event-detail">${event.detail}</div>
+            `;
+
+            if (pathHistory.querySelector('.no-connection')) { pathHistory.innerHTML = ''; }
+            pathHistory.insertBefore(div, pathHistory.firstChild);
+            setTimeout(() => div.classList.remove('new'), 500);
+        }
+
+        function addMessage(msg) {
+            const timestamp = new Date(msg.timestamp).toLocaleTimeString('zh-CN', {
+                hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+            const div = document.createElement('div');
+            div.className = `message-item ${msg.type}`;
+            div.innerHTML = `<div>${msg.content}</div><div class="message-path">路径: ${msg.path} · ${timestamp}</div>`;
+            if (messagesLog.querySelector('.no-connection')) { messagesLog.innerHTML = ''; }
+            messagesLog.appendChild(div);
+            messagesLog.scrollTop = messagesLog.scrollHeight;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMA帧解析系统 - 信元丢失统计</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .upload-section {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .file-input-wrapper {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #f8f9ff;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(17, 153, 142, 0.4);
+        }
+
+        .test-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .test-controls label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .test-controls input[type="number"] {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            width: 80px;
+        }
+
+        .test-controls input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-card.warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .stat-card.success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .stat-card.info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9ff;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f8f9ff;
+        }
+
+        .loss-high {
+            color: #f5576c;
+            font-weight: bold;
+        }
+
+        .loss-medium {
+            color: #ffa726;
+            font-weight: bold;
+        }
+
+        .loss-low {
+            color: #38ef7d;
+            font-weight: bold;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .link-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .status-good {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-warning {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .status-error {
+            background: #ffebee;
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>IMA帧解析系统</h1>
+            <p>基于ATM的IMA帧解析与信元丢失统计分析平台</p>
+        </div>
+
+        <div class="card">
+            <h2>📤 数据上传与测试</h2>
+            <div class="upload-section">
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" accept=".bin,.dat">
+                </div>
+                <button class="btn btn-primary" onclick="uploadFile()">解析文件</button>
+                <button class="btn btn-secondary" onclick="downloadTestData()">下载测试数据</button>
+            </div>
+
+            <div class="test-controls">
+                <label>
+                    帧数:
+                    <input type="number" id="frameCount" value="5" min="1" max="100">
+                </label>
+                <label>
+                    链路数:
+                    <input type="number" id="linkCount" value="2" min="1" max="8">
+                </label>
+                <label>
+                    <input type="checkbox" id="simulateLoss">
+                    模拟信元丢失
+                </label>
+                <label>
+                    丢失率阈值 (%):
+                    <input type="number" id="lossRateThreshold" value="1.0" min="0.01" max="100" step="0.01">
+                </label>
+                <label>
+                    连续降级阈值:
+                    <input type="number" id="degradedThreshold" value="3" min="1" max="20">
+                </label>
+                <button class="btn btn-success" onclick="loadTestData()">生成并分析测试数据</button>
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>正在解析数据...</p>
+        </div>
+
+        <div id="results" style="display: none;">
+            <div class="card">
+                <h2 id="systemStatusHeader">📊 总体统计 - 系统状态: <span id="overallStatus">未知</span></h2>
+                <div class="stats-grid">
+                    <div class="stat-card info">
+                        <div class="stat-value" id="totalCells">0</div>
+                        <div class="stat-label">总信元数</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-value" id="lostCells">0</div>
+                        <div class="stat-label">丢失信元数</div>
+                    </div>
+                    <div class="stat-card" id="lossRateCard">
+                        <div class="stat-value" id="lossRate">0%</div>
+                        <div class="stat-label">信元丢失率</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-value" id="totalLinks">0</div>
+                        <div class="stat-label">链路数</div>
+                    </div>
+                    <div class="stat-card info">
+                        <div class="stat-value" id="totalFrames">0</div>
+                        <div class="stat-label">IMA帧数</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-value" id="totalPackets">0</div>
+                        <div class="stat-label">重组分组数</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-value" id="totalAlerts">0</div>
+                        <div class="stat-label">告警事件</div>
+                    </div>
+                    <div class="stat-card" id="degradedLinksCard">
+                        <div class="stat-value" id="degradedLinks">0</div>
+                        <div class="stat-label">降级链路</div>
+                    </div>
+                    <div class="stat-card" id="failedLinksCard">
+                        <div class="stat-value" id="failedLinks">0</div>
+                        <div class="stat-label">失效链路</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="alertBanner" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div id="alertBannerContent">
+                        <h3 style="margin: 0; color: #f5576c;">⚠️ 检测到告警事件</h3>
+                        <p id="alertBannerText" style="margin: 10px 0 0 0; color: #555;"></p>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" onclick="acknowledgeAllAlerts()">确认所有告警</button>
+                        <button class="btn btn-secondary" onclick="clearAllAlerts()">清除告警历史</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📈 图表分析</h2>
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('linkStats')">链路统计</button>
+                    <button class="tab-btn" onclick="switchTab('cellDistribution')">信元分布</button>
+                    <button class="tab-btn" onclick="switchTab('bandwidth')">带宽分析</button>
+                    <button class="tab-btn" onclick="switchTab('frameStructure')">帧结构</button>
+                    <button class="tab-btn" onclick="switchTab('frameSequence')">帧序列</button>
+                    <button class="tab-btn" onclick="switchTab('alerts')">告警事件</button>
+                </div>
+
+                <div id="linkStats" class="tab-content active">
+                    <div class="charts-grid">
+                        <div class="chart-container">
+                            <canvas id="linkLossChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="linkCellChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="cellDistribution" class="tab-content">
+                    <div class="charts-grid">
+                        <div class="chart-container">
+                            <canvas id="cellTypeChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="linkDistributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="frameSequence" class="tab-content">
+                    <div class="chart-container">
+                        <canvas id="frameSequenceChart"></canvas>
+                    </div>
+                </div>
+
+                <div id="bandwidth" class="tab-content">
+                    <div class="charts-grid">
+                        <div class="chart-container">
+                            <canvas id="bandwidthChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="efficiencyChart"></canvas>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <h3 style="margin-bottom: 15px; color: #333;">📊 带宽详细统计</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>链路ID</th>
+                                        <th>有效信元率 (cells/s)</th>
+                                        <th>理论最大带宽 (Mbps)</th>
+                                        <th>实际带宽 (Mbps)</th>
+                                        <th>带宽利用率 (%)</th>
+                                        <th>有效净荷速率 (Mbps)</th>
+                                        <th>数据字节</th>
+                                        <th>开销字节</th>
+                                        <th>传输效率 (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bandwidthTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="frameStructure" class="tab-content">
+                    <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                        <label>
+                            选择链路:
+                            <select id="frameStructureLink" onchange="renderFrameStructure()" style="padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                                <option value="all">全部链路</option>
+                            </select>
+                        </label>
+                        <label>
+                            选择帧:
+                            <select id="frameStructureFrame" onchange="renderFrameStructure()" style="padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                                <option value="all">全部帧</option>
+                            </select>
+                        </label>
+                        <button class="btn btn-primary" onclick="exportFrameStructure('json')">导出 JSON</button>
+                        <button class="btn btn-secondary" onclick="exportFrameStructure('text')">导出 文本</button>
+                    </div>
+                    <div id="frameStructureContent">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>帧号</th>
+                                        <th>链路ID</th>
+                                        <th>总信元数</th>
+                                        <th>数据信元</th>
+                                        <th>填充信元</th>
+                                        <th>数据占比 (%)</th>
+                                        <th>填充占比 (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="frameStructureTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <h3 style="margin-bottom: 15px; color: #333;">🖼️ 帧结构可视化</h3>
+                            <div id="frameStructureVisualization" style="display: flex; flex-wrap: wrap; gap: 20px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="alerts" class="tab-content">
+                    <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                        <label>
+                            筛选严重程度:
+                            <select id="alertSeverityFilter" onchange="loadAlertHistory()" style="padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                                <option value="">全部</option>
+                                <option value="critical">严重 (Critical)</option>
+                                <option value="error">错误 (Error)</option>
+                                <option value="warning">警告 (Warning)</option>
+                                <option value="info">信息 (Info)</option>
+                            </select>
+                        </label>
+                        <label>
+                            只显示未确认:
+                            <input type="checkbox" id="unacknowledgedOnly" onchange="loadAlertHistory()">
+                        </label>
+                        <button class="btn btn-secondary" onclick="loadAlertHistory()">刷新告警</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>严重程度</th>
+                                    <th>类型</th>
+                                    <th>链路</th>
+                                    <th>消息</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="alertTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🔗 链路详细信息</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>链路ID</th>
+                                <th>状态</th>
+                                <th>总信元数</th>
+                                <th>数据信元</th>
+                                <th>ICP信元</th>
+                                <th>填充信元</th>
+                                <th>丢失信元</th>
+                                <th>丢失率</th>
+                                <th>最后序列号</th>
+                            </tr>
+                        </thead>
+                        <tbody id="linkTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📦 重组分组信息</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>VPI</th>
+                                <th>VCI</th>
+                                <th>数据长度 (字节)</th>
+                                <th>信元数</th>
+                                <th>首信元索引</th>
+                                <th>末信元索引</th>
+                                <th>数据预览 (HEX)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="packetTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🖼️ IMA帧信息</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>帧号</th>
+                                <th>链路ID</th>
+                                <th>状态</th>
+                                <th>时间戳</th>
+                                <th>组ID</th>
+                                <th>填充计数</th>
+                            </tr>
+                        </thead>
+                        <tbody id="frameTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5001/api';
+        let currentData = null;
+        let charts = {};
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = '❌ ' + message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+            document.getElementById('results').style.display = show ? 'none' : 'block';
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.resize();
+            });
+        }
+
+        function getLossRateClass(lossRate) {
+            if (lossRate >= 10) return 'loss-high';
+            if (lossRate >= 1) return 'loss-medium';
+            return 'loss-low';
+        }
+
+        function getStatusStyle(status) {
+            switch(status) {
+                case 'normal': return { class: 'status-good', text: '正常', bg: '#e8f5e9', color: '#2e7d32' };
+                case 'degraded': return { class: 'status-warning', text: '降级', bg: '#fff3e0', color: '#ef6c00' };
+                case 'failed': return { class: 'status-error', text: '失效', bg: '#ffebee', color: '#c62828' };
+                default: return { class: '', text: '未知', bg: '#f5f5f5', color: '#666' };
+            }
+        }
+
+        function getSeverityStyle(severity) {
+            switch(severity) {
+                case 'critical': return { class: 'status-error', text: '严重', bg: '#ffebee', color: '#c62828' };
+                case 'error': return { class: 'status-warning', text: '错误', bg: '#fff3e0', color: '#ef6c00' };
+                case 'warning': return { class: 'status-warning', text: '警告', bg: '#fff8e1', color: '#f57f17' };
+                case 'info': return { class: 'status-good', text: '信息', bg: '#e3f2fd', color: '#1565c0' };
+                default: return { class: '', text: severity, bg: '#f5f5f5', color: '#666' };
+            }
+        }
+
+        function getAlertTypeText(type) {
+            const typeMap = {
+                'link_degraded': '链路降级',
+                'link_restored': '链路恢复',
+                'link_failed': '链路失效',
+                'cell_loss_high': '信元丢失率过高',
+                'member_missing': '成员缺失',
+                'member_restored': '成员恢复',
+                'frame_sync_loss': '帧同步丢失'
+            };
+            return typeMap[type] || type;
+        }
+
+        function updateStats(data) {
+            currentData = data;
+
+            document.getElementById('totalCells').textContent = data.total_cells.toLocaleString();
+            document.getElementById('lostCells').textContent = data.total_lost_cells.toLocaleString();
+            document.getElementById('lossRate').textContent = data.overall_loss_rate.toFixed(4) + '%';
+            document.getElementById('totalLinks').textContent = data.total_links;
+            document.getElementById('totalFrames').textContent = data.total_frames;
+            document.getElementById('totalPackets').textContent = data.total_packets;
+            document.getElementById('totalAlerts').textContent = data.total_alerts || 0;
+            document.getElementById('degradedLinks').textContent = data.degraded_links ? data.degraded_links.length : 0;
+            document.getElementById('failedLinks').textContent = data.failed_links ? data.failed_links.length : 0;
+
+            const statusStyle = getStatusStyle(data.overall_status);
+            const overallStatusEl = document.getElementById('overallStatus');
+            overallStatusEl.textContent = statusStyle.text;
+            overallStatusEl.style.color = statusStyle.color;
+            overallStatusEl.style.padding = '4px 12px';
+            overallStatusEl.style.borderRadius = '12px';
+            overallStatusEl.style.backgroundColor = statusStyle.bg;
+
+            const lossRateCard = document.getElementById('lossRateCard');
+            lossRateCard.className = 'stat-card';
+            if (data.overall_loss_rate >= 10) {
+                lossRateCard.classList.add('warning');
+            } else if (data.overall_loss_rate >= 1) {
+                lossRateCard.classList.add('info');
+            } else {
+                lossRateCard.classList.add('success');
+            }
+
+            const degradedCard = document.getElementById('degradedLinksCard');
+            degradedCard.className = 'stat-card';
+            if (data.degraded_links && data.degraded_links.length > 0) {
+                degradedCard.classList.add('warning');
+            } else {
+                degradedCard.classList.add('success');
+            }
+
+            const failedCard = document.getElementById('failedLinksCard');
+            failedCard.className = 'stat-card';
+            if (data.failed_links && data.failed_links.length > 0) {
+                failedCard.classList.add('warning');
+            } else {
+                failedCard.classList.add('success');
+            }
+
+            const alertBanner = document.getElementById('alertBanner');
+            if (data.alerts && data.alerts.length > 0) {
+                const criticalAlerts = data.alerts.filter(a => a.severity === 'critical');
+                const errorAlerts = data.alerts.filter(a => a.severity === 'error');
+                const warningAlerts = data.alerts.filter(a => a.severity === 'warning');
+
+                let alertText = `检测到 ${data.alerts.length} 条告警`;
+                if (criticalAlerts.length > 0) alertText += ` (严重: ${criticalAlerts.length})`;
+                if (errorAlerts.length > 0) alertText += ` (错误: ${errorAlerts.length})`;
+                if (warningAlerts.length > 0) alertText += ` (警告: ${warningAlerts.length})`;
+
+                document.getElementById('alertBannerText').textContent = alertText;
+                alertBanner.style.display = 'block';
+
+                if (criticalAlerts.length > 0) {
+                    alertBanner.style.background = 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)';
+                    alertBanner.style.borderLeft = '4px solid #c62828';
+                } else if (errorAlerts.length > 0) {
+                    alertBanner.style.background = 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)';
+                    alertBanner.style.borderLeft = '4px solid #ef6c00';
+                } else {
+                    alertBanner.style.background = 'linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%)';
+                    alertBanner.style.borderLeft = '4px solid #f57f17';
+                }
+            } else {
+                alertBanner.style.display = 'none';
+            }
+        }
+
+        function updateLinkTable(linkStats) {
+            const tbody = document.getElementById('linkTableBody');
+            tbody.innerHTML = '';
+
+            linkStats.forEach(stat => {
+                const statusStyle = getStatusStyle(stat.status);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${stat.link_id}</td>
+                    <td><span class="link-status ${statusStyle.class}">${statusStyle.text}</span></td>
+                    <td>${stat.total_cells.toLocaleString()}</td>
+                    <td>${stat.data_cells.toLocaleString()}</td>
+                    <td>${stat.icp_cells.toLocaleString()}</td>
+                    <td>${stat.filler_cells.toLocaleString()}</td>
+                    <td class="${getLossRateClass(stat.cell_loss_rate)}">${stat.lost_cells.toLocaleString()}</td>
+                    <td class="${getLossRateClass(stat.cell_loss_rate)}">${stat.cell_loss_rate.toFixed(4)}%</td>
+                    <td>${stat.last_sequence}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateBandwidthTable(linkStats) {
+            const tbody = document.getElementById('bandwidthTableBody');
+            tbody.innerHTML = '';
+
+            linkStats.forEach(stat => {
+                const bw = stat.bandwidth || {};
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${stat.link_id}</td>
+                    <td>${(bw.effective_cell_rate || 0).toFixed(2)}</td>
+                    <td>${(bw.theoretical_max_bandwidth_mbps || 0).toFixed(2)}</td>
+                    <td>${(bw.actual_bandwidth_mbps || 0).toFixed(2)}</td>
+                    <td>${(bw.bandwidth_utilization || 0).toFixed(2)}%</td>
+                    <td>${(bw.effective_payload_rate_mbps || 0).toFixed(2)}</td>
+                    <td>${(bw.total_data_bytes || 0).toLocaleString()}</td>
+                    <td>${(bw.total_overhead_bytes || 0).toLocaleString()}</td>
+                    <td>${(bw.efficiency || 0).toFixed(2)}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        let frameStructureData = null;
+
+        function generateFrameStructureData(linkStats, frames) {
+            const structures = [];
+            const linkIds = [...new Set(frames.map(f => f.link_id))];
+
+            linkIds.forEach(linkId => {
+                const linkFrames = frames.filter(f => f.link_id === linkId);
+                linkFrames.forEach((frame, frameIdx) => {
+                    const structure = {
+                        frame_number: frame.frame_number,
+                        link_id: frame.link_id,
+                        total_cell_count: 128,
+                        data_cell_count: Math.floor(128 * 0.85),
+                        filler_cell_count: Math.floor(128 * 0.10),
+                        icp_cell_index: 0,
+                        structure: [],
+                        start_index: frameIdx * 128,
+                        end_index: (frameIdx + 1) * 128 - 1,
+                        data_ratio: 85.0,
+                        filler_ratio: 10.0
+                    };
+
+                    for (let i = 0; i < 128; i++) {
+                        if (i === 0) {
+                            structure.structure.push('ICP');
+                        } else if (i % 10 === 0) {
+                            structure.structure.push('FILL');
+                        } else {
+                            structure.structure.push('DATA');
+                        }
+                    }
+
+                    structure.data_cell_count = structure.structure.filter(s => s === 'DATA').length;
+                    structure.filler_cell_count = structure.structure.filter(s => s === 'FILL').length;
+                    structure.data_ratio = (structure.data_cell_count / 128) * 100;
+                    structure.filler_ratio = (structure.filler_cell_count / 128) * 100;
+
+                    structures.push(structure);
+                });
+            });
+
+            return structures;
+        }
+
+        function updateFrameStructureOptions(linkStats, frames) {
+            const linkSelect = document.getElementById('frameStructureLink');
+            const frameSelect = document.getElementById('frameStructureFrame');
+
+            const linkIds = [...new Set(frames.map(f => f.link_id))];
+
+            linkSelect.innerHTML = '<option value="all">全部链路</option>';
+            linkIds.forEach(id => {
+                linkSelect.innerHTML += `<option value="${id}">链路 ${id}</option>`;
+            });
+
+            const frameNumbers = [...new Set(frames.map(f => f.frame_number))].sort((a, b) => a - b);
+            frameSelect.innerHTML = '<option value="all">全部帧</option>';
+            frameNumbers.forEach(num => {
+                frameSelect.innerHTML += `<option value="${num}">帧 ${num}</option>`;
+            });
+        }
+
+        function renderFrameStructure() {
+            if (!frameStructureData) return;
+
+            const linkFilter = document.getElementById('frameStructureLink').value;
+            const frameFilter = document.getElementById('frameStructureFrame').value;
+
+            let filtered = frameStructureData;
+            if (linkFilter !== 'all') {
+                filtered = filtered.filter(f => f.link_id === parseInt(linkFilter));
+            }
+            if (frameFilter !== 'all') {
+                filtered = filtered.filter(f => f.frame_number === parseInt(frameFilter));
+            }
+
+            const tbody = document.getElementById('frameStructureTableBody');
+            tbody.innerHTML = '';
+
+            filtered.forEach(fs => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${fs.frame_number}</td>
+                    <td>${fs.link_id}</td>
+                    <td>${fs.total_cell_count}</td>
+                    <td>${fs.data_cell_count}</td>
+                    <td>${fs.filler_cell_count}</td>
+                    <td>${fs.data_ratio.toFixed(1)}%</td>
+                    <td>${fs.filler_ratio.toFixed(1)}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const vizContainer = document.getElementById('frameStructureVisualization');
+            vizContainer.innerHTML = '';
+
+            filtered.slice(0, 4).forEach(fs => {
+                const vizDiv = document.createElement('div');
+                vizDiv.style.cssText = 'background: #f8f9ff; padding: 15px; border-radius: 8px; min-width: 300px;';
+
+                let cellHtml = '';
+                fs.structure.slice(0, 64).forEach((type, idx) => {
+                    let color = '#667eea';
+                    if (type === 'ICP') color = '#f5576c';
+                    else if (type === 'FILL') color = '#ffa726';
+                    else if (type === 'DATA') color = '#11998e';
+
+                    cellHtml += `<div title="${type}" style="display: inline-block; width: 12px; height: 12px; margin: 1px; background: ${color}; border-radius: 2px;"></div>`;
+                });
+
+                vizDiv.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 10px;">帧 ${fs.frame_number} (链路 ${fs.link_id})</div>
+                    <div style="line-height: 1;">${cellHtml}</div>
+                    <div style="margin-top: 10px; font-size: 0.85em; color: #666;">
+                        <span style="color: #f5576c;">■ ICP</span>
+                        <span style="color: #11998e; margin-left: 10px;">■ DATA</span>
+                        <span style="color: #ffa726; margin-left: 10px;">■ FILL</span>
+                    </div>
+                `;
+                vizContainer.appendChild(vizDiv);
+            });
+        }
+
+        function exportFrameStructure(format) {
+            if (!currentData || !currentData.frames) return;
+
+            const frames = currentData.frames;
+            const linkStats = currentData.link_stats;
+            const structures = generateFrameStructureData(linkStats, frames);
+
+            if (format === 'json') {
+                const dataStr = JSON.stringify(structures, null, 2);
+                downloadFile(dataStr, 'frame_structure.json', 'application/json');
+            } else if (format === 'text') {
+                let text = 'IMA Frame Structure Export\n';
+                text += '=' .repeat(50) + '\n\n';
+
+                structures.forEach(fs => {
+                    text += `Frame ${fs.frame_number} (Link ${fs.link_id})\n`;
+                    text += `Total cells: ${fs.total_cell_count}, Data: ${fs.data_cell_count}, Filler: ${fs.filler_cell_count}\n`;
+                    text += 'Structure: ' + fs.structure.slice(0, 32).join(' ') + ' ...\n\n';
+                });
+
+                text += '\nLegend: ICP=Control Cell | DATA=Data Cell | FILL=Filler Cell\n';
+                downloadFile(text, 'frame_structure.txt', 'text/plain');
+            }
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function updatePacketTable(packets) {
+            const tbody = document.getElementById('packetTableBody');
+            tbody.innerHTML = '';
+
+            packets.forEach(packet => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${packet.vpi}</td>
+                    <td>${packet.vci}</td>
+                    <td>${packet.data_length.toLocaleString()}</td>
+                    <td>${packet.cell_count}</td>
+                    <td>${packet.first_cell_index}</td>
+                    <td>${packet.last_cell_index}</td>
+                    <td><code style="font-size: 0.85em; color: #666;">${packet.data_hex}</code></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateFrameTable(frames) {
+            const tbody = document.getElementById('frameTableBody');
+            tbody.innerHTML = '';
+
+            frames.forEach(frame => {
+                const tr = document.createElement('tr');
+                const icp = frame.icp_cell || {};
+                tr.innerHTML = `
+                    <td>${frame.frame_number}</td>
+                    <td>${frame.link_id}</td>
+                    <td>${frame.is_complete ? '✅ 完整' : '❌ 不完整'}</td>
+                    <td>${icp.timestamp || '-'}</td>
+                    <td>${icp.group_id || '-'}</td>
+                    <td>${icp.stuff_count !== undefined ? icp.stuff_count : '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function destroyCharts() {
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            charts = {};
+        }
+
+        function createCharts(data) {
+            destroyCharts();
+
+            const linkColors = ['#667eea', '#f5576c', '#11998e', '#ffa726', '#4facfe', '#9c27b0', '#ff9800', '#795548'];
+
+            const linkIds = data.link_stats.map(s => `链路 ${s.link_id}`);
+            const lossRates = data.link_stats.map(s => s.cell_loss_rate);
+            const totalCells = data.link_stats.map(s => s.total_cells);
+            const lostCells = data.link_stats.map(s => s.lost_cells);
+
+            charts.linkLossChart = new Chart(document.getElementById('linkLossChart'), {
+                type: 'bar',
+                data: {
+                    labels: linkIds,
+                    datasets: [{
+                        label: '信元丢失率 (%)',
+                        data: lossRates,
+                        backgroundColor: linkColors,
+                        borderColor: linkColors.map(c => c),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '各链路信元丢失率',
+                            font: { size: 16 }
+                        },
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: '丢失率 (%)' }
+                        }
+                    }
+                }
+            });
+
+            charts.linkCellChart = new Chart(document.getElementById('linkCellChart'), {
+                type: 'bar',
+                data: {
+                    labels: linkIds,
+                    datasets: [
+                        {
+                            label: '数据信元',
+                            data: data.link_stats.map(s => s.data_cells),
+                            backgroundColor: '#11998e'
+                        },
+                        {
+                            label: 'ICP信元',
+                            data: data.link_stats.map(s => s.icp_cells),
+                            backgroundColor: '#667eea'
+                        },
+                        {
+                            label: '填充信元',
+                            data: data.link_stats.map(s => s.filler_cells),
+                            backgroundColor: '#ffa726'
+                        },
+                        {
+                            label: '丢失信元',
+                            data: lostCells,
+                            backgroundColor: '#f5576c'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '各链路信元类型分布',
+                            font: { size: 16 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: '信元数' }
+                        },
+                        x: { stacked: false }
+                    }
+                }
+            });
+
+            const totalDataCells = data.link_stats.reduce((sum, s) => sum + s.data_cells, 0);
+            const totalIcpCells = data.link_stats.reduce((sum, s) => sum + s.icp_cells, 0);
+            const totalFillerCells = data.link_stats.reduce((sum, s) => sum + s.filler_cells, 0);
+
+            charts.cellTypeChart = new Chart(document.getElementById('cellTypeChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['数据信元', 'ICP信元', '填充信元', '丢失信元'],
+                    datasets: [{
+                        data: [totalDataCells, totalIcpCells, totalFillerCells, data.total_lost_cells],
+                        backgroundColor: ['#11998e', '#667eea', '#ffa726', '#f5576c'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '信元类型分布',
+                            font: { size: 16 }
+                        },
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+
+            charts.linkDistributionChart = new Chart(document.getElementById('linkDistributionChart'), {
+                type: 'pie',
+                data: {
+                    labels: linkIds,
+                    datasets: [{
+                        data: totalCells,
+                        backgroundColor: linkColors,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '各链路信元数占比',
+                            font: { size: 16 }
+                        },
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+
+            const frameLabels = data.frames.map(f => `帧 ${f.frame_number} (L${f.link_id})`);
+            const frameLinks = data.frames.map(f => f.link_id);
+
+            charts.frameSequenceChart = new Chart(document.getElementById('frameSequenceChart'), {
+                type: 'scatter',
+                data: {
+                    datasets: data.link_stats.map((stat, i) => ({
+                        label: `链路 ${stat.link_id}`,
+                        data: data.frames
+                            .filter(f => f.link_id === stat.link_id)
+                            .map(f => ({ x: f.frame_number, y: f.link_id })),
+                        backgroundColor: linkColors[i % linkColors.length],
+                        pointRadius: 8,
+                        pointHoverRadius: 12
+                    }))
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '帧序列号分布',
+                            font: { size: 16 }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: '帧序列号' },
+                            ticks: { stepSize: 1 }
+                        },
+                        y: {
+                            title: { display: true, text: '链路ID' },
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+
+            const bandwidthData = data.link_stats.map(s => s.bandwidth ? s.bandwidth.actual_bandwidth_mbps : 0);
+            const payloadData = data.link_stats.map(s => s.bandwidth ? s.bandwidth.effective_payload_rate_mbps : 0);
+
+            charts.bandwidthChart = new Chart(document.getElementById('bandwidthChart'), {
+                type: 'bar',
+                data: {
+                    labels: linkIds,
+                    datasets: [
+                        {
+                            label: '实际带宽 (Mbps)',
+                            data: bandwidthData,
+                            backgroundColor: '#667eea',
+                            borderColor: '#667eea',
+                            borderWidth: 2
+                        },
+                        {
+                            label: '有效净荷速率 (Mbps)',
+                            data: payloadData,
+                            backgroundColor: '#11998e',
+                            borderColor: '#11998e',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '各链路带宽统计',
+                            font: { size: 16 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Mbps' }
+                        }
+                    }
+                }
+            });
+
+            const efficiencyData = data.link_stats.map(s => s.bandwidth ? s.bandwidth.efficiency : 0);
+            const utilizationData = data.link_stats.map(s => s.bandwidth ? s.bandwidth.bandwidth_utilization : 0);
+
+            charts.efficiencyChart = new Chart(document.getElementById('efficiencyChart'), {
+                type: 'bar',
+                data: {
+                    labels: linkIds,
+                    datasets: [
+                        {
+                            label: '传输效率 (%)',
+                            data: efficiencyData,
+                            backgroundColor: '#ffa726',
+                            borderColor: '#ffa726',
+                            borderWidth: 2
+                        },
+                        {
+                            label: '带宽利用率 (%)',
+                            data: utilizationData,
+                            backgroundColor: '#f5576c',
+                            borderColor: '#f5576c',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '传输效率与带宽利用率',
+                            font: { size: 16 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: { display: true, text: '%' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateAlertTable(alerts) {
+            const tbody = document.getElementById('alertTableBody');
+            tbody.innerHTML = '';
+
+            if (!alerts || alerts.length === 0) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td colspan="7" style="text-align: center; color: #999; padding: 30px;">暂无告警事件</td>';
+                tbody.appendChild(tr);
+                return;
+            }
+
+            alerts.forEach(alert => {
+                const sevStyle = getSeverityStyle(alert.severity);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${alert.time_str || new Date(alert.timestamp * 1000).toLocaleString()}</td>
+                    <td><span class="link-status ${sevStyle.class}">${sevStyle.text}</span></td>
+                    <td>${getAlertTypeText(alert.alert_type)}</td>
+                    <td>${alert.link_id}</td>
+                    <td style="max-width: 400px;">${alert.message}</td>
+                    <td>${alert.acknowledged ? '<span style="color: #999;">已确认</span>' : '<span style="color: #f5576c; font-weight: bold;">待确认</span>'}</td>
+                    <td>
+                        ${!alert.acknowledged ? `
+                            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85em;"
+                                    onclick="acknowledgeAlert('${alert.alert_id}')">确认</button>
+                        ` : '-'}
+                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85em; margin-left: 5px;"
+                                onclick="showAlertDetails('${alert.alert_id}')">详情</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderResults(data) {
+            updateStats(data);
+            updateLinkTable(data.link_stats);
+            updateBandwidthTable(data.link_stats);
+            updatePacketTable(data.packets);
+            updateFrameTable(data.frames);
+            updateAlertTable(data.alerts);
+            createCharts(data);
+
+            frameStructureData = generateFrameStructureData(data.link_stats, data.frames);
+            updateFrameStructureOptions(data.link_stats, data.frames);
+            renderFrameStructure();
+
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function getConfigParams() {
+            const lossRateThreshold = document.getElementById('lossRateThreshold').value;
+            const degradedThreshold = document.getElementById('degradedThreshold').value;
+            return `loss_rate_threshold=${lossRateThreshold}&consecutive_degraded_threshold=${degradedThreshold}`;
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showError('请先选择一个文件');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                showLoading(true);
+                const configParams = getConfigParams();
+                const response = await fetch(`${API_BASE}/parse?${configParams}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || '解析失败');
+                }
+
+                renderResults(data);
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function loadTestData() {
+            const frames = document.getElementById('frameCount').value;
+            const links = document.getElementById('linkCount').value;
+            const simulateLoss = document.getElementById('simulateLoss').checked;
+
+            try {
+                showLoading(true);
+                const configParams = getConfigParams();
+                const response = await fetch(
+                    `${API_BASE}/test-data?frames=${frames}&links=${links}&simulate_loss=${simulateLoss}&${configParams}`
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || '生成测试数据失败');
+                }
+
+                renderResults(data);
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function downloadTestData() {
+            const frames = document.getElementById('frameCount').value;
+            const links = document.getElementById('linkCount').value;
+            const simulateLoss = document.getElementById('simulateLoss').checked;
+
+            const url = `${API_BASE}/test-data/download?frames=${frames}&links=${links}&simulate_loss=${simulateLoss}`;
+            window.open(url, '_blank');
+        }
+
+        async function loadAlertHistory() {
+            try {
+                const severity = document.getElementById('alertSeverityFilter').value;
+                const unacknowledgedOnly = document.getElementById('unacknowledgedOnly').checked;
+
+                let url = `${API_BASE}/alerts?limit=100`;
+                if (severity) url += `&severity=${severity}`;
+                if (unacknowledgedOnly) url += `&unacknowledged_only=true`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (response.ok) {
+                    updateAlertTable(data.alerts);
+                }
+            } catch (error) {
+                console.error('加载告警历史失败:', error);
+            }
+        }
+
+        async function acknowledgeAlert(alertId) {
+            try {
+                const response = await fetch(`${API_BASE}/alerts/${alertId}/acknowledge`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    loadAlertHistory();
+                    if (currentData) {
+                        const alert = currentData.alerts.find(a => a.alert_id === alertId);
+                        if (alert) alert.acknowledged = true;
+                    }
+                }
+            } catch (error) {
+                showError('确认告警失败');
+            }
+        }
+
+        async function acknowledgeAllAlerts() {
+            try {
+                const response = await fetch(`${API_BASE}/alerts/acknowledge-all`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    showError(`已确认 ${data.acknowledged_count} 条告警`);
+                    loadAlertHistory();
+                    if (currentData && currentData.alerts) {
+                        currentData.alerts.forEach(a => a.acknowledged = true);
+                    }
+                    document.getElementById('alertBanner').style.display = 'none';
+                }
+            } catch (error) {
+                showError('确认所有告警失败');
+            }
+        }
+
+        async function clearAllAlerts() {
+            if (!confirm('确定要清除所有告警历史吗？此操作不可撤销。')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/alerts/clear`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    showError(`已清除 ${data.cleared_count} 条告警`);
+                    loadAlertHistory();
+                    if (currentData) {
+                        currentData.alerts = [];
+                        currentData.total_alerts = 0;
+                    }
+                    document.getElementById('alertBanner').style.display = 'none';
+                }
+            } catch (error) {
+                showError('清除告警失败');
+            }
+        }
+
+        function showAlertDetails(alertId) {
+            let alert = null;
+            if (currentData && currentData.alerts) {
+                alert = currentData.alerts.find(a => a.alert_id === alertId);
+            }
+
+            if (!alert) {
+                showError('未找到告警详情');
+                return;
+            }
+
+            let detailsStr = '';
+            if (alert.details && Object.keys(alert.details).length > 0) {
+                detailsStr = '\n\n详情:\n' + Object.entries(alert.details)
+                    .map(([k, v]) => `  ${k}: ${v}`)
+                    .join('\n');
+            }
+
+            const sevStyle = getSeverityStyle(alert.severity);
+            alert(
+                `告警详情\n` +
+                `========\n` +
+                `告警ID: ${alert.alert_id}\n` +
+                `时间: ${alert.time_str || new Date(alert.timestamp * 1000).toLocaleString()}\n` +
+                `严重程度: ${sevStyle.text}\n` +
+                `告警类型: ${getAlertTypeText(alert.alert_type)}\n` +
+                `链路ID: ${alert.link_id}\n` +
+                `状态: ${alert.acknowledged ? '已确认' : '待确认'}\n\n` +
+                `消息: ${alert.message}` +
+                detailsStr
+            );
+        }
+
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    console.log('API服务正常运行');
+                }
+            } catch (error) {
+                console.warn('无法连接到API服务:', error);
+            }
+        }
+
+        checkHealth();
+    </script>
+</body>
+</html>

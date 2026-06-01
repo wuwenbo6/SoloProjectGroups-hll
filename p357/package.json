@@ -1,0 +1,26 @@
+{
+  "name": "timelapse-encoder",
+  "version": "1.0.0",
+  "description": "JPEG序列延时摄影编码器 - FFmpeg编码为MP4",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "fluent-ffmpeg": "^2.1.3",
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.timelapse.encoder",
+    "productName": "延时摄影编码器",
+    "mac": {
+      "category": "public.app-category.video"
+    }
+  }
+}

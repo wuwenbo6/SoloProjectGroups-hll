@@ -1,0 +1,19 @@
+<device>
+    <device-info>
+        <hostname>router-01</hostname>
+        <ip-address>192.168.1.1</ip-address>
+        <port>830</port>
+        <enabled>true</enabled>
+        <status>online</status>
+        <location>
+            <building>HQ</building>
+            <room>A-101</room>
+            <rack>10</rack>
+        </location>
+        <interface>
+            <name>GigabitEthernet0/1</name>
+            <type>ethernet</type>
+            <mtu>1500</mtu>
+        </interface>
+    </device-info>
+</device>

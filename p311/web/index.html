@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Server Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 480px;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #1a202c;
+            font-size: 28px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #718096;
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #4a5568;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            color: #718096;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .message.error {
+            background: #fed7d7;
+            color: #c53030;
+            display: block;
+        }
+
+        .message.success {
+            background: #c6f6d5;
+            color: #22543d;
+            display: block;
+        }
+
+        .dashboard {
+            max-width: 900px;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .logout-btn {
+            background: #e53e3e;
+            width: auto;
+            padding: 10px 20px;
+        }
+
+        .instance-card {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .instance-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .status-stopped {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .status-running {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-starting {
+            background: #fefcbf;
+            color: #744210;
+        }
+
+        .instance-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .info-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+        }
+
+        .btn-secondary {
+            background: #718096;
+        }
+
+        .btn-success {
+            background: #38a169;
+        }
+
+        .password-field {
+            display: flex;
+            gap: 8px;
+        }
+
+        .password-field input {
+            flex: 1;
+        }
+
+        .toggle-password {
+            width: auto;
+            padding: 0 16px;
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .admin-section {
+            background: #fffaf0;
+            border-left: 4px solid #ed8936;
+            padding: 16px;
+            margin-top: 24px;
+            border-radius: 8px;
+        }
+
+        .admin-section h3 {
+            color: #744210;
+            margin-bottom: 12px;
+        }
+
+        .users-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .user-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .delete-btn {
+            background: #e53e3e;
+            width: auto;
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+    <script>
+        const API_BASE = '/api/v1';
+        let token = localStorage.getItem('token');
+
+        function showMessage(text, type = 'error') {
+            const msgEl = document.getElementById('message');
+            if (msgEl) {
+                msgEl.textContent = text;
+                msgEl.className = `message ${type}`;
+                setTimeout(() => {
+                    msgEl.className = 'message';
+                }, 3000);
+            }
+        }
+
+        async function apiRequest(endpoint, method = 'GET', data = null) {
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers['X-User-Token'] = token;
+            }
+
+            const options = {
+                method,
+                headers,
+            };
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+
+            const response = await fetch(`${API_BASE}${endpoint}`, options);
+            const result = await response.json();
+            return { ok: response.ok, status: response.status, data: result };
+        }
+
+        function renderLogin() {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <div class="container">
+                    <h1>🚀 Code Server Manager</h1>
+                    <p class="subtitle">多用户 VS Code Server 管理平台</p>
+                    <div id="message" class="message"></div>
+                    <div class="tabs">
+                        <div class="tab active" data-tab="login">登录</div>
+                        <div class="tab" data-tab="register">注册</div>
+                    </div>
+                    <div id="login" class="tab-content active">
+                        <div class="form-group">
+                            <label>用户名</label>
+                            <input type="text" id="login-username" placeholder="请输入用户名">
+                        </div>
+                        <div class="form-group">
+                            <label>密码</label>
+                            <input type="password" id="login-password" placeholder="请输入密码">
+                        </div>
+                        <button onclick="doLogin()">登录</button>
+                    </div>
+                    <div id="register" class="tab-content">
+                        <div class="form-group">
+                            <label>用户名</label>
+                            <input type="text" id="register-username" placeholder="请输入用户名">
+                        </div>
+                        <div class="form-group">
+                            <label>密码</label>
+                            <input type="password" id="register-password" placeholder="请输入密码">
+                        </div>
+                        <button onclick="doRegister()">注册</button>
+                    </div>
+                </div>
+            `;
+
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(tab.dataset.tab).classList.add('active');
+                });
+            });
+        }
+
+        async function doLogin() {
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+
+            const result = await apiRequest('/login', 'POST', { username, password });
+            if (result.ok) {
+                token = result.data.token;
+                localStorage.setItem('token', token);
+                localStorage.setItem('username', result.data.username);
+                renderDashboard();
+            } else {
+                showMessage(result.data.error || '登录失败');
+            }
+        }
+
+        async function doRegister() {
+            const username = document.getElementById('register-username').value;
+            const password = document.getElementById('register-password').value;
+
+            const result = await apiRequest('/users', 'POST', { username, password });
+            if (result.ok) {
+                showMessage('注册成功！请登录', 'success');
+                document.querySelector('[data-tab="login"]').click();
+            } else {
+                showMessage(result.data.error || '注册失败');
+            }
+        }
+
+        async function renderDashboard() {
+            const app = document.getElementById('app');
+            const username = localStorage.getItem('username');
+
+            const userResult = await apiRequest('/user/me');
+            const instanceResult = await apiRequest('/user/instance');
+
+            app.innerHTML = `
+                <div class="container dashboard">
+                    <div class="dashboard-header">
+                        <div class="user-info">
+                            <div class="avatar">${username.charAt(0).toUpperCase()}</div>
+                            <div>
+                                <div style="font-weight: 600;">${username}</div>
+                                <div style="color: #718096; font-size: 14px;">欢迎回来</div>
+                            </div>
+                        </div>
+                        <button class="logout-btn" onclick="doLogout()">退出登录</button>
+                    </div>
+
+                    <div id="message" class="message"></div>
+
+                    <div class="instance-card">
+                        <h2 style="margin-bottom: 16px;">💻 我的 Code Server</h2>
+                        <span class="instance-status status-${instanceResult.data.status || 'stopped'}">
+                            ${getStatusText(instanceResult.data.status)}
+                        </span>
+                        
+                        ${instanceResult.data.status === 'running' ? `
+                            <div class="instance-info">
+                                <div class="info-item">
+                                    <div class="info-label">端口</div>
+                                    <div class="info-value">${instanceResult.data.port}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">工作区</div>
+                                    <div class="info-value" style="font-size: 14px; word-break: break-all;">${instanceResult.data.workspace}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">启动时间</div>
+                                    <div class="info-value" style="font-size: 14px;">${new Date(instanceResult.data.started_at).toLocaleString()}</div>
+                                </div>
+                            </div>
+                            <div class="action-buttons">
+                                <button class="btn-success" onclick="openCodeServer()">打开 Code Server</button>
+                                <button class="btn-secondary" onclick="stopInstance()">停止实例</button>
+                                <button class="btn-secondary" onclick="showLogs()">查看日志</button>
+                            </div>
+                        ` : `
+                            <div class="form-group">
+                                <label>设置 Code Server 密码（可选）</label>
+                                <div class="password-field">
+                                    <input type="password" id="instance-password" placeholder="留空则自动生成">
+                                    <button class="toggle-password" onclick="togglePassword()">显示</button>
+                                </div>
+                            </div>
+                            <div class="action-buttons">
+                                <button onclick="startInstance()">启动实例</button>
+                            </div>
+                        `}
+                    </div>
+
+                    <div class="admin-section">
+                        <h3>🔑 管理员操作</h3>
+                        <div class="form-group">
+                            <label>管理员 Token</label>
+                            <input type="password" id="admin-token" placeholder="请输入管理员 Token">
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn-secondary" onclick="loadAdminData()">查看所有用户</button>
+                        </div>
+                        <div id="admin-content" style="margin-top: 16px;"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getStatusText(status) {
+            const map = {
+                'stopped': '已停止',
+                'running': '运行中',
+                'starting': '启动中',
+                'error': '错误'
+            };
+            return map[status] || status;
+        }
+
+        function togglePassword() {
+            const input = document.getElementById('instance-password');
+            const btn = event.target;
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '隐藏';
+            } else {
+                input.type = 'password';
+                btn.textContent = '显示';
+            }
+        }
+
+        async function startInstance() {
+            const password = document.getElementById('instance-password').value;
+            const result = await apiRequest('/user/instance/start', 'POST', { password });
+            if (result.ok) {
+                showMessage('实例启动中，请稍候...', 'success');
+                setTimeout(renderDashboard, 2000);
+            } else {
+                showMessage(result.data.error || '启动失败');
+            }
+        }
+
+        async function stopInstance() {
+            if (!confirm('确定要停止 Code Server 实例吗？')) return;
+            const result = await apiRequest('/user/instance/stop', 'POST');
+            if (result.ok) {
+                showMessage('实例已停止', 'success');
+                setTimeout(renderDashboard, 1000);
+            } else {
+                showMessage(result.data.error || '停止失败');
+            }
+        }
+
+        function openCodeServer() {
+            window.open(`/proxy/?token=${token}`, '_blank');
+        }
+
+        function showLogs() {
+            window.open(`/api/v1/user/instance/logs?token=${token}`, '_blank');
+        }
+
+        async function loadAdminData() {
+            const adminToken = document.getElementById('admin-token').value;
+            if (!adminToken) {
+                showMessage('请输入管理员 Token');
+                return;
+            }
+
+            const usersResult = await fetch(`${API_BASE}/admin/users`, {
+                headers: { 'X-Admin-Token': adminToken }
+            });
+            const usersData = await usersResult.json();
+
+            const instancesResult = await fetch(`${API_BASE}/admin/instances`, {
+                headers: { 'X-Admin-Token': adminToken }
+            });
+            const instancesData = await instancesResult.json();
+
+            const instancesMap = {};
+            instancesData.forEach(inst => {
+                instancesMap[inst.user_id] = inst;
+            });
+
+            let html = '<h4 style="margin-bottom: 12px;">用户列表</h4><div class="users-list">';
+            usersData.forEach(user => {
+                const inst = instancesMap[user.id];
+                html += `
+                    <div class="user-item">
+                        <div>
+                            <div style="font-weight: 600;">${user.username}</div>
+                            <div style="font-size: 12px; color: #718096;">
+                                创建时间: ${new Date(user.created_at).toLocaleString()}
+                                ${inst ? ` | 实例状态: ${getStatusText(inst.status)}` : ''}
+                            </div>
+                        </div>
+                        <button class="delete-btn" onclick="deleteUser('${user.id}', '${adminToken}')">删除</button>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            document.getElementById('admin-content').innerHTML = html;
+        }
+
+        async function deleteUser(userId, adminToken) {
+            if (!confirm('确定要删除该用户吗？其工作区和实例也会被删除。')) return;
+
+            const result = await fetch(`${API_BASE}/admin/users/${userId}`, {
+                method: 'DELETE',
+                headers: { 'X-Admin-Token': adminToken }
+            });
+
+            if (result.ok) {
+                showMessage('用户已删除', 'success');
+                loadAdminData();
+            } else {
+                const data = await result.json();
+                showMessage(data.error || '删除失败');
+            }
+        }
+
+        function doLogout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
+            token = null;
+            renderLogin();
+        }
+
+        if (token) {
+            renderDashboard();
+        } else {
+            renderLogin();
+        }
+    </script>
+</body>
+</html>

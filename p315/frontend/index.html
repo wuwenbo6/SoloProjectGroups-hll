@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q.931 消息解码器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Q.931 呼叫控制消息分析系统</h1>
+            <p class="subtitle">Setup / Connect / Release 消息解码与呼叫流可视化</p>
+        </header>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="panel">
+                    <h2>呼叫流列表</h2>
+                    <div id="call-flow-list" class="call-flow-list"></div>
+                </div>
+
+                <div class="panel">
+                    <h2>单条消息解码</h2>
+                    <div class="form-group">
+                        <label for="hex-input">输入十六进制消息:</label>
+                        <textarea id="hex-input" rows="4" placeholder="例如: 08 02 10 01 05 04 03 80 90 A2 70 0A 81 31 33 39 30 30 31 33 39 30 30"></textarea>
+                    </div>
+                    <button id="decode-btn" class="btn btn-primary">解码消息</button>
+                    <div id="decode-result" class="decode-result"></div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2 id="current-flow-title">呼叫消息流</h2>
+                        <div class="button-group">
+                            <button id="decode-flow-btn" class="btn btn-secondary">解析全部消息</button>
+                            <button id="generate-cdr-btn" class="btn btn-cdr">生成CDR</button>
+                            <div class="export-dropdown">
+                                <button id="export-btn" class="btn btn-export">导出CDR ▼</button>
+                                <div id="export-menu" class="export-menu hidden">
+                                    <button class="export-item" data-format="json">JSON 格式</button>
+                                    <button class="export-item" data-format="csv">CSV 格式</button>
+                                    <button class="export-item" data-format="text">Text 格式</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="call-summary" class="call-summary"></div>
+                    <div id="message-flow" class="message-flow"></div>
+                </div>
+
+                <div id="cdr-panel" class="panel hidden">
+                    <div class="panel-header">
+                        <h2>呼叫详细记录 (CDR)</h2>
+                        <button id="close-cdr" class="btn btn-close">×</button>
+                    </div>
+                    <div id="cdr-detail"></div>
+                </div>
+
+                <div id="detail-panel" class="panel hidden">
+                    <div class="panel-header">
+                        <h2>消息详情</h2>
+                        <button id="close-detail" class="btn btn-close">×</button>
+                    </div>
+                    <div id="message-detail"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kafka 消费者组模拟器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #e4e4e7;
+        }
+
+        .header {
+            background: rgba(0,0,0,0.4);
+            padding: 18px 40px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left h1 {
+            font-size: 26px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-left p { color: #9ca3af; margin-top: 3px; font-size: 13px; }
+
+        .header-actions { display: flex; gap: 10px; }
+
+        .header-btn {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #e4e4e7;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .header-btn:hover { background: rgba(255,255,255,0.12); }
+        .header-btn.primary { background: linear-gradient(135deg, #667eea, #764ba2); border: none; }
+        .header-btn.primary:hover { opacity: 0.9; }
+        .header-btn.active { background: linear-gradient(135deg, #667eea, #764ba2); border: none; }
+
+        .nav-tabs {
+            display: flex;
+            gap: 4px;
+            margin-right: auto;
+            margin-left: 40px;
+        }
+
+        .nav-tab {
+            padding: 8px 18px;
+            background: transparent;
+            border: none;
+            color: #9ca3af;
+            font-size: 13px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .nav-tab:hover { background: rgba(255,255,255,0.05); color: #e4e4e7; }
+        .nav-tab.active { background: rgba(102,126,234,0.2); color: #a5b4fc; }
+
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+
+        .container { max-width: 1440px; margin: 0 auto; padding: 24px; }
+
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+        .card {
+            background: rgba(255,255,255,0.04);
+            border-radius: 14px;
+            padding: 22px;
+            border: 1px solid rgba(255,255,255,0.07);
+            backdrop-filter: blur(10px);
+            transition: border-color 0.3s;
+        }
+
+        .card:hover { border-color: rgba(255,255,255,0.12); }
+
+        .card-title {
+            font-size: 16px;
+            margin-bottom: 18px;
+            color: #f4f4f5;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-icon {
+            width: 30px; height: 30px; border-radius: 7px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; flex-shrink: 0;
+        }
+
+        .icon-green { background: linear-gradient(135deg, #10b981, #059669); }
+        .icon-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .icon-amber { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .icon-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+        .full-width { grid-column: 1 / -1; }
+
+        .broker-list { display: flex; gap: 12px; flex-wrap: wrap; }
+
+        .broker-item {
+            background: rgba(16,185,129,0.08);
+            border: 1px solid rgba(16,185,129,0.2);
+            padding: 10px 18px;
+            border-radius: 8px;
+            display: flex; align-items: center; gap: 10px;
+            font-size: 14px;
+        }
+
+        .broker-dot {
+            width: 7px; height: 7px; border-radius: 50%; background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+        .topic-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+
+        .topic-item {
+            background: rgba(59,130,246,0.06);
+            border: 1px solid rgba(59,130,246,0.15);
+            padding: 14px;
+            border-radius: 10px;
+        }
+
+        .topic-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .topic-name { font-weight: 600; color: #60a5fa; font-size: 14px; }
+        .topic-meta { font-size: 12px; color: #6b7280; }
+
+        .partition-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+
+        .p-chip {
+            background: rgba(59,130,246,0.15);
+            padding: 3px 8px; border-radius: 5px;
+            font-size: 11px; font-family: 'SF Mono', monospace;
+            color: #93c5fd;
+        }
+
+        .group-tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+
+        .group-tab {
+            padding: 9px 18px; border-radius: 8px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            cursor: pointer; transition: all 0.2s; font-size: 13px;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .group-tab:hover { background: rgba(255,255,255,0.08); }
+
+        .group-tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-color: transparent; color: white;
+        }
+
+        .protocol-pill {
+            background: rgba(245,158,11,0.15);
+            color: #fbbf24;
+            padding: 2px 7px; border-radius: 4px;
+            font-size: 10px; text-transform: uppercase; font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .protocol-pill.range-pill { background: rgba(102,126,234,0.15); color: #a5b4fc; }
+        .protocol-pill.roundrobin-pill { background: rgba(245,158,11,0.15); color: #fbbf24; }
+        .protocol-pill.sticky-pill { background: rgba(16,185,129,0.15); color: #34d399; }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px; margin-bottom: 18px;
+        }
+
+        .stat-box {
+            background: rgba(255,255,255,0.03);
+            padding: 12px; border-radius: 8px; text-align: center;
+        }
+
+        .stat-label { font-size: 11px; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-size: 18px; font-weight: 700; }
+
+        .state-Stable { color: #10b981; }
+        .state-Empty { color: #6b7280; }
+        .state-Rebalancing { color: #f59e0b; }
+        .state-PreparingRebalance { color: #ef4444; }
+
+        .viz-section {
+            margin-bottom: 18px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .viz-title {
+            font-size: 13px; color: #9ca3af; margin-bottom: 12px;
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        .consumer-colors {
+            --c0: #667eea; --c1: #f59e0b; --c2: #10b981; --c3: #ef4444;
+            --c4: #8b5cf6; --c5: #ec4899; --c6: #14b8a6; --c7: #f97316;
+        }
+
+        .viz-table { width: 100%; border-collapse: collapse; }
+
+        .viz-table th {
+            text-align: left; font-size: 11px; color: #6b7280;
+            padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.06);
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+
+        .viz-table td {
+            padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.03);
+            font-size: 13px;
+        }
+
+        .consumer-dot {
+            width: 10px; height: 10px; border-radius: 3px;
+            display: inline-block; margin-right: 6px; vertical-align: middle;
+        }
+
+        .partition-bar {
+            display: flex; gap: 4px; flex-wrap: wrap;
+        }
+
+        .p-block {
+            width: 28px; height: 22px; border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-family: 'SF Mono', monospace; color: white;
+            font-weight: 600; transition: transform 0.2s;
+        }
+
+        .p-block:hover { transform: scale(1.15); }
+
+        .viz-legend {
+            display: flex; gap: 14px; margin-top: 10px; flex-wrap: wrap;
+        }
+
+        .legend-chip {
+            display: flex; align-items: center; gap: 5px; font-size: 12px;
+        }
+
+        .legend-dot {
+            width: 10px; height: 10px; border-radius: 3px;
+        }
+
+        .consumers-layout { display: flex; gap: 24px; margin-top: 16px; }
+        .consumers-main { flex: 1; min-width: 0; }
+        .add-panel { width: 260px; flex-shrink: 0; }
+
+        .consumer-row {
+            display: flex; gap: 16px; padding: 14px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px; margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+
+        .consumer-row:hover {
+            border-color: rgba(102,126,234,0.3);
+            background: rgba(102,126,234,0.03);
+        }
+
+        .consumer-info { width: 140px; flex-shrink: 0; }
+
+        .consumer-name {
+            font-weight: 600; color: #c4b5fd; font-size: 14px;
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        .consumer-partitions-count { font-size: 11px; color: #6b7280; margin-top: 4px; }
+
+        .remove-btn {
+            background: rgba(239,68,68,0.1); color: #f87171;
+            border: none; padding: 4px 10px; border-radius: 5px;
+            cursor: pointer; font-size: 11px; margin-top: 8px;
+            transition: all 0.2s;
+        }
+
+        .remove-btn:hover { background: rgba(239,68,68,0.25); }
+
+        .consumer-assigned { flex: 1; min-width: 0; }
+
+        .topic-assign-group { margin-bottom: 8px; }
+
+        .topic-assign-label {
+            font-size: 11px; color: #6b7280; margin-bottom: 4px;
+            text-transform: uppercase; letter-spacing: 0.3px;
+        }
+
+        .assign-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+
+        .assign-chip {
+            padding: 3px 9px; border-radius: 4px;
+            font-size: 11px; font-family: 'SF Mono', monospace;
+            color: white; font-weight: 500;
+        }
+
+        .form-group { margin-bottom: 14px; }
+
+        .form-group label {
+            display: block; font-size: 12px; color: #9ca3af;
+            margin-bottom: 5px;
+        }
+
+        .form-input {
+            width: 100%; padding: 9px 12px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 7px; color: #e4e4e7; font-size: 13px;
+        }
+
+        .form-input:focus { outline: none; border-color: #667eea; }
+
+        .btn-add {
+            width: 100%; padding: 11px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none; border-radius: 7px;
+            color: white; font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+        }
+
+        .btn-add:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(102,126,234,0.3); }
+
+        .hint-text { margin-top: 12px; font-size: 11px; color: #4b5563; line-height: 1.6; }
+
+        .events-list { max-height: 320px; overflow-y: auto; }
+
+        .events-list::-webkit-scrollbar { width: 4px; }
+        .events-list::-webkit-scrollbar-track { background: transparent; }
+        .events-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+        .event-row {
+            display: flex; gap: 14px; padding: 10px 14px;
+            border-left: 3px solid #8b5cf6;
+            background: rgba(139,92,246,0.05);
+            margin-bottom: 8px; border-radius: 0 7px 7px 0;
+            font-size: 13px;
+        }
+
+        .event-time { color: #6b7280; font-size: 12px; font-family: 'SF Mono', monospace; white-space: nowrap; }
+        .event-reason { color: #c4b5fd; font-weight: 500; }
+        .event-meta { color: #6b7280; font-size: 12px; margin-top: 2px; }
+
+        .empty-hint { text-align: center; padding: 36px; color: #4b5563; }
+        .empty-hint-icon { font-size: 40px; margin-bottom: 10px; }
+
+        .rebalance-flash {
+            animation: flashRebalance 0.6s ease-out;
+        }
+
+        @keyframes flashRebalance {
+            0% { background: rgba(245,158,11,0.15); }
+            100% { background: transparent; }
+        }
+
+        .strategy-compare {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+            margin-top: 16px;
+        }
+
+        .strategy-box {
+            background: rgba(0,0,0,0.15);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .strategy-label {
+            font-size: 12px; font-weight: 600; margin-bottom: 10px;
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        .strategy-label.range-label { color: #a5b4fc; }
+        .strategy-label.rr-label { color: #fbbf24; }
+
+        @media (max-width: 900px) {
+            .dashboard { grid-template-columns: 1fr; }
+            .consumers-layout { flex-direction: column; }
+            .add-panel { width: 100%; }
+            .strategy-compare { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <h1>Kafka Consumer Group Simulator</h1>
+            <p>模拟消费者组 Rebalance，对比 Range / RoundRobin / Cooperative-Sticky 分区分配策略</p>
+        </div>
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchPage('dashboard')">仪表盘</button>
+            <button class="nav-tab" onclick="switchPage('assignors')">自定义策略</button>
+        </div>
+        <div class="header-actions">
+            <button class="header-btn" onclick="exportAll('json')">导出 JSON</button>
+            <button class="header-btn" onclick="exportAll('csv')">导出 CSV</button>
+            <button class="header-btn" onclick="resetAll()">重置模拟器</button>
+            <button class="header-btn primary" onclick="fetchAllData()">刷新数据</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="page-dashboard" class="page-section active">
+            <div class="dashboard">
+                <div class="card">
+                    <div class="card-title"><span class="card-icon icon-green">B</span>Broker 集群</div>
+                    <div id="brokersList" class="broker-list"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title"><span class="card-icon icon-blue">T</span>Topic 列表</div>
+                    <div id="topicsList" class="topic-grid"></div>
+                </div>
+
+                <div class="card full-width">
+                    <div class="card-title">
+                        <span class="card-icon icon-amber">G</span>
+                        消费者组管理
+                        <div style="margin-left: auto; display: flex; gap: 8px;">
+                            <button class="header-btn" style="padding:4px 12px;font-size:12px;" onclick="exportGroup('json')">导出 JSON</button>
+                            <button class="header-btn" style="padding:4px 12px;font-size:12px;" onclick="exportGroup('csv')">导出 CSV</button>
+                        </div>
+                    </div>
+                    <div id="groupTabs" class="group-tabs"></div>
+                    <div id="groupContent"></div>
+                </div>
+
+                <div class="card full-width">
+                    <div class="card-title"><span class="card-icon icon-purple">E</span>Rebalance 事件日志</div>
+                    <div id="eventsList" class="events-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-assignors" class="page-section">
+            <div class="dashboard">
+                <div class="card full-width">
+                    <div class="card-title">
+                        <span class="card-icon icon-purple">S</span>
+                        自定义分配策略编辑器
+                        <span style="font-size:12px;color:#6b7280;font-weight:normal;margin-left:10px;">使用 JavaScript 编写 assign(topics, consumers) 函数</span>
+                    </div>
+                    <div id="assignorList" style="margin-bottom:20px;"></div>
+                    <div id="assignorEditor"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CONSUMER_COLORS = ['#667eea','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316'];
+
+        let currentGroup = null;
+        let groups = {};
+        let allTopics = {};
+
+        function getColor(idx) { return CONSUMER_COLORS[idx % CONSUMER_COLORS.length]; }
+
+        function fmtTime(ts) {
+            return new Date(ts * 1000).toLocaleTimeString('zh-CN', {hour12:false});
+        }
+
+        async function fetchBrokers() {
+            const data = await (await fetch('/api/brokers')).json();
+            document.getElementById('brokersList').innerHTML = data.brokers.map(b => `
+                <div class="broker-item">
+                    <div class="broker-dot"></div>
+                    <span>Broker-${b.id}</span>
+                    <span style="color:#6b7280;font-size:12px;">${b.host}:${b.port}</span>
+                </div>
+            `).join('');
+        }
+
+        async function fetchTopics() {
+            const data = await (await fetch('/api/topics')).json();
+            allTopics = data.topics || {};
+            document.getElementById('topicsList').innerHTML = Object.values(allTopics).map(t => `
+                <div class="topic-item">
+                    <div class="topic-header">
+                        <span class="topic-name">${t.name}</span>
+                        <span class="topic-meta">${t.partitions.length} partitions</span>
+                    </div>
+                    <div class="partition-chips">
+                        ${t.partitions.map(p => '<span class="p-chip">P' + p.id + '</span>').join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function fetchGroups() {
+            const data = await (await fetch('/api/groups')).json();
+            groups = data.groups || {};
+            const ids = Object.keys(groups);
+            if (ids.length === 0) {
+                document.getElementById('groupTabs').innerHTML = '<span style="color:#4b5563">暂无消费者组</span>';
+                document.getElementById('groupContent').innerHTML = '';
+                return;
+            }
+            if (!currentGroup || !groups[currentGroup]) currentGroup = ids[0];
+
+            document.getElementById('groupTabs').innerHTML = ids.map(id => {
+                const g = groups[id];
+                let pillCls = 'roundrobin-pill';
+                if (g.protocol === 'range') pillCls = 'range-pill';
+                else if (g.protocol === 'cooperative-sticky') pillCls = 'sticky-pill';
+                return `<div class="group-tab ${id===currentGroup?'active':''}" onclick="selectGroup('${id}')">
+                    ${id}<span class="protocol-pill ${pillCls}">${g.protocol}</span>
+                </div>`;
+            }).join('');
+
+            renderGroup(groups[currentGroup]);
+        }
+
+        function selectGroup(id) { currentGroup = id; fetchGroups(); }
+
+        function renderGroup(group) {
+            const container = document.getElementById('groupContent');
+            const consumers = Object.values(group.consumers || {});
+            const cIdx = {};
+            consumers.forEach((c, i) => cIdx[c.id] = i);
+
+            let protocolColor = '#fbbf24';
+            if (group.protocol === 'range') protocolColor = '#a5b4fc';
+            else if (group.protocol === 'cooperative-sticky') protocolColor = '#34d399';
+
+            let html = `<div class="stats-row">
+                <div class="stat-box"><div class="stat-label">状态</div><div class="stat-value state-${group.state}">${group.state}</div></div>
+                <div class="stat-box"><div class="stat-label">消费者</div><div class="stat-value">${consumers.length}</div></div>
+                <div class="stat-box"><div class="stat-label">Generation</div><div class="stat-value">${group.generation}</div></div>
+                <div class="stat-box"><div class="stat-label">Rebalance</div><div class="stat-value">${group.rebalanceCount||0}</div></div>
+                <div class="stat-box"><div class="stat-label">策略</div><div class="stat-value" style="color:${protocolColor};font-size:15px;">${group.protocol}</div></div>
+            </div>`;
+
+            if (group.protocol === 'cooperative-sticky') {
+                html += `<div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:12px;margin-bottom:18px;">
+                    <div style="color:#34d399;font-weight:600;font-size:13px;margin-bottom:6px;">✨ Cooperative-Sticky 特性</div>
+                    <div style="font-size:12px;color:#9ca3af;line-height:1.6;">
+                        <span style="color:#6ee7b7;">• Sticky (粘性):</span> 尽量保持分区不动，减少跨消费者移动<br>
+                        <span style="color:#6ee7b7;">• Cooperative (协作式):</span> 分批次撤销/分配分区，减少暂停时间<br>
+                        <span style="color:#6ee7b7;">• 增量重平衡:</span> 每批次移动 2 个分区，平滑过渡
+                    </div>
+                </div>`;
+            }
+
+            if (consumers.length > 0) {
+                html += renderViz(group, consumers, cIdx);
+            }
+
+            let hintText = '';
+            if (group.protocol === 'range') {
+                hintText = 'Range: 按 Topic 维度连续分配分区给消费者';
+            } else if (group.protocol === 'roundrobin') {
+                hintText = 'RoundRobin: 跨 Topic 轮询分配分区给消费者';
+            } else if (group.protocol === 'cooperative-sticky') {
+                hintText = 'Cooperative-Sticky: 粘性+分批次增量重平衡';
+            }
+
+            html += `<div class="consumers-layout">
+                <div class="consumers-main">
+                    <h3 style="font-size:14px;margin-bottom:12px;color:#d1d5db;">消费者分区分配</h3>
+                    ${consumers.length === 0 ? '<div class="empty-hint"><div class="empty-hint-icon">+</div><p>添加消费者开始模拟</p></div>' :
+                    consumers.map(c => renderConsumer(group, c, cIdx[c.id])).join('')}
+                </div>
+                <div class="add-panel">
+                    <h3 style="font-size:14px;margin-bottom:12px;color:#d1d5db;">添加消费者</h3>
+                    <div class="form-group">
+                        <label>消费者 ID</label>
+                        <input class="form-input" type="text" id="consumerId" placeholder="consumer-1">
+                    </div>
+                    <button class="btn-add" onclick="addConsumer('${group.id}')">加入并触发 Rebalance</button>
+                    <div class="hint-text">
+                        ${hintText}<br><br>
+                        添加/移除消费者会触发 Rebalance
+                    </div>
+                </div>
+            </div>`;
+
+            container.innerHTML = html;
+        }
+
+        function renderViz(group, consumers, cIdx) {
+            const totalPartitions = group.topics.reduce((sum, tName) => {
+                const t = allTopics[tName];
+                return sum + (t ? t.partitions.length : 0);
+            }, 0);
+
+            if (totalPartitions === 0) return '';
+
+            let html = `<div class="viz-section consumer-colors"><div class="viz-title">分区分配可视化</div>`;
+
+            html += `<table class="viz-table"><thead><tr>
+                <th>消费者</th>${group.topics.map(t => '<th>' + t + '</th>').join('')}
+            </tr></thead><tbody>`;
+
+            consumers.forEach(c => {
+                const color = getColor(cIdx[c.id]);
+                html += `<tr>
+                    <td><span class="consumer-dot" style="background:${color}"></span>${c.id}</td>`;
+                group.topics.forEach(tName => {
+                    const parts = (c.assigned || {})[tName] || [];
+                    html += `<td><div class="partition-bar">`;
+                    if (parts.length > 0) {
+                        parts.forEach(p => {
+                            html += `<div class="p-block" style="background:${color}" title="${c.id} - ${tName}:P${p}">P${p}</div>`;
+                        });
+                    } else {
+                        html += `<span style="color:#4b5563;font-size:11px;">—</span>`;
+                    }
+                    html += `</div></td>`;
+                });
+                html += `</tr>`;
+            });
+
+            html += `</tbody></table>`;
+
+            html += `<div class="viz-legend">`;
+            consumers.forEach(c => {
+                html += `<div class="legend-chip">
+                    <div class="legend-dot" style="background:${getColor(cIdx[c.id])}"></div>
+                    <span>${c.id}</span>
+                </div>`;
+            });
+            html += `</div></div>`;
+            return html;
+        }
+
+        function renderConsumer(group, c, idx) {
+            const color = getColor(idx);
+            const totalParts = Object.values(c.assigned || {}).reduce((s, arr) => s + arr.length, 0);
+            return `<div class="consumer-row">
+                <div class="consumer-info">
+                    <div class="consumer-name">
+                        <span class="consumer-dot" style="background:${color}"></span>${c.id}
+                    </div>
+                    <div class="consumer-partitions-count">${totalParts} 个分区</div>
+                    <button class="remove-btn" onclick="removeConsumer('${group.id}','${c.id}')">离开组</button>
+                </div>
+                <div class="consumer-assigned">
+                    ${group.topics.map(tName => {
+                        const parts = (c.assigned || {})[tName] || [];
+                        return `<div class="topic-assign-group">
+                            <div class="topic-assign-label">${tName}</div>
+                            <div class="assign-chips">
+                                ${parts.length > 0
+                                    ? parts.map(p => '<span class="assign-chip" style="background:' + color + '">P' + p + '</span>').join('')
+                                    : '<span style="color:#4b5563;font-size:11px;">未分配</span>'
+                                }
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>`;
+        }
+
+        async function addConsumer(groupId) {
+            const input = document.getElementById('consumerId');
+            const id = input.value.trim();
+            if (!id) { alert('请输入消费者 ID'); return; }
+            try {
+                const res = await fetch(`/api/groups/${groupId}/consumers`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({id})
+                });
+                if (!res.ok) { const e = await res.json(); throw new Error(e.error || '添加失败'); }
+                input.value = '';
+                setTimeout(fetchAllData, 400);
+            } catch(e) { alert(e.message); }
+        }
+
+        async function removeConsumer(groupId, consumerId) {
+            if (!confirm(`移除消费者 ${consumerId}？将触发 Rebalance。`)) return;
+            await fetch(`/api/groups/${groupId}/consumers/${consumerId}`, {method:'DELETE'});
+            setTimeout(fetchAllData, 400);
+        }
+
+        async function fetchEvents() {
+            const data = await (await fetch('/api/events')).json();
+            const container = document.getElementById('eventsList');
+            const events = data.events || [];
+            if (events.length === 0) {
+                container.innerHTML = '<div class="empty-hint"><div class="empty-hint-icon">E</div><p>暂无 Rebalance 事件</p></div>';
+                return;
+            }
+            container.innerHTML = [...events].reverse().map(e => {
+                let batchInfo = '';
+                let movementsHtml = '';
+                if (e.isIncremental && e.totalBatches > 1) {
+                    batchInfo = `<div style="display:inline-block;margin-left:8px;background:rgba(16,185,129,0.15);color:#34d399;padding:1px 6px;border-radius:4px;font-size:10px;">批次 ${e.batchNum}/${e.totalBatches}</div>`;
+                }
+                if (e.movements && e.movements.length > 0) {
+                    movementsHtml = '<div style="margin-top:6px;font-size:11px;color:#9ca3af;">分区移动: ' +
+                        e.movements.map(function(m) {
+                            return '<span style="background:rgba(239,68,68,0.15);color:#fca5a5;padding:1px 5px;border-radius:3px;margin-right:4px;">' +
+                                m.topic + ':P' + m.partition + ' ' + m.fromConsumer + '→' + m.toConsumer +
+                            '</span>';
+                        }).join('') +
+                    '</div>';
+                }
+                return `<div class="event-row">
+                    <div class="event-time">${fmtTime(e.timestamp)}</div>
+                    <div style="flex:1;min-width:0;">
+                        <div class="event-reason">${e.reason}${batchInfo}</div>
+                        <div class="event-meta">${e.groupId} · Gen ${e.generation} · [${e.consumerIds.join(', ')}]</div>
+                        ${movementsHtml}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function resetAll() {
+            if (!confirm('确定重置模拟器？将清除所有数据。')) return;
+            for (const gid of Object.keys(groups)) {
+                const g = groups[gid];
+                for (const cid of Object.keys(g.consumers || {})) {
+                    await fetch(`/api/groups/${gid}/consumers/${cid}`, {method:'DELETE'});
+                }
+            }
+            setTimeout(fetchAllData, 500);
+        }
+
+        async function fetchAllData() {
+            const tasks = [fetchBrokers(), fetchTopics(), fetchGroups(), fetchEvents()];
+            if (document.getElementById('page-assignors').classList.contains('active')) {
+                tasks.push(fetchCustomAssignors());
+            }
+            await Promise.all(tasks);
+        }
+
+        function switchPage(page) {
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            if (page === 'dashboard') {
+                document.querySelectorAll('.nav-tab')[0].classList.add('active');
+                document.getElementById('page-dashboard').classList.add('active');
+                fetchAllData();
+            } else if (page === 'assignors') {
+                document.querySelectorAll('.nav-tab')[1].classList.add('active');
+                document.getElementById('page-assignors').classList.add('active');
+                fetchCustomAssignors();
+            }
+        }
+
+        let currentAssignor = null;
+        let customAssignors = [];
+
+        async function fetchCustomAssignors() {
+            const data = await (await fetch('/api/custom-assignors')).json();
+            customAssignors = data.assignors || [];
+            renderAssignorList();
+            if (!currentAssignor && customAssignors.length > 0) {
+                currentAssignor = customAssignors[0].id;
+            }
+            renderAssignorEditor();
+        }
+
+        function renderAssignorList() {
+            const container = document.getElementById('assignorList');
+            const itemsHtml = customAssignors.map(function(a) {
+                return '<div class="group-tab ' + (currentAssignor === a.id ? 'active' : '') + '"' +
+                    ' onclick="selectAssignor(\'' + a.id + '\')"' +
+                    ' style="' + (a.isBuiltIn ? 'opacity:0.7;' : '') + '">' +
+                        a.name +
+                        (a.isBuiltIn ? '<span style="margin-left:8px;background:rgba(255,255,255,0.15);padding:1px 6px;border-radius:4px;font-size:10px;">内置</span>' : '') +
+                    '</div>';
+            }).join('');
+
+            container.innerHTML = '<div style="display:flex;gap:10px;align-items:center;margin-bottom:15px;flex-wrap:wrap;">' +
+                    itemsHtml +
+                    '<div class="group-tab" onclick="createNewAssignor()" style="border:1px dashed rgba(255,255,255,0.2);background:transparent;">+ 新建策略</div>' +
+                '</div>';
+        }
+
+        function selectAssignor(id) {
+            currentAssignor = id;
+            renderAssignorList();
+            renderAssignorEditor();
+        }
+
+        function createNewAssignor() {
+            currentAssignor = '__new__';
+            renderAssignorList();
+            renderAssignorEditor(true);
+        }
+
+        function renderAssignorEditor(isNew = false) {
+            const container = document.getElementById('assignorEditor');
+            let ca = customAssignors.find(a => a.id === currentAssignor);
+            const isBuiltIn = ca && ca.isBuiltIn;
+
+            if (!ca && currentAssignor !== '__new__') {
+                container.innerHTML = '<div class="empty-hint">请选择或创建一个策略</div>';
+                return;
+            }
+
+            const defaultScript = `// 分配函数 - 返回 { consumerId: { topic: [partitionIds] }
+
+function assign(topics, consumers) {
+    // topics: { "orders": [0,1,2], "payments": [0,1] }
+
+    // consumers: ["consumer-1", "consumer-2"]
+
+    var result = {};
+
+    consumers.forEach(function(cid) {
+        result[cid] = {};
+        for (var topic in topics) {
+            result[cid][topic] = [];
+        }
+    });
+
+    var all = [];
+
+    for (var topic in topics) {
+        topics[topic].forEach(function(p) {
+            all.push({ topic: topic, partition: p });
+        });
+    }
+
+    all.forEach(function(item, idx) {
+        var cid = consumers[idx % consumers.length];
+        result[cid][item.topic].push(item.partition);
+    }
+
+    return result;
+}
+`;
+
+            container.innerHTML = `
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                    <div>
+                        <div class="form-group">
+                            <label>策略 ID</label>
+                            <input class="form-input" type="text" id="assignorId" value="${ca ? ca.id : ''}" ${ca ? 'readonly' : ''} placeholder="my-custom-strategy">
+                        </div>
+                        <div class="form-group">
+                            <label>名称</label>
+                            <input class="form-input" type="text" id="assignorName" value="${ca ? ca.name : ''}" placeholder="我的自定义策略">
+                        </div>
+                        <div class="form-group">
+                            <label>描述</label>
+                            <textarea class="form-input" type="text" id="assignorDesc" rows="2" placeholder="描述策略描述">${ca ? ca.description : ''}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>JS 代码</label>
+                            <textarea class="form-input" id="assignorScript" rows="20" style="font-family:'SF Mono',monospace;font-size:12px;line-height:1.6;background:rgba(0,0,0,0.2);" ${isBuiltIn ? 'readonly' : ''}>${ca ? ca.script : defaultScript}</textarea>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button class="btn-add" onclick="testAssignor()" style="flex:1;">测试运行</button>
+                            ${!isBuiltIn ? '<button class="btn-add" onclick="saveAssignor()" style="flex:1;background:linear-gradient(135deg, #10b981, #059669;">保存</button>' : ''}
+                            ${ca && !isBuiltIn ? '<button class="btn-add" onclick="deleteAssignor()" style="flex:1;background:linear-gradient(135deg, #ef4444, #dc2626;">删除</button>' : ''}
+                        </div>
+                    </div>
+                    <div>
+                        <div style="margin-bottom:10px;color:#9ca3af;font-size:13px;">测试结果</div>
+                        <div id="testResult" style="background:rgba(0,0,0,0.2);border-radius:8px;padding:15px;min-height:200px;font-family:'SF Mono',monospace;font-size:12px;white-space:pre-wrap;">点击"测试运行"查看结果</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function testAssignor() {
+            const id = document.getElementById('assignorId').value.trim();
+            const script = document.getElementById('assignorScript').value;
+
+            const testInput = {
+                topics: { "orders": [0,1,2,3,4,5], "payments": [0,1,2,3] },
+                consumers: ["c1", "c2", "c3"]
+            };
+
+            let result;
+            if (customAssignors.find(a => a.id === id)) {
+                const res = await fetch(`/api/custom-assignors/${id}/test`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(testInput)
+                });
+                result = await res.json();
+            } else {
+                try {
+                    eval(script);
+                    const r = assign(testInput.topics, testInput.consumers);
+                    result = { success: true, result: r };
+                } catch(e) {
+                    result = { success: false, error: e.message };
+                }
+            }
+
+            const container = document.getElementById('testResult');
+            if (result.success) {
+                let html = '<span style="color:#10b981;">✅ 执行成功\n\n</span>';
+                for (const [cid, topics] of Object.entries(result.result)) {
+                    html += cid + ':\n';
+                    for (const [t, ps] of Object.entries(topics)) {
+                        html += '  ' + t + ': [' + ps.sort((a,b)=>a-b).join(', ') + ']\n';
+                    }
+                    html += '\n';
+                }
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<span style="color:#ef4444;">❌ 执行失败\n\n</span>' + result.error;
+            }
+        }
+
+        async function saveAssignor() {
+            const id = document.getElementById('assignorId').value.trim();
+            const name = document.getElementById('assignorName').value.trim();
+            const desc = document.getElementById('assignorDesc').value.trim();
+            const script = document.getElementById('assignorScript').value;
+
+            if (!id || !name || !script) {
+                alert('请填写完整信息');
+                return;
+            }
+
+            const url = '/api/custom-assignors' + (currentAssignor !== '__new__' ? `/${id}` : '');
+
+            const method = currentAssignor !== '__new__' ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ id, name, description: desc, script })
+                });
+
+                if (!res.ok) {
+                    const e = await res.json();
+                    throw new Error(e.error || '保存失败');
+                }
+
+                currentAssignor = id;
+                await fetchCustomAssignors();
+                alert('保存成功！');
+            } catch(e) {
+                alert(e.message);
+            }
+        }
+
+        async function deleteAssignor() {
+            if (!confirm('确定删除策略 "' + currentAssignor + '"?')) {
+                return;
+            }
+            await fetch('/api/custom-assignors/' + currentAssignor, { method: 'DELETE' });
+            currentAssignor = null;
+            await fetchCustomAssignors();
+        }
+
+        function exportAll(format) {
+            window.open(`/api/export/all?format=${format}`, '_blank');
+        }
+
+        function exportGroup(format) {
+            if (currentGroup) {
+                window.open(`/api/groups/${currentGroup}/export?format=${format}`, '_blank');
+            } else {
+                alert('请先选择一个消费者组');
+            }
+        }
+
+        fetchAllData();
+        setInterval(fetchAllData, 3000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PFC 暂停帧模拟器</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --border: #334155;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --accent: #38bdf8;
+  --pause: #f87171;
+  --resume: #4ade80;
+  --warn: #fbbf24;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+header h1 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.status-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--resume);
+  display: inline-block;
+  animation: pulse 1.5s infinite;
+}
+.status-dot.stopped { background: var(--pause); animation: none; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.controls { display: flex; gap: 10px; align-items: center; }
+.btn {
+  padding: 8px 18px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all .15s;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+main {
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 12px;
+}
+.full-width { grid-column: 1 / -1; }
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.stat-box {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+.stat-box .value {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.stat-box .label {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+.stat-box.pause .value { color: var(--pause); }
+.stat-box.resume .value { color: var(--resume); }
+.stat-box.warn .value { color: var(--warn); }
+.stat-box.accent .value { color: var(--accent); }
+
+.receiver-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+.receiver-card {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 12px;
+}
+.receiver-card .rc-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--accent);
+}
+.priority-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pbar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.pbar-label {
+  width: 22px;
+  text-align: right;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.pbar-track {
+  flex: 1;
+  height: 16px;
+  background: #0f172a;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+.pbar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width .2s, background .2s;
+}
+.pbar-fill.paused {
+  animation: pause-flash .6s infinite alternate;
+}
+@keyframes pause-flash {
+  from { opacity: .5; } to { opacity: 1; }
+}
+.pbar-num {
+  width: 32px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+.pbar-pause-badge {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--pause);
+  color: #fff;
+  font-weight: 700;
+  display: none;
+}
+.pbar-pause-badge.show { display: inline; }
+
+.sender-pause-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sp-item {
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+}
+.sp-item.paused {
+  background: rgba(248,113,113,.15);
+  border-color: var(--pause);
+  color: var(--pause);
+}
+.sp-item.running {
+  color: var(--resume);
+}
+
+.chart-container {
+  position: relative;
+  height: 260px;
+}
+
+.log-area {
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: 'Menlo', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+.log-area .log-pause { color: var(--pause); }
+.log-area .log-resume { color: var(--resume); }
+
+.alerts-area {
+  max-height: 180px;
+  overflow-y: auto;
+}
+.alert-item {
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  border-left: 3px solid;
+  background: var(--bg);
+}
+.alert-item.critical {
+  border-color: var(--pause);
+  background: rgba(248,113,113,.1);
+}
+.alert-item.warning {
+  border-color: var(--warn);
+  background: rgba(251,191,36,.1);
+}
+.alert-item .alert-type {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.alert-item.critical .alert-type { color: var(--pause); }
+.alert-item.warning .alert-type { color: var(--warn); }
+.alert-item .alert-msg {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.alert-banner {
+  padding: 10px 16px;
+  background: rgba(248,113,113,.15);
+  border: 1px solid var(--pause);
+  border-radius: 6px;
+  color: var(--pause);
+  font-weight: 700;
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+.alert-banner.show { display: flex; }
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="status-dot" id="statusDot"></span> PFC 暂停帧模拟器</h1>
+  <div class="controls">
+    <button class="btn" id="btnPause" onclick="togglePause()">暂停模拟</button>
+    <button class="btn" id="btnHistory" onclick="requestHistory()">加载历史</button>
+    <button class="btn" onclick="exportStats()">导出统计</button>
+  </div>
+</header>
+
+<main>
+  <div class="card full-width">
+    <div class="alert-banner" id="alertBanner">
+      <span>⚠ PFC风暴/死锁检测中！</span>
+    </div>
+    <div class="card-title">全局统计</div>
+    <div class="stats-row">
+      <div class="stat-box accent"><div class="value" id="statTick">0</div><div class="label">Tick</div></div>
+      <div class="stat-box pause"><div class="value" id="statPauses">0</div><div class="label">暂停次数</div></div>
+      <div class="stat-box resume"><div class="value" id="statResumes">0</div><div class="label">恢复次数</div></div>
+      <div class="stat-box warn"><div class="value" id="statDropped">0</div><div class="label">丢包数</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">接收端队列状态</div>
+    <div class="receiver-grid" id="receiverGrid"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">发送端暂停状态</div>
+    <div class="sender-pause-grid" id="senderGrid"></div>
+    <div style="margin-top:16px">
+      <div class="card-title">死锁/风暴告警</div>
+      <div class="alerts-area" id="alertsArea"></div>
+    </div>
+    <div style="margin-top:16px">
+      <div class="card-title">暂停帧日志</div>
+      <div class="log-area" id="logArea"></div>
+    </div>
+  </div>
+
+  <div class="card full-width">
+    <div class="card-title">队列长度变化（优先级 P0~P7）</div>
+    <div class="chart-container">
+      <canvas id="queueChart"></canvas>
+    </div>
+  </div>
+</main>
+
+<script>
+const PRIORITIES = 8;
+const PRIORITY_COLORS = [
+  '#38bdf8','#818cf8','#a78bfa','#e879f9',
+  '#f472b6','#fb923c','#facc15','#4ade80'
+];
+const MAX_POINTS = 120;
+
+let ws = null;
+let paused = false;
+let totalPauses = 0;
+let totalResumes = 0;
+let totalDropped = 0;
+let lastPauses = {};
+let lastResumes = {};
+let lastDropped = {};
+
+const chartData = {
+  labels: [],
+  datasets: []
+};
+for (let p = 0; p < PRIORITIES; p++) {
+  chartData.datasets.push({
+    label: 'P' + p,
+    data: [],
+    borderColor: PRIORITY_COLORS[p],
+    backgroundColor: PRIORITY_COLORS[p] + '20',
+    borderWidth: 2,
+    pointRadius: 0,
+    tension: 0.3,
+    fill: false
+  });
+}
+
+const ctx = document.getElementById('queueChart').getContext('2d');
+const queueChart = new Chart(ctx, {
+  type: 'line',
+  data: chartData,
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    interaction: { mode: 'index', intersect: false },
+    scales: {
+      x: { display: true, title: { display: true, text: 'Tick', color: '#94a3b8' }, ticks: { color: '#64748b', maxTicksLimit: 20 }, grid: { color: '#1e293b' } },
+      y: { display: true, title: { display: true, text: '队列长度', color: '#94a3b8' }, ticks: { color: '#64748b' }, grid: { color: '#1e293b' }, min: 0, max: 110 }
+    },
+    plugins: {
+      legend: { labels: { color: '#e2e8f0', usePointStyle: true, pointStyle: 'circle' } }
+    }
+  }
+});
+
+function initReceiverGrid(numReceivers) {
+  const grid = document.getElementById('receiverGrid');
+  grid.innerHTML = '';
+  for (let r = 0; r < numReceivers; r++) {
+    const rid = 'receiver-' + r;
+    const card = document.createElement('div');
+    card.className = 'receiver-card';
+    card.id = 'rc-' + rid;
+    let html = '<div class="rc-title">' + rid + '</div><div class="priority-bars">';
+    for (let p = 0; p < PRIORITIES; p++) {
+      html += '<div class="pbar-row">'
+        + '<span class="pbar-label">P' + p + '</span>'
+        + '<div class="pbar-track"><div class="pbar-fill" id="bar-' + rid + '-p' + p + '" style="width:0%;background:' + PRIORITY_COLORS[p] + '"></div></div>'
+        + '<span class="pbar-num" id="num-' + rid + '-p' + p + '">0</span>'
+        + '<span class="pbar-pause-badge" id="badge-' + rid + '-p' + p + '">PAUSED</span>'
+        + '</div>';
+    }
+    html += '</div>';
+    card.innerHTML = html;
+    grid.appendChild(card);
+  }
+}
+
+function initSenderGrid() {
+  const grid = document.getElementById('senderGrid');
+  grid.innerHTML = '';
+  for (let p = 0; p < PRIORITIES; p++) {
+    const item = document.createElement('div');
+    item.className = 'sp-item running';
+    item.id = 'sp-p' + p;
+    item.textContent = 'P' + p + ': 运行中';
+    grid.appendChild(item);
+  }
+}
+
+function updateUI(snap) {
+  document.getElementById('statTick').textContent = snap.tick;
+
+  const receivers = snap.receivers || {};
+  totalPauses = 0;
+  totalResumes = 0;
+  totalDropped = 0;
+
+  const receiverKeys = Object.keys(receivers).sort();
+  if (document.getElementById('receiverGrid').children.length === 0) {
+    initReceiverGrid(receiverKeys.length);
+    initSenderGrid();
+  }
+
+  receiverKeys.forEach(rid => {
+    const queues = receivers[rid];
+    for (let p = 0; p < PRIORITIES; p++) {
+      const key = 'p' + p;
+      const q = queues[key];
+      if (!q) continue;
+
+      const pct = Math.min((q.length / q.capacity) * 100, 100);
+      const bar = document.getElementById('bar-' + rid + '-p' + p);
+      const num = document.getElementById('num-' + rid + '-p' + p);
+      const badge = document.getElementById('badge-' + rid + '-p' + p);
+
+      if (bar) {
+        bar.style.width = pct + '%';
+        if (q.is_paused) {
+          bar.classList.add('paused');
+          bar.style.background = '#f87171';
+        } else {
+          bar.classList.remove('paused');
+          bar.style.background = PRIORITY_COLORS[p];
+        }
+      }
+      if (num) num.textContent = q.length;
+      if (badge) {
+        badge.classList.toggle('show', q.is_paused);
+      }
+
+      if (q.pause_count > (lastPauses[rid + '-p' + p] || 0)) {
+        addLog('PAUSE', rid + ' P' + p + ' 已暂停 (队列长度=' + q.length + ')');
+      }
+      if (q.resume_count > (lastResumes[rid + '-p' + p] || 0)) {
+        addLog('RESUME', rid + ' P' + p + ' 已恢复 (队列长度=' + q.length + ')');
+      }
+
+      lastPauses[rid + '-p' + p] = q.pause_count;
+      lastResumes[rid + '-p' + p] = q.resume_count;
+      lastDropped[rid + '-p' + p] = q.dropped;
+
+      totalPauses += q.pause_count;
+      totalResumes += q.resume_count;
+      totalDropped += q.dropped;
+    }
+  });
+
+  document.getElementById('statPauses').textContent = totalPauses;
+  document.getElementById('statResumes').textContent = totalResumes;
+  document.getElementById('statDropped').textContent = totalDropped;
+
+  const senderPaused = snap.sender_paused || {};
+  for (let p = 0; p < PRIORITIES; p++) {
+    const key = 'p' + p;
+    const el = document.getElementById('sp-p' + p);
+    if (el) {
+      const isPaused = senderPaused[key] || false;
+      el.className = 'sp-item ' + (isPaused ? 'paused' : 'running');
+      el.textContent = 'P' + p + ': ' + (isPaused ? '已暂停' : '运行中');
+    }
+  }
+
+  let avgLens = new Array(PRIORITIES).fill(0);
+  let rCount = 0;
+  receiverKeys.forEach(rid => {
+    rCount++;
+    for (let p = 0; p < PRIORITIES; p++) {
+      const q = receivers[rid]['p' + p];
+      if (q) avgLens[p] += q.length;
+    }
+  });
+  if (rCount > 0) {
+    for (let p = 0; p < PRIORITIES; p++) avgLens[p] = Math.round(avgLens[p] / rCount);
+  }
+
+  chartData.labels.push(snap.tick);
+  for (let p = 0; p < PRIORITIES; p++) {
+    chartData.datasets[p].data.push(avgLens[p]);
+  }
+  if (chartData.labels.length > MAX_POINTS) {
+    chartData.labels.shift();
+    chartData.datasets.forEach(ds => ds.data.shift());
+  }
+  queueChart.update('none');
+
+  const alerts = snap.alerts || [];
+  const banner = document.getElementById('alertBanner');
+  const hasCritical = alerts.some(a => a.severity === 'critical');
+  banner.classList.toggle('show', hasCritical);
+
+  if (alerts.length > 0) {
+    alerts.forEach(a => addAlert(a));
+  }
+}
+
+let alertCache = new Set();
+function addAlert(alert) {
+  const key = alert.tick + '-' + alert.type + '-' + alert.receiver_id + '-' + alert.priority;
+  if (alertCache.has(key)) return;
+  alertCache.add(key);
+  if (alertCache.size > 50) alertCache.clear();
+
+  const area = document.getElementById('alertsArea');
+  const item = document.createElement('div');
+  item.className = 'alert-item ' + alert.severity;
+  const typeText = alert.type === 'pfc_storm' ? 'PFC风暴' : '频繁暂停';
+  item.innerHTML = '<div class="alert-type">' + typeText + '</div>'
+    + '<div class="alert-msg">' + alert.message + '</div>';
+  area.insertBefore(item, area.firstChild);
+  if (area.children.length > 20) area.removeChild(area.lastChild);
+}
+
+function exportStats() {
+  fetch('/api/stats')
+    .then(r => r.json())
+    .then(data => {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'pfc-stats-' + Date.now() + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+}
+
+function addLog(type, msg) {
+  const area = document.getElementById('logArea');
+  const line = document.createElement('div');
+  line.className = type === 'PAUSE' ? 'log-pause' : 'log-resume';
+  const now = new Date();
+  const ts = now.toLocaleTimeString();
+  line.textContent = '[' + ts + '] ' + (type === 'PAUSE' ? '⏸ ' : '▶ ') + msg;
+  area.appendChild(line);
+  if (area.children.length > 100) area.removeChild(area.firstChild);
+  area.scrollTop = area.scrollHeight;
+}
+
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(proto + '//' + location.host + '/ws');
+
+  ws.onopen = () => {
+    document.getElementById('statusDot').classList.remove('stopped');
+  };
+
+  ws.onmessage = (evt) => {
+    const data = JSON.parse(evt.data);
+    if (data.type === 'history') {
+      (data.history || []).forEach(snap => updateUI(snap));
+    } else {
+      updateUI(data);
+    }
+  };
+
+  ws.onclose = () => {
+    document.getElementById('statusDot').classList.add('stopped');
+    setTimeout(connect, 2000);
+  };
+}
+
+function togglePause() {
+  paused = !paused;
+  const btn = document.getElementById('btnPause');
+  btn.textContent = paused ? '继续模拟' : '暂停模拟';
+  btn.classList.toggle('active', paused);
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ action: paused ? 'pause' : 'resume' }));
+  }
+}
+
+function requestHistory() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ action: 'history' }));
+  }
+}
+
+connect();
+</script>
+</body>
+</html>

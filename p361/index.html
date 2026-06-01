@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>步进电机PID控制器</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="node_modules/chart.js/dist/chart.umd.js"></script>
+  <script src="src/hidComm.js"></script>
+  <script src="src/pulseGenerator.js"></script>
+  <script src="src/pidController.js"></script>
+  <script src="src/encoderParser.js"></script>
+  <script src="src/interpolator.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <h1>步进电机PID控制器</h1>
+      <div class="connection-status">
+        <span id="connectionIndicator" class="indicator disconnected"></span>
+        <span id="connectionText">未连接</span>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <div class="control-panel">
+        <section class="panel-section">
+          <h2>设备连接</h2>
+          <div class="device-info">
+            <p id="deviceName">--</p>
+            <p id="deviceId">VID: -- PID: --</p>
+          </div>
+          <div class="button-group">
+            <button id="connectBtn" class="btn btn-primary">连接设备</button>
+            <button id="disconnectBtn" class="btn btn-danger" disabled>断开连接</button>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <h2>位置控制</h2>
+          <div class="control-group">
+            <label for="targetPosition">目标位置 (度)</label>
+            <input type="number" id="targetPosition" value="90" step="1">
+          </div>
+          <div class="control-group">
+            <label for="currentPosition">当前位置 (度)</label>
+            <input type="text" id="currentPosition" value="0.00" readonly>
+          </div>
+          <div class="control-group">
+            <label for="positionError">位置误差 (度)</label>
+            <input type="text" id="positionError" value="0.00" readonly>
+          </div>
+          <div class="button-group">
+            <button id="moveBtn" class="btn btn-primary">移动到目标</button>
+            <button id="stopBtn" class="btn btn-warning">停止</button>
+            <button id="homeBtn" class="btn btn-secondary">回零</button>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <h2>运动参数</h2>
+          <div class="control-group">
+            <label for="maxSpeed">最大速度 (步/秒)</label>
+            <input type="number" id="maxSpeed" value="500" min="1" max="5000">
+          </div>
+          <div class="control-group">
+            <label for="acceleration">加速度 (步/秒²)</label>
+            <input type="number" id="acceleration" value="200" min="1" max="5000">
+          </div>
+          <div class="control-group">
+            <label for="stepsPerRev">每转步数</label>
+            <input type="number" id="stepsPerRev" value="200" min="1">
+          </div>
+          <div class="control-group">
+            <label for="encoderPPR">编码器分辨率 (PPR)</label>
+            <input type="number" id="encoderPPR" value="2000" min="1">
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <h2>PID 参数</h2>
+          <div class="control-group">
+            <label for="kp">Kp (比例系数)</label>
+            <input type="number" id="kp" value="2.0" step="0.1">
+          </div>
+          <div class="control-group">
+            <label for="ki">Ki (积分系数)</label>
+            <input type="number" id="ki" value="0.5" step="0.01">
+          </div>
+          <div class="control-group">
+            <label for="kd">Kd (微分系数)</label>
+            <input type="number" id="kd" value="0.1" step="0.01">
+          </div>
+          <div class="control-group">
+            <label for="deadband">死区</label>
+            <input type="number" id="deadband" value="0.5" step="0.1">
+          </div>
+          <div class="control-group">
+            <label for="kv">Kv (速度前馈)</label>
+            <input type="number" id="kv" value="0.0" step="0.01">
+          </div>
+          <div class="control-group">
+            <label for="ka">Ka (加速度前馈)</label>
+            <input type="number" id="ka" value="0.0" step="0.001">
+          </div>
+          <div class="button-group">
+            <button id="applyPIDBtn" class="btn btn-primary">应用PID参数</button>
+            <button id="autoTuneBtn" class="btn btn-secondary">自动调参</button>
+          </div>
+          <div class="pid-output">
+            <label>PID 输出</label>
+            <div class="output-bar-container">
+              <div id="pidOutputBar" class="output-bar"></div>
+            </div>
+            <span id="pidOutputValue">0.00</span>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <h2>状态信息</h2>
+          <div class="status-grid">
+            <div class="status-item">
+              <span class="status-label">编码器速度</span>
+              <span id="encoderVelocity" class="status-value">0 RPM</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">当前脉冲</span>
+              <span id="pulseCount" class="status-value">0</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">电机状态</span>
+              <span id="motorStatus" class="status-value">待机</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">控制模式</span>
+              <span id="controlMode" class="status-value">位置</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <h2>2D 运动规划</h2>
+          <div class="control-group">
+            <label for="interpType">插补类型</label>
+            <select id="interpType">
+              <option value="linear">直线插补</option>
+              <option value="circular">圆弧插补</option>
+              <option value="rectangle">矩形</option>
+              <option value="circle">圆形</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label>目标位置</label>
+            <div class="input-row">
+              <input type="number" id="targetX" value="50" step="1" placeholder="X">
+              <input type="number" id="targetY" value="50" step="1" placeholder="Y">
+            </div>
+          </div>
+          <div class="control-group">
+            <label>圆心 (圆弧)</label>
+            <div class="input-row">
+              <input type="number" id="centerX" value="0" step="1" placeholder="CX">
+              <input type="number" id="centerY" value="0" step="1" placeholder="CY">
+            </div>
+          </div>
+          <div class="control-group">
+            <label for="arcDirection">圆弧方向</label>
+            <select id="arcDirection">
+              <option value="cw">顺时针 (CW)</option>
+              <option value="ccw">逆时针 (CCW)</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="feedrate">进给速度 (mm/min)</label>
+            <input type="number" id="feedrate" value="100" min="1" step="10">
+          </div>
+          <div class="control-group">
+            <label>尺寸 (矩形/圆形)</label>
+            <div class="input-row">
+              <input type="number" id="dimWidth" value="100" step="1" placeholder="宽/半径">
+              <input type="number" id="dimHeight" value="100" step="1" placeholder="高">
+            </div>
+          </div>
+          <div class="button-group">
+            <button id="addMoveBtn" class="btn btn-primary">添加线段</button>
+            <button id="clearTrajBtn" class="btn btn-secondary">清空轨迹</button>
+          </div>
+          <div class="button-group">
+            <button id="runTrajBtn" class="btn btn-primary">执行轨迹</button>
+            <button id="pauseTrajBtn" class="btn btn-warning" disabled>暂停</button>
+            <button id="stopTrajBtn" class="btn btn-danger">停止</button>
+          </div>
+          <div class="trajectory-info">
+            <div class="info-row">
+              <span>轨迹点数:</span>
+              <span id="trajPointCount">0</span>
+            </div>
+            <div class="info-row">
+              <span>总距离:</span>
+              <span id="trajDistance">0.00 mm</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <h2>导出轨迹</h2>
+          <div class="button-group">
+            <button id="exportGCodeBtn" class="btn btn-secondary">导出 G-Code</button>
+            <button id="exportCsvBtn" class="btn btn-secondary">导出 CSV</button>
+            <button id="exportStepsBtn" class="btn btn-secondary">导出步序</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="chart-panel">
+        <section class="chart-section">
+          <h2>2D 轨迹预览</h2>
+          <div class="canvas-container">
+            <canvas id="trajectoryCanvas"></canvas>
+          </div>
+        </section>
+
+        <section class="chart-section">
+          <div class="chart-controls">
+            <label>
+              <input type="checkbox" id="showTarget" checked> 目标位置
+            </label>
+            <label>
+              <input type="checkbox" id="showActual" checked> 实际位置
+            </label>
+            <label>
+              <input type="checkbox" id="showError"> 误差曲线
+            </label>
+            <button id="clearChartBtn" class="btn btn-small">清除图表</button>
+          </div>
+          <div class="chart-container">
+            <canvas id="positionChart"></canvas>
+          </div>
+        </section>
+
+        <section class="chart-section">
+          <h2>控制输出</h2>
+          <div class="chart-container">
+            <canvas id="outputChart"></canvas>
+          </div>
+        </section>
+
+        <section class="log-section">
+          <h2>系统日志</h2>
+          <div id="logContainer" class="log-container"></div>
+          <button id="clearLogBtn" class="btn btn-small">清除日志</button>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/renderer.js"></script>
+</body>
+</html>

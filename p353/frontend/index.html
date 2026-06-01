@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PD雷达信号处理 - 速度-距离图</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e4e4e4;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 30px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #8892b0;
+            font-size: 0.95em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 25px;
+        }
+
+        .chart-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chart-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #ccd6f6;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(180deg, #00d4ff, #7b2cbf);
+            border-radius: 2px;
+        }
+
+        #heatmap {
+            width: 100%;
+            height: 600px;
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: fit-content;
+        }
+
+        .control-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #ccd6f6;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #8892b0;
+            font-size: 0.9em;
+        }
+
+        .control-group input {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: #e4e4e4;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+        }
+
+        .control-group input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .control-group input::placeholder {
+            color: #5a6a8a;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 25px rgba(255, 255, 255, 0.1);
+        }
+
+        .info-section {
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            font-size: 0.9em;
+        }
+
+        .info-label {
+            color: #8892b0;
+        }
+
+        .info-value {
+            color: #00d4ff;
+            font-weight: 500;
+        }
+
+        .detections-section {
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .detections-title {
+            color: #ccd6f6;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detection-dot {
+            width: 8px;
+            height: 8px;
+            background: #ff6b6b;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .detection-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .detection-item {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            font-size: 0.85em;
+        }
+
+        .detection-item p {
+            margin: 4px 0;
+            color: #e4e4e4;
+        }
+
+        .detection-item span {
+            color: #ff6b6b;
+            font-weight: 500;
+        }
+
+        .no-detections {
+            color: #5a6a8a;
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 600px;
+            color: #8892b0;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(0, 212, 255, 0.2);
+            border-top-color: #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            font-size: 0.85em;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-online {
+            background: #4ade80;
+            box-shadow: 0 0 10px #4ade80;
+        }
+
+        .status-offline {
+            background: #ef4444;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>PD雷达信号处理系统</h1>
+            <p>脉冲多普勒雷达 · 距离门FFT · 多普勒滤波 · 动目标检测</p>
+        </div>
+
+        <div class="main-content">
+            <div class="chart-section">
+                <div class="chart-title">速度-距离热力图</div>
+                <div id="heatmap"></div>
+                <div class="status-bar">
+                    <div class="status-item">
+                        <div class="status-indicator" id="apiStatus"></div>
+                        <span id="apiStatusText">连接状态: 检测中...</span>
+                    </div>
+                    <div class="status-item">
+                        <span>距离分辨率: <strong id="rangeRes">--</strong> m</span>
+                    </div>
+                    <div class="status-item">
+                        <span>速度分辨率: <strong id="speedRes">--</strong> m/s</span>
+                    </div>
+                    <div class="status-item">
+                        <span>距离门数: <strong id="rangeBins">--</strong></span>
+                    </div>
+                    <div class="status-item">
+                        <span>多普勒通道: <strong id="speedBins">--</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <div class="control-title">参数控制</div>
+
+                <div class="control-group">
+                    <label>信噪比 (dB)</label>
+                    <input type="number" id="snrInput" value="20" min="-10" max="50" step="1">
+                </div>
+
+                <div class="control-group">
+                    <label>目标参数 (距离,速度,RCS;...)</label>
+                    <input type="text" id="targetsInput" value="1000,20,1.0;2000,-15,0.8;3500,50,0.6" placeholder="1000,20,1.0;2000,-15,0.8">
+                </div>
+
+                <div class="control-group">
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="multiPrfToggle" checked style="width: auto;">
+                        多重PRF解速度模糊
+                    </label>
+                </div>
+
+                <div class="control-group" id="prfListGroup">
+                    <label>PRF列表 (Hz, 用逗号分隔)</label>
+                    <input type="text" id="prfListInput" value="980,1000,1020" placeholder="980,1000,1020">
+                </div>
+
+                <div class="control-group" id="pulsesPerPrfGroup">
+                    <label>每个PRF脉冲数</label>
+                    <input type="number" id="pulsesPerPrfInput" value="64" min="16" max="256" step="8">
+                </div>
+
+                <div class="control-group">
+                    <label>CFAR算法</label>
+                    <select id="cfarMethod" style="width: 100%; padding: 12px 15px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #e4e4e4; font-size: 0.95em;">
+                        <option value="ca">CA-CFAR (单元平均)</option>
+                        <option value="os">OS-CFAR (有序统计)</option>
+                        <option value="so">SO-CFAR (选小)</option>
+                    </select>
+                </div>
+
+                <button class="btn" onclick="processRadar()">开始处理</button>
+                <button class="btn btn-secondary" onclick="autoRefresh()">自动刷新</button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary" onclick="exportTracksJson()" style="font-size: 0.85em;">导出JSON</button>
+                    <button class="btn btn-secondary" onclick="exportTracksCsv()" style="font-size: 0.85em;">导出CSV</button>
+                </div>
+                <button class="btn btn-secondary" onclick="resetTracks()" style="background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.4);">重置航迹</button>
+
+                <div class="info-section">
+                    <div class="control-title">雷达参数</div>
+                    <div class="info-item">
+                        <span class="info-label">窗函数</span>
+                        <span class="info-value" id="windowType">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">载波频率</span>
+                        <span class="info-value" id="carrierFreq">-- GHz</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">带宽</span>
+                        <span class="info-value" id="bandwidth">-- MHz</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">脉冲宽度</span>
+                        <span class="info-value" id="pulseWidth">-- μs</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">PRF</span>
+                        <span class="info-value" id="prf">-- Hz</span>
+                    </div>
+                    <div class="info-item" id="multiPrfInfo" style="display: none;">
+                        <span class="info-label">PRF列表</span>
+                        <span class="info-value" id="prfList">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">脉冲数</span>
+                        <span class="info-value" id="numPulses">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">最大测距</span>
+                        <span class="info-value" id="maxRange">-- km</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">最大测速</span>
+                        <span class="info-value" id="maxSpeed">-- m/s</span>
+                    </div>
+                    <div class="info-item" id="unambigSpeedInfo" style="display: none;">
+                        <span class="info-label">解模糊后最大测速</span>
+                        <span class="info-value" id="maxUnambigSpeed">-- m/s</span>
+                    </div>
+                </div>
+
+                <div class="detections-section">
+                    <div class="detections-title">
+                        <div class="detection-dot"></div>
+                        目标检测结果
+                    </div>
+                    <div class="detection-list" id="detectionList">
+                        <div class="no-detections">暂无检测结果</div>
+                    </div>
+                </div>
+
+                <div class="detections-section">
+                    <div class="detections-title" style="color: #4ade80;">
+                        <div class="detection-dot" style="background: #4ade80; animation: none;"></div>
+                        目标航迹
+                    </div>
+                    <div class="info-item" style="margin-bottom: 8px;">
+                        <span class="info-label">扫描次数</span>
+                        <span class="info-value" id="scanCount">0</span>
+                    </div>
+                    <div class="info-item" style="margin-bottom: 10px;">
+                        <span class="info-label">活跃航迹</span>
+                        <span class="info-value" id="activeTracks">0</span>
+                    </div>
+                    <div class="detection-list" id="trackList">
+                        <div class="no-detections">暂无航迹数据</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        let chart = null;
+        let autoRefreshInterval = null;
+        let isAutoRefreshing = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            checkApiStatus();
+            loadConfig();
+            setupEventListeners();
+            processRadar();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('multiPrfToggle').addEventListener('change', toggleMultiPrf);
+            toggleMultiPrf();
+        }
+
+        function toggleMultiPrf() {
+            const isChecked = document.getElementById('multiPrfToggle').checked;
+            document.getElementById('prfListGroup').style.display = isChecked ? 'block' : 'none';
+            document.getElementById('pulsesPerPrfGroup').style.display = isChecked ? 'block' : 'none';
+            document.getElementById('multiPrfInfo').style.display = isChecked ? 'flex' : 'none';
+            document.getElementById('unambigSpeedInfo').style.display = isChecked ? 'flex' : 'none';
+        }
+
+        function initChart() {
+            chart = echarts.init(document.getElementById('heatmap'));
+            
+            window.addEventListener('resize', () => {
+                chart.resize();
+            });
+        }
+
+        async function checkApiStatus() {
+            try {
+                const response = await fetch('http://localhost:8000/health');
+                const data = await response.json();
+                if (data.status === 'healthy') {
+                    document.getElementById('apiStatus').className = 'status-indicator status-online';
+                    document.getElementById('apiStatusText').textContent = '连接状态: 在线';
+                } else {
+                    throw new Error('API not healthy');
+                }
+            } catch (error) {
+                document.getElementById('apiStatus').className = 'status-indicator status-offline';
+                document.getElementById('apiStatusText').textContent = '连接状态: 离线';
+            }
+        }
+
+        async function loadConfig() {
+            try {
+                const response = await fetch(`${API_BASE}/radar/config`);
+                const result = await response.json();
+                if (result.success) {
+                    const config = result.data;
+                    document.getElementById('windowType').textContent = config.window_type ? config.window_type.toUpperCase() : '--';
+                    document.getElementById('carrierFreq').textContent = (config.carrier_frequency / 1e9).toFixed(1) + ' GHz';
+                    document.getElementById('bandwidth').textContent = (config.bandwidth / 1e6).toFixed(1) + ' MHz';
+                    document.getElementById('pulseWidth').textContent = (config.pulse_width * 1e6).toFixed(1) + ' μs';
+                    document.getElementById('prf').textContent = config.prf + ' Hz';
+                    document.getElementById('numPulses').textContent = config.num_pulses;
+                    document.getElementById('maxRange').textContent = (config.max_range / 1000).toFixed(1) + ' km';
+                    document.getElementById('maxSpeed').textContent = config.max_speed + ' m/s';
+
+                    if (config.use_multi_prf && config.prf_list) {
+                        document.getElementById('multiPrfToggle').checked = true;
+                        document.getElementById('prfList').textContent = config.prf_list.join(', ') + ' Hz';
+                        document.getElementById('prfListInput').value = config.prf_list.join(',');
+                        document.getElementById('maxUnambigSpeed').textContent = config.max_unambiguous_speed.toFixed(1) + ' m/s';
+                    }
+                    toggleMultiPrf();
+                }
+            } catch (error) {
+                console.error('Failed to load config:', error);
+            }
+        }
+
+        async function updateRadarParams() {
+            const useMultiPrf = document.getElementById('multiPrfToggle').checked;
+            const prfListStr = document.getElementById('prfListInput').value;
+            const pulsesPerPrf = parseInt(document.getElementById('pulsesPerPrfInput').value);
+
+            const params = {
+                use_multi_prf: useMultiPrf
+            };
+
+            if (useMultiPrf && prfListStr) {
+                params.prf_list = prfListStr.split(',').map(p => parseFloat(p.trim()));
+                params.num_pulses_per_prf = pulsesPerPrf;
+            }
+
+            try {
+                await fetch(`${API_BASE}/radar/params`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(params)
+                });
+                await loadConfig();
+            } catch (error) {
+                console.error('Failed to update params:', error);
+            }
+        }
+
+        async function processRadar() {
+            const snr = document.getElementById('snrInput').value;
+            const targets = document.getElementById('targetsInput').value;
+            const cfar = document.getElementById('cfarMethod').value;
+            
+            document.getElementById('heatmap').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+            try {
+                await updateRadarParams();
+
+                const url = `${API_BASE}/radar/process?snr=${snr}&targets=${encodeURIComponent(targets)}&cfar=${cfar}&tracking=true`;
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                if (result.success) {
+                    renderHeatmap(result.data);
+                    updateDetections(result.data.detections, result.data.use_multi_prf);
+                    updateTracks(result.data.tracks || []);
+                } else {
+                    throw new Error(result.error || 'Processing failed');
+                }
+            } catch (error) {
+                document.getElementById('heatmap').innerHTML = `
+                    <div class="loading">
+                        <div style="text-align: center;">
+                            <p style="color: #ef4444; margin-bottom: 10px;">处理失败</p>
+                            <p style="color: #8892b0; font-size: 0.9em;">${error.message}</p>
+                            <p style="color: #5a6a8a; font-size: 0.8em; margin-top: 10px;">请确保后端服务已启动 (cd backend && python3 app.py)</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderHeatmap(data) {
+            const rdMap = data.rd_map;
+            const rangeAxis = data.range_axis;
+            const speedAxis = data.speed_axis;
+
+            document.getElementById('rangeRes').textContent = data.range_resolution.toFixed(2);
+            document.getElementById('speedRes').textContent = data.speed_resolution.toFixed(3);
+            document.getElementById('rangeBins').textContent = data.num_range_bins;
+            document.getElementById('speedBins').textContent = data.num_speed_bins;
+
+            const heatmapData = [];
+            const numSpeed = speedAxis.length;
+            const numRange = rangeAxis.length;
+
+            for (let i = 0; i < numSpeed; i++) {
+                for (let j = 0; j < numRange; j++) {
+                    heatmapData.push([j, numSpeed - 1 - i, rdMap[i][j]]);
+                }
+            }
+
+            const rangeTicks = [];
+            const rangeStep = Math.max(1, Math.floor(numRange / 10));
+            for (let i = 0; i < numRange; i += rangeStep) {
+                rangeTicks.push([i, rangeAxis[i].toFixed(0) + 'm']);
+            }
+
+            const speedTicks = [];
+            const speedStep = Math.max(1, Math.floor(numSpeed / 10));
+            for (let i = 0; i < numSpeed; i += speedStep) {
+                speedTicks.push([numSpeed - 1 - i, speedAxis[i].toFixed(1)]);
+            }
+
+            const option = {
+                tooltip: {
+                    position: 'top',
+                    formatter: function(params) {
+                        const range = rangeAxis[params.data[0]];
+                        const speed = speedAxis[numSpeed - 1 - params.data[1]];
+                        const value = params.data[2];
+                        return `距离: ${range.toFixed(1)} m<br/>速度: ${speed.toFixed(2)} m/s<br/>强度: ${(value * 100).toFixed(1)}%`;
+                    },
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                    borderColor: '#00d4ff',
+                    borderWidth: 1,
+                    textStyle: {
+                        color: '#e4e4e4'
+                    }
+                },
+                grid: {
+                    left: '8%',
+                    right: '8%',
+                    top: '8%',
+                    bottom: '12%'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: Array.from({length: numRange}, (_, i) => i),
+                    axisLabel: {
+                        formatter: function(value) {
+                            const tick = rangeTicks.find(t => t[0] == value);
+                            return tick ? tick[1] : '';
+                        },
+                        color: '#8892b0',
+                        fontSize: 11
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: 'rgba(255, 255, 255, 0.2)'
+                        }
+                    },
+                    splitLine: {
+                        show: true,
+                        lineStyle: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        }
+                    },
+                    name: '距离 (m)',
+                    nameLocation: 'middle',
+                    nameGap: 35,
+                    nameTextStyle: {
+                        color: '#ccd6f6',
+                        fontSize: 13
+                    }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: Array.from({length: numSpeed}, (_, i) => numSpeed - 1 - i),
+                    axisLabel: {
+                        formatter: function(value) {
+                            const tick = speedTicks.find(t => t[0] == value);
+                            return tick ? tick[1] : '';
+                        },
+                        color: '#8892b0',
+                        fontSize: 11
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: 'rgba(255, 255, 255, 0.2)'
+                        }
+                    },
+                    splitLine: {
+                        show: true,
+                        lineStyle: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        }
+                    },
+                    name: '速度 (m/s)',
+                    nameLocation: 'middle',
+                    nameGap: 50,
+                    nameTextStyle: {
+                        color: '#ccd6f6',
+                        fontSize: 13
+                    }
+                },
+                visualMap: {
+                    min: 0,
+                    max: 1,
+                    calculable: true,
+                    orient: 'vertical',
+                    right: '2%',
+                    top: 'center',
+                    inRange: {
+                        color: [
+                            '#0a0a23',
+                            '#1a1a4e',
+                            '#2d1b69',
+                            '#4a1486',
+                            '#6a1b9a',
+                            '#8e24aa',
+                            '#ab47bc',
+                            '#ba68c8',
+                            '#ce93d8',
+                            '#e1bee7',
+                            '#f3e5f5',
+                            '#fff8e1',
+                            '#ffecb3',
+                            '#ffe082',
+                            '#ffd54f',
+                            '#ffca28',
+                            '#ffc107',
+                            '#ffb300',
+                            '#ffa000',
+                            '#ff8f00',
+                            '#ff6f00',
+                            '#e65100',
+                            '#ff5722',
+                            '#f44336',
+                            '#e53935',
+                            '#d32f2f',
+                            '#c62828',
+                            '#b71c1c'
+                        ]
+                    },
+                    textStyle: {
+                        color: '#8892b0'
+                    }
+                },
+                series: [{
+                    name: '速度-距离图',
+                    type: 'heatmap',
+                    data: heatmapData,
+                    progressive: 1000,
+                    animation: false
+                }]
+            };
+
+            chart.setOption(option);
+        }
+
+        function updateDetections(detections, useMultiPrf) {
+            const container = document.getElementById('detectionList');
+            
+            if (!detections || detections.length === 0) {
+                container.innerHTML = '<div class="no-detections">暂无检测结果</div>';
+                return;
+            }
+
+            let html = '';
+            detections.slice(0, 10).forEach((det, idx) => {
+                let speedHtml = '';
+                if (useMultiPrf && det.unambiguous_speed !== undefined) {
+                    speedHtml = `
+                        <p style="color: #8892b0; font-size: 0.85em;">各PRF测量速度:</p>
+                        ${det.measured_speeds.map((v, i) => `
+                            <p style="padding-left: 10px; font-size: 0.8em;">
+                                PRF ${det.prf_list[i]}Hz: <span>${v.toFixed(2)} m/s</span>
+                                <span style="color: #5a6a8a;">(±${det.unambiguous_speed_ranges[i].toFixed(1)})</span>
+                            </p>
+                        `).join('')}
+                        <p style="margin-top: 8px;">解模糊速度: <span style="color: #4ade80;">${det.unambiguous_speed.toFixed(2)} m/s</span></p>
+                        <p style="color: #5a6a8a; font-size: 0.8em;">最大无模糊: ±${det.max_unambiguous_speed.toFixed(1)} m/s</p>
+                    `;
+                } else {
+                    speedHtml = `<p>速度: <span>${det.speed.toFixed(2)} m/s</span></p>`;
+                }
+
+                html += `
+                    <div class="detection-item">
+                        <p>目标 ${idx + 1}</p>
+                        <p>距离: <span>${det.range.toFixed(1)} m</span></p>
+                        ${speedHtml}
+                        <p>功率: <span>${det.power.toFixed(1)} dB</span></p>
+                    </div>
+                `;
+            });
+
+            if (detections.length > 10) {
+                html += `<p style="text-align: center; color: #5a6a8a; font-size: 0.8em;">... 还有 ${detections.length - 10} 个目标</p>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function autoRefresh() {
+            const btn = event.target;
+            
+            if (isAutoRefreshing) {
+                clearInterval(autoRefreshInterval);
+                isAutoRefreshing = false;
+                btn.textContent = '自动刷新';
+                btn.style.background = 'rgba(255, 255, 255, 0.1)';
+            } else {
+                isAutoRefreshing = true;
+                btn.textContent = '停止刷新';
+                btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                processRadar();
+                autoRefreshInterval = setInterval(processRadar, 3000);
+            }
+        }
+
+        function updateTracks(tracks) {
+            const container = document.getElementById('trackList');
+
+            document.getElementById('scanCount').textContent = tracks.length > 0 ? (tracks[0]?.history?.length || 0) : '0';
+            document.getElementById('activeTracks').textContent = tracks.length;
+
+            if (!tracks || tracks.length === 0) {
+                container.innerHTML = '<div class="no-detections">暂无航迹数据</div>';
+                return;
+            }
+
+            let html = '';
+            tracks.forEach((track) => {
+                const statusColor = track.status === 'confirmed' ? '#4ade80' : '#fbbf24';
+                const statusText = track.status === 'confirmed' ? '确认' : '暂定';
+
+                html += `
+                    <div class="detection-item" style="border-color: ${statusColor}40;">
+                        <p style="display: flex; justify-content: space-between;">
+                            <span>航迹 #${track.track_id}</span>
+                            <span style="color: ${statusColor}; font-size: 0.8em;">${statusText}</span>
+                        </p>
+                        <p>距离: <span>${track.range.toFixed(1)} m</span></p>
+                        <p>速度: <span>${track.speed.toFixed(2)} m/s</span></p>
+                        <p>命中: <span>${track.hits}</span> 次 | 丢失: <span>${track.missed}</span> 次</p>
+                        <p>航迹点数: <span>${track.history_length}</span></p>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function exportTracksJson() {
+            window.open(`${API_BASE}/tracks/export/json`, '_blank');
+        }
+
+        function exportTracksCsv() {
+            window.open(`${API_BASE}/tracks/export/csv`, '_blank');
+        }
+
+        async function resetTracks() {
+            try {
+                await fetch(`${API_BASE}/tracks/reset`, { method: 'POST' });
+                document.getElementById('trackList').innerHTML = '<div class="no-detections">暂无航迹数据</div>';
+                document.getElementById('scanCount').textContent = '0';
+                document.getElementById('activeTracks').textContent = '0';
+            } catch (error) {
+                console.error('Failed to reset tracks:', error);
+            }
+        }
+    </script>
+</body>
+</html>

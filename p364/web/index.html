@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IEC 104 Simulator</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0a0e17;
+  --surface: #111827;
+  --surface2: #1a2332;
+  --border: #1e2d3d;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --accent: #3b82f6;
+  --accent2: #60a5fa;
+  --green: #10b981;
+  --red: #ef4444;
+  --yellow: #f59e0b;
+  --purple: #8b5cf6;
+  --cyan: #06b6d4;
+}
+body { font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; background: var(--bg); color: var(--text); min-height: 100vh; }
+.app { display: grid; grid-template-columns: 300px 1fr; grid-template-rows: auto 1fr; height: 100vh; }
+.header { grid-column: 1 / -1; background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+.header h1 { font-size: 18px; font-weight: 600; letter-spacing: 1px; }
+.header h1 span { color: var(--accent); }
+.status-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text2); }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+.status-dot.active { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 16px; overflow-y: auto; }
+.sidebar-section { margin-bottom: 20px; }
+.sidebar-section h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text2); margin-bottom: 10px; }
+.ctrl-group { margin-bottom: 12px; }
+.ctrl-group label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+.ctrl-group input, .ctrl-group select { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 4px; font-size: 13px; font-family: inherit; }
+.btn { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface2); color: var(--text); font-size: 13px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.btn:hover { background: var(--border); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+.btn-primary:hover { background: var(--accent2); }
+.btn-danger { background: var(--red); border-color: var(--red); color: white; }
+.btn-danger:hover { opacity: 0.85; }
+.btn-warning { background: var(--yellow); border-color: var(--yellow); color: #000; }
+.btn-row { display: flex; gap: 8px; }
+.btn-row .btn { flex: 1; }
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px; text-align: center; }
+.stat-card .val { font-size: 20px; font-weight: 700; color: var(--accent2); }
+.stat-card .lbl { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+.main { display: flex; flex-direction: column; overflow: hidden; }
+.event-toolbar { padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.event-toolbar h2 { font-size: 14px; font-weight: 600; }
+.filter-btn { padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); background: transparent; color: var(--text2); font-size: 11px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.filter-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+.filter-btn:hover { border-color: var(--accent2); }
+.event-count { margin-left: auto; font-size: 12px; color: var(--text2); }
+.event-list { flex: 1; overflow-y: auto; padding: 8px; }
+.event-row { display: grid; grid-template-columns: 90px 70px 90px 60px 70px 1fr 80px; gap: 8px; padding: 7px 12px; border-radius: 4px; font-size: 12px; align-items: center; transition: background 0.1s; }
+.event-row:hover { background: var(--surface2); }
+.event-row.system { color: var(--text2); font-style: italic; }
+.event-row.soe .type-badge { background: rgba(16,185,129,0.15); color: var(--green); }
+.event-row.gi .type-badge { background: rgba(59,130,246,0.15); color: var(--accent2); }
+.event-row.measure .type-badge { background: rgba(139,92,246,0.15); color: var(--purple); }
+.event-row.command .type-badge { background: rgba(245,158,11,0.15); color: var(--yellow); }
+.event-row.system .type-badge { background: rgba(148,163,184,0.1); color: var(--text2); }
+.event-row.file .type-badge { background: rgba(6,182,212,0.15); color: var(--cyan); }
+.file-list { margin-top: 8px; }
+.file-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 6px; font-size: 12px; }
+.file-item .file-name { flex: 1; color: var(--text); }
+.file-item .file-size { color: var(--text2); font-size: 11px; }
+.file-item .btn { width: auto; padding: 4px 8px; font-size: 11px; }
+.type-badge { padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 600; text-align: center; }
+.time-cell { color: var(--cyan); font-variant-numeric: tabular-nums; }
+.cp56-cell { color: var(--text2); font-size: 11px; font-variant-numeric: tabular-nums; }
+.ioa-cell { color: var(--accent2); }
+.value-cell { color: var(--text); }
+.cause-cell { color: var(--text2); }
+.quality-cell { font-size: 11px; }
+.quality-good { color: var(--green); }
+.quality-bad { color: var(--red); }
+.event-flash { animation: flash 0.5s ease-out; }
+@keyframes flash { 0% { background: rgba(59,130,246,0.2); } 100% { background: transparent; } }
+.empty-state { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text2); font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <h1>⚡ IEC <span>104</span> Simulator</h1>
+    <div class="status-badge">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Disconnected</span>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <h3>Connection</h3>
+      <div class="ctrl-group">
+        <button class="btn btn-primary" id="btnStartDT" onclick="sendStartDT()">STARTDT ACT</button>
+      </div>
+      <div class="ctrl-group">
+        <button class="btn" onclick="triggerGI()">General Interrogation</button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>SOE Burst</h3>
+      <div class="ctrl-group">
+        <label>Event Count</label>
+        <input type="number" id="burstCount" value="30" min="1" max="500">
+      </div>
+      <div class="ctrl-group">
+        <label>Interval (ms)</label>
+        <input type="number" id="burstInterval" value="50" min="10" max="5000">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnBurstStart" onclick="startBurst()">Start Burst</button>
+        <button class="btn btn-danger" id="btnBurstStop" onclick="stopBurst()">Stop</button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Statistics</h3>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="val" id="statTotal">0</div>
+          <div class="lbl">Total Events</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="statSOE">0</div>
+          <div class="lbl">SOE</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="statGI">0</div>
+          <div class="lbl">GI Resp</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="statMeasure">0</div>
+          <div class="lbl">Measures</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="statFile">0</div>
+          <div class="lbl">Files</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Data Points</h3>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="val">100</div>
+          <div class="lbl">Digital</div>
+        </div>
+        <div class="stat-card">
+          <div class="val">30</div>
+          <div class="lbl">Analog</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>File Transfer</h3>
+      <div class="btn-row">
+        <button class="btn" onclick="listFiles()">List Files</button>
+        <button class="btn" onclick="refreshFileList()">Refresh</button>
+      </div>
+      <div class="file-list" id="fileList"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Export</h3>
+      <button class="btn btn-warning" onclick="exportCSV()">📊 Export CSV</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="event-toolbar">
+      <h2>Event Sequence</h2>
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+      <button class="filter-btn" data-filter="SOE" onclick="setFilter('SOE')">SOE</button>
+      <button class="filter-btn" data-filter="GI" onclick="setFilter('GI')">GI</button>
+      <button class="filter-btn" data-filter="Measure" onclick="setFilter('Measure')">Measure</button>
+      <button class="filter-btn" data-filter="File" onclick="setFilter('File')">File</button>
+      <button class="filter-btn" data-filter="System" onclick="setFilter('System')">System</button>
+      <span class="event-count" id="eventCount">0 events</span>
+    </div>
+    <div class="event-list" id="eventList">
+      <div class="event-row" style="color:var(--text2); font-size:11px; font-weight:600;">
+        <span>Time</span><span>Type</span><span>CP56Time2a</span><span>IOA</span><span>Value</span><span>Cause</span><span>Quality</span>
+      </div>
+      <div class="empty-state" id="emptyState">Waiting for events...</div>
+    </div>
+  </main>
+</div>
+
+<script>
+var ws = null;
+var allEvents = [];
+var currentFilter = 'all';
+var stats = { total: 0, soe: 0, gi: 0, measure: 0, file: 0 };
+
+function connectWS() {
+  var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(proto + '//' + location.host + '/ws');
+  ws.onopen = function() {
+    document.getElementById('statusDot').classList.add('active');
+    document.getElementById('statusText').textContent = 'Connected';
+  };
+  ws.onclose = function() {
+    document.getElementById('statusDot').classList.remove('active');
+    document.getElementById('statusText').textContent = 'Disconnected';
+    setTimeout(connectWS, 3000);
+  };
+  ws.onmessage = function(e) {
+    var msg = JSON.parse(e.data);
+    if (msg.type === 'history') {
+      allEvents = msg.data;
+      renderEvents();
+    } else if (msg.type === 'event') {
+      allEvents.push(msg.data);
+      if (allEvents.length > 500) allEvents = allEvents.slice(-400);
+      addEventRow(msg.data);
+      updateStats(msg.data);
+    }
+  };
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.filter === f);
+  });
+  renderEvents();
+}
+
+function renderEvents() {
+  var list = document.getElementById('eventList');
+  var header = list.firstElementChild;
+  list.innerHTML = '';
+  list.appendChild(header);
+
+  var count = 0;
+  var filtered = allEvents.filter(function(e) { return currentFilter === 'all' || e.eventType === currentFilter; });
+  filtered.forEach(function(e) {
+    var row = createEventRow(e);
+    if (count >= filtered.length - 1) row.classList.add('event-flash');
+    list.appendChild(row);
+    count++;
+  });
+
+  stats = { total: allEvents.length, soe: 0, gi: 0, measure: 0, file: 0 };
+  allEvents.forEach(function(e) {
+    if (e.eventType === 'SOE') stats.soe++;
+    else if (e.eventType === 'GI') stats.gi++;
+    else if (e.eventType === 'Measure') stats.measure++;
+    else if (e.eventType === 'File') stats.file++;
+  });
+  updateStatDisplay();
+  document.getElementById('eventCount').textContent = count + ' events';
+  list.scrollTop = list.scrollHeight;
+}
+
+function addEventRow(evt) {
+  if (currentFilter !== 'all' && evt.eventType !== currentFilter) {
+    updateStatDisplay();
+    return;
+  }
+  var list = document.getElementById('eventList');
+  var empty = document.getElementById('emptyState');
+  if (empty) empty.remove();
+
+  var row = createEventRow(evt);
+  row.classList.add('event-flash');
+  list.appendChild(row);
+  list.scrollTop = list.scrollHeight;
+
+  var filtered = allEvents.filter(function(e) { return currentFilter === 'all' || e.eventType === currentFilter; });
+  document.getElementById('eventCount').textContent = filtered.length + ' events';
+}
+
+function createEventRow(evt) {
+  var row = document.createElement('div');
+  row.className = 'event-row ' + (evt.eventType || 'system').toLowerCase();
+  row.innerHTML =
+    '<span class="time-cell">' + (evt.timestamp || '') + '</span>' +
+    '<span class="type-badge">' + (evt.eventType || 'SYS') + '</span>' +
+    '<span class="cp56-cell">' + (evt.cp56Time || '-') + '</span>' +
+    '<span class="ioa-cell">' + (evt.ioa || '-') + '</span>' +
+    '<span class="value-cell">' + (evt.value || '-') + '</span>' +
+    '<span class="cause-cell">' + (evt.cause || '') + '</span>' +
+    '<span class="quality-cell ' + (evt.quality === 'Good' ? 'quality-good' : 'quality-bad') + '">' + (evt.quality || '') + '</span>';
+  return row;
+}
+
+function updateStats(evt) {
+  stats.total++;
+  if (evt.eventType === 'SOE') stats.soe++;
+  else if (evt.eventType === 'GI') stats.gi++;
+  else if (evt.eventType === 'Measure') stats.measure++;
+  else if (evt.eventType === 'File') stats.file++;
+  updateStatDisplay();
+}
+
+function updateStatDisplay() {
+  document.getElementById('statTotal').textContent = stats.total;
+  document.getElementById('statSOE').textContent = stats.soe;
+  document.getElementById('statGI').textContent = stats.gi;
+  document.getElementById('statMeasure').textContent = stats.measure;
+  document.getElementById('statFile').textContent = stats.file;
+}
+
+function startBurst() {
+  var count = document.getElementById('burstCount').value;
+  var interval = document.getElementById('burstInterval').value;
+  fetch('/api/burst/start?count=' + count + '&interval=' + interval, {method:'POST'});
+}
+
+function stopBurst() {
+  fetch('/api/burst/stop', {method:'POST'});
+}
+
+function triggerGI() {
+  fetch('/api/gi', {method:'POST'});
+}
+
+function sendStartDT() {
+  fetch('/api/startdt', {method:'POST'});
+}
+
+function exportCSV() {
+  window.location.href = '/api/export/csv';
+}
+
+function listFiles() {
+  fetch('/api/filetransfer/list', {method:'POST'});
+}
+
+function refreshFileList() {
+  fetch('/api/files')
+    .then(r => r.json())
+    .then(files => {
+      var list = document.getElementById('fileList');
+      list.innerHTML = '';
+      files.forEach(function(f) {
+        var div = document.createElement('div');
+        div.className = 'file-item';
+        div.innerHTML =
+          '<span class="file-name" title="' + f.name + '">' + f.name + '</span>' +
+          '<span class="file-size">' + formatSize(f.size) + '</span>' +
+          '<button class="btn" onclick="getFile(' + f.id + ')">Get</button>' +
+          '<button class="btn" onclick="downloadFile(\'' + f.name + '\')">DL</button>';
+        list.appendChild(div);
+      });
+    });
+}
+
+function getFile(id) {
+  fetch('/api/filetransfer/get?id=' + id, {method:'POST'});
+}
+
+function downloadFile(name) {
+  window.location.href = '/api/files/download?name=' + encodeURIComponent(name);
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + 'B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'K';
+  return (bytes / (1024 * 1024)).toFixed(1) + 'M';
+}
+
+connectWS();
+setTimeout(refreshFileList, 500);
+</script>
+</body>
+</html>

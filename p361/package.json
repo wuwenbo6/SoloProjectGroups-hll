@@ -1,0 +1,25 @@
+{
+  "name": "stepper-motor-controller",
+  "version": "1.0.0",
+  "description": "Electron application for stepper motor control via WebHID with PID position control",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": [
+    "electron",
+    "webhid",
+    "stepper-motor",
+    "pid-controller",
+    "motor-control"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.0"
+  }
+}

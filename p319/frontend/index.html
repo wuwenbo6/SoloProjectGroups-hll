@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RDMA Simulator</title>
+<style>
+:root {
+  --bg: #0a0e1a;
+  --surface: #111827;
+  --surface2: #1e293b;
+  --border: #2d3a4f;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --accent: #3b82f6;
+  --accent2: #6366f1;
+  --green: #22c55e;
+  --yellow: #eab308;
+  --red: #ef4444;
+  --orange: #f97316;
+  --purple: #a855f7;
+  --cyan: #06b6d4;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+header {
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+header h1 {
+  font-size: 20px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.header-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text2);
+}
+.header-status .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+.toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.btn:hover { background: var(--surface2); border-color: var(--accent); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-color: var(--accent);
+  color: white;
+}
+.btn-primary:hover { opacity: 0.9; }
+.btn-demo {
+  background: linear-gradient(135deg, var(--orange), var(--red));
+  border-color: var(--orange);
+  color: white;
+}
+.btn-demo:hover { opacity: 0.9; }
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.card-body { padding: 16px; }
+.full-width { grid-column: 1 / -1; }
+.qp-card {
+  border-left: 3px solid var(--accent);
+}
+.qp-card.state-RTR { border-left-color: var(--yellow); }
+.qp-card.state-RTS { border-left-color: var(--green); }
+.qp-card.state-ERROR { border-left-color: var(--red); }
+.qp-card.state-INIT { border-left-color: var(--cyan); }
+.state-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.state-badge.RESET { background: #374151; color: #9ca3af; }
+.state-badge.INIT { background: #164e63; color: var(--cyan); }
+.state-badge.RTR { background: #422006; color: var(--yellow); }
+.state-badge.RTS { background: #14532d; color: var(--green); }
+.state-badge.ERROR { background: #450a0a; color: var(--red); }
+.queue-vis {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px;
+  background: var(--bg);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+.queue-slot {
+  min-width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.queue-slot.send { background: #1e3a5f; color: var(--accent); border: 1px solid #2563eb44; }
+.queue-slot.recv { background: #1a3a2a; color: var(--green); border: 1px solid #22c55e44; }
+.queue-slot.rdma-w { background: #3a1a1a; color: var(--red); border: 1px solid #ef444444; }
+.queue-slot.rdma-r { background: #2a1a3a; color: var(--purple); border: 1px solid #a855f744; }
+.queue-slot.cmp-swap { background: #1a3a3a; color: var(--cyan); border: 1px solid #06b6d444; }
+.queue-slot.retry { background: #3a3a1a; color: var(--yellow); border: 1px solid #eab30844; }
+.queue-slot.empty { background: var(--surface2); color: var(--text2); border: 1px dashed var(--border); opacity: 0.3; }
+.queue-label {
+  font-size: 11px;
+  color: var(--text2);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.queue-label span { color: var(--text); }
+.queue-depth {
+  font-size: 11px;
+  color: var(--accent);
+  margin-left: 8px;
+}
+.event-log {
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+.event-log::-webkit-scrollbar { width: 6px; }
+.event-log::-webkit-scrollbar-track { background: var(--bg); }
+.event-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.event-item {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.event-time { color: var(--text2); font-size: 11px; white-space: nowrap; }
+.event-type {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.event-type.POST_SEND { background: #1e3a5f; color: var(--accent); }
+.event-type.POST_RECV { background: #1a3a2a; color: var(--green); }
+.event-type.POST_SEND_PROCESS { background: #1e3a5f; color: var(--accent); }
+.event-type.SEND_COMPLETE { background: #1e3a5f; color: var(--accent); }
+.event-type.RECV_COMPLETE { background: #1a3a2a; color: var(--green); }
+.event-type.CMP_SWAP_COMPLETE { background: #1a3a3a; color: var(--cyan); }
+.event-type.SEND_RNR { background: #422006; color: var(--orange); }
+.event-type.SEND_RETRY_SCHEDULED { background: #3a3a1a; color: var(--yellow); }
+.event-type.SEND_RETRY_ATTEMPT { background: #3a3a1a; color: var(--yellow); }
+.event-type.SEND_FAILED { background: #3a1a1a; color: var(--red); }
+.event-type.SEND_ERROR { background: #3a1a1a; color: var(--red); }
+.event-type.RDMA_WRITE_COMPLETE { background: #3a1a1a; color: var(--red); }
+.event-type.RDMA_READ_COMPLETE { background: #2a1a3a; color: var(--purple); }
+.event-type.STATE_CHANGE { background: #422006; color: var(--yellow); }
+.event-type.QP_CREATED { background: #164e63; color: var(--cyan); }
+.event-type.DATA_DELIVERED { background: #14532d; color: var(--green); }
+.event-detail { color: var(--text); font-size: 12px; }
+.mr-table, .cq-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.mr-table th, .cq-table th {
+  text-align: left;
+  padding: 6px 10px;
+  color: var(--text2);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+.mr-table td, .cq-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.key-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: inherit;
+}
+.key-tag.lkey { background: #1e3a5f; color: var(--accent); }
+.key-tag.rkey { background: #2a1a3a; color: var(--purple); }
+.empty-state {
+  text-align: center;
+  padding: 30px;
+  color: var(--text2);
+  font-size: 13px;
+}
+.qp-controls {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.qp-controls .btn { font-size: 11px; padding: 4px 10px; }
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  background: var(--bg);
+  border-radius: 8px;
+}
+.stat-item-sm {
+  font-size: 11px;
+}
+.stat-label-sm {
+  color: var(--text2);
+  margin-bottom: 2px;
+}
+.stat-value-sm {
+  color: var(--accent);
+  font-weight: 700;
+  font-family: 'SF Mono', monospace;
+}
+.stat-value-sm.green { color: var(--green); }
+.stat-value-sm.red { color: var(--red); }
+.stat-value-sm.yellow { color: var(--yellow); }
+.stat-value-sm.purple { color: var(--purple); }
+.stat-value-sm.cyan { color: var(--cyan); }
+.action-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.action-panel h3 {
+  font-size: 14px;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+.action-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.action-row label {
+  font-size: 12px;
+  color: var(--text2);
+  min-width: 60px;
+}
+.action-row input, .action-row select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+  font-family: inherit;
+  min-width: 100px;
+}
+.action-row input:focus, .action-row select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.wc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.wc-item {
+  padding: 6px 10px;
+  background: var(--bg);
+  border-radius: 6px;
+  font-size: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.wc-status { font-weight: 700; }
+.wc-status.SUCCESS { color: var(--green); }
+.wc-status.LOCAL_ERROR { color: var(--red); }
+.wc-status.REMOTE_ERROR { color: var(--red); }
+.wc-status.FLUSHED { color: var(--yellow); }
+.wc-status.RNR { color: var(--orange); }
+.wc-status.RETRY { color: var(--yellow); }
+.stats-bar {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.stat-label {
+  font-size: 11px;
+  color: var(--text2);
+  margin-top: 2px;
+}
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>RDMA Simulator</h1>
+  <div class="header-status">
+    <div class="dot"></div>
+    <span id="ws-status">Connecting...</span>
+  </div>
+</header>
+<div class="container">
+  <div class="toolbar">
+    <button class="btn btn-primary" onclick="createPD()">Create PD</button>
+    <button class="btn" onclick="createCQ()">Create CQ</button>
+    <button class="btn" onclick="createQP()">Create QP</button>
+    <button class="btn" onclick="registerMR()">Register MR</button>
+    <button class="btn btn-demo" onclick="runDemo()">Run Demo</button>
+    <button class="btn" style="background:linear-gradient(135deg, #eab308, #f97316);border-color:#eab308;color:white" onclick="runRNRDemo()">RNR Demo</button>
+    <button class="btn" style="background:linear-gradient(135deg, #06b6d4, #0891b2);border-color:#06b6d4;color:white" onclick="runAtomicDemo()">Atomic Demo</button>
+    <button class="btn" onclick="refreshSnapshot()">Refresh</button>
+  </div>
+
+  <div class="stats-bar" id="stats-bar"></div>
+
+  <div class="action-panel" id="action-panel">
+    <h3>Post Work Request</h3>
+    <div class="action-row">
+      <label>QP</label>
+      <select id="wr-qpn"></select>
+      <label>Opcode</label>
+      <select id="wr-opcode">
+        <option value="SEND">SEND</option>
+        <option value="RDMA_WRITE">RDMA_WRITE</option>
+        <option value="RDMA_READ">RDMA_READ</option>
+        <option value="CMP_SWAP">CMP_SWAP</option>
+      </select>
+    </div>
+    <div class="action-row" id="sge-row">
+      <label>SGE Addr</label>
+      <input id="wr-addr" type="text" placeholder="0x10000" value="0x10000">
+      <label>Length</label>
+      <input id="wr-len" type="number" value="128" min="1">
+      <label>LKey</label>
+      <input id="wr-lkey" type="number" value="1" min="1">
+    </div>
+    <div class="action-row" id="remote-mr-row">
+      <label>Remote Addr</label>
+      <input id="wr-raddr" type="text" placeholder="0x20000" value="0x20000">
+      <label>RKey</label>
+      <input id="wr-rkey" type="number" value="2" min="1">
+      <label>Remote Len</label>
+      <input id="wr-rlen" type="number" value="128" min="1">
+    </div>
+    <div class="action-row" id="atomic-row" style="display:none">
+      <label>Remote Addr</label>
+      <input id="atomic-raddr" type="text" placeholder="0x20000" value="0x20000">
+      <label>RKey</label>
+      <input id="atomic-rkey" type="number" value="2" min="1">
+      <label>Compare</label>
+      <input id="atomic-cmp" type="text" placeholder="0x0" value="0x0">
+      <label>Swap</label>
+      <input id="atomic-swap" type="text" placeholder="0x1" value="0x1">
+    </div>
+    <div class="action-row">
+      <button class="btn btn-primary" onclick="postSend()">Post Send</button>
+      <button class="btn" onclick="postRecv()">Post Recv</button>
+    </div>
+  </div>
+
+  <div class="grid" id="qp-grid"></div>
+
+  <div class="grid">
+    <div class="card" id="mr-card">
+      <div class="card-header">
+        <span class="card-title">Memory Regions</span>
+      </div>
+      <div class="card-body" id="mr-body"></div>
+    </div>
+    <div class="card" id="cq-card">
+      <div class="card-header">
+        <span class="card-title">Completion Queues</span>
+      </div>
+      <div class="card-body" id="cq-body"></div>
+    </div>
+  </div>
+
+  <div class="card full-width">
+    <div class="card-header">
+      <span class="card-title">Event Log</span>
+      <span style="font-size:11px;color:var(--text2)" id="event-count">0 events</span>
+    </div>
+    <div class="card-body">
+      <div class="event-log" id="event-log"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let ws = null;
+let allEvents = [];
+let snapshot = { qps: [], cqs: [], pds: [] };
+
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(proto + '//' + location.host + '/ws');
+  ws.onopen = () => {
+    document.getElementById('ws-status').textContent = 'Connected';
+  };
+  ws.onclose = () => {
+    document.getElementById('ws-status').textContent = 'Disconnected';
+    setTimeout(connectWS, 2000);
+  };
+  ws.onmessage = (e) => {
+    const ev = JSON.parse(e.data);
+    addEvent(ev);
+  };
+}
+
+function addEvent(ev) {
+  allEvents.unshift(ev);
+  if (allEvents.length > 200) allEvents.length = 200;
+  renderEvents();
+  refreshSnapshot();
+}
+
+async function api(path, body) {
+  const opts = { method: body ? 'POST' : 'GET' };
+  if (body) {
+    opts.headers = { 'Content-Type': 'application/json' };
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch('/api/' + path, opts);
+  return res.json();
+}
+
+async function createPD() {
+  await api('pd');
+  refreshSnapshot();
+}
+
+async function createCQ() {
+  await api('cq');
+  refreshSnapshot();
+}
+
+async function createQP() {
+  const snap = snapshot;
+  if (snap.pds.length === 0) { alert('Please create a PD first'); return; }
+  if (snap.cqs.length < 2) { alert('Please create at least 2 CQs first'); return; }
+  await api('qp', {
+    pd_id: snap.pds[0].id,
+    send_cq_id: snap.cqs[0].id,
+    recv_cq_id: snap.cqs.length > 1 ? snap.cqs[1].id : snap.cqs[0].id,
+    max_wr: 16
+  });
+  refreshSnapshot();
+}
+
+async function registerMR() {
+  if (snapshot.pds.length === 0) { alert('Create a PD first'); return; }
+  await api('mr/register', { pd_id: snapshot.pds[0].id, addr: 0x10000 + snapshot.pds[0].mrs.length * 0x10000, length: 4096 });
+  refreshSnapshot();
+}
+
+async function runDemo() {
+  await api('demo');
+  setTimeout(refreshSnapshot, 500);
+  setTimeout(refreshSnapshot, 1500);
+  setTimeout(refreshSnapshot, 2500);
+  setTimeout(refreshSnapshot, 4000);
+}
+
+async function runRNRDemo() {
+  await api('demo-rnr');
+  setTimeout(refreshSnapshot, 300);
+  setTimeout(refreshSnapshot, 800);
+  setTimeout(refreshSnapshot, 1300);
+  setTimeout(refreshSnapshot, 1800);
+  setTimeout(refreshSnapshot, 2300);
+  setTimeout(refreshSnapshot, 2800);
+  setTimeout(refreshSnapshot, 3300);
+}
+
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+async function runAtomicDemo() {
+  await api('demo-atomic');
+  setTimeout(refreshSnapshot, 500);
+  setTimeout(refreshSnapshot, 1000);
+  setTimeout(refreshSnapshot, 1500);
+  setTimeout(refreshSnapshot, 2000);
+}
+
+async function triggerRetry(qpn) {
+  await api('qp/retry', { qpn });
+  refreshSnapshot();
+}
+
+async function modifyQP(qpn, state) {
+  await api('qp/modify', { qpn, state });
+  refreshSnapshot();
+}
+
+async function postSend() {
+  const qpn = parseInt(document.getElementById('wr-qpn').value);
+  const opcode = document.getElementById('wr-opcode').value;
+  const body = { qpn, opcode, sges: [] };
+  
+  if (opcode === 'CMP_SWAP') {
+    const raddr = parseInt(document.getElementById('atomic-raddr').value, 16) || parseInt(document.getElementById('atomic-raddr').value);
+    const rkey = parseInt(document.getElementById('atomic-rkey').value);
+    const cmp = parseInt(document.getElementById('atomic-cmp').value, 16) || parseInt(document.getElementById('atomic-cmp').value);
+    const swap = parseInt(document.getElementById('atomic-swap').value, 16) || parseInt(document.getElementById('atomic-swap').value);
+    body.atomic = { remote_addr: raddr, r_key: rkey, compare: cmp, swap: swap };
+  } else {
+    const addr = parseInt(document.getElementById('wr-addr').value, 16) || parseInt(document.getElementById('wr-addr').value);
+    const length = parseInt(document.getElementById('wr-len').value);
+    const lkey = parseInt(document.getElementById('wr-lkey').value);
+    body.sges = [{ addr, length, lkey }];
+    if (opcode !== 'SEND') {
+      const raddr = parseInt(document.getElementById('wr-raddr').value, 16) || parseInt(document.getElementById('wr-raddr').value);
+      const rkey = parseInt(document.getElementById('wr-rkey').value);
+      const rlen = parseInt(document.getElementById('wr-rlen').value);
+      body.remote_mr = { addr: raddr, len: rlen, r_key: rkey };
+    }
+  }
+  await api('qp/post-send', body);
+  refreshSnapshot();
+}
+
+async function postRecv() {
+  const qpn = parseInt(document.getElementById('wr-qpn').value);
+  const addr = parseInt(document.getElementById('wr-addr').value, 16) || parseInt(document.getElementById('wr-addr').value);
+  const length = parseInt(document.getElementById('wr-len').value);
+  const lkey = parseInt(document.getElementById('wr-lkey').value);
+  await api('qp/post-recv', { qpn, sges: [{ addr, length, lkey }] });
+  refreshSnapshot();
+}
+
+async function connectQPs(qpn1, qpn2) {
+  await api('qp/connect', { qpn: qpn1, remote_qpn: qpn2 });
+  await api('qp/connect', { qpn: qpn2, remote_qpn: qpn1 });
+  refreshSnapshot();
+}
+
+async function pollCQ(cqId) {
+  const wcs = await api('cq/poll?cq_id=' + cqId);
+  refreshSnapshot();
+  return wcs;
+}
+
+async function refreshSnapshot() {
+  snapshot = await api('snapshot');
+  renderAll();
+}
+
+function renderAll() {
+  renderStats();
+  renderQPs();
+  renderMRs();
+  renderCQs();
+  updateQPSelect();
+}
+
+function renderStats() {
+  const bar = document.getElementById('stats-bar');
+  bar.innerHTML = `
+    <div class="stat-item"><div class="stat-value">${snapshot.pds.length}</div><div class="stat-label">PDs</div></div>
+    <div class="stat-item"><div class="stat-value">${snapshot.cqs.length}</div><div class="stat-label">CQs</div></div>
+    <div class="stat-item"><div class="stat-value">${snapshot.qps.length}</div><div class="stat-label">QPs</div></div>
+    <div class="stat-item"><div class="stat-value">${snapshot.pds.reduce((s,p)=>s+p.mrs.length,0)}</div><div class="stat-label">MRs</div></div>
+    <div class="stat-item"><div class="stat-value">${allEvents.length}</div><div class="stat-label">Events</div></div>
+  `;
+}
+
+function renderQPs() {
+  const grid = document.getElementById('qp-grid');
+  if (snapshot.qps.length === 0) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No Queue Pairs created yet. Use the toolbar or click "Run Demo" to get started.</div>';
+    return;
+  }
+  grid.innerHTML = snapshot.qps.map(qp => `
+    <div class="card qp-card state-${qp.state}">
+      <div class="card-header">
+        <span class="card-title">QP #${qp.qpn}</span>
+        <span class="state-badge ${qp.state}">${qp.state}</span>
+      </div>
+      <div class="card-body">
+        ${qp.remote_qpn ? `<div style="font-size:11px;color:var(--text2);margin-bottom:8px">Remote QP: <span style="color:var(--accent)">#${qp.remote_qpn}</span></div>` : ''}
+        <div class="queue-label">Send Queue <span class="queue-depth">${qp.sq_depth}/${16}</span></div>
+        <div class="queue-vis">
+          ${renderQueueSlots(qp.sq, 16, 'send')}
+        </div>
+        <div class="queue-label" style="margin-top:10px">Receive Queue <span class="queue-depth">${qp.rq_depth}/${16}</span></div>
+        <div class="queue-vis">
+          ${renderQueueSlots(qp.rq, 16, 'recv')}
+        </div>
+        ${qp.retry_queue && qp.retry_queue.length > 0 ? `
+        <div class="queue-label" style="margin-top:10px">Retry Queue <span class="queue-depth" style="color:var(--yellow)">${qp.retry_depth} pending</span></div>
+        <div class="queue-vis">
+          ${qp.retry_queue.map(wr => `
+            <div class="queue-slot retry" title="WR#${wr.id} ${wr.opcode} retry=${wr.retry_count}">RT</div>
+          `).join('')}
+        </div>` : ''}
+        ${qp.stats ? `
+        <div class="queue-label" style="margin-top:10px">Statistics</div>
+        <div class="stats-grid">
+          <div class="stat-item-sm"><div class="stat-label-sm">Send Bytes</div><div class="stat-value-sm">${formatBytes(qp.stats.send_bytes)}</div></div>
+          <div class="stat-item-sm"><div class="stat-label-sm">Recv Bytes</div><div class="stat-value-sm green">${formatBytes(qp.stats.recv_bytes)}</div></div>
+          <div class="stat-item-sm"><div class="stat-label-sm">Send Packets</div><div class="stat-value-sm">${qp.stats.send_packets}</div></div>
+          <div class="stat-item-sm"><div class="stat-label-sm">Recv Packets</div><div class="stat-value-sm green">${qp.stats.recv_packets}</div></div>
+          <div class="stat-item-sm"><div class="stat-label-sm">Write Bytes</div><div class="stat-value-sm purple">${formatBytes(qp.stats.write_bytes)}</div></div>
+          <div class="stat-item-sm"><div class="stat-label-sm">Read Bytes</div><div class="stat-value-sm cyan">${formatBytes(qp.stats.read_bytes)}</div></div>
+          <div class="stat-item-sm"><div class="stat-label-sm">Atomic Ops</div><div class="stat-value-sm cyan">${qp.stats.atomic_ops}</div></div>
+          <div class="stat-item-sm"><div class="stat-label-sm">RNR Events</div><div class="stat-value-sm yellow">${qp.stats.rnr_events}</div></div>
+          <div class="stat-item-sm"><div class="stat-label-sm">Retries</div><div class="stat-value-sm yellow">${qp.stats.retry_count}</div></div>
+          <div class="stat-item-sm"><div class="stat-label-sm">Send Errors</div><div class="stat-value-sm red">${qp.stats.send_errors}</div></div>
+        </div>` : ''}
+        <div class="qp-controls">
+          <button class="btn" onclick="modifyQP(${qp.qpn},'INIT')">→ INIT</button>
+          <button class="btn" onclick="modifyQP(${qp.qpn},'RTR')">→ RTR</button>
+          <button class="btn" onclick="modifyQP(${qp.qpn},'RTS')">→ RTS</button>
+          <button class="btn" onclick="modifyQP(${qp.qpn},'RESET')">→ RESET</button>
+          <button class="btn" onclick="modifyQP(${qp.qpn},'ERROR')">→ ERROR</button>
+          ${qp.remote_qpn === 0 && snapshot.qps.length > 1 ? `<button class="btn" onclick="connectQPs(${qp.qpn},${snapshot.qps.find(q=>q.qpn!==qp.qpn).qpn})">Connect</button>` : ''}
+          <button class="btn" style="background:#3a3a1a;border-color:var(--yellow);color:var(--yellow)" onclick="triggerRetry(${qp.qpn})">Retry</button>
+        </div>
+        ${qp.events && qp.events.length > 0 ? `
+        <div style="margin-top:10px">
+          <div class="queue-label">Recent Events</div>
+          ${qp.events.slice(-5).reverse().map(e => `
+            <div style="font-size:11px;color:var(--text2);padding:2px 0">
+              <span class="event-type ${e.Type}" style="font-size:9px">${e.Type}</span>
+              ${e.Detail}
+            </div>
+          `).join('')}
+        </div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderQueueSlots(wrs, max, type) {
+  let html = '';
+  for (let i = 0; i < max; i++) {
+    if (i < wrs.length) {
+      const wr = wrs[i];
+      let cls = type;
+      if (wr.opcode === 'RDMA_WRITE') cls = 'rdma-w';
+      if (wr.opcode === 'RDMA_READ') cls = 'rdma-r';
+      if (wr.opcode === 'CMP_SWAP') cls = 'cmp-swap';
+      html += `<div class="queue-slot ${cls}" title="WR#${wr.id} ${wr.opcode}">${wr.opcode.substring(0,2)}</div>`;
+    } else {
+      html += '<div class="queue-slot empty">-</div>';
+    }
+  }
+  return html;
+}
+
+function renderMRs() {
+  const body = document.getElementById('mr-body');
+  const allMRs = [];
+  snapshot.pds.forEach(pd => {
+    pd.mrs.forEach(mr => allMRs.push({ ...mr, pd_id: pd.id }));
+  });
+  if (allMRs.length === 0) {
+    body.innerHTML = '<div class="empty-state">No Memory Regions</div>';
+    return;
+  }
+  body.innerHTML = `<table class="mr-table">
+    <tr><th>PD</th><th>Addr</th><th>Length</th><th>LKey</th><th>RKey</th></tr>
+    ${allMRs.map(mr => `<tr>
+      <td>#${mr.pd_id}</td>
+      <td>0x${mr.addr.toString(16)}</td>
+      <td>${mr.length}</td>
+      <td><span class="key-tag lkey">${mr.lkey}</span></td>
+      <td><span class="key-tag rkey">${mr.rkey}</span></td>
+    </tr>`).join('')}
+  </table>`;
+}
+
+function renderCQs() {
+  const body = document.getElementById('cq-body');
+  if (snapshot.cqs.length === 0) {
+    body.innerHTML = '<div class="empty-state">No Completion Queues</div>';
+    return;
+  }
+  body.innerHTML = snapshot.cqs.map(cq => `
+    <div style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-size:13px;font-weight:600">CQ #${cq.id}</span>
+        <span style="font-size:11px;color:var(--text2)">pending: ${cq.count}</span>
+        <button class="btn" style="font-size:10px;padding:2px 8px" onclick="pollCQ(${cq.id})">Poll</button>
+      </div>
+      ${cq.wcs.length > 0 ? `<div class="wc-list">
+        ${cq.wcs.map(wc => `
+          <div class="wc-item">
+            <span class="wc-status ${wc.status}">${wc.status}</span>
+            <span style="color:var(--text2)">WR#${wc.wr_id}</span>
+            <span style="color:var(--accent)">${wc.opcode}</span>
+            <span style="color:var(--text2)">len=${wc.length}</span>
+          </div>
+        `).join('')}
+      </div>` : '<div style="font-size:12px;color:var(--text2)">Empty</div>'}
+    </div>
+  `).join('');
+}
+
+function renderEvents() {
+  const log = document.getElementById('event-log');
+  document.getElementById('event-count').textContent = allEvents.length + ' events';
+  log.innerHTML = allEvents.slice(0, 100).map(ev => {
+    const ts = new Date(ev.timestamp);
+    const timeStr = ts.toLocaleTimeString('en', {hour12:false}) + '.' + String(ts.getMilliseconds()).padStart(3,'0');
+    return `<div class="event-item">
+      <span class="event-time">${timeStr}</span>
+      <span class="event-type ${ev.type}">${ev.type}</span>
+      ${ev.qpn ? `<span style="color:var(--accent);font-size:11px">QP#${ev.qpn}</span>` : ''}
+      <span class="event-detail">${ev.detail || ''}</span>
+    </div>`;
+  }).join('');
+}
+
+function updateQPSelect() {
+  const sel = document.getElementById('wr-qpn');
+  const cur = sel.value;
+  sel.innerHTML = snapshot.qps.map(qp =>
+    `<option value="${qp.qpn}" ${qp.state !== 'RTS' ? 'disabled' : ''}>QP #${qp.qpn} (${qp.state})</option>`
+  ).join('');
+  if (cur) sel.value = cur;
+}
+
+document.getElementById('wr-opcode').addEventListener('change', function() {
+  const remoteRow = document.getElementById('remote-mr-row');
+  const sgeRow = document.getElementById('sge-row');
+  const atomicRow = document.getElementById('atomic-row');
+  if (this.value === 'CMP_SWAP') {
+    remoteRow.style.display = 'none';
+    sgeRow.style.display = 'none';
+    atomicRow.style.display = 'flex';
+  } else if (this.value === 'SEND') {
+    remoteRow.style.display = 'none';
+    sgeRow.style.display = 'flex';
+    atomicRow.style.display = 'none';
+  } else {
+    remoteRow.style.display = 'flex';
+    sgeRow.style.display = 'flex';
+    atomicRow.style.display = 'none';
+  }
+});
+document.getElementById('remote-mr-row').style.display = 'none';
+document.getElementById('atomic-row').style.display = 'none';
+
+connectWS();
+refreshSnapshot();
+</script>
+</body>
+</html>

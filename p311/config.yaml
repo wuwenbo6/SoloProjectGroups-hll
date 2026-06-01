@@ -1,0 +1,33 @@
+server:
+  host: 0.0.0.0
+  port: 8080
+
+code_server:
+  binary_path: /usr/local/bin/code-server
+  base_port: 10000
+  max_instances: 100
+  cpu_limit: 1.0
+  memory_limit_mb: 512
+  idle_timeout_minutes: 3
+
+workspace:
+  base_dir: ./workspaces
+
+auth:
+  admin_token: admin-secret-token
+
+data:
+  db_path: ./data/users.json
+
+backup:
+  enabled: true
+  storage_type: local
+  local_dir: ./data/backups
+  auto_backup_hours: 24
+  max_backups_per_user: 5
+  s3:
+    bucket: ""
+    region: ""
+    access_key: ""
+    secret_key: ""
+    endpoint: ""

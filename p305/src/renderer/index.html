@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SiP Gerber DRC Checker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <h1>SiP 基板 Gerber DRC 检查器</h1>
+      <p class="subtitle">上传 Gerber 文件，检查线宽、间距、环宽是否满足设计规则</p>
+    </header>
+
+    <div class="main-content">
+      <aside class="sidebar">
+        <section class="panel">
+          <h2>文件上传</h2>
+          <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <p>点击或拖拽 Gerber 文件</p>
+            <p class="upload-hint">.gbr .gtl .gbl .gts .gbs 等</p>
+          </div>
+          <input type="file" id="fileInput" multiple accept=".gbr,.gtl,.gbl,.gts,.gbs,.gto,.gbo,.gko,.gml,.gm1,.txt,.drl,.ger,.pho" style="display:none">
+          <div id="fileList" class="file-list"></div>
+        </section>
+
+        <section class="panel">
+          <h2>设计规则</h2>
+          <div class="rule-group">
+            <label>
+              最小线宽 (mm)
+              <input type="number" id="minLineWidth" value="0.1" step="0.01" min="0">
+            </label>
+          </div>
+          <div class="rule-group">
+            <label>
+              最小间距 (mm)
+              <input type="number" id="minSpacing" value="0.1" step="0.01" min="0">
+            </label>
+          </div>
+          <div class="rule-group">
+            <label>
+              最小环宽 (mm)
+              <input type="number" id="minAnnularRing" value="0.05" step="0.01" min="0">
+            </label>
+          </div>
+          <div class="rule-group">
+            <label>
+              钻孔直径 (mm)
+              <input type="number" id="drillSize" value="0.2" step="0.01" min="0">
+            </label>
+          </div>
+          <h3 style="margin-top: 12px; margin-bottom: 8px; font-size: 12px; color: var(--text-secondary);">微孔规则</h3>
+          <div class="rule-group">
+            <label>
+              微孔判定阈值 (mm)
+              <input type="number" id="microviaDiameterThreshold" value="0.15" step="0.01" min="0">
+            </label>
+          </div>
+          <div class="rule-group">
+            <label>
+              微孔最小直径 (mm)
+              <input type="number" id="minMicroviaDiameter" value="0.05" step="0.01" min="0">
+            </label>
+          </div>
+          <div class="rule-group">
+            <label>
+              微孔最大直径 (mm)
+              <input type="number" id="maxMicroviaDiameter" value="0.15" step="0.01" min="0">
+            </label>
+          </div>
+          <div class="rule-group">
+            <label>
+              微孔最小环宽 (mm)
+              <input type="number" id="minMicroviaAnnularRing" value="0.02" step="0.01" min="0">
+            </label>
+          </div>
+          <div class="rule-group">
+            <label>
+              微孔最小间距 (mm)
+              <input type="number" id="minMicroviaSpacing" value="0.2" step="0.01" min="0">
+            </label>
+          </div>
+          <button class="btn btn-primary" id="runDrcBtn" disabled>运行 DRC 检查</button>
+        </section>
+
+        <section class="panel" id="netsPanel" style="display:none">
+          <h2>网络列表</h2>
+          <div id="netList" class="net-list"></div>
+        </section>
+
+        <section class="panel" id="summaryPanel" style="display:none">
+          <h2>检查结果摘要</h2>
+          <div class="summary-grid">
+            <div class="summary-item summary-total">
+              <span class="summary-count" id="totalCount">0</span>
+              <span class="summary-label">总违规</span>
+            </div>
+            <div class="summary-item summary-width">
+              <span class="summary-count" id="widthCount">0</span>
+              <span class="summary-label">线宽违规</span>
+            </div>
+            <div class="summary-item summary-spacing">
+              <span class="summary-count" id="spacingCount">0</span>
+              <span class="summary-label">间距违规</span>
+            </div>
+            <div class="summary-item summary-ring">
+              <span class="summary-count" id="ringCount">0</span>
+              <span class="summary-label">环宽违规</span>
+            </div>
+            <div class="summary-item summary-microvia">
+              <span class="summary-count" id="microviaCount">0</span>
+              <span class="summary-label">微孔违规</span>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <div class="viewer-area">
+        <div class="viewer-toolbar">
+          <button class="btn btn-small" id="zoomInBtn" title="放大">＋</button>
+          <button class="btn btn-small" id="zoomOutBtn" title="缩小">－</button>
+          <button class="btn btn-small" id="fitBtn" title="适应窗口">⊞</button>
+          <span class="toolbar-separator"></span>
+          <label class="toolbar-toggle">
+            <input type="checkbox" id="showViolations" checked> 显示违规标记
+          </label>
+          <label class="toolbar-toggle">
+            <input type="checkbox" id="showTraces" checked> 显示线路
+          </label>
+          <label class="toolbar-toggle">
+            <input type="checkbox" id="showPads" checked> 显示焊盘
+          </label>
+        </div>
+        <div class="canvas-wrapper" id="canvasWrapper">
+          <canvas id="gerberCanvas"></canvas>
+          <div class="canvas-placeholder" id="canvasPlaceholder">
+            <div class="placeholder-icon">🔍</div>
+            <p>上传 Gerber 文件后在此显示预览</p>
+          </div>
+        </div>
+        <div class="coord-display" id="coordDisplay">X: -- Y: --</div>
+      </div>
+    </div>
+
+    <div class="violations-panel" id="violationsPanel" style="display:none">
+      <div class="violations-header">
+        <h2>违规列表</h2>
+        <div class="violation-filters">
+          <button class="filter-btn active" data-filter="all">全部</button>
+          <button class="filter-btn" data-filter="line_width">线宽</button>
+          <button class="filter-btn" data-filter="spacing">间距</button>
+          <button class="filter-btn" data-filter="annular_ring">环宽</button>
+          <button class="filter-btn" data-filter="microvia">微孔</button>
+        </div>
+        <button class="btn btn-small" id="exportPdfBtn" style="margin-left: auto; width: auto; padding: 4px 14px;">📄 导出 PDF</button>
+      </div>
+      <div class="violations-table-wrapper">
+        <table class="violations-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>类型</th>
+              <th>严重性</th>
+              <th>坐标 X</th>
+              <th>坐标 Y</th>
+              <th>实际值</th>
+              <th>要求值</th>
+              <th>描述</th>
+            </tr>
+          </thead>
+          <tbody id="violationsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

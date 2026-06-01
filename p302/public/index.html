@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HLS AES-128 密钥服务器 - 模拟播放器</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+  .container { max-width: 1080px; margin: 0 auto; padding: 2rem; }
+  h1 { font-size: 1.75rem; margin-bottom: 0.5rem; color: #f8fafc; }
+  .subtitle { color: #94a3b8; margin-bottom: 2rem; font-size: 0.95rem; }
+  .card { background: #1e293b; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.25rem; border: 1px solid #334155; }
+  .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+  .card-title .icon { font-size: 1.2rem; }
+  label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.4rem; }
+  select, input[type="text"] { width: 100%; padding: 0.6rem 0.8rem; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #f8fafc; font-size: 0.95rem; outline: none; }
+  select:focus, input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
+  .row { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
+  .row > * { flex: 1; min-width: 180px; }
+  button { padding: 0.6rem 1.2rem; border-radius: 8px; border: none; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .btn-primary { background: #3b82f6; color: #fff; }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-danger { background: #ef4444; color: #fff; }
+  .btn-danger:hover { background: #dc2626; }
+  .btn-secondary { background: #475569; color: #e2e8f0; }
+  .btn-secondary:hover { background: #64748b; }
+  .btn-group { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+  .log-area { background: #0f172a; border-radius: 8px; padding: 1rem; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.82rem; max-height: 400px; overflow-y: auto; border: 1px solid #334155; line-height: 1.6; }
+  .log-entry { padding: 0.15rem 0; word-break: break-all; }
+  .log-info { color: #38bdf8; }
+  .log-success { color: #4ade80; }
+  .log-error { color: #f87171; }
+  .log-warn { color: #fbbf24; }
+  .log-dim { color: #64748b; }
+  .status-badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+  .badge-ok { background: #065f46; color: #6ee7b7; }
+  .badge-err { background: #7f1d1d; color: #fca5a5; }
+  .badge-wait { background: #78350f; color: #fde68a; }
+  .key-hex { color: #a78bfa; }
+  .info-grid { display: grid; grid-template-columns: auto 1fr; gap: 0.3rem 1rem; font-size: 0.9rem; }
+  .info-grid dt { color: #94a3b8; }
+  .info-grid dd { color: #f8fafc; font-family: 'SF Mono', monospace; }
+  .flow-diagram { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .flow-step { background: #334155; padding: 0.5rem 0.8rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500; }
+  .flow-arrow { color: #64748b; font-size: 1.2rem; }
+  .m3u8-preview { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 1rem; font-family: 'SF Mono', monospace; font-size: 0.8rem; color: #94a3b8; white-space: pre; overflow-x: auto; }
+  .token-format { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 0.8rem 1rem; font-family: 'SF Mono', monospace; font-size: 0.85rem; margin-bottom: 1rem; }
+  .token-part-kid { color: #fbbf24; }
+  .token-part-keyid { color: #06b6d4; }
+  .token-part-stream { color: #38bdf8; }
+  .token-part-exp { color: #4ade80; }
+  .token-part-sig { color: #f472b6; }
+  .whitelist-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 0.8rem; font-family: 'SF Mono', monospace; font-size: 0.85rem; }
+  .whitelist-item { padding: 0.15rem 0; color: #4ade80; }
+  .custom-referer { background: #0f172a; border: 1px dashed #64748b; border-radius: 8px; padding: 0.6rem 0.8rem; font-family: 'SF Mono', monospace; font-size: 0.85rem; color: #94a3b8; margin-top: 0.5rem; }
+  .key-history { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 1rem; margin-top: 1rem; max-height: 300px; overflow-y: auto; }
+  .key-version { display: flex; align-items: center; gap: 0.8rem; padding: 0.5rem 0; border-bottom: 1px dashed #334155; font-family: 'SF Mono', monospace; font-size: 0.8rem; }
+  .key-version:last-child { border-bottom: none; }
+  .key-version.active { background: #065f46; border-radius: 6px; padding: 0.5rem 0.8rem; margin: 0 -0.8rem; }
+  .key-version.active .status-badge { background: #10b981; color: #022c22; }
+  .version-time { color: #94a3b8; font-size: 0.75rem; }
+  .version-key { color: #a78bfa; }
+  .tab-buttons { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .tab-btn { padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #475569; background: #1e293b; color: #94a3b8; font-size: 0.85rem; cursor: pointer; transition: all 0.15s; }
+  .tab-btn.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+  .tab-btn:hover:not(.active) { background: #334155; color: #e2e8f0; }
+  .log-table { width: 100%; border-collapse: collapse; font-family: 'SF Mono', monospace; font-size: 0.78rem; }
+  .log-table th { text-align: left; padding: 0.5rem 0.6rem; background: #334155; color: #94a3b8; font-weight: 600; position: sticky; top: 0; }
+  .log-table td { padding: 0.4rem 0.6rem; border-bottom: 1px solid #334155; color: #e2e8f0; }
+  .log-table tr:hover td { background: #1e293b; }
+  .log-table .ts { color: #64748b; font-size: 0.7rem; }
+  .log-table .id { color: #a78bfa; font-size: 0.7rem; }
+  .filters { display: flex; gap: 0.8rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+  .filters > div { display: flex; align-items: center; gap: 0.4rem; }
+  .filters label { font-size: 0.8rem; color: #94a3b8; margin: 0; }
+  .filters select { padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #f8fafc; font-size: 0.8rem; }
+  .rotation-info { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 0.8rem 1rem; margin-bottom: 1rem; font-family: 'SF Mono', monospace; font-size: 0.85rem; }
+  .rotation-info .countdown { color: #fbbf24; font-weight: 600; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.8rem; margin-bottom: 1rem; }
+  .stat-card { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 0.8rem; text-align: center; }
+  .stat-card .stat-val { font-size: 1.5rem; font-weight: 700; color: #3b82f6; font-family: 'SF Mono', monospace; }
+  .stat-card .stat-label { font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>HLS AES-128 密钥服务器</h1>
+  <p class="subtitle">多组密钥 (kid) + HMAC-SHA256 签名 + Referer 白名单 + 密钥轮换 + 请求日志</p>
+
+  <div class="flow-diagram">
+    <span class="flow-step">1. 选择 kid + stream_id</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-step">2. Token 签发 kid:key_id:stream:exp:sig</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-step">3. Referer 白名单校验</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-step">4. 验证签名 → 返回密钥</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-step">5. 周期性密钥自动轮换</span>
+  </div>
+
+  <div class="token-format">
+    Token 格式: <span class="token-part-kid">kid</span>:<span class="token-part-keyid">key_id</span>:<span class="token-part-stream">stream_id</span>:<span class="token-part-exp">expires</span>:<span class="token-part-sig">HMAC-SHA256签名</span>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">🔐</span> Referer 白名单 & 配置</div>
+    <div class="whitelist-box" id="whitelistBox">加载中...</div>
+    <div class="rotation-info" id="rotationInfo">
+      🔄 密钥轮换间隔: <span id="rotationInterval">30</span> 秒 |
+      下次轮换: <span class="countdown" id="nextRotation">--</span>
+    </div>
+    <div class="btn-group">
+      <button class="btn-secondary" onclick="fetchConfig()">刷新配置</button>
+      <button class="btn-secondary" onclick="fetchKeys()">查看所有密钥(kid)</button>
+      <button class="btn-secondary" onclick="fetchStreams()">查看可用流</button>
+      <button class="btn-secondary" onclick="rotateAllKeys()">🔄 手动轮换全部密钥</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">📡</span> 选择 kid & Stream ID</div>
+    <div class="row">
+      <div>
+        <label>密钥ID (KID)</label>
+        <select id="kidSelect" onchange="updateKeyHistory()">
+          <option value="kid_001">kid_001 - HD 标准密钥</option>
+          <option value="kid_002">kid_002 - 4K 高级密钥</option>
+          <option value="kid_003">kid_003 - 测试密钥</option>
+        </select>
+      </div>
+      <div>
+        <label>选择流 (Stream ID)</label>
+        <select id="streamSelect">
+          <option value="stream_001">stream_001</option>
+          <option value="stream_002">stream_002</option>
+          <option value="stream_003">stream_003</option>
+          <option value="stream_004">stream_004</option>
+          <option value="stream_005">stream_005</option>
+        </select>
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button class="btn-primary" onclick="rotateSelectedKey()" style="width:100%;">🔄 轮换该kid密钥</button>
+      </div>
+    </div>
+    <div class="key-history" id="keyHistory">
+      <div style="color:#64748b; text-align:center; padding:1rem;">选择kid后查看密钥历史版本</div>
+    </div>
+    <div class="custom-referer">
+      注意：从浏览器直接请求时，Referer 由浏览器自动设置为当前页面地址。测试非法 Referer 请使用 curl。
+    </div>
+    <div class="btn-group">
+      <button class="btn-primary" onclick="requestToken()">获取 Token</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">🔑</span> 密钥请求 (模拟播放器)</div>
+    <div class="m3u8-preview" id="m3u8Preview">#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:10
+<span style="color:#fbbf24">#EXT-X-KEY:METHOD=AES-128,URI="http://localhost:3000/api/key?stream_id=stream_001&amp;token=&lt;TOKEN&gt;",IV=0x00000000000000000000000000000001,KEYFORMAT="identity",KEYFORMATVERSIONS="1"</span>
+#EXTINF:10,
+segment001.ts
+#EXT-X-ENDLIST</div>
+    <div class="btn-group">
+      <button class="btn-primary" onclick="requestKey()" id="btnRequestKey" disabled>请求密钥 (使用已获取的Token)</button>
+      <button class="btn-danger" onclick="requestKeyWithExpiredToken()">过期 Token</button>
+      <button class="btn-danger" onclick="requestKeyWithBadSignature()">篡改签名</button>
+      <button class="btn-danger" onclick="requestKeyWithWrongStream()">streamId 不匹配</button>
+      <button class="btn-danger" onclick="requestKeyWithWrongKid()">kid 无效</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">📊</span> 密钥结果</div>
+    <dl class="info-grid" id="keyResult">
+      <dt>状态</dt><dd><span class="status-badge badge-wait">等待请求</span></dd>
+    </dl>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <span class="icon">📋</span> 密钥请求日志
+      <span style="margin-left:auto; font-size:0.8rem; font-weight:normal; color:#94a3b8;">
+        共 <span id="logTotal">0</span> 条
+      </span>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-val" id="statTotal">0</div>
+        <div class="stat-label">总请求</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" style="color:#4ade80;" id="statSuccess">0</div>
+        <div class="stat-label">成功</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" style="color:#f87171;" id="statRejected">0</div>
+        <div class="stat-label">拒绝</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" style="color:#fbbf24;" id="statRate">0%</div>
+        <div class="stat-label">成功率</div>
+      </div>
+    </div>
+
+    <div class="tab-buttons">
+      <button class="tab-btn active" onclick="switchLogTab('console')">控制台日志</button>
+      <button class="tab-btn" onclick="switchLogTab('server')">服务器请求日志</button>
+    </div>
+
+    <div id="consoleLogTab">
+      <div class="log-area" id="logArea">
+        <div class="log-entry log-dim">--- 等待操作 ---</div>
+      </div>
+      <div class="btn-group">
+        <button class="btn-secondary" onclick="clearConsoleLog()">清空控制台</button>
+      </div>
+    </div>
+
+    <div id="serverLogTab" style="display:none;">
+      <div class="filters">
+        <div>
+          <label>状态</label>
+          <select id="logFilterStatus" onchange="fetchServerLogs()">
+            <option value="">全部</option>
+            <option value="success">成功</option>
+            <option value="rejected">拒绝</option>
+          </select>
+        </div>
+        <div>
+          <label>KID</label>
+          <select id="logFilterKid" onchange="fetchServerLogs()">
+            <option value="">全部</option>
+            <option value="kid_001">kid_001</option>
+            <option value="kid_002">kid_002</option>
+            <option value="kid_003">kid_003</option>
+          </select>
+        </div>
+        <div>
+          <label>数量</label>
+          <select id="logFilterLimit" onchange="fetchServerLogs()">
+            <option value="20">20条</option>
+            <option value="50">50条</option>
+            <option value="100" selected>100条</option>
+            <option value="500">500条</option>
+          </select>
+        </div>
+      </div>
+      <div class="log-area" style="padding:0; overflow:auto;">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>状态</th>
+              <th>KID</th>
+              <th>Key ID</th>
+              <th>Stream</th>
+              <th>Client IP</th>
+              <th>Referer</th>
+              <th>错误</th>
+            </tr>
+          </thead>
+          <tbody id="serverLogBody">
+            <tr><td colspan="8" style="text-align:center; color:#64748b; padding:2rem;">点击"刷新日志"加载</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="btn-group">
+        <button class="btn-primary" onclick="fetchServerLogs()">🔄 刷新日志</button>
+        <button class="btn-secondary" onclick="exportLogs('json')">⬇️ 导出 JSON</button>
+        <button class="btn-secondary" onclick="exportLogs('csv')">⬇️ 导出 CSV</button>
+        <button class="btn-danger" onclick="clearServerLogs()">🗑️ 清空服务器日志</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentToken = null;
+let currentStreamId = null;
+let currentKid = null;
+let serverConfig = null;
+let nextRotationTime = null;
+let countdownTimer = null;
+
+function getKid() {
+  return document.getElementById('kidSelect').value;
+}
+
+function getStreamId() {
+  return document.getElementById('streamSelect').value;
+}
+
+function log(msg, type = 'info') {
+  const area = document.getElementById('logArea');
+  const ts = new Date().toLocaleTimeString();
+  const entry = document.createElement('div');
+  entry.className = `log-entry log-${type}`;
+  entry.textContent = `[${ts}] ${msg}`;
+  area.appendChild(entry);
+  area.scrollTop = area.scrollHeight;
+}
+
+function clearConsoleLog() {
+  document.getElementById('logArea').innerHTML = '<div class="log-entry log-dim">--- 控制台已清空 ---</div>';
+}
+
+function updateM3u8Preview(streamId, token) {
+  const tokenPart = token || '&lt;TOKEN&gt;';
+  document.getElementById('m3u8Preview').innerHTML =
+    `#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:10\n<span style="color:#fbbf24">#EXT-X-KEY:METHOD=AES-128,URI="http://localhost:3000/api/key?stream_id=${streamId}&amp;token=${tokenPart}",IV=0x00000000000000000000000000000001,KEYFORMAT="identity",KEYFORMATVERSIONS="1"</span>\n#EXTINF:10,\nsegment001.ts\n#EXT-X-ENDLIST`;
+}
+
+function switchLogTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.tab-btn[onclick="switchLogTab('${tab}')"]`).classList.add('active');
+  document.getElementById('consoleLogTab').style.display = tab === 'console' ? 'block' : 'none';
+  document.getElementById('serverLogTab').style.display = tab === 'server' ? 'block' : 'none';
+  if (tab === 'server') {
+    fetchServerLogs();
+  }
+}
+
+function startCountdown() {
+  if (!serverConfig || !serverConfig.key_rotation_interval_ms) return;
+
+  if (!nextRotationTime) {
+    nextRotationTime = Date.now() + serverConfig.key_rotation_interval_ms;
+  }
+
+  if (countdownTimer) clearInterval(countdownTimer);
+
+  countdownTimer = setInterval(() => {
+    const remaining = Math.max(0, nextRotationTime - Date.now());
+    const seconds = Math.ceil(remaining / 1000);
+    document.getElementById('nextRotation').textContent = `${seconds} 秒`;
+
+    if (remaining <= 0) {
+      nextRotationTime = Date.now() + serverConfig.key_rotation_interval_ms;
+      fetchKeys();
+      log('🔄 检测到密钥轮换，刷新密钥信息...', 'info');
+    }
+  }, 500);
+}
+
+function formatTime(ts) {
+  return new Date(ts).toLocaleString('zh-CN', {
+    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+}
+
+function updateKeyHistory() {
+  const kid = getKid();
+  fetch(`/api/keys`)
+    .then(r => r.json())
+    .then(data => {
+      const keyData = data.keys.find(k => k.kid === kid);
+      if (!keyData) return;
+
+      const historyEl = document.getElementById('keyHistory');
+      const versions = [...keyData.history].reverse();
+
+      historyEl.innerHTML = versions.map((v, i) => {
+        const isActive = i === 0;
+        const created = formatTime(v.created_at);
+        const expires = formatTime(v.expires_at);
+        return `
+          <div class="key-version ${isActive ? 'active' : ''}">
+            <span class="status-badge ${isActive ? 'badge-ok' : 'badge-wait'}">
+              ${isActive ? '当前' : '历史'}
+            </span>
+            <div style="flex:1; min-width:0;">
+              <div style="color:#f8fafc;">${v.key_id}</div>
+              <div class="version-key">${v.key_hex}</div>
+              <div class="version-time">创建: ${created} | 过期: ${expires}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    })
+    .catch(e => log(`加载密钥历史失败: ${e.message}`, 'error'));
+}
+
+async function fetchConfig() {
+  log('GET /api/config ...', 'info');
+  try {
+    const res = await fetch('/api/config');
+    const data = await res.json();
+    serverConfig = data;
+
+    const html = data.referer_whitelist.map(r =>
+      `<div class="whitelist-item">✅ ${r}</div>`
+    ).join('');
+    document.getElementById('whitelistBox').innerHTML = html +
+      `<div style="margin-top:0.5rem; color:#94a3b8;">
+        Token TTL: ${data.token_ttl_seconds} 秒 |
+        密钥轮换: ${data.key_rotation_interval_ms / 1000} 秒 |
+        历史保留: ${data.key_history_retention_ms / 1000} 秒 |
+        日志上限: ${data.max_log_entries} 条
+      </div>`;
+
+    document.getElementById('rotationInterval').textContent = data.key_rotation_interval_ms / 1000;
+    startCountdown();
+
+    log(`配置加载成功`, 'success');
+  } catch (e) {
+    log(`请求失败: ${e.message}`, 'error');
+  }
+}
+
+async function fetchKeys() {
+  log('GET /api/keys ...', 'info');
+  try {
+    const res = await fetch('/api/keys');
+    const data = await res.json();
+    log(`共 ${data.keys.length} 组密钥:`, 'success');
+    data.keys.forEach(k => {
+      log(`  ${k.kid} (${k.name}): ${k.active_key_hex} (${k.history_count} 个历史版本, 授权流: ${k.streams.join(', ')})`, 'dim');
+    });
+    updateKeyHistory();
+  } catch (e) {
+    log(`请求失败: ${e.message}`, 'error');
+  }
+}
+
+async function fetchStreams() {
+  log('GET /api/streams ...', 'info');
+  try {
+    const res = await fetch('/api/streams');
+    const data = await res.json();
+    log(`可用流:`, 'success');
+    data.streams.forEach(s => {
+      const kids = s.available_kids.map(k => `${k.kid}(${k.name})`).join(', ');
+      log(`  ${s.id} → 可用kid: ${kids}`, 'dim');
+    });
+  } catch (e) {
+    log(`请求失败: ${e.message}`, 'error');
+  }
+}
+
+async function rotateAllKeys() {
+  log('GET /api/keys/rotate (全部) ...', 'info');
+  try {
+    const res = await fetch('/api/keys/rotate');
+    const data = await res.json();
+    if (data.success) {
+      log(`✅ 已轮换全部密钥: ${data.rotated.join(', ')}`, 'success');
+      nextRotationTime = Date.now() + serverConfig.key_rotation_interval_ms;
+      fetchKeys();
+    }
+  } catch (e) {
+    log(`轮换失败: ${e.message}`, 'error');
+  }
+}
+
+async function rotateSelectedKey() {
+  const kid = getKid();
+  log(`GET /api/keys/rotate?kid=${kid} ...`, 'info');
+  try {
+    const res = await fetch(`/api/keys/rotate?kid=${encodeURIComponent(kid)}`);
+    const data = await res.json();
+    if (data.success) {
+      log(`✅ 已轮换 ${kid}: ${data.new_key.key_id} → ${data.new_key.key.toString('hex')}`, 'success');
+      nextRotationTime = Date.now() + serverConfig.key_rotation_interval_ms;
+      fetchKeys();
+    }
+  } catch (e) {
+    log(`轮换失败: ${e.message}`, 'error');
+  }
+}
+
+async function requestToken() {
+  const kid = getKid();
+  const streamId = getStreamId();
+  currentKid = kid;
+  currentStreamId = streamId;
+
+  log(`GET /api/token?kid=${kid}&stream_id=${streamId} ...`, 'info');
+
+  try {
+    const res = await fetch(`/api/token?kid=${encodeURIComponent(kid)}&stream_id=${encodeURIComponent(streamId)}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      log(`Token请求失败: ${data.error}`, 'error');
+      if (data.allowed_streams) {
+        log(`  该kid授权流: ${data.allowed_streams.join(', ')}`, 'dim');
+      }
+      return;
+    }
+
+    currentToken = data.token;
+    const expiresDate = new Date(data.expires * 1000).toLocaleTimeString();
+
+    const [tKid, tKeyId, tStream, tExp, tSig] = data.token.split(':');
+    const formattedToken = `<span class="token-part-kid">${tKid}</span>:<span class="token-part-keyid">${tKeyId}</span>:<span class="token-part-stream">${tStream}</span>:<span class="token-part-exp">${tExp}</span>:<span class="token-part-sig">${tSig}</span>`;
+
+    log(`Token获取成功!`, 'success');
+    log(`  kid: ${data.kid}`, 'dim');
+    log(`  key_id: ${data.key_id}`, 'dim');
+    log(`  stream_id: ${data.stream_id}`, 'dim');
+    log(`  token: ${formattedToken}`, 'dim');
+    log(`  过期时间: ${expiresDate}`, 'dim');
+    log(`  密钥URL: ${data.key_url}`, 'info');
+
+    updateM3u8Preview(streamId, data.token);
+    document.getElementById('btnRequestKey').disabled = false;
+
+    updateKeyResult({
+      status: 'token_ok',
+      kid: data.kid,
+      keyId: data.key_id,
+      streamId: data.stream_id,
+      token: data.token,
+      expires: expiresDate,
+      keyUrl: data.key_url,
+    });
+  } catch (e) {
+    log(`请求失败: ${e.message}`, 'error');
+  }
+}
+
+async function requestKey(streamId, token, extraHeaders) {
+  streamId = streamId || currentStreamId;
+  token = token || currentToken;
+
+  if (!streamId || !token) {
+    log('请先获取Token', 'warn');
+    return;
+  }
+
+  const url = `/api/key?stream_id=${encodeURIComponent(streamId)}&token=${encodeURIComponent(token)}`;
+  log(`GET /api/key?stream_id=${streamId}&token=...`, 'info');
+  log(`  完整token: ${token}`, 'dim');
+
+  const fetchOpts = { headers: extraHeaders || {} };
+
+  try {
+    const res = await fetch(url, fetchOpts);
+
+    if (!res.ok) {
+      const text = await res.text();
+      let errMsg = text;
+      try {
+        const err = JSON.parse(text);
+        errMsg = err.error;
+        if (err.referer || err.origin) {
+          log(`  Referer: ${err.referer || '(none)'}`, 'dim');
+          log(`  Origin: ${err.origin || '(none)'}`, 'dim');
+          log(`  允许列表: ${err.allowed.join(', ')}`, 'dim');
+        }
+      } catch {}
+      log(`密钥请求失败 (${res.status}): ${errMsg}`, 'error');
+      updateKeyResult({ status: 'error', code: res.status, error: errMsg });
+      fetchServerLogs();
+      return;
+    }
+
+    const kidHeader = res.headers.get('X-Key-Kid');
+    const keyIdHeader = res.headers.get('X-Key-Id');
+    const refererMatched = res.headers.get('X-Referer-Matched');
+
+    const arrayBuffer = await res.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
+
+    log(`密钥获取成功! (${bytes.length} bytes)`, 'success');
+    log(`  KID: ${kidHeader}`, 'dim');
+    log(`  Key ID: ${keyIdHeader}`, 'dim');
+    log(`  Referer匹配: ${refererMatched}`, 'dim');
+    log(`  HEX: ${hex}`, 'success');
+
+    updateKeyResult({
+      status: 'key_ok',
+      kid: kidHeader,
+      keyId: keyIdHeader,
+      streamId,
+      size: bytes.length,
+      hex: hex,
+      refererMatched,
+    });
+
+    fetchServerLogs();
+  } catch (e) {
+    log(`请求失败: ${e.message}`, 'error');
+    updateKeyResult({ status: 'error', code: 0, error: e.message });
+  }
+}
+
+async function requestKeyWithExpiredToken() {
+  const kid = getKid();
+  const streamId = getStreamId();
+  const keyId = `${kid}_v${Date.now()}`;
+  const pastExp = Math.floor(Date.now() / 1000) - 3600;
+  log(`模拟过期Token (过期于1小时前)...`, 'warn');
+  const fakePayload = `${kid}:${keyId}:${streamId}:${pastExp}`;
+  const fakeSig = '0000000000000000000000000000000000000000000000000000000000000000';
+  const fakeToken = `${fakePayload}:${fakeSig}`;
+  await requestKey(streamId, fakeToken);
+}
+
+async function requestKeyWithBadSignature() {
+  if (!currentToken || !currentStreamId) {
+    log('请先获取有效Token', 'warn');
+    return;
+  }
+  const parts = currentToken.split(':');
+  parts[4] = 'deadbeef' + parts[4].slice(8);
+  const badToken = parts.join(':');
+  log(`模拟篡改签名...`, 'warn');
+  log(`  原始: ${currentToken}`, 'dim');
+  log(`  篡改: ${badToken}`, 'dim');
+  await requestKey(currentStreamId, badToken);
+}
+
+async function requestKeyWithWrongStream() {
+  if (!currentToken) {
+    log('请先获取Token', 'warn');
+    return;
+  }
+  const wrongStream = currentStreamId === 'stream_001' ? 'stream_002' : 'stream_001';
+  log(`模拟streamId不匹配 (token for ${currentStreamId}, request for ${wrongStream})...`, 'warn');
+  await requestKey(wrongStream, currentToken);
+}
+
+async function requestKeyWithWrongKid() {
+  const streamId = getStreamId();
+  log(`模拟无效kid (使用不存在的kid_bad)...`, 'warn');
+  const badKid = 'kid_bad';
+  const keyId = `${badKid}_v${Date.now()}`;
+  const exp = Math.floor(Date.now() / 1000) + 300;
+  const badToken = `${badKid}:${keyId}:${streamId}:${exp}:0000000000000000000000000000000000000000000000000000000000000000`;
+  await requestKey(streamId, badToken);
+}
+
+async function fetchServerLogs() {
+  const status = document.getElementById('logFilterStatus').value;
+  const kid = document.getElementById('logFilterKid').value;
+  const limit = document.getElementById('logFilterLimit').value;
+
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  if (kid) params.set('kid', kid);
+  if (limit) params.set('limit', limit);
+
+  try {
+    const res = await fetch(`/api/logs?${params.toString()}`);
+    const data = await res.json();
+
+    document.getElementById('logTotal').textContent = data.total;
+    document.getElementById('statTotal').textContent = data.total;
+
+    const success = data.logs.filter(l => l.status === 'success').length;
+    const rejected = data.logs.filter(l => l.status === 'rejected').length;
+    const rate = data.total > 0 ? Math.round((success / data.logs.length) * 100) : 0;
+
+    document.getElementById('statSuccess').textContent = success;
+    document.getElementById('statRejected').textContent = rejected;
+    document.getElementById('statRate').textContent = `${rate}%`;
+
+    const tbody = document.getElementById('serverLogBody');
+    if (data.logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#64748b; padding:2rem;">暂无日志</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.logs.map(l => `
+      <tr>
+        <td>
+          <div class="ts">${l.datetime}</div>
+          <div class="id">${l.id}</div>
+        </td>
+        <td>
+          <span class="status-badge ${l.status === 'success' ? 'badge-ok' : 'badge-err'}">
+            ${l.status === 'success' ? '成功' : '拒绝'}
+          </span>
+        </td>
+        <td>${l.kid || '-'}</td>
+        <td style="font-size:0.7rem; max-width:120px; overflow:hidden; text-overflow:ellipsis;" title="${l.key_id || ''}">${l.key_id || '-'}</td>
+        <td>${l.stream_id || '-'}</td>
+        <td style="font-size:0.7rem;">${l.client_ip || '-'}</td>
+        <td style="font-size:0.7rem; max-width:150px; overflow:hidden; text-overflow:ellipsis;" title="${l.referer || ''}">${l.referer || '-'}</td>
+        <td style="color:#f87171; font-size:0.7rem;">${l.error || '-'}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    document.getElementById('serverLogBody').innerHTML =
+      `<tr><td colspan="8" style="text-align:center; color:#f87171; padding:2rem;">加载失败: ${e.message}</td></tr>`;
+  }
+}
+
+async function exportLogs(format) {
+  log(`导出 ${format.toUpperCase()} 格式日志...`, 'info');
+  try {
+    const res = await fetch(`/api/logs/export?format=${format}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `key_request_logs_${Date.now()}.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    log(`✅ 日志已导出`, 'success');
+  } catch (e) {
+    log(`导出失败: ${e.message}`, 'error');
+  }
+}
+
+async function clearServerLogs() {
+  if (!confirm('确定要清空服务器上的所有请求日志吗？')) return;
+  log('清空服务器日志...', 'warn');
+  try {
+    const res = await fetch('/api/logs/clear');
+    const data = await res.json();
+    if (data.success) {
+      log(`✅ 已清空 ${data.cleared} 条日志`, 'success');
+      fetchServerLogs();
+    }
+  } catch (e) {
+    log(`清空失败: ${e.message}`, 'error');
+  }
+}
+
+function updateKeyResult(info) {
+  const el = document.getElementById('keyResult');
+  let html = '';
+
+  if (info.status === 'token_ok') {
+    html = `
+      <dt>状态</dt><dd><span class="status-badge badge-ok">Token已获取</span></dd>
+      <dt>KID</dt><dd>${info.kid}</dd>
+      <dt>Key ID</dt><dd style="font-size:0.8rem;">${info.keyId}</dd>
+      <dt>Stream ID</dt><dd>${info.streamId}</dd>
+      <dt>Token</dt><dd style="word-break:break-all; font-size:0.8rem;">${info.token}</dd>
+      <dt>过期时间</dt><dd>${info.expires}</dd>
+      <dt>密钥URL</dt><dd style="word-break:break-all; font-size:0.8rem;">${info.keyUrl}</dd>
+    `;
+  } else if (info.status === 'key_ok') {
+    html = `
+      <dt>状态</dt><dd><span class="status-badge badge-ok">密钥获取成功</span></dd>
+      <dt>KID</dt><dd>${info.kid}</dd>
+      <dt>Key ID</dt><dd style="font-size:0.8rem;">${info.keyId}</dd>
+      <dt>Stream ID</dt><dd>${info.streamId}</dd>
+      <dt>Referer 匹配</dt><dd>${info.refererMatched}</dd>
+      <dt>密钥长度</dt><dd>${info.size} bytes</dd>
+      <dt>密钥 (HEX)</dt><dd class="key-hex">${info.hex}</dd>
+    `;
+  } else if (info.status === 'error') {
+    html = `
+      <dt>状态</dt><dd><span class="status-badge badge-err">失败 (${info.code})</span></dd>
+      <dt>错误</dt><dd>${info.error}</dd>
+    `;
+  } else {
+    html = `
+      <dt>状态</dt><dd><span class="status-badge badge-wait">等待请求</span></dd>
+    `;
+  }
+
+  el.innerHTML = html;
+}
+
+window.addEventListener('load', () => {
+  fetchConfig().then(() => {
+    fetchKeys();
+    updateKeyHistory();
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLAG 交换机模拟器</title>
+    <link rel="stylesheet" href="styles.css?v=5">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MLAG 交换机模拟器</h1>
+            <p class="subtitle">多机箱链路聚合组 - 主备状态实时监控</p>
+        </header>
+
+        <div class="control-bar">
+            <div class="export-buttons">
+                <span class="label">导出心跳记录:</span>
+                <button class="btn-small btn-export" onclick="exportHeartbeat('json', 'sw-001')">SW1 JSON</button>
+                <button class="btn-small btn-export" onclick="exportHeartbeat('csv', 'sw-001')">SW1 CSV</button>
+                <button class="btn-small btn-export" onclick="exportHeartbeat('json', 'sw-002')">SW2 JSON</button>
+                <button class="btn-small btn-export" onclick="exportHeartbeat('csv', 'sw-002')">SW2 CSV</button>
+            </div>
+        </div>
+
+        <div class="consistency-panel">
+            <div class="panel-header">
+                <h3>配置一致性检查 <span class="consistency-status" id="consistency-overall">检查中...</span></h3>
+                <span class="check-time" id="consistency-time">--</span>
+            </div>
+            <div class="consistency-grid" id="consistency-grid">
+            </div>
+        </div>
+
+        <div class="mlag-domain">
+            <div class="domain-header">
+                <h2>MLAG Domain: <span class="domain-id">mlag-001</span></h2>
+                <div class="connection-line">
+                    <div class="heartbeat-indicator">
+                        <span class="hb-dot"></span>
+                        <span class="hb-text">心跳正常</span>
+                        <span class="hb-count" id="hb-count">记录: 0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="switches-container">
+                <div id="switch1" class="switch-card">
+                    <div class="switch-header">
+                        <div class="switch-info">
+                            <h3 class="switch-name">Switch-A</h3>
+                            <span class="switch-id">sw-001</span>
+                        </div>
+                        <div class="role-badge role-master">MASTER</div>
+                    </div>
+
+                    <div class="switch-status">
+                        <div class="status-item">
+                            <span class="label">运行时间:</span>
+                            <span class="value uptime">0s</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">对端状态:</span>
+                            <span class="value peer-status"><span class="status-dot alive"></span>在线</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">对端角色:</span>
+                            <span class="value peer-role">BACKUP</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">上次心跳:</span>
+                            <span class="value last-hb">0s</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">回切状态:</span>
+                            <span class="value" id="fb-state-1">无</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">回切剩余:</span>
+                            <span class="value" id="fb-remaining-1">-</span>
+                        </div>
+                    </div>
+
+                    <div class="ports-section">
+                        <h4>端口状态</h4>
+                        <div class="ports-grid" id="ports-1"></div>
+                    </div>
+
+                    <div class="lacp-section">
+                        <h4>LACP 状态</h4>
+                        <div class="lacp-list" id="lacp-1"></div>
+                    </div>
+
+                    <div class="mac-section">
+                        <h4>MAC 防漂移 <span class="mac-badge" id="mac-drift-1">漂移: 0</span> <span class="mac-badge" id="mac-blocked-1">阻断: 0</span></h4>
+                        <div class="mac-table" id="mac-table-1"></div>
+                    </div>
+                </div>
+
+                <div class="peer-connection">
+                    <div class="peer-link">
+                        <div class="link-label">MLAG Peer-Link</div>
+                        <div class="link-animation"></div>
+                    </div>
+                </div>
+
+                <div id="switch2" class="switch-card">
+                    <div class="switch-header">
+                        <div class="switch-info">
+                            <h3 class="switch-name">Switch-B</h3>
+                            <span class="switch-id">sw-002</span>
+                        </div>
+                        <div class="role-badge role-backup">BACKUP</div>
+                    </div>
+
+                    <div class="switch-status">
+                        <div class="status-item">
+                            <span class="label">运行时间:</span>
+                            <span class="value uptime">0s</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">对端状态:</span>
+                            <span class="value peer-status"><span class="status-dot alive"></span>在线</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">对端角色:</span>
+                            <span class="value peer-role">MASTER</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">上次心跳:</span>
+                            <span class="value last-hb">0s</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">回切状态:</span>
+                            <span class="value" id="fb-state-2">无</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">回切剩余:</span>
+                            <span class="value" id="fb-remaining-2">-</span>
+                        </div>
+                    </div>
+
+                    <div class="ports-section">
+                        <h4>端口状态</h4>
+                        <div class="ports-grid" id="ports-2"></div>
+                    </div>
+
+                    <div class="lacp-section">
+                        <h4>LACP 状态</h4>
+                        <div class="lacp-list" id="lacp-2"></div>
+                    </div>
+
+                    <div class="mac-section">
+                        <h4>MAC 防漂移 <span class="mac-badge" id="mac-drift-2">漂移: 0</span> <span class="mac-badge" id="mac-blocked-2">阻断: 0</span></h4>
+                        <div class="mac-table" id="mac-table-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="toggleSwitch1" class="btn btn-danger">模拟 Switch-A 故障</button>
+            <button id="toggleSwitch2" class="btn btn-danger">模拟 Switch-B 故障</button>
+            <button id="resetBtn" class="btn btn-primary">重置状态</button>
+        </div>
+    </div>
+
+    <script src="app.js?v=5"></script>
+</body>
+</html>

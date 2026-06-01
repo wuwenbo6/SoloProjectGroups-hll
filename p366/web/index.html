@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>gPTP 时钟同步模拟器</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        header p {
+            color: rgba(255,255,255,0.8);
+            font-size: 1.1rem;
+        }
+
+        .controls {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-start {
+            background: linear-gradient(45deg, #11998e, #38ef7d);
+            color: white;
+        }
+
+        .btn-start:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(17, 153, 142, 0.4);
+        }
+
+        .btn-stop {
+            background: linear-gradient(45deg, #eb3349, #f45c43);
+            color: white;
+        }
+
+        .btn-stop:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(235, 51, 73, 0.4);
+        }
+
+        .btn-reset {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .btn-reset:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .status-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px 30px;
+            min-width: 180px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .status-card .label {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+        }
+
+        .status-card .unit {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.6);
+            margin-left: 4px;
+        }
+
+        .status-card.running .value {
+            color: #38ef7d;
+        }
+
+        .status-card.stopped .value {
+            color: #f45c43;
+        }
+
+        .charts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 25px;
+        }
+
+        .chart-container {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .chart-container h3 {
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            text-align: center;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 350px;
+        }
+
+        .config-panel {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .config-panel h3 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .config-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .config-item label {
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .config-item input {
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 1rem;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .config-item input:focus {
+            outline: none;
+            border-color: #38ef7d;
+        }
+
+        .config-item input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+
+        .stats-summary {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .stats-summary h3 {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+        }
+
+        .stat-item .label {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 5px;
+        }
+
+        .stat-item .value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+        }
+
+        .error-positive {
+            color: #f45c43;
+        }
+
+        .error-negative {
+            color: #38ef7d;
+        }
+
+        @media (max-width: 768px) {
+            .charts {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            .status-card {
+                min-width: 140px;
+                padding: 15px 20px;
+            }
+
+            .status-card .value {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>gPTP 时钟同步模拟器</h1>
+            <p>通用精确时间协议 (IEEE 802.1AS) 主从时钟同步演示</p>
+        </header>
+
+        <div class="controls">
+            <button class="btn btn-start" id="startBtn" onclick="startSimulation()">开始同步</button>
+            <button class="btn btn-stop" id="stopBtn" onclick="stopSimulation()" disabled>停止同步</button>
+            <button class="btn btn-reset" id="resetBtn" onclick="resetSimulation()">重置</button>
+        </div>
+
+        <div class="config-panel">
+            <h3>网络与时钟配置</h3>
+            <div class="config-grid">
+                <div class="config-item">
+                    <label>平均网络延迟 (ns)</label>
+                    <input type="number" id="meanDelay" value="500000" placeholder="500000">
+                </div>
+                <div class="config-item">
+                    <label>抖动标准差 (ns)</label>
+                    <input type="number" id="jitter" value="50000" placeholder="50000">
+                </div>
+                <div class="config-item">
+                    <label>丢包率 (0-1)</label>
+                    <input type="number" id="packetLoss" step="0.01" value="0.01" placeholder="0.01">
+                </div>
+                <div class="config-item">
+                    <label>主时钟漂移率</label>
+                    <input type="number" id="masterDrift" step="1e-9" value="0" placeholder="0">
+                </div>
+                <div class="config-item">
+                    <label>从时钟漂移率</label>
+                    <input type="number" id="slaveDrift" step="1e-9" value="1e-6" placeholder="1e-6">
+                </div>
+                <div class="config-item">
+                    <label>同步间隔 (ms)</label>
+                    <input type="number" id="syncInterval" value="125" placeholder="125">
+                </div>
+            </div>
+        </div>
+
+        <div class="status">
+            <div class="status-card" id="runningCard">
+                <div class="label">运行状态</div>
+                <div class="value" id="runningValue">已停止</div>
+            </div>
+            <div class="status-card">
+                <div class="label">同步次数</div>
+                <div class="value" id="syncCount">0</div>
+            </div>
+            <div class="status-card">
+                <div class="label">当前同步误差</div>
+                <div class="value" id="syncError">0<span class="unit">ns</span></div>
+            </div>
+            <div class="status-card">
+                <div class="label">路径延迟</div>
+                <div class="value" id="pathDelay">0<span class="unit">ns</span></div>
+            </div>
+            <div class="status-card">
+                <div class="label">时钟偏移</div>
+                <div class="value" id="clockOffset">0<span class="unit">ns</span></div>
+            </div>
+            <div class="status-card">
+                <div class="label">速率比 (Ratio)</div>
+                <div class="value" id="rateRatio">1.000000</div>
+            </div>
+            <div class="status-card">
+                <div class="label">从时钟温度</div>
+                <div class="value" id="slaveTemp">25.0<span class="unit">°C</span></div>
+            </div>
+        </div>
+
+        <div class="charts">
+            <div class="chart-container">
+                <h3>同步误差变化曲线 (纳秒级)</h3>
+                <div class="chart-wrapper">
+                    <canvas id="errorChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3>路径延迟变化曲线 (纳秒级)</h3>
+                <div class="chart-wrapper">
+                    <canvas id="delayChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3>时钟偏移变化曲线 (纳秒级)</h3>
+                <div class="chart-wrapper">
+                    <canvas id="offsetChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3>时钟频率调整 (归一化)</h3>
+                <div class="chart-wrapper">
+                    <canvas id="freqChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3>速率比 (Rate Ratio) 变化曲线</h3>
+                <div class="chart-wrapper">
+                    <canvas id="ratioChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3>温度漂移模型 (°C)</h3>
+                <div class="chart-wrapper">
+                    <canvas id="tempChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-summary">
+            <h3>统计摘要</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="label">最大误差</div>
+                    <div class="value" id="maxError">0 ns</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">最小误差</div>
+                    <div class="value" id="minError">0 ns</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">平均误差</div>
+                    <div class="value" id="avgError">0 ns</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">误差标准差</div>
+                    <div class="value" id="stdError">0 ns</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">平均路径延迟</div>
+                    <div class="value" id="avgDelay">0 ns</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">收敛时间</div>
+                    <div class="value" id="convergenceTime">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let errorChart, delayChart, offsetChart, freqChart, ratioChart, tempChart;
+        let maxDataPoints = 200;
+        let isRunning = false;
+        let allErrors = [];
+        let allDelays = [];
+        let startTime = null;
+        let hasConverged = false;
+        let convergenceTime = null;
+
+        function initCharts() {
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 0
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: {
+                            color: 'rgba(255,255,255,0.8)',
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: 'rgba(255,255,255,0.2)',
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: '时间 (样本点)',
+                            color: 'rgba(255,255,255,0.7)',
+                            font: {
+                                size: 12
+                            }
+                        },
+                        ticks: {
+                            color: 'rgba(255,255,255,0.6)',
+                            maxTicksLimit: 8
+                        },
+                        grid: {
+                            color: 'rgba(255,255,255,0.1)'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '时间 (纳秒 ns)',
+                            color: 'rgba(255,255,255,0.7)',
+                            font: {
+                                size: 12
+                            }
+                        },
+                        ticks: {
+                            color: 'rgba(255,255,255,0.6)'
+                        },
+                        grid: {
+                            color: 'rgba(255,255,255,0.1)'
+                        }
+                    }
+                }
+            };
+
+            const errorCtx = document.getElementById('errorChart').getContext('2d');
+            errorChart = new Chart(errorCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '同步误差 (ns)',
+                        data: [],
+                        borderColor: '#f45c43',
+                        backgroundColor: 'rgba(244, 92, 67, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }, {
+                        label: '零误差参考线',
+                        data: [],
+                        borderColor: 'rgba(255,255,255,0.3)',
+                        borderWidth: 1,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        fill: false
+                    }]
+                },
+                options: commonOptions
+            });
+
+            const delayCtx = document.getElementById('delayChart').getContext('2d');
+            delayChart = new Chart(delayCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '路径延迟 (ns)',
+                        data: [],
+                        borderColor: '#38ef7d',
+                        backgroundColor: 'rgba(56, 239, 125, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }]
+                },
+                options: commonOptions
+            });
+
+            const offsetCtx = document.getElementById('offsetChart').getContext('2d');
+            offsetChart = new Chart(offsetCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '时钟偏移 (ns)',
+                        data: [],
+                        borderColor: '#f093fb',
+                        backgroundColor: 'rgba(240, 147, 251, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }]
+                },
+                options: commonOptions
+            });
+
+            const freqCtx = document.getElementById('freqChart').getContext('2d');
+            const freqOptions = JSON.parse(JSON.stringify(commonOptions));
+            freqOptions.scales.y.title.text = '频率 (归一化)';
+            freqChart = new Chart(freqCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '主时钟频率',
+                        data: [],
+                        borderColor: '#ffd700',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }, {
+                        label: '从时钟频率',
+                        data: [],
+                        borderColor: '#00d4ff',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }, {
+                        label: '理想频率 (1.0)',
+                        data: [],
+                        borderColor: 'rgba(255,255,255,0.3)',
+                        borderWidth: 1,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        fill: false
+                    }]
+                },
+                options: freqOptions
+            });
+
+            const ratioCtx = document.getElementById('ratioChart').getContext('2d');
+            const ratioOptions = JSON.parse(JSON.stringify(commonOptions));
+            ratioOptions.scales.y.title.text = '速率比';
+            ratioChart = new Chart(ratioCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '速率比 (Rate Ratio)',
+                        data: [],
+                        borderColor: '#ff6b6b',
+                        backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }, {
+                        label: '理想值 (1.0)',
+                        data: [],
+                        borderColor: 'rgba(255,255,255,0.3)',
+                        borderWidth: 1,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        fill: false
+                    }]
+                },
+                options: ratioOptions
+            });
+
+            const tempCtx = document.getElementById('tempChart').getContext('2d');
+            const tempOptions = JSON.parse(JSON.stringify(commonOptions));
+            tempOptions.scales.y.title.text = '温度 (°C)';
+            tempChart = new Chart(tempCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '主时钟温度 (°C)',
+                        data: [],
+                        borderColor: '#ffd700',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }, {
+                        label: '从时钟温度 (°C)',
+                        data: [],
+                        borderColor: '#ff6b6b',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }, {
+                        label: '从时钟频偏 (ppm×10)',
+                        data: [],
+                        borderColor: '#00d4ff',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    ...tempOptions,
+                    scales: {
+                        ...tempOptions.scales,
+                        y1: {
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: '频偏 (ppm×10)',
+                                color: 'rgba(255,255,255,0.7)',
+                                font: { size: 12 }
+                            },
+                            ticks: {
+                                color: 'rgba(255,255,255,0.6)'
+                            },
+                            grid: {
+                                color: 'rgba(255,255,255,0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function connectWebSocket() {
+            const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${proto}//${window.location.host}/ws`);
+
+            ws.onopen = function() {
+                console.log('WebSocket connected');
+            };
+
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                updateCharts(data);
+            };
+
+            ws.onclose = function() {
+                console.log('WebSocket disconnected');
+                if (isRunning) {
+                    setTimeout(connectWebSocket, 1000);
+                }
+            };
+
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        function updateCharts(data) {
+            const timestamp = new Date(data.timestamp).toLocaleTimeString();
+
+            errorChart.data.labels.push(timestamp);
+            errorChart.data.datasets[0].data.push(data.syncError);
+            errorChart.data.datasets[1].data.push(0);
+
+            delayChart.data.labels.push(timestamp);
+            delayChart.data.datasets[0].data.push(data.pathDelay);
+
+            offsetChart.data.labels.push(timestamp);
+            offsetChart.data.datasets[0].data.push(data.clockOffset);
+
+            ratioChart.data.labels.push(timestamp);
+            ratioChart.data.datasets[0].data.push(data.rateRatio);
+            ratioChart.data.datasets[1].data.push(1.0);
+
+            tempChart.data.labels.push(timestamp);
+            tempChart.data.datasets[0].data.push(data.masterTemperature);
+            tempChart.data.datasets[1].data.push(data.slaveTemperature);
+            tempChart.data.datasets[2].data.push(data.slaveFreqOffset * 1e7);
+
+            if (errorChart.data.labels.length > maxDataPoints) {
+                errorChart.data.labels.shift();
+                errorChart.data.datasets[0].data.shift();
+                errorChart.data.datasets[1].data.shift();
+
+                delayChart.data.labels.shift();
+                delayChart.data.datasets[0].data.shift();
+
+                offsetChart.data.labels.shift();
+                offsetChart.data.datasets[0].data.shift();
+
+                freqChart.data.labels.shift();
+                freqChart.data.datasets[0].data.shift();
+                freqChart.data.datasets[1].data.shift();
+                freqChart.data.datasets[2].data.shift();
+
+                ratioChart.data.labels.shift();
+                ratioChart.data.datasets[0].data.shift();
+                ratioChart.data.datasets[1].data.shift();
+
+                tempChart.data.labels.shift();
+                tempChart.data.datasets[0].data.shift();
+                tempChart.data.datasets[1].data.shift();
+                tempChart.data.datasets[2].data.shift();
+            }
+
+            errorChart.update('none');
+            delayChart.update('none');
+            offsetChart.update('none');
+            ratioChart.update('none');
+            tempChart.update('none');
+
+            updateStatus(data);
+            updateStats(data);
+        }
+
+        function updateStatus(data) {
+            document.getElementById('syncError').innerHTML =
+                `<span class="${data.syncError >= 0 ? 'error-positive' : 'error-negative'}">${data.syncError.toLocaleString()}</span><span class="unit">ns</span>`;
+            document.getElementById('pathDelay').textContent = data.pathDelay.toLocaleString() + ' ns';
+            document.getElementById('clockOffset').innerHTML =
+                `<span class="${data.clockOffset >= 0 ? 'error-positive' : 'error-negative'}">${data.clockOffset.toLocaleString()}</span><span class="unit">ns</span>`;
+
+            const ratioVal = data.rateRatio || 1.0;
+            const ratioColor = Math.abs(ratioVal - 1.0) < 1e-6 ? '#38ef7d' : Math.abs(ratioVal - 1.0) < 1e-4 ? '#ffd700' : '#f45c43';
+            document.getElementById('rateRatio').innerHTML =
+                `<span style="color:${ratioColor}">${ratioVal.toFixed(6)}</span>`;
+
+            const slaveTemp = data.slaveTemperature || 25.0;
+            const tempColor = Math.abs(slaveTemp - 25.0) < 1 ? '#38ef7d' : Math.abs(slaveTemp - 25.0) < 5 ? '#ffd700' : '#f45c43';
+            document.getElementById('slaveTemp').innerHTML =
+                `<span style="color:${tempColor}">${slaveTemp.toFixed(1)}</span><span class="unit">°C</span>`;
+
+            fetch('/api/status')
+                .then(r => r.json())
+                .then(status => {
+                    document.getElementById('syncCount').textContent = status.syncCount.toLocaleString();
+
+                    freqChart.data.labels.push(new Date().toLocaleTimeString());
+                    freqChart.data.datasets[0].data.push(status.masterFreq);
+                    freqChart.data.datasets[1].data.push(status.slaveFreq);
+                    freqChart.data.datasets[2].data.push(1.0);
+
+                    if (freqChart.data.labels.length > maxDataPoints) {
+                        freqChart.data.labels.shift();
+                        freqChart.data.datasets[0].data.shift();
+                        freqChart.data.datasets[1].data.shift();
+                        freqChart.data.datasets[2].data.shift();
+                    }
+
+                    freqChart.update('none');
+                });
+        }
+
+        function updateStats(data) {
+            if (data.syncError !== 0) {
+                allErrors.push(data.syncError);
+            }
+            if (data.pathDelay > 0) {
+                allDelays.push(data.pathDelay);
+            }
+
+            if (allErrors.length > 0) {
+                const maxErr = Math.max(...allErrors);
+                const minErr = Math.min(...allErrors);
+                const avgErr = allErrors.reduce((a, b) => a + b, 0) / allErrors.length;
+
+                const variance = allErrors.reduce((a, b) => a + Math.pow(b - avgErr, 2), 0) / allErrors.length;
+                const stdErr = Math.sqrt(variance);
+
+                document.getElementById('maxError').innerHTML =
+                    `<span class="${maxErr >= 0 ? 'error-positive' : 'error-negative'}">${maxErr.toFixed(0)}</span> ns`;
+                document.getElementById('minError').innerHTML =
+                    `<span class="${minErr >= 0 ? 'error-positive' : 'error-negative'}">${minErr.toFixed(0)}</span> ns`;
+                document.getElementById('avgError').innerHTML =
+                    `<span class="${avgErr >= 0 ? 'error-positive' : 'error-negative'}">${avgErr.toFixed(1)}</span> ns`;
+                document.getElementById('stdError').textContent = stdErr.toFixed(1) + ' ns';
+
+                if (!hasConverged && allErrors.length > 20) {
+                    const recentErrors = allErrors.slice(-20);
+                    const recentAvg = recentErrors.reduce((a, b) => a + b, 0) / recentErrors.length;
+                    const recentMax = Math.max(...recentErrors);
+                    const recentMin = Math.min(...recentErrors);
+
+                    if (Math.abs(recentAvg) < 1000 && (recentMax - recentMin) < 2000) {
+                        hasConverged = true;
+                        convergenceTime = (Date.now() - startTime) / 1000;
+                        document.getElementById('convergenceTime').textContent = convergenceTime.toFixed(1) + ' s';
+                    }
+                }
+            }
+
+            if (allDelays.length > 0) {
+                const avgDelay = allDelays.reduce((a, b) => a + b, 0) / allDelays.length;
+                document.getElementById('avgDelay').textContent = avgDelay.toFixed(0) + ' ns';
+            }
+        }
+
+        async function startSimulation() {
+            try {
+                const config = {
+                    MeanDelayNs: parseInt(document.getElementById('meanDelay').value),
+                    JitterStdDevNs: parseInt(document.getElementById('jitter').value),
+                    PacketLossRate: parseFloat(document.getElementById('packetLoss').value),
+                    MasterClockDrift: parseFloat(document.getElementById('masterDrift').value),
+                    SlaveClockDrift: parseFloat(document.getElementById('slaveDrift').value),
+                    SyncInterval: parseInt(document.getElementById('syncInterval').value) * 1000000,
+                    PdelayInterval: 1000000000
+                };
+
+                await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                const response = await fetch('/api/start', { method: 'POST' });
+                const result = await response.json();
+
+                if (result.status === 'started') {
+                    isRunning = true;
+                    startTime = Date.now();
+                    hasConverged = false;
+                    convergenceTime = null;
+                    allErrors = [];
+                    allDelays = [];
+
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('stopBtn').disabled = false;
+                    document.getElementById('meanDelay').disabled = true;
+                    document.getElementById('jitter').disabled = true;
+                    document.getElementById('packetLoss').disabled = true;
+                    document.getElementById('masterDrift').disabled = true;
+                    document.getElementById('slaveDrift').disabled = true;
+                    document.getElementById('syncInterval').disabled = true;
+
+                    updateRunningStatus(true);
+                    connectWebSocket();
+                }
+            } catch (error) {
+                console.error('Failed to start simulation:', error);
+            }
+        }
+
+        async function stopSimulation() {
+            try {
+                const response = await fetch('/api/stop', { method: 'POST' });
+                const result = await response.json();
+
+                if (result.status === 'stopped') {
+                    isRunning = false;
+                    if (ws) {
+                        ws.close();
+                        ws = null;
+                    }
+
+                    document.getElementById('startBtn').disabled = false;
+                    document.getElementById('stopBtn').disabled = true;
+                    document.getElementById('meanDelay').disabled = false;
+                    document.getElementById('jitter').disabled = false;
+                    document.getElementById('packetLoss').disabled = false;
+                    document.getElementById('masterDrift').disabled = false;
+                    document.getElementById('slaveDrift').disabled = false;
+                    document.getElementById('syncInterval').disabled = false;
+
+                    updateRunningStatus(false);
+                }
+            } catch (error) {
+                console.error('Failed to stop simulation:', error);
+            }
+        }
+
+        async function resetSimulation() {
+            try {
+                if (isRunning) {
+                    await stopSimulation();
+                }
+
+                const response = await fetch('/api/reset', { method: 'POST' });
+                const result = await response.json();
+
+                if (result.status === 'reset') {
+                    errorChart.data.labels = [];
+                    errorChart.data.datasets[0].data = [];
+                    errorChart.data.datasets[1].data = [];
+                    errorChart.update();
+
+                    delayChart.data.labels = [];
+                    delayChart.data.datasets[0].data = [];
+                    delayChart.update();
+
+                    offsetChart.data.labels = [];
+                    offsetChart.data.datasets[0].data = [];
+                    offsetChart.update();
+
+                    freqChart.data.labels = [];
+                    freqChart.data.datasets[0].data = [];
+                    freqChart.data.datasets[1].data = [];
+                    freqChart.data.datasets[2].data = [];
+                    freqChart.update();
+
+                    ratioChart.data.labels = [];
+                    ratioChart.data.datasets[0].data = [];
+                    ratioChart.data.datasets[1].data = [];
+                    ratioChart.update();
+
+                    tempChart.data.labels = [];
+                    tempChart.data.datasets[0].data = [];
+                    tempChart.data.datasets[1].data = [];
+                    tempChart.data.datasets[2].data = [];
+                    tempChart.update();
+
+                    allErrors = [];
+                    allDelays = [];
+                    hasConverged = false;
+                    convergenceTime = null;
+
+                    document.getElementById('syncCount').textContent = '0';
+                    document.getElementById('syncError').innerHTML = '0<span class="unit">ns</span>';
+                    document.getElementById('pathDelay').textContent = '0 ns';
+                    document.getElementById('clockOffset').innerHTML = '0<span class="unit">ns</span>';
+                    document.getElementById('rateRatio').innerHTML = '1.000000';
+                    document.getElementById('slaveTemp').innerHTML = '25.0<span class="unit">°C</span>';
+                    document.getElementById('maxError').textContent = '0 ns';
+                    document.getElementById('minError').textContent = '0 ns';
+                    document.getElementById('avgError').textContent = '0 ns';
+                    document.getElementById('stdError').textContent = '0 ns';
+                    document.getElementById('avgDelay').textContent = '0 ns';
+                    document.getElementById('convergenceTime').textContent = '-';
+                }
+            } catch (error) {
+                console.error('Failed to reset simulation:', error);
+            }
+        }
+
+        function updateRunningStatus(running) {
+            const card = document.getElementById('runningCard');
+            const value = document.getElementById('runningValue');
+
+            if (running) {
+                card.classList.remove('stopped');
+                card.classList.add('running');
+                value.textContent = '运行中';
+            } else {
+                card.classList.remove('running');
+                card.classList.add('stopped');
+                value.textContent = '已停止';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+            updateRunningStatus(false);
+
+            setInterval(function() {
+                if (!isRunning) {
+                    fetch('/api/status')
+                        .then(r => r.json())
+                        .then(status => {
+                            document.getElementById('syncCount').textContent = status.syncCount.toLocaleString();
+                        });
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMB2 租约服务器 - 状态监控</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .connection-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.disconnected {
+            background: #ef4444;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card h2 {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(180deg, #00d4ff, #7c3aed);
+            border-radius: 2px;
+        }
+
+        .file-list, .client-list, .lease-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .file-item, .client-item, .lease-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover, .client-item:hover, .lease-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .file-info, .client-info, .lease-info {
+            flex: 1;
+        }
+
+        .file-name, .client-name, .lease-client {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .file-size, .client-id, .lease-file {
+            font-size: 0.85em;
+            color: #888;
+        }
+
+        .lease-type {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .lease-type.READ {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+
+        .lease-type.WRITE {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        .lease-type.BATCH {
+            background: rgba(124, 58, 237, 0.2);
+            color: #a78bfa;
+        }
+
+        .lease-state {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .lease-state.GRANTED {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
+
+        .lease-state.BREAKING {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            animation: flash 0.5s infinite;
+        }
+
+        .lease-state.BROKEN {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        .lease-state.DOWNGRADING {
+            background: rgba(251, 146, 60, 0.2);
+            color: #fb923c;
+            animation: flash 0.5s infinite;
+        }
+
+        .lease-state.EXPIRED {
+            background: rgba(107, 114, 128, 0.2);
+            color: #9ca3af;
+        }
+
+        .downgraded-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            background: rgba(251, 146, 60, 0.2);
+            color: #fb923c;
+            margin-left: 8px;
+        }
+
+        .expired-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            background: rgba(107, 114, 128, 0.2);
+            color: #9ca3af;
+            margin-left: 8px;
+        }
+
+        .expires-info {
+            font-size: 0.8em;
+            color: #9ca3af;
+            margin-top: 2px;
+        }
+
+        .expires-info.urgent {
+            color: #f87171;
+            font-weight: 600;
+        }
+
+        .retry-info {
+            font-size: 0.75em;
+            color: #fbbf24;
+            margin-top: 4px;
+        }
+
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .controls h2 {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controls h2::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(180deg, #00d4ff, #7c3aed);
+            border-radius: 2px;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .control-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .control-section h3 {
+            font-size: 1em;
+            margin-bottom: 15px;
+            color: #a78bfa;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
+        }
+
+        .form-group select option {
+            background: #1a1a2e;
+        }
+
+        button {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        button.danger:hover {
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
+        }
+
+        .event-log {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .event-log h2 {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: sticky;
+            top: 0;
+            background: rgba(26, 26, 46, 0.95);
+            padding-bottom: 10px;
+        }
+
+        .event-log h2::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(180deg, #00d4ff, #7c3aed);
+            border-radius: 2px;
+        }
+
+        .event-item {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            border-left: 3px solid #00d4ff;
+        }
+
+        .event-item.LEASE_BREAK,
+        .event-item.LEASE_BREAKING,
+        .event-item.LEASE_BROKEN {
+            border-left-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .event-item.LEASE_GRANTED {
+            border-left-color: #4ade80;
+        }
+
+        .event-item.LEASE_DOWNGRADE,
+        .event-item.LEASE_DOWNGRADING,
+        .event-item.LEASE_DOWNGRADED {
+            border-left-color: #fb923c;
+            background: rgba(251, 146, 60, 0.1);
+        }
+
+        .event-item.LEASE_BREAK_FORCE {
+            border-left-color: #dc2626;
+            background: rgba(220, 38, 38, 0.15);
+        }
+
+        .event-item.LEASE_EXPIRED {
+            border-left-color: #6b7280;
+            background: rgba(107, 114, 128, 0.1);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn-group button {
+            flex: 1;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.85em;
+        }
+
+        .event-time {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .event-content {
+            color: #ccc;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .control-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SMB2 租约服务器监控</h1>
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">WebSocket 已连接</span>
+            </div>
+        </header>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="leaseCount">0</div>
+                <div class="stat-label">活跃租约</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="clientCount">0</div>
+                <div class="stat-label">连接客户端</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="fileCount">0</div>
+                <div class="stat-label">共享文件</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="brokenCount">0</div>
+                <div class="stat-label">已断裂租约</div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>共享文件</h2>
+                <div class="file-list" id="fileList"></div>
+            </div>
+
+            <div class="card">
+                <h2>已连接客户端</h2>
+                <div class="client-list" id="clientList"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>租约状态</h2>
+            <div class="lease-list" id="leaseList"></div>
+        </div>
+
+        <div class="controls">
+            <h2>控制面板</h2>
+            <div class="control-grid">
+                <div class="control-section">
+                    <h3>模拟客户端</h3>
+                    <div class="form-group">
+                        <label>客户端数量</label>
+                        <input type="number" id="simClientCount" value="3" min="1" max="10">
+                    </div>
+                    <div class="form-group">
+                        <label>目标文件</label>
+                        <select id="simFile">
+                            <option value="document.txt">document.txt</option>
+                            <option value="data.csv">data.csv</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>租约类型</label>
+                        <select id="simLeaseType">
+                            <option value="BATCH">BATCH（批租约）</option>
+                            <option value="WRITE">WRITE（写租约）</option>
+                            <option value="READ">READ（读租约）</option>
+                        </select>
+                    </div>
+                    <button onclick="simulateClients()">模拟多个客户端打开文件</button>
+                </div>
+
+                <div class="control-section">
+                    <h3>读取测试（触发租约降级）</h3>
+                    <div class="form-group">
+                        <label>选择读取的客户端</label>
+                        <select id="readClient">
+                            <option value="sim-client-1">Simulated Client 1</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>目标文件</label>
+                        <select id="readFile">
+                            <option value="document.txt">document.txt</option>
+                            <option value="data.csv">data.csv</option>
+                        </select>
+                    </div>
+                    <button onclick="triggerRead()">执行读取（降级其他写租约）</button>
+                </div>
+
+                <div class="control-section">
+                    <h3>写入测试（触发租约断裂）</h3>
+                    <div class="form-group">
+                        <label>选择写入的客户端</label>
+                        <select id="writeClient">
+                            <option value="sim-client-1">Simulated Client 1</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>目标文件</label>
+                        <select id="writeFile">
+                            <option value="document.txt">document.txt</option>
+                            <option value="data.csv">data.csv</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>写入内容</label>
+                        <input type="text" id="writeData" placeholder="输入要写入的内容..." value="\nNew content at {{timestamp}}">
+                    </div>
+                    <button class="danger" onclick="triggerWrite()">执行写入</button>
+                </div>
+
+                <div class="control-section">
+                    <h3>手动连接客户端</h3>
+                    <div class="form-group">
+                        <label>客户端ID</label>
+                        <input type="text" id="clientId" placeholder="如: manual-client-1">
+                    </div>
+                    <div class="form-group">
+                        <label>客户端名称</label>
+                        <input type="text" id="clientName" placeholder="如: Manual Client">
+                    </div>
+                    <button onclick="connectClient()">连接客户端</button>
+                </div>
+
+                <div class="control-section">
+                    <h3>断开所有连接</h3>
+                    <p style="font-size: 0.85em; color: #888; margin-bottom: 15px;">
+                        断开所有模拟客户端，重置测试环境
+                    </p>
+                    <button class="danger" onclick="resetAll()">重置环境</button>
+                </div>
+
+                <div class="control-section">
+                    <h3>租约超时配置</h3>
+                    <div class="form-group">
+                        <label>当前TTL: <span id="currentTTL">300</span>秒</label>
+                    </div>
+                    <div class="form-group">
+                        <label>设置超时时间（秒）</label>
+                        <input type="number" id="leaseTTL" value="300" min="1" max="3600">
+                    </div>
+                    <button onclick="setLeaseTTL()">设置超时</button>
+                    <p style="font-size: 0.75em; color: #666; margin-top: 8px;">
+                        超时后租约将自动收回，设置较短时间便于测试
+                    </p>
+                </div>
+
+                <div class="control-section">
+                    <h3>变更日志导出</h3>
+                    <p style="font-size: 0.85em; color: #888; margin-bottom: 10px;">
+                        记录所有租约的授予、断裂、降级、超时等变更事件
+                    </p>
+                    <div class="btn-group">
+                        <button onclick="exportChangeLog('json')">导出 JSON</button>
+                        <button onclick="exportChangeLog('csv')">导出 CSV</button>
+                    </div>
+                    <div class="btn-group" style="margin-top: 8px;">
+                        <button class="danger btn-small" onclick="clearChangeLog()">清空日志</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="event-log">
+            <h2>事件日志</h2>
+            <div id="eventLog"></div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let leases = [];
+        let clients = [];
+        let files = [];
+        let events = [];
+        let currentTTL = 300;
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+
+            ws.onopen = () => {
+                document.getElementById('statusDot').classList.remove('disconnected');
+                document.getElementById('statusText').textContent = 'WebSocket 已连接';
+                addEvent('SYSTEM', 'WebSocket 连接成功');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+
+            ws.onclose = () => {
+                document.getElementById('statusDot').classList.add('disconnected');
+                document.getElementById('statusText').textContent = 'WebSocket 已断开，正在重连...';
+                setTimeout(connectWebSocket, 3000);
+            };
+
+            ws.onerror = () => {
+                document.getElementById('statusDot').classList.add('disconnected');
+                document.getElementById('statusText').textContent = 'WebSocket 连接错误';
+            };
+        }
+
+        function handleMessage(data) {
+            if (data.type === 'full_state') {
+                leases = data.payload.leases || [];
+                clients = data.payload.clients || [];
+                files = data.payload.files || [];
+                updateUI();
+            } else if (data.type === 'lease_event') {
+                const event = data.payload;
+                addEvent(event.Type, `${event.ClientID} - ${event.FileName}: ${event.Reason || event.Type}`);
+                
+                setTimeout(() => {
+                    fetch('/api/leases')
+                        .then(res => res.json())
+                        .then(data => {
+                            leases = data;
+                            updateLeaseList();
+                            updateStats();
+                        });
+                }, 100);
+            }
+        }
+
+        function addEvent(type, message) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
+            
+            events.unshift({ type, message, time: timeStr });
+            if (events.length > 50) events.pop();
+            
+            updateEventLog();
+        }
+
+        function updateEventLog() {
+            const container = document.getElementById('eventLog');
+            container.innerHTML = events.map(e => `
+                <div class="event-item ${e.type}">
+                    <div class="event-time">${e.time}</div>
+                    <div class="event-content">[${e.type}] ${e.message}</div>
+                </div>
+            `).join('');
+        }
+
+        function updateUI() {
+            updateFileList();
+            updateClientList();
+            updateLeaseList();
+            updateStats();
+            updateWriteClientSelect();
+            updateReadClientSelect();
+        }
+
+        function updateFileList() {
+            const container = document.getElementById('fileList');
+            container.innerHTML = files.map(f => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <div class="file-name">📄 ${f.name}</div>
+                        <div class="file-size">大小: ${f.size} 字节 | 修改时间: ${f.modified}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateClientList() {
+            const container = document.getElementById('clientList');
+            container.innerHTML = clients.map(c => `
+                <div class="client-item">
+                    <div class="client-info">
+                        <div class="client-name">🖥️ ${c.name}</div>
+                        <div class="client-id">ID: ${c.id}</div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <span class="lease-state ${c.connected ? 'GRANTED' : 'BROKEN'}">
+                            ${c.connected ? '已连接' : '已断开'}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateLeaseList() {
+            const container = document.getElementById('leaseList');
+            
+            if (leases.length === 0) {
+                container.innerHTML = '<div style="color: #666; text-align: center; padding: 20px;">暂无活跃租约</div>';
+                return;
+            }
+
+            const grouped = {};
+            leases.forEach(l => {
+                if (!grouped[l.fileName]) grouped[l.fileName] = [];
+                grouped[l.fileName].push(l);
+            });
+
+            let html = '';
+            for (const [fileName, fileLeases] of Object.entries(grouped)) {
+                html += `
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-weight: 600; margin-bottom: 10px; color: #a78bfa;">
+                            📁 ${fileName} (${fileLeases.length} 个租约)
+                        </div>
+                `;
+                
+                fileLeases.forEach(l => {
+                    let leaseTypeDisplay = l.type;
+                    if (l.downgraded && l.originalType && l.originalType !== l.type) {
+                        leaseTypeDisplay = `${l.originalType} → ${l.type}`;
+                    }
+                    
+                    let badges = '';
+                    if (l.downgraded) {
+                        badges += '<span class="downgraded-badge">已降级</span>';
+                    }
+                    if (l.state === 'EXPIRED') {
+                        badges += '<span class="expired-badge">已超时</span>';
+                    }
+
+                    let expiresHtml = '';
+                    if (l.expiresAt && l.state === 'GRANTED') {
+                        const now = new Date();
+                        const parts = l.expiresAt.split(':');
+                        const expDate = new Date();
+                        expDate.setHours(parseInt(parts[0]));
+                        expDate.setMinutes(parseInt(parts[1]));
+                        expDate.setSeconds(parseInt(parts[2] || 0));
+                        const diff = Math.max(0, Math.floor((expDate - now) / 1000));
+                        const isUrgent = diff < 30;
+                        expiresHtml = `<div class="expires-info ${isUrgent ? 'urgent' : ''}">过期时间: ${l.expiresAt} (剩余 ${diff}s)</div>`;
+                    }
+                    
+                    html += `
+                        <div class="lease-item" style="margin-left: 20px; margin-bottom: 8px;">
+                            <div class="lease-info">
+                                <div class="lease-client">
+                                    👤 ${l.clientName} ${badges}
+                                </div>
+                                <div class="lease-file">
+                                    授予时间: ${l.grantedAt}
+                                    ${l.downgraded ? ` | 原始类型: ${l.originalType}` : ''}
+                                </div>
+                                ${expiresHtml}
+                                ${l.retryCount > 0 ? `<div class="retry-info">重试次数: ${l.retryCount}/3</div>` : ''}
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-direction: column; align-items: flex-end;">
+                                <div style="display: flex; gap: 8px;">
+                                    <span class="lease-type ${l.type}">${leaseTypeDisplay}</span>
+                                    <span class="lease-state ${l.state}">${l.state}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function updateStats() {
+            document.getElementById('leaseCount').textContent = leases.length;
+            document.getElementById('clientCount').textContent = clients.length;
+            document.getElementById('fileCount').textContent = files.length;
+            document.getElementById('brokenCount').textContent = leases.filter(l => 
+                l.state === 'BROKEN' || l.state === 'BREAKING' || l.state === 'DOWNGRADING'
+            ).length;
+        }
+
+        function updateWriteClientSelect() {
+            const select = document.getElementById('writeClient');
+            select.innerHTML = clients.map(c => 
+                `<option value="${c.id}">${c.name}</option>`
+            ).join('');
+        }
+
+        function updateReadClientSelect() {
+            const select = document.getElementById('readClient');
+            select.innerHTML = clients.map(c => 
+                `<option value="${c.id}">${c.name}</option>`
+            ).join('');
+        }
+
+        async function simulateClients() {
+            const count = document.getElementById('simClientCount').value;
+            const file = document.getElementById('simFile').value;
+            const leaseType = document.getElementById('simLeaseType').value;
+            
+            try {
+                const response = await fetch('/api/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientCount: parseInt(count),
+                        fileName: file,
+                        leaseType: leaseType
+                    })
+                });
+                
+                const data = await response.json();
+                addEvent('SIMULATE', data.message);
+            } catch (err) {
+                addEvent('ERROR', err.message);
+            }
+        }
+
+        async function triggerRead() {
+            const client = document.getElementById('readClient').value;
+            const file = document.getElementById('readFile').value;
+            
+            try {
+                const response = await fetch(`/api/file/read?file=${encodeURIComponent(file)}&clientId=${encodeURIComponent(client)}`);
+                
+                const result = await response.json();
+                if (result.success) {
+                    addEvent('READ', result.message || `Read ${result.data.length} bytes from ${file}`);
+                }
+            } catch (err) {
+                addEvent('ERROR', err.message);
+            }
+        }
+
+        async function triggerWrite() {
+            const client = document.getElementById('writeClient').value;
+            const file = document.getElementById('writeFile').value;
+            let data = document.getElementById('writeData').value;
+            
+            data = data.replace('{{timestamp}}', new Date().toISOString());
+            
+            try {
+                const response = await fetch('/api/file/write', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: client,
+                        fileName: file,
+                        data: data,
+                        offset: 0
+                    })
+                });
+                
+                const result = await response.json();
+                addEvent('WRITE', result.message);
+            } catch (err) {
+                addEvent('ERROR', err.message);
+            }
+        }
+
+        async function connectClient() {
+            const id = document.getElementById('clientId').value;
+            const name = document.getElementById('clientName').value;
+            
+            if (!id || !name) {
+                addEvent('ERROR', '请填写客户端ID和名称');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/client/connect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: id,
+                        clientName: name
+                    })
+                });
+                
+                const data = await response.json();
+                addEvent('CONNECT', data.message);
+            } catch (err) {
+                addEvent('ERROR', err.message);
+            }
+        }
+
+        async function resetAll() {
+            try {
+                for (const client of clients) {
+                    await fetch('/api/client/disconnect', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ clientId: client.id })
+                    });
+                }
+                addEvent('RESET', '所有客户端已断开连接');
+            } catch (err) {
+                addEvent('ERROR', err.message);
+            }
+        }
+
+        async function setLeaseTTL() {
+            const ttl = document.getElementById('leaseTTL').value;
+            
+            try {
+                const response = await fetch('/api/lease/ttl/set', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ttlSeconds: parseInt(ttl) })
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    currentTTL = parseInt(ttl);
+                    document.getElementById('currentTTL').textContent = ttl;
+                    addEvent('TTL', `租约超时设置为 ${ttl} 秒`);
+                }
+            } catch (err) {
+                addEvent('ERROR', err.message);
+            }
+        }
+
+        async function fetchLeaseTTL() {
+            try {
+                const response = await fetch('/api/lease/ttl');
+                const data = await response.json();
+                currentTTL = data.ttlSeconds;
+                document.getElementById('currentTTL').textContent = data.ttlSeconds;
+                document.getElementById('leaseTTL').value = data.ttlSeconds;
+            } catch (err) {}
+        }
+
+        function exportChangeLog(format) {
+            const url = `/api/changelog/export?format=${format}`;
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `lease_changelog.${format}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            addEvent('EXPORT', `导出变更日志 (${format.toUpperCase()})`);
+        }
+
+        async function clearChangeLog() {
+            if (!confirm('确定要清空所有变更日志吗？')) return;
+            
+            try {
+                await fetch('/api/changelog/clear', { method: 'POST' });
+                addEvent('LOG', '变更日志已清空');
+            } catch (err) {
+                addEvent('ERROR', err.message);
+            }
+        }
+
+        connectWebSocket();
+        fetchLeaseTTL();
+    </script>
+</body>
+</html>

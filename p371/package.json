@@ -1,0 +1,30 @@
+{
+  "name": "spice-smartcard-redirector",
+  "version": "1.0.0",
+  "description": "Electron app redirecting local CCID smart card readers to remote VMs via SPICE protocol",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "@pokusew/pcsclite": "^0.6.0",
+    "buffer": "^6.0.3"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.spice.smartcard-redirector",
+    "productName": "SPICE SmartCard Redirector",
+    "mac": {
+      "category": "public.app-category.utilities"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "electron-l2cap-demo",
+  "version": "1.0.0",
+  "description": "Electron L2CAP Connection-Oriented Channel Demo (PSM=0x0001)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": ["electron", "bluetooth", "l2cap"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}

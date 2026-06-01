@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRAS Simulator - 宽带远程接入服务器模拟器</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="title">
+                    <span class="logo-icon">🔌</span>
+                    BRAS Simulator
+                </h1>
+                <div class="subtitle">宽带远程接入服务器模拟器 | PPPoE · PAP/CHAP · VLAN</div>
+            </div>
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-label">状态</span>
+                    <span class="status-value status-running" id="system-status">运行中</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">时间</span>
+                    <span class="status-value" id="current-time">--:--:--</span>
+                </div>
+            </div>
+        </header>
+
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-tab="dashboard">📊 总览</button>
+            <button class="nav-tab" data-tab="sessions">👥 会话管理</button>
+            <button class="nav-tab" data-tab="vlans">🏷️ VLAN 分配</button>
+            <button class="nav-tab" data-tab="events">📋 事件日志</button>
+            <button class="nav-tab" data-tab="connect">➕ 新建会话</button>
+        </nav>
+
+        <main class="main-content">
+            <section id="tab-dashboard" class="tab-content active">
+                <h2 class="section-title">系统总览</h2>
+                <div class="stats-grid">
+                    <div class="stat-card stat-blue">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="stat-total">0</div>
+                            <div class="stat-label">总会话数</div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-green">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="stat-active">0</div>
+                            <div class="stat-label">活跃会话</div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-purple">
+                        <div class="stat-icon">🏷️</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="stat-vlan-used">0</div>
+                            <div class="stat-label">已分配 VLAN</div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-orange">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="stat-vlan-percent">0%</div>
+                            <div class="stat-label">VLAN 使用率</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pool-stats">
+                    <h3 class="subsection-title">VLAN 池使用情况</h3>
+                    <div class="pool-grid" id="pool-grid">
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-sessions" class="tab-content">
+                <div class="section-header">
+                    <h2 class="section-title">会话管理</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="refreshSessions()">🔄 刷新</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>会话 ID</th>
+                                <th>MAC 地址</th>
+                                <th>用户名</th>
+                                <th>认证方式</th>
+                                <th>状态</th>
+                                <th>IP 地址</th>
+                                <th>VLAN</th>
+                                <th>流量 (入/出)</th>
+                                <th>连接时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sessions-body">
+                            <tr>
+                                <td colspan="10" class="empty-state">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="tab-vlans" class="tab-content">
+                <div class="section-header">
+                    <h2 class="section-title">VLAN 分配</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="refreshVLANs()">🔄 刷新</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>VLAN ID</th>
+                                <th>会话 ID</th>
+                                <th>用户名</th>
+                                <th>描述</th>
+                                <th>分配时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vlans-body">
+                            <tr>
+                                <td colspan="5" class="empty-state">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="vlan-legend">
+                    <h3 class="subsection-title">VLAN 池范围</h3>
+                    <div class="legend-items">
+                        <div class="legend-item">
+                            <span class="legend-color" style="background: #3498db;"></span>
+                            <span>residential (100-199)</span>
+                            <span class="legend-desc">住宅用户</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background: #2ecc71;"></span>
+                            <span>business (200-299)</span>
+                            <span class="legend-desc">商业用户</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background: #9b59b6;"></span>
+                            <span>management (300-399)</span>
+                            <span class="legend-desc">管理用途</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background: #f39c12;"></span>
+                            <span>guest (400-499)</span>
+                            <span class="legend-desc">访客用户</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-events" class="tab-content">
+                <div class="section-header">
+                    <h2 class="section-title">事件日志</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="refreshEvents()">🔄 刷新</button>
+                        <button class="btn btn-secondary" onclick="autoRefreshToggle()" id="auto-refresh-btn">⏸ 自动刷新</button>
+                    </div>
+                </div>
+                <div class="events-container" id="events-container">
+                    <div class="event-item event-loading">加载中...</div>
+                </div>
+            </section>
+
+            <section id="tab-connect" class="tab-content">
+                <h2 class="section-title">新建 PPPoE 会话</h2>
+                <div class="connect-form-container">
+                    <form class="connect-form" id="connect-form" onsubmit="handleConnect(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="username">用户名 *</label>
+                                <input type="text" id="username" name="username" placeholder="例如: user001" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="password">密码 *</label>
+                                <input type="password" id="password" name="password" placeholder="例如: password001" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="auth-method">认证方式</label>
+                                <select id="auth-method" name="auth-method">
+                                    <option value="PAP">PAP</option>
+                                    <option value="CHAP">CHAP</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="service-name">服务名</label>
+                                <input type="text" id="service-name" name="service-name" placeholder="INTERNET" value="INTERNET">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="mac-address">MAC 地址 (留空自动生成)</label>
+                            <input type="text" id="mac-address" name="mac-address" placeholder="例如: 00:11:22:33:44:55">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-lg">🚀 发起连接</button>
+                            <button type="reset" class="btn btn-secondary btn-lg">重置</button>
+                        </div>
+                    </form>
+
+                    <div class="default-users">
+                        <h3>📋 测试账号</h3>
+                        <ul class="user-list">
+                            <li><strong>user001</strong> / password001 <span class="user-tag">residential</span></li>
+                            <li><strong>user002</strong> / password002 <span class="user-tag">residential</span></li>
+                            <li><strong>user003</strong> / password003 <span class="user-tag">business</span></li>
+                            <li><strong>admin</strong> / admin123 <span class="user-tag">management</span></li>
+                            <li><strong>testuser</strong> / test123 <span class="user-tag">residential</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="connect-result" id="connect-result" style="display: none;">
+                    <h3>连接结果</h3>
+                    <div id="connect-result-content"></div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>BRAS Simulator v1.0 | 基于 Go 实现的宽带远程接入服务器模拟器</p>
+        </footer>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

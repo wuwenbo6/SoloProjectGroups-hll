@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RADIUS CoA/DM Server</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #1e293b;
+            --border: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --info: #06b6d4;
+            --purple: #a855f7;
+            --teal: #14b8a6;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--accent);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-top: 2px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 2px;
+            padding: 0 24px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab {
+            padding: 14px 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+        }
+
+        .tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-active { background: rgba(34,197,94,0.15); color: var(--success); }
+        .badge-disconnected { background: rgba(239,68,68,0.15); color: var(--danger); }
+        .badge-nas { background: rgba(168,85,247,0.15); color: var(--purple); }
+        .badge-vendor { background: rgba(20,184,166,0.15); color: var(--teal); }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: var(--danger-hover); }
+        .btn-warning { background: var(--warning); color: #000; }
+        .btn-warning:hover { background: #d97706; }
+        .btn-success { background: var(--success); color: #000; }
+        .btn-success:hover { background: #16a34a; }
+        .btn-teal { background: var(--teal); color: #000; }
+        .btn-teal:hover { background: #0d9488; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+        .btn-outline:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 9px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-group input::placeholder {
+            color: #475569;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .form-row-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+            text-transform: none;
+            letter-spacing: 0;
+            color: var(--text-primary);
+        }
+
+        .session-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .session-table th {
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .session-table td {
+            padding: 10px 14px;
+            font-size: 13px;
+            border-bottom: 1px solid rgba(51,65,85,0.5);
+        }
+
+        .session-table tr:hover {
+            background: rgba(59,130,246,0.05);
+        }
+
+        .session-table .mono {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 12px;
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 6px;
+        }
+
+        .log-container {
+            background: #0c1222;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            padding: 2px 0;
+        }
+
+        .log-time { color: #475569; }
+        .log-info { color: var(--info); }
+        .log-success { color: var(--success); }
+        .log-error { color: var(--danger); }
+        .log-warn { color: var(--warning); }
+        .log-nas { color: var(--purple); }
+        .log-vendor { color: var(--teal); }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.4;
+        }
+
+        .result-box {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .result-success {
+            background: rgba(34,197,94,0.1);
+            border: 1px solid rgba(34,197,94,0.3);
+            color: var(--success);
+        }
+
+        .result-error {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: var(--danger);
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 16px 0;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        .stat-label { color: var(--text-secondary); font-size: 13px; }
+        .stat-value { font-weight: 600; font-size: 14px; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .loading {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .event-item {
+            padding: 8px 12px;
+            border-left: 3px solid var(--purple);
+            margin-bottom: 8px;
+            background: rgba(168,85,247,0.05);
+            border-radius: 0 6px 6px 0;
+        }
+        .event-item.disconnect-event {
+            border-left-color: var(--danger);
+            background: rgba(239,68,68,0.05);
+        }
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .event-session { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: var(--text-primary); }
+        .event-time { font-size: 11px; color: var(--text-secondary); }
+        .event-updates { font-size: 12px; color: var(--text-secondary); }
+        .event-updates span {
+            display: inline-block;
+            background: rgba(168,85,247,0.15);
+            color: var(--purple);
+            padding: 1px 6px;
+            border-radius: 4px;
+            margin: 2px 2px 2px 0;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 11px;
+        }
+
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .log-table th {
+            text-align: left;
+            padding: 10px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-secondary);
+        }
+        .log-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(51,65,85,0.5);
+        }
+        .log-table tr:hover {
+            background: rgba(59,130,246,0.05);
+        }
+        .log-table .mono {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 11px;
+        }
+        .log-table .changes-cell {
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-icon">&#9783;</div>
+        <div>
+            <h1>RADIUS CoA/DM Server</h1>
+            <p>Dynamic Authorization - Multi-Vendor Support &amp; Change Log Export</p>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('dashboard')">Dashboard</div>
+        <div class="tab" onclick="switchTab('auth-log')">Authorization Log</div>
+    </div>
+
+    <div id="tab-dashboard" class="tab-content active">
+        <div class="container">
+            <div style="display:flex; flex-direction:column; gap:24px;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Active Sessions</h2>
+                        <div class="btn-group">
+                            <button class="btn btn-success btn-sm" onclick="simulateAuth()">&#43; Simulate Auth</button>
+                            <button class="btn btn-outline btn-sm" onclick="loadSessions()">&#8635; Refresh</button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding:0;">
+                        <div id="sessions-container">
+                            <div class="empty-state">
+                                <div class="icon pulse">&#9783;</div>
+                                <p>No active sessions</p>
+                                <p style="font-size:12px;margin-top:4px;">Click "Simulate Auth" to create a test session</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>NAS Session Update Events</h2>
+                        <span class="badge badge-nas">Internal</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="events-container" style="max-height:250px;overflow-y:auto;">
+                            <div class="empty-state" style="padding:20px;">
+                                <p style="color:var(--text-secondary);font-size:13px;">No session update events yet</p>
+                                <p style="font-size:11px;margin-top:4px;">Events appear when CoA-ACK triggers NAS push</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Activity Log</h2>
+                        <button class="btn btn-outline btn-sm" onclick="clearLogs()">Clear</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="log-container" id="log-container"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:24px;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Send CoA-Request</h2>
+                        <span class="badge badge-vendor">Multi-Vendor</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>Session ID</label>
+                            <select id="coa-session-id">
+                                <option value="">-- Select Session --</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Vendor</label>
+                                <select id="coa-vendor">
+                                    <option value="standard">Standard RADIUS</option>
+                                    <option value="cisco">Cisco</option>
+                                    <option value="huawei">Huawei</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Use Vendor AVP</label>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="coa-use-vendor-avp" checked>
+                                    <label for="coa-use-vendor-avp">Enable VSA for bandwidth</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Target Address</label>
+                            <input type="text" id="coa-target" value="127.0.0.1:3799" placeholder="host:port">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Bandwidth Up (kbps)</label>
+                                <input type="number" id="coa-bw-up" value="2048" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Bandwidth Down (kbps)</label>
+                                <input type="number" id="coa-bw-down" value="4096" min="0">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Session Timeout (s)</label>
+                                <input type="number" id="coa-timeout" value="7200" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Filter ID</label>
+                                <input type="text" id="coa-filter" value="premium" placeholder="e.g. premium">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" style="width:100%;margin-top:6px;" onclick="sendCoA()" id="btn-coa">
+                            &#9993; Send CoA-Request
+                        </button>
+                        <div id="coa-result"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Send Disconnect-Request</h2>
+                        <span class="badge" style="background:rgba(239,68,68,0.15);color:var(--danger);">DM</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>Session ID</label>
+                            <select id="dm-session-id">
+                                <option value="">-- Select Session --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Username (required for matching)</label>
+                            <input type="text" id="dm-username" placeholder="Auto-filled from session">
+                        </div>
+                        <div class="form-group">
+                            <label>Target Address</label>
+                            <input type="text" id="dm-target" value="127.0.0.1:3799" placeholder="host:port">
+                        </div>
+                        <button class="btn btn-danger" style="width:100%;margin-top:6px;" onclick="sendDisconnect()" id="btn-dm">
+                            &#9211; Send Disconnect-Request
+                        </button>
+                        <div id="dm-result"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Server Info</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="stat-row">
+                            <span class="stat-label">Auth Port</span>
+                            <span class="stat-value">1812</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Accounting Port</span>
+                            <span class="stat-value">1813</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">CoA/DM Port</span>
+                            <span class="stat-value">3799</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Shared Secret</span>
+                            <span class="stat-value" style="font-family:monospace;font-size:12px;">sharedsecret</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">NAS Callback</span>
+                            <span class="stat-value" style="font-size:11px;font-family:monospace;">/api/internal/session-update</span>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="stat-row">
+                            <span class="stat-label">Active Sessions</span>
+                            <span class="stat-value" id="stat-active">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Total CoA Sent</span>
+                            <span class="stat-value" id="stat-coa">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Total DM Sent</span>
+                            <span class="stat-value" id="stat-dm">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">NAS Updates Pushed</span>
+                            <span class="stat-value" id="stat-nas">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-auth-log" class="tab-content">
+        <div class="container" style="grid-template-columns: 1fr;">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Authorization Change Log</h2>
+                    <div class="btn-group">
+                        <button class="btn btn-outline btn-sm" onclick="loadAuthLog()">&#8635; Refresh</button>
+                        <button class="btn btn-teal btn-sm" onclick="exportLog('json')">&#8681; Export JSON</button>
+                        <button class="btn btn-teal btn-sm" onclick="exportLog('csv')">&#8681; Export CSV</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div style="margin-bottom:16px;">
+                        <div class="form-row-3">
+                            <div class="form-group">
+                                <label>Filter by Username</label>
+                                <input type="text" id="log-filter-username" placeholder="Enter username" oninput="loadAuthLog()">
+                            </div>
+                            <div class="form-group">
+                                <label>Filter by Event Type</label>
+                                <select id="log-filter-event" onchange="loadAuthLog()">
+                                    <option value="">All</option>
+                                    <option value="coa">CoA</option>
+                                    <option value="disconnect">Disconnect</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Filter by Vendor</label>
+                                <select id="log-filter-vendor" onchange="loadAuthLog()">
+                                    <option value="">All</option>
+                                    <option value="standard">Standard</option>
+                                    <option value="cisco">Cisco</option>
+                                    <option value="huawei">Huawei</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="auth-log-stats" style="margin-bottom:16px;display:flex;gap:24px;">
+                        <span class="stat-label">Total: <span class="stat-value" id="log-stat-total">0</span></span>
+                        <span class="stat-label">CoA: <span class="stat-value" id="log-stat-coa">0</span></span>
+                        <span class="stat-label">Disconnect: <span class="stat-value" id="log-stat-disconnect">0</span></span>
+                        <span class="stat-label">Success: <span class="stat-value" id="log-stat-success" style="color:var(--success)">0</span></span>
+                        <span class="stat-label">Failed: <span class="stat-value" id="log-stat-failed" style="color:var(--danger)">0</span></span>
+                    </div>
+
+                    <div style="overflow-x:auto;">
+                        <table class="log-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Session ID</th>
+                                    <th>User</th>
+                                    <th>Type</th>
+                                    <th>Vendor</th>
+                                    <th>Status</th>
+                                    <th>Changes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auth-log-body">
+                                <tr>
+                                    <td colspan="7" style="text-align:center;padding:32px;color:var(--text-secondary);">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let coaCount = 0;
+        let dmCount = 0;
+        let nasCount = 0;
+        let sessionCache = [];
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabName).classList.add('active');
+            if (tabName === 'auth-log') {
+                loadAuthLog();
+                loadAuthLogStats();
+            }
+        }
+
+        function addLog(level, message) {
+            const container = document.getElementById('log-container');
+            const now = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = '<span class="log-time">[' + now + ']</span> <span class="log-' + level + '">' + message + '</span>';
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('log-container').innerHTML = '';
+        }
+
+        async function loadSessions() {
+            try {
+                const res = await fetch('/api/sessions');
+                const sessions = await res.json();
+                sessionCache = sessions;
+                renderSessions(sessions);
+                updateSessionSelectors(sessions);
+                const active = sessions.filter(s => s.status === 'active').length;
+                document.getElementById('stat-active').textContent = active;
+            } catch (e) {
+                addLog('error', 'Failed to load sessions: ' + e.message);
+            }
+        }
+
+        async function loadEvents() {
+            try {
+                const res = await fetch('/api/events');
+                const events = await res.json();
+                renderEvents(events);
+                nasCount = events.length;
+                document.getElementById('stat-nas').textContent = nasCount;
+            } catch (e) {
+                // silent
+            }
+        }
+
+        async function loadAuthLog() {
+            try {
+                const username = document.getElementById('log-filter-username').value;
+                const eventType = document.getElementById('log-filter-event').value;
+                const vendor = document.getElementById('log-filter-vendor').value;
+
+                let url = '/api/auth-log?';
+                const params = [];
+                if (username) params.push('username=' + encodeURIComponent(username));
+                if (eventType) params.push('event_type=' + encodeURIComponent(eventType));
+                if (vendor) params.push('vendor=' + encodeURIComponent(vendor));
+                url += params.join('&');
+
+                const res = await fetch(url);
+                const logs = await res.json();
+                renderAuthLog(logs);
+            } catch (e) {
+                console.error('Failed to load auth log:', e);
+            }
+        }
+
+        async function loadAuthLogStats() {
+            try {
+                const res = await fetch('/api/auth-log/stats');
+                const stats = await res.json();
+                document.getElementById('log-stat-total').textContent = stats.total || 0;
+                document.getElementById('log-stat-coa').textContent = stats.coa || 0;
+                document.getElementById('log-stat-disconnect').textContent = stats.disconnect || 0;
+                document.getElementById('log-stat-success').textContent = stats.success || 0;
+                document.getElementById('log-stat-failed').textContent = stats.failed || 0;
+            } catch (e) {
+                console.error('Failed to load stats:', e);
+            }
+        }
+
+        function renderSessions(sessions) {
+            const container = document.getElementById('sessions-container');
+            if (!sessions || sessions.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="icon pulse">&#9783;</div><p>No active sessions</p><p style="font-size:12px;margin-top:4px;">Click "Simulate Auth" to create a test session</p></div>';
+                return;
+            }
+
+            let html = '<table class="session-table"><thead><tr>';
+            html += '<th>Session ID</th><th>User</th><th>NAS IP</th><th>BW Up</th><th>BW Down</th><th>Timeout</th><th>Filter</th><th>Status</th><th>Actions</th>';
+            html += '</tr></thead><tbody>';
+
+            sessions.forEach(s => {
+                const statusBadge = s.status === 'active'
+                    ? '<span class="badge badge-active">Active</span>'
+                    : '<span class="badge badge-disconnected">Disconnected</span>';
+
+                html += '<tr>';
+                html += '<td class="mono">' + s.session_id.substring(0, 8) + '</td>';
+                html += '<td>' + s.user_name + '</td>';
+                html += '<td class="mono">' + s.nas_ip + '</td>';
+                html += '<td>' + formatBW(s.bandwidth_up) + '</td>';
+                html += '<td>' + formatBW(s.bandwidth_down) + '</td>';
+                html += '<td>' + s.session_timeout + 's</td>';
+                html += '<td>' + s.filter_id + '</td>';
+                html += '<td>' + statusBadge + '</td>';
+                html += '<td><div class="actions-cell">';
+                if (s.status === 'active') {
+                    html += '<button class="btn btn-primary btn-sm" onclick="fillCoA(\'' + s.session_id + '\',\'' + s.user_name + '\')">CoA</button>';
+                    html += '<button class="btn btn-danger btn-sm" onclick="fillDM(\'' + s.session_id + '\',\'' + s.user_name + '\')">DM</button>';
+                }
+                html += '</div></td>';
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function renderEvents(events) {
+            const container = document.getElementById('events-container');
+            if (!events || events.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="padding:20px;"><p style="color:var(--text-secondary);font-size:13px;">No session update events yet</p><p style="font-size:11px;margin-top:4px;">Events appear when CoA-ACK triggers NAS push</p></div>';
+                return;
+            }
+
+            let html = '';
+            const reversed = [...events].reverse();
+            reversed.forEach(e => {
+                const isDisconnect = e.event === 'session-disconnect';
+                const cls = isDisconnect ? 'event-item disconnect-event' : 'event-item';
+                html += '<div class="' + cls + '">';
+                html += '<div class="event-header">';
+                html += '<span class="event-session">' + e.session_id.substring(0, 8) + ' / ' + e.user_name + '</span>';
+                html += '<span class="event-time">' + (e.timestamp ? new Date(e.timestamp).toLocaleTimeString() : '') + '</span>';
+                html += '</div>';
+                html += '<div class="event-updates">';
+                if (e.updates && e.updates.length > 0) {
+                    e.updates.forEach(u => {
+                        html += '<span>' + u + '</span> ';
+                    });
+                }
+                html += '</div>';
+                html += '</div>';
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderAuthLog(logs) {
+            const tbody = document.getElementById('auth-log-body');
+            if (!logs || logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-secondary);">No logs found</td></tr>';
+                return;
+            }
+
+            let html = '';
+            const reversed = [...logs].reverse();
+            reversed.forEach(log => {
+                const statusStyle = log.status === 'success' ? 'color:var(--success)' : 'color:var(--danger)';
+                const typeBadge = log.event_type === 'coa'
+                    ? '<span class="badge badge-active">CoA</span>'
+                    : '<span class="badge badge-disconnected">DM</span>';
+                const vendorBadge = log.vendor ? '<span class="badge badge-vendor">' + log.vendor + '</span>' : '';
+
+                let changesStr = '';
+                if (log.changes) {
+                    changesStr = Object.entries(log.changes).map(([k, v]) => k + ':' + v).join(', ');
+                }
+
+                html += '<tr>';
+                html += '<td class="mono">' + new Date(log.timestamp).toLocaleString() + '</td>';
+                html += '<td class="mono">' + log.session_id.substring(0, 8) + '</td>';
+                html += '<td>' + log.user_name + '</td>';
+                html += '<td>' + typeBadge + '</td>';
+                html += '<td>' + vendorBadge + '</td>';
+                html += '<td style="' + statusStyle + '">' + log.status + '</td>';
+                html += '<td class="changes-cell mono" title="' + changesStr + '">' + changesStr + '</td>';
+                html += '</tr>';
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        async function exportLog(format) {
+            const username = document.getElementById('log-filter-username').value;
+            const eventType = document.getElementById('log-filter-event').value;
+            const vendor = document.getElementById('log-filter-vendor').value;
+
+            let url = '/api/auth-log/export?format=' + format;
+            const params = [];
+            if (username) params.push('username=' + encodeURIComponent(username));
+            if (eventType) params.push('event_type=' + encodeURIComponent(eventType));
+            if (vendor) params.push('vendor=' + encodeURIComponent(vendor));
+            if (params.length > 0) url += '&' + params.join('&');
+
+            window.open(url, '_blank');
+        }
+
+        function formatBW(kbps) {
+            if (kbps >= 1000) return (kbps / 1000).toFixed(1) + 'M';
+            return kbps + 'K';
+        }
+
+        function updateSessionSelectors(sessions) {
+            const coaSelect = document.getElementById('coa-session-id');
+            const dmSelect = document.getElementById('dm-session-id');
+            const activeSessions = sessions.filter(s => s.status === 'active');
+
+            [coaSelect, dmSelect].forEach(sel => {
+                const current = sel.value;
+                sel.innerHTML = '<option value="">-- Select Session --</option>';
+                activeSessions.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.session_id;
+                    opt.textContent = s.session_id.substring(0, 8) + ' (' + s.user_name + ')';
+                    opt.dataset.username = s.user_name;
+                    sel.appendChild(opt);
+                });
+                sel.value = current;
+            });
+        }
+
+        function fillCoA(sessionId, username) {
+            document.getElementById('coa-session-id').value = sessionId;
+            document.getElementById('coa-session-id').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function fillDM(sessionId, username) {
+            document.getElementById('dm-session-id').value = sessionId;
+            document.getElementById('dm-username').value = username;
+            document.getElementById('dm-session-id').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function getUsernameForSession(selectId) {
+            const sel = document.getElementById(selectId);
+            const opt = sel.options[sel.selectedIndex];
+            return opt && opt.dataset.username ? opt.dataset.username : '';
+        }
+
+        async function simulateAuth() {
+            const username = 'user' + Math.floor(Math.random() * 1000);
+            try {
+                addLog('info', 'Simulating authentication for ' + username + '...');
+                const res = await fetch('/api/simulate-auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username })
+                });
+                const session = await res.json();
+                addLog('success', 'Access-Accept: session ' + session.session_id.substring(0, 8) + ' for ' + username);
+                loadSessions();
+            } catch (e) {
+                addLog('error', 'Simulate auth failed: ' + e.message);
+            }
+        }
+
+        async function sendCoA() {
+            const sessionId = document.getElementById('coa-session-id').value;
+            const target = document.getElementById('coa-target').value;
+            const bwUp = parseInt(document.getElementById('coa-bw-up').value) || 0;
+            const bwDown = parseInt(document.getElementById('coa-bw-down').value) || 0;
+            const timeout = parseInt(document.getElementById('coa-timeout').value) || 0;
+            const filterId = document.getElementById('coa-filter').value;
+            const vendor = document.getElementById('coa-vendor').value;
+            const useVendorAVP = document.getElementById('coa-use-vendor-avp').checked;
+            const username = getUsernameForSession('coa-session-id');
+
+            if (!sessionId) {
+                addLog('error', 'Please select a session');
+                return;
+            }
+
+            const btn = document.getElementById('btn-coa');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Sending...';
+
+            const resultDiv = document.getElementById('coa-result');
+            resultDiv.innerHTML = '';
+
+            addLog('info', 'Sending CoA-Request to ' + target + ' for session ' + sessionId.substring(0, 8) + ' vendor=' + vendor + ' vendor_avp=' + useVendorAVP);
+
+            try {
+                const res = await fetch('/api/coa', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        target_addr: target,
+                        username: username,
+                        bandwidth_up: bwUp,
+                        bandwidth_down: bwDown,
+                        session_timeout: timeout,
+                        filter_id: filterId,
+                        vendor: vendor,
+                        use_vendor_avp: useVendorAVP
+                    })
+                });
+                const result = await res.json();
+
+                coaCount++;
+                document.getElementById('stat-coa').textContent = coaCount;
+
+                if (result.code_name === 'CoA-ACK') {
+                    addLog('success', 'CoA-ACK received from ' + target + ' - session updated');
+                    addLog('vendor', 'Vendor AVP: ' + (useVendorAVP ? vendor + ' VSA' : 'Standard'));
+                    addLog('nas', 'NAS session update pushed: ' + sessionId.substring(0, 8) + ' user=' + username);
+                    resultDiv.innerHTML = '<div class="result-box result-success">CoA-ACK - Session updated successfully<br>Session: ' + sessionId.substring(0, 8) + '<br>BW Up: ' + bwUp + ' kbps | BW Down: ' + bwDown + ' kbps<br>Vendor: ' + vendor + ' (' + (useVendorAVP ? 'VSA' : 'Standard') + ')<br><span style="color:var(--purple)">NAS update pushed via internal interface</span></div>';
+                    loadEvents();
+                    loadAuthLogStats();
+                } else if (result.code_name === 'CoA-NAK') {
+                    addLog('warn', 'CoA-NAK received from ' + target + ' - Error-Cause: ' + result.error_cause);
+                    resultDiv.innerHTML = '<div class="result-box result-error">CoA-NAK - Request rejected<br>Error-Cause: ' + result.error_cause + ' (503=Session-Context-Not-Found)</div>';
+                } else {
+                    addLog('error', 'CoA failed: ' + (result.error || result.code_name));
+                    resultDiv.innerHTML = '<div class="result-box result-error">Error: ' + (result.error || result.code_name) + '</div>';
+                }
+
+                loadSessions();
+            } catch (e) {
+                addLog('error', 'CoA request failed: ' + e.message);
+                resultDiv.innerHTML = '<div class="result-box result-error">Network Error: ' + e.message + '</div>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '&#9993; Send CoA-Request';
+            }
+        }
+
+        async function sendDisconnect() {
+            const sessionId = document.getElementById('dm-session-id').value;
+            const username = document.getElementById('dm-username').value;
+            const target = document.getElementById('dm-target').value;
+
+            if (!sessionId) {
+                addLog('error', 'Please select a session');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to disconnect session ' + sessionId.substring(0, 8) + ' for user "' + username + '"?')) {
+                return;
+            }
+
+            const btn = document.getElementById('btn-dm');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Sending...';
+
+            const resultDiv = document.getElementById('dm-result');
+            resultDiv.innerHTML = '';
+
+            addLog('info', 'Sending Disconnect-Request to ' + target + ' for session ' + sessionId.substring(0, 8) + ' user=' + username);
+
+            try {
+                const res = await fetch('/api/disconnect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        username: username,
+                        target_addr: target
+                    })
+                });
+                const result = await res.json();
+
+                dmCount++;
+                document.getElementById('stat-dm').textContent = dmCount;
+
+                if (result.code_name === 'Disconnect-ACK') {
+                    addLog('success', 'Disconnect-ACK received from ' + target + ' - session terminated');
+                    addLog('nas', 'NAS disconnect notification pushed: ' + sessionId.substring(0, 8));
+                    resultDiv.innerHTML = '<div class="result-box result-success">Disconnect-ACK - Session terminated<br>Session: ' + sessionId.substring(0, 8) + '<br>User: ' + username + '<br><span style="color:var(--purple)">NAS disconnect notification pushed</span></div>';
+                    loadEvents();
+                    loadAuthLogStats();
+                } else if (result.code_name === 'Disconnect-NAK') {
+                    addLog('warn', 'Disconnect-NAK from ' + target + ' - Error-Cause: ' + result.error_cause);
+                    resultDiv.innerHTML = '<div class="result-box result-error">Disconnect-NAK - Request rejected<br>Error-Cause: ' + result.error_cause + '<br><span style="color:var(--warning)">Possible session/user mismatch (DM requires both Session-ID and Username)</span></div>';
+                } else {
+                    addLog('error', 'Disconnect failed: ' + (result.error || result.code_name));
+                    resultDiv.innerHTML = '<div class="result-box result-error">Error: ' + (result.error || result.code_name) + '</div>';
+                }
+
+                loadSessions();
+            } catch (e) {
+                addLog('error', 'Disconnect request failed: ' + e.message);
+                resultDiv.innerHTML = '<div class="result-box result-error">Network Error: ' + e.message + '</div>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '&#9211; Send Disconnect-Request';
+            }
+        }
+
+        document.getElementById('dm-session-id').addEventListener('change', function() {
+            const username = getUsernameForSession('dm-session-id');
+            if (username) {
+                document.getElementById('dm-username').value = username;
+            }
+        });
+
+        loadSessions();
+        loadEvents();
+        setInterval(loadSessions, 5000);
+        setInterval(loadEvents, 3000);
+    </script>
+</body>
+</html>

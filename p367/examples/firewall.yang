@@ -1,0 +1,159 @@
+module firewall {
+    namespace "http://example.com/ns/firewall";
+    prefix fw;
+
+    organization "Example Inc.";
+    contact "support@example.com";
+    description "Firewall configuration model with must conditions";
+
+    revision "2024-01-01" {
+        description "Initial revision";
+    }
+
+    typedef port-number {
+        type uint16 {
+            range "1..65535";
+        }
+        description "Port number";
+    }
+
+    typedef ip-address {
+        type string {
+            pattern '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}';
+        }
+        description "IPv4 address";
+    }
+
+    container firewall {
+        description "Firewall configuration";
+
+        container settings {
+            description "Global firewall settings";
+
+            leaf enabled {
+                type boolean;
+                default "true";
+                description "Enable/disable firewall";
+            }
+
+            leaf default-policy {
+                type enumeration {
+                    enum accept;
+                    enum drop;
+                    enum reject;
+                }
+                default "drop";
+                description "Default policy for unmatched traffic";
+            }
+        }
+
+        list rule {
+            key "id";
+            description "Firewall rule";
+
+            must "source-port <= 65535 and destination-port <= 65535" {
+                description "Port numbers must be valid";
+            }
+
+            must "not (action = 'accept' and log = 'true') or priority > 0" {
+                description "Accepted and logged rules must have positive priority";
+            }
+
+            leaf id {
+                type uint32;
+                mandatory true;
+                description "Rule ID";
+            }
+
+            leaf name {
+                type string;
+                description "Rule name";
+            }
+
+            leaf action {
+                type enumeration {
+                    enum accept;
+                    enum drop;
+                    enum reject;
+                }
+                mandatory true;
+                description "Action to take";
+            }
+
+            leaf source-ip {
+                type ip-address;
+                description "Source IP address";
+            }
+
+            leaf destination-ip {
+                type ip-address;
+                description "Destination IP address";
+            }
+
+            leaf source-port {
+                type port-number;
+                description "Source port";
+            }
+
+            leaf destination-port {
+                type port-number;
+                description "Destination port";
+            }
+
+            leaf protocol {
+                type enumeration {
+                    enum tcp;
+                    enum udp;
+                    enum icmp;
+                    enum any;
+                }
+                default "any";
+                description "Network protocol";
+            }
+
+            leaf priority {
+                type uint8 {
+                    range "0..10";
+                }
+                default "5";
+                description "Rule priority (0-10)";
+            }
+
+            leaf log {
+                type boolean;
+                default "false";
+                description "Enable logging";
+            }
+
+            leaf enabled {
+                type boolean;
+                default "true";
+                description "Enable/disable rule";
+            }
+        }
+
+        container nat {
+            description "NAT configuration";
+
+            must "external-ip != internal-ip" {
+                description "External and internal IPs must be different";
+            }
+
+            leaf external-ip {
+                type ip-address;
+                description "External IP address";
+            }
+
+            leaf internal-ip {
+                type ip-address;
+                description "Internal IP address";
+            }
+
+            leaf enabled {
+                type boolean;
+                default "false";
+                description "Enable NAT";
+            }
+        }
+    }
+}

@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自动分层存储模拟器</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        header p {
+            color: #94a3b8;
+            margin-top: 10px;
+        }
+
+        .badge-row {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .badge.window {
+            background: rgba(0, 212, 255, 0.15);
+            border: 1px solid rgba(0, 212, 255, 0.4);
+            color: #00d4ff;
+        }
+
+        .badge.granularity {
+            background: rgba(123, 44, 191, 0.15);
+            border: 1px solid rgba(123, 44, 191, 0.4);
+            color: #a78bfa;
+        }
+
+        .badge.strategy {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #10b981;
+        }
+
+        .badge.preferred {
+            background: rgba(6, 182, 212, 0.15);
+            border: 1px solid rgba(6, 182, 212, 0.4);
+            color: #06b6d4;
+        }
+
+        .preferred-tag {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            margin-left: 4px;
+            vertical-align: middle;
+        }
+
+        .preferred-tag.ssd { background: rgba(0, 212, 255, 0.25); color: #00d4ff; }
+        .preferred-tag.sas { background: rgba(123, 44, 191, 0.25); color: #a78bfa; }
+        .preferred-tag.sata { background: rgba(245, 158, 11, 0.25); color: #f59e0b; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.2);
+        }
+
+        .stat-card.ssd { border-top: 4px solid #00d4ff; }
+        .stat-card.sas { border-top: 4px solid #7b2cbf; }
+        .stat-card.sata { border-top: 4px solid #f59e0b; }
+        .stat-card.migration { border-top: 4px solid #10b981; }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 25px;
+        }
+
+        .chart-container h2 {
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            color: #e2e8f0;
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .control-panel h2 {
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            color: #e2e8f0;
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary { background: linear-gradient(135deg, #00d4ff, #0099cc); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4); }
+        .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+        .btn-success:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(16, 185, 129, 0.4); }
+        .btn-warning { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+        .btn-warning:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(245, 158, 11, 0.4); }
+        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+        .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(239, 68, 68, 0.4); }
+        .btn-info { background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; }
+        .btn-info:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(139, 92, 246, 0.4); }
+        .btn-export { background: linear-gradient(135deg, #06b6d4, #0891b2); color: white; }
+        .btn-export:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(6, 182, 212, 0.4); }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .input-group input,
+        .input-group select {
+            padding: 10px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .input-group input::placeholder { color: #94a3b8; }
+
+        .migration-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .migration-item {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .migration-item .count {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #10b981;
+        }
+
+        .migration-item .label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+
+        .tier-details { margin-top: 30px; }
+
+        .tier-details h2 {
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            color: #e2e8f0;
+        }
+
+        .tier-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .tier-section h3 {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tier-section.ssd h3 { color: #00d4ff; }
+        .tier-section.sas h3 { color: #7b2cbf; }
+        .tier-section.sata h3 { color: #f59e0b; }
+
+        .tier-section .tier-summary {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 10px;
+        }
+
+        .blocks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 6px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .block-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 0.72rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .block-item:hover { background: rgba(255, 255, 255, 0.2); }
+
+        .block-item .block-id {
+            font-weight: 600;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .block-item .block-heat {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .heat-bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .heat-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+
+        .heat-fill.hot { background: linear-gradient(90deg, #ef4444, #f59e0b); }
+        .heat-fill.warm { background: linear-gradient(90deg, #f59e0b, #10b981); }
+        .heat-fill.cold { background: linear-gradient(90deg, #10b981, #00d4ff); }
+
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: 0.3s;
+            border-radius: 26px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider { background: linear-gradient(135deg, #00d4ff, #0099cc); }
+        input:checked + .slider:before { transform: translateX(24px); }
+
+        .status-message {
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .status-message.success {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            color: #10b981;
+            display: block;
+        }
+
+        .status-message.error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            color: #ef4444;
+            display: block;
+        }
+
+        .migration-log-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .migration-log-section h2 {
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            color: #e2e8f0;
+        }
+
+        .migration-log {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            font-size: 0.82rem;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .log-entry .log-state {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+
+        .log-entry .log-state.completed {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .log-entry .log-state.failed {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .log-entry .log-arrow {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+
+        .log-entry .log-time {
+            color: #64748b;
+            font-size: 0.75rem;
+            margin-left: auto;
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔄 自动分层存储模拟器</h1>
+            <p>SSD / SAS / SATA 分层存储自动迁移演示</p>
+            <div class="badge-row">
+                <span class="badge window">⏱ 滑动窗口 1h</span>
+                <span class="badge granularity">📦 1MB 小块</span>
+                <span class="badge strategy">📋 复制+原子切换</span>
+                <span class="badge preferred">🎯 数据优先层</span>
+            </div>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card ssd">
+                <div class="stat-label">SSD 已用</div>
+                <div class="stat-value" id="ssd-used">0 MB</div>
+                <div class="stat-label" id="ssd-detail">0 / 100 GB · 0 块 · 窗口访问 0</div>
+            </div>
+            <div class="stat-card sas">
+                <div class="stat-label">SAS 已用</div>
+                <div class="stat-value" id="sas-used">0 MB</div>
+                <div class="stat-label" id="sas-detail">0 / 500 GB · 0 块 · 窗口访问 0</div>
+            </div>
+            <div class="stat-card sata">
+                <div class="stat-label">SATA 已用</div>
+                <div class="stat-value" id="sata-used">0 MB</div>
+                <div class="stat-label" id="sata-detail">0 / 2000 GB · 0 块 · 窗口访问 0</div>
+            </div>
+            <div class="stat-card migration">
+                <div class="stat-label">总迁移次数</div>
+                <div class="stat-value" id="total-migrations">0</div>
+                <div class="stat-label" id="total-blocks">共 0 个 1MB 块</div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="chart-container">
+                <h2>📊 容量分布</h2>
+                <canvas id="capacityChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h2>📈 迁移统计</h2>
+                <canvas id="migrationChart"></canvas>
+                <div class="migration-details" id="migration-details"></div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <h2>🎮 控制面板</h2>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="initDemo()">🚀 初始化演示</button>
+                <button class="btn btn-success" onclick="simulateAccess()">👆 模拟访问</button>
+                <button class="btn btn-warning" onclick="performAutoTier()">🔄 自动分层</button>
+                <button class="btn btn-info" onclick="advanceTime()">⏩ 推进时间</button>
+                <button class="btn btn-danger" onclick="resetSimulator()">🔁 重置</button>
+                <button class="btn btn-export" onclick="exportReport('json')">📥 导出JSON</button>
+                <button class="btn btn-export" onclick="exportReport('csv')">📥 导出CSV</button>
+            </div>
+
+            <div class="input-group">
+                <input type="number" id="access-count" value="100" min="1" max="10000" placeholder="访问次数">
+                <input type="number" id="time-advance" value="300" min="10" max="3600" placeholder="推进秒数">
+                <input type="text" id="block-id" placeholder="数据块ID">
+                <select id="target-tier">
+                    <option value="ssd">SSD</option>
+                    <option value="sas">SAS</option>
+                    <option value="sata">SATA</option>
+                </select>
+                <select id="preferred-tier">
+                    <option value="">自动(无)</option>
+                    <option value="ssd">优先SSD</option>
+                    <option value="sas">优先SAS</option>
+                    <option value="sata">优先SATA</option>
+                </select>
+                <button class="btn btn-primary" onclick="createBlock()">➕ 创建块</button>
+                <button class="btn btn-success" onclick="accessBlock()">👆 访问块</button>
+                <button class="btn btn-warning" onclick="migrateBlock()">➡️ 迁移块</button>
+                <button class="btn btn-export" onclick="setPreferredTier()">🎯 设优先层</button>
+            </div>
+
+            <div class="auto-refresh">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="auto-refresh-toggle" onchange="toggleAutoRefresh()">
+                    <span class="slider"></span>
+                </label>
+                <span>自动刷新（2秒）</span>
+                <label class="toggle-switch" style="margin-left: 30px;">
+                    <input type="checkbox" id="auto-simulate-toggle" onchange="toggleAutoSimulate()">
+                    <span class="slider"></span>
+                </label>
+                <span>自动模拟访问+分层</span>
+            </div>
+
+            <div class="status-message" id="status-message"></div>
+        </div>
+
+        <div class="migration-log-section">
+            <h2>� 最近迁移记录（复制+原子切换）</h2>
+            <div class="migration-log" id="migration-log"></div>
+        </div>
+
+        <div class="tier-details">
+            <h2>📦 数据块详情（1MB 粒度 · 滑动窗口热度）</h2>
+            <div class="tier-section ssd">
+                <h3>⚡ SSD 层 - 高性能存储</h3>
+                <div class="tier-summary" id="ssd-summary"></div>
+                <div class="blocks-grid" id="ssd-blocks"></div>
+            </div>
+            <div class="tier-section sas">
+                <h3>💾 SAS 层 - 平衡存储</h3>
+                <div class="tier-summary" id="sas-summary"></div>
+                <div class="blocks-grid" id="sas-blocks"></div>
+            </div>
+            <div class="tier-section sata">
+                <h3>📀 SATA 层 - 大容量存储</h3>
+                <div class="tier-summary" id="sata-summary"></div>
+                <div class="blocks-grid" id="sata-blocks"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let capacityChart, migrationChart;
+        let autoRefreshInterval = null;
+        let autoSimulateInterval = null;
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return '-';
+            const d = new Date(timestamp * 1000);
+            return d.toLocaleTimeString('zh-CN', { hour12: false });
+        }
+
+        function initCharts() {
+            const capacityCtx = document.getElementById('capacityChart').getContext('2d');
+            capacityChart = new Chart(capacityCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['SSD 已用', 'SSD 可用', 'SAS 已用', 'SAS 可用', 'SATA 已用', 'SATA 可用'],
+                    datasets: [{
+                        data: [1, 99, 1, 499, 1, 1999],
+                        backgroundColor: [
+                            '#00d4ff',
+                            'rgba(0, 212, 255, 0.2)',
+                            '#7b2cbf',
+                            'rgba(123, 44, 191, 0.2)',
+                            '#f59e0b',
+                            'rgba(245, 158, 11, 0.2)'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#e2e8f0', padding: 15 }
+                        }
+                    }
+                }
+            });
+
+            const migrationCtx = document.getElementById('migrationChart').getContext('2d');
+            migrationChart = new Chart(migrationCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['SATA→SSD', 'SATA→SAS', 'SAS→SSD', 'SAS→SATA', 'SSD→SAS', 'SSD→SATA'],
+                    datasets: [{
+                        label: '迁移次数',
+                        data: [0, 0, 0, 0, 0, 0],
+                        backgroundColor: [
+                            'rgba(16, 185, 129, 0.8)',
+                            'rgba(16, 185, 129, 0.6)',
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(139, 92, 246, 0.8)',
+                            'rgba(239, 68, 68, 0.8)'
+                        ],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#94a3b8' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#94a3b8', font: { size: 11 } },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function fetchStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                updateUI(data);
+            } catch (error) {
+                console.error('Failed to fetch status:', error);
+            }
+        }
+
+        function updateUI(data) {
+            const tiers = data.tiers;
+            const ssdUsed = tiers.ssd.used_capacity;
+            const sasUsed = tiers.sas.used_capacity;
+            const sataUsed = tiers.sata.used_capacity;
+
+            document.getElementById('ssd-used').textContent = formatBytes(ssdUsed);
+            document.getElementById('ssd-detail').textContent =
+                `${formatBytes(ssdUsed)} / ${formatBytes(tiers.ssd.total_capacity)} · ${tiers.ssd.block_count} 块 · 窗口访问 ${tiers.ssd.window_access_count}`;
+
+            document.getElementById('sas-used').textContent = formatBytes(sasUsed);
+            document.getElementById('sas-detail').textContent =
+                `${formatBytes(sasUsed)} / ${formatBytes(tiers.sas.total_capacity)} · ${tiers.sas.block_count} 块 · 窗口访问 ${tiers.sas.window_access_count}`;
+
+            document.getElementById('sata-used').textContent = formatBytes(sataUsed);
+            document.getElementById('sata-detail').textContent =
+                `${formatBytes(sataUsed)} / ${formatBytes(tiers.sata.total_capacity)} · ${tiers.sata.block_count} 块 · 窗口访问 ${tiers.sata.window_access_count}`;
+
+            document.getElementById('total-migrations').textContent = data.migration_stats.total_migrations;
+            document.getElementById('total-blocks').textContent = `共 ${data.total_blocks} 个 ${data.block_size_mb}MB 块`;
+
+            capacityChart.data.datasets[0].data = [
+                ssdUsed / (1024 * 1024 * 1024),
+                (tiers.ssd.total_capacity - ssdUsed) / (1024 * 1024 * 1024),
+                sasUsed / (1024 * 1024 * 1024),
+                (tiers.sas.total_capacity - sasUsed) / (1024 * 1024 * 1024),
+                sataUsed / (1024 * 1024 * 1024),
+                (tiers.sata.total_capacity - sataUsed) / (1024 * 1024 * 1024)
+            ];
+            capacityChart.update();
+
+            const stats = data.migration_stats;
+            migrationChart.data.datasets[0].data = [
+                stats.sata_to_ssd,
+                stats.sata_to_sas,
+                stats.sas_to_ssd,
+                stats.sas_to_sata,
+                stats.ssd_to_sas,
+                stats.ssd_to_sata
+            ];
+            migrationChart.update();
+
+            updateMigrationDetails(stats);
+            updateMigrationLog(data.recent_migrations || []);
+        }
+
+        function updateMigrationDetails(stats) {
+            const details = document.getElementById('migration-details');
+            details.innerHTML = `
+                <div class="migration-item">
+                    <div class="count">${stats.sata_to_ssd}</div>
+                    <div class="label">SATA → SSD</div>
+                </div>
+                <div class="migration-item">
+                    <div class="count">${stats.sata_to_sas}</div>
+                    <div class="label">SATA → SAS</div>
+                </div>
+                <div class="migration-item">
+                    <div class="count">${stats.sas_to_ssd}</div>
+                    <div class="label">SAS → SSD</div>
+                </div>
+                <div class="migration-item">
+                    <div class="count">${stats.sas_to_sata}</div>
+                    <div class="label">SAS → SATA</div>
+                </div>
+                <div class="migration-item">
+                    <div class="count">${stats.ssd_to_sas}</div>
+                    <div class="label">SSD → SAS</div>
+                </div>
+                <div class="migration-item">
+                    <div class="count">${stats.ssd_to_sata}</div>
+                    <div class="label">SSD → SATA</div>
+                </div>
+            `;
+        }
+
+        function updateMigrationLog(migrations) {
+            const logEl = document.getElementById('migration-log');
+            if (!migrations.length) {
+                logEl.innerHTML = '<div style="color: #64748b; font-size: 0.85rem; padding: 10px;">暂无迁移记录</div>';
+                return;
+            }
+            logEl.innerHTML = migrations.reverse().map(m => {
+                const copyDuration = m.copy_complete_time > 0 ? ((m.copy_complete_time - m.start_time) * 1000).toFixed(1) + 'ms' : '-';
+                const switchDuration = m.switch_complete_time > 0 && m.copy_complete_time > 0 ? ((m.switch_complete_time - m.copy_complete_time) * 1000).toFixed(1) + 'ms' : '-';
+                return `
+                    <div class="log-entry">
+                        <span class="log-state ${m.state}">${m.state.toUpperCase()}</span>
+                        <span>${m.block_id}</span>
+                        <span class="log-arrow">${m.from_tier} → ${m.to_tier}</span>
+                        <span style="color:#94a3b8; font-size:0.75rem;">复制:${copyDuration} 切换:${switchDuration}</span>
+                        <span class="log-time">${formatTime(m.start_time)}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function fetchBlocks() {
+            for (const tier of ['ssd', 'sas', 'sata']) {
+                try {
+                    const response = await fetch(`/api/blocks/${tier}`);
+                    const data = await response.json();
+                    updateBlocksUI(tier, data.blocks);
+                } catch (error) {
+                    console.error(`Failed to fetch ${tier} blocks:`, error);
+                }
+            }
+        }
+
+        function updateBlocksUI(tier, blocks) {
+            const container = document.getElementById(`${tier}-blocks`);
+            const summaryEl = document.getElementById(`${tier}-summary`);
+            
+            const hotCount = blocks.filter(b => b.heat_score >= 0.7).length;
+            const warmCount = blocks.filter(b => b.heat_score >= 0.3 && b.heat_score < 0.7).length;
+            const coldCount = blocks.filter(b => b.heat_score < 0.3).length;
+            const preferredCount = blocks.filter(b => b.preferred_tier).length;
+            
+            summaryEl.textContent = `热:${hotCount} 温:${warmCount} 冷:${coldCount} | 窗口访问合计: ${blocks.reduce((s, b) => s + b.window_access_count, 0)} | 指定优先层: ${preferredCount}`;
+
+            container.innerHTML = blocks.map(block => {
+                let heatClass = 'cold';
+                if (block.heat_score >= 0.7) heatClass = 'hot';
+                else if (block.heat_score >= 0.3) heatClass = 'warm';
+                
+                const preferredTag = block.preferred_tier 
+                    ? `<span class="preferred-tag ${block.preferred_tier}">⭐${block.preferred_tier.toUpperCase()}</span>` 
+                    : '';
+
+                return `
+                    <div class="block-item" onclick="showBlockInfo('${block.id}', ${JSON.stringify(block).replace(/"/g, '&quot;')})">
+                        <div class="block-id">${block.id}${preferredTag}</div>
+                        <div class="block-heat">
+                            <div class="heat-bar">
+                                <div class="heat-fill ${heatClass}" style="width: ${block.heat_score * 100}%"></div>
+                            </div>
+                            <span>${(block.heat_score * 100).toFixed(0)}%</span>
+                        </div>
+                        <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 2px;">
+                            窗口${block.window_access_count}次 · 总${block.total_access_count}次
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showBlockInfo(id, block) {
+            const pt = block.preferred_tier ? `优先层: ${block.preferred_tier.toUpperCase()}` : '优先层: 自动';
+            showMessage(
+                `块 ${id}: 窗口访问 ${block.window_access_count} 次, 总访问 ${block.total_access_count} 次, 热度 ${(block.heat_score * 100).toFixed(1)}%, ${pt}`,
+                'success'
+            );
+        }
+
+        async function setPreferredTier() {
+            const blockId = document.getElementById('block-id').value;
+            const preferredTier = document.getElementById('preferred-tier').value;
+            if (!blockId) {
+                showMessage('请输入数据块ID', 'error');
+                return;
+            }
+            try {
+                const response = await fetch(`/api/set-preferred-tier/${blockId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ preferred_tier: preferredTier || null })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showMessage(data.message, 'success');
+                    document.getElementById('block-id').value = '';
+                    await refreshAll();
+                } else {
+                    showMessage(data.error, 'error');
+                }
+            } catch (error) {
+                showMessage('设置优先层失败', 'error');
+            }
+        }
+
+        function exportReport(fmt) {
+            window.open(`/api/report?format=${fmt}`, '_blank');
+            showMessage(`开始导出 ${fmt.toUpperCase()} 报告...`, 'success');
+        }
+
+        async function initDemo() {
+            try {
+                const response = await fetch('/api/init-demo', { method: 'POST' });
+                const data = await response.json();
+                showMessage(data.message, 'success');
+                await refreshAll();
+            } catch (error) {
+                showMessage('初始化失败', 'error');
+            }
+        }
+
+        async function simulateAccess() {
+            const count = parseInt(document.getElementById('access-count').value) || 100;
+            try {
+                const response = await fetch('/api/simulate-access', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ num_accesses: count })
+                });
+                const data = await response.json();
+                showMessage(data.message, 'success');
+                await refreshAll();
+            } catch (error) {
+                showMessage('模拟访问失败', 'error');
+            }
+        }
+
+        async function advanceTime() {
+            const seconds = parseInt(document.getElementById('time-advance').value) || 300;
+            try {
+                const response = await fetch('/api/simulate-time-advance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ advance_seconds: seconds })
+                });
+                const data = await response.json();
+                showMessage(data.message, 'success');
+                await refreshAll();
+            } catch (error) {
+                showMessage('时间推进失败', 'error');
+            }
+        }
+
+        async function performAutoTier() {
+            try {
+                const response = await fetch('/api/auto-tier', { method: 'POST' });
+                const data = await response.json();
+                showMessage(data.message, 'success');
+                await refreshAll();
+            } catch (error) {
+                showMessage('自动分层失败', 'error');
+            }
+        }
+
+        async function resetSimulator() {
+            try {
+                const response = await fetch('/api/reset', { method: 'POST' });
+                const data = await response.json();
+                showMessage(data.message, 'success');
+                await refreshAll();
+            } catch (error) {
+                showMessage('重置失败', 'error');
+            }
+        }
+
+        async function createBlock() {
+            const blockId = document.getElementById('block-id').value;
+            const preferredTier = document.getElementById('preferred-tier').value;
+            const targetTier = document.getElementById('target-tier').value;
+            if (!blockId) {
+                showMessage('请输入数据块ID', 'error');
+                return;
+            }
+            try {
+                const body = { id: blockId, tier: targetTier };
+                if (preferredTier) body.preferred_tier = preferredTier;
+                const response = await fetch('/api/blocks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    const ptInfo = data.preferred_tier ? ` 优先层:${data.preferred_tier}` : '';
+                    showMessage(data.message + ` (${data.size / (1024*1024)} MB${ptInfo})`, 'success');
+                    document.getElementById('block-id').value = '';
+                    await refreshAll();
+                } else {
+                    showMessage(data.error, 'error');
+                }
+            } catch (error) {
+                showMessage('创建块失败', 'error');
+            }
+        }
+
+        async function accessBlock() {
+            const blockId = document.getElementById('block-id').value;
+            if (!blockId) {
+                showMessage('请输入数据块ID', 'error');
+                return;
+            }
+            try {
+                const response = await fetch(`/api/access/${blockId}`, { method: 'POST' });
+                const data = await response.json();
+                if (response.ok) {
+                    showMessage(data.message, 'success');
+                    await refreshAll();
+                } else {
+                    showMessage(data.error, 'error');
+                }
+            } catch (error) {
+                showMessage('访问块失败', 'error');
+            }
+        }
+
+        async function migrateBlock() {
+            const blockId = document.getElementById('block-id').value;
+            const targetTier = document.getElementById('target-tier').value;
+            if (!blockId) {
+                showMessage('请输入数据块ID', 'error');
+                return;
+            }
+            try {
+                const response = await fetch(`/api/migrate/${blockId}/${targetTier}`, { method: 'POST' });
+                const data = await response.json();
+                if (response.ok) {
+                    showMessage(data.message, 'success');
+                    await refreshAll();
+                } else {
+                    showMessage(data.error, 'error');
+                }
+            } catch (error) {
+                showMessage('迁移块失败', 'error');
+            }
+        }
+
+        function showMessage(message, type) {
+            const msgEl = document.getElementById('status-message');
+            msgEl.textContent = message;
+            msgEl.className = `status-message ${type}`;
+            setTimeout(() => { msgEl.className = 'status-message'; }, 3000);
+        }
+
+        async function refreshAll() {
+            await fetchStatus();
+            await fetchBlocks();
+        }
+
+        function toggleAutoRefresh() {
+            const toggle = document.getElementById('auto-refresh-toggle');
+            if (toggle.checked) {
+                autoRefreshInterval = setInterval(refreshAll, 2000);
+                showMessage('自动刷新已开启', 'success');
+            } else {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                showMessage('自动刷新已关闭', 'success');
+            }
+        }
+
+        function toggleAutoSimulate() {
+            const toggle = document.getElementById('auto-simulate-toggle');
+            if (toggle.checked) {
+                autoSimulateInterval = setInterval(async () => {
+                    await simulateAccess();
+                    await performAutoTier();
+                }, 3000);
+                showMessage('自动模拟已开启', 'success');
+            } else {
+                clearInterval(autoSimulateInterval);
+                autoSimulateInterval = null;
+                showMessage('自动模拟已关闭', 'success');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            refreshAll();
+        });
+    </script>
+</body>
+</html>

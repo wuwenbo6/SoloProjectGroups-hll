@@ -1,0 +1,18 @@
+<div class="app-container">
+  <header class="app-header">
+    <h1>JSON:API 测试应用</h1>
+    <nav class="app-nav">
+      <LinkTo @route="posts" class="nav-link">文章列表</LinkTo>
+      <LinkTo @route="posts.new" class="nav-link">新建文章</LinkTo>
+      <LinkTo @route="comments" class="nav-link">评论列表</LinkTo>
+    </nav>
+  </header>
+
+  <main class="app-main">
+    {{outlet}}
+  </main>
+
+  <footer class="app-footer">
+    <p>Ember.js + Node.js JSON:API Demo</p>
+  </footer>
+</div>

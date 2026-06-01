@@ -1,0 +1,21 @@
+{
+  "nodes": [
+    {"id": "R1", "name": "R1", "ip": "10.0.0.1", "x": 20, "y": 50},
+    {"id": "R2", "name": "R2", "ip": "10.0.0.2", "x": 40, "y": 20},
+    {"id": "R3", "name": "R3", "ip": "10.0.0.3", "x": 40, "y": 80},
+    {"id": "R4", "name": "R4", "ip": "10.0.0.4", "x": 60, "y": 50},
+    {"id": "R5", "name": "R5", "ip": "10.0.0.5", "x": 80, "y": 20},
+    {"id": "R6", "name": "R6", "ip": "10.0.0.6", "x": 80, "y": 80}
+  ],
+  "links": [
+    {"id": "L1", "source": "R1", "target": "R2", "bandwidth": 1000, "reserved_bw": 0, "metric": 10, "latency": 5,  "affinity": 1},
+    {"id": "L2", "source": "R1", "target": "R3", "bandwidth": 1000, "reserved_bw": 0, "metric": 10, "latency": 5,  "affinity": 17},
+    {"id": "L3", "source": "R2", "target": "R4", "bandwidth": 500,  "reserved_bw": 0, "metric": 20, "latency": 10, "affinity": 2},
+    {"id": "L4", "source": "R3", "target": "R4", "bandwidth": 1000, "reserved_bw": 0, "metric": 10, "latency": 5,  "affinity": 17},
+    {"id": "L5", "source": "R2", "target": "R5", "bandwidth": 1000, "reserved_bw": 0, "metric": 15, "latency": 8,  "affinity": 1},
+    {"id": "L6", "source": "R4", "target": "R5", "bandwidth": 500,  "reserved_bw": 0, "metric": 10, "latency": 5,  "affinity": 8},
+    {"id": "L7", "source": "R4", "target": "R6", "bandwidth": 1000, "reserved_bw": 0, "metric": 10, "latency": 5,  "affinity": 17},
+    {"id": "L8", "source": "R3", "target": "R6", "bandwidth": 500,  "reserved_bw": 0, "metric": 15, "latency": 8,  "affinity": 4},
+    {"id": "L9", "source": "R5", "target": "R6", "bandwidth": 1000, "reserved_bw": 0, "metric": 10, "latency": 5,  "affinity": 1}
+  ]
+}

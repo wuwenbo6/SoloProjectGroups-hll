@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQTT-SN Gateway Dashboard</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #1e293b;
+            --bg-hover: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59,130,246,0.3);
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #334155;
+            --radius: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .header h1 span {
+            color: var(--accent);
+        }
+
+        .connection-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .connection-badge.connected {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+        }
+
+        .connection-badge.disconnected {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 32px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            transition: all 0.2s;
+        }
+
+        .stat-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .stat-value.online { color: var(--success); }
+        .stat-value.sleeping { color: var(--warning); }
+        .stat-value.queued { color: var(--danger); }
+        .stat-value.dropped { color: var(--danger); }
+        .stat-value.delivered { color: var(--success); }
+        .stat-value.uplink { color: var(--accent); }
+        .stat-value.downlink { color: #8b5cf6; }
+
+        .drops-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .drops-section h3 {
+            margin-bottom: 16px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .drops-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .drop-card {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .drop-card .drop-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .drop-card .drop-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--danger);
+        }
+
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .refresh-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        .devices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px;
+        }
+
+        .device-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .device-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .device-card.sleeping {
+            border-color: var(--warning);
+        }
+
+        .device-card.sleeping:hover {
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+        }
+
+        .device-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .device-id {
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .device-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .device-status.online {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+        }
+
+        .device-status.sleeping {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .device-status.offline {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .device-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .device-meta-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .device-meta-label {
+            color: var(--text-secondary);
+        }
+
+        .device-meta-value {
+            font-weight: 500;
+        }
+
+        .device-subs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .sub-tag {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent);
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .queue-badge {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .topics-table {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: rgba(59, 130, 246, 0.1);
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        tr:hover td {
+            background: var(--bg-hover);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .auto-refresh input[type="checkbox"] {
+            accent-color: var(--accent);
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 16px; }
+            .header { padding: 12px 16px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .devices-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <div class="logo">G</div>
+            <h1>MQTT-SN <span>Gateway</span></h1>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;">
+            <div class="auto-refresh">
+                <input type="checkbox" id="autoRefresh" checked>
+                <label for="autoRefresh">Auto-refresh (5s)</label>
+            </div>
+            <div class="connection-badge connected" id="connBadge">
+                <div class="pulse-dot"></div>
+                <span>Gateway Active</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-label">Total Devices</div>
+                <div class="stat-value" id="statTotal">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Online</div>
+                <div class="stat-value online" id="statOnline">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Sleeping</div>
+                <div class="stat-value sleeping" id="statSleeping">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Queued Messages</div>
+                <div class="stat-value queued" id="statQueued">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Topics</div>
+                <div class="stat-value" id="statTopics">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Uplink</div>
+                <div class="stat-value uplink" id="statUplink">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Downlink</div>
+                <div class="stat-value downlink" id="statDownlink">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Delivered</div>
+                <div class="stat-value delivered" id="statDelivered">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Dropped</div>
+                <div class="stat-value dropped" id="statDropped">-</div>
+            </div>
+        </div>
+
+        <div class="drops-section">
+            <h3>
+                <span>&#128227; Message Loss Analysis</span>
+                <button class="refresh-btn" onclick="resetStats()" style="padding:6px 16px;font-size:12px;background:var(--danger);">&#128465; Reset</button>
+            </h3>
+            <div class="drops-grid">
+                <div class="drop-card">
+                    <div class="drop-label">Queue Full</div>
+                    <div class="drop-value" id="dropQueueFull">0</div>
+                </div>
+                <div class="drop-card">
+                    <div class="drop-label">Device Sleeping</div>
+                    <div class="drop-value" id="dropSleeping">0</div>
+                </div>
+                <div class="drop-card">
+                    <div class="drop-label">Device Offline</div>
+                    <div class="drop-value" id="dropOffline">0</div>
+                </div>
+                <div class="drop-card">
+                    <div class="drop-label">Unknown Topic</div>
+                    <div class="drop-value" id="dropUnknown">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">&#128268; Connected Devices</div>
+                <button class="refresh-btn" onclick="fetchAll()">&#8635; Refresh</button>
+            </div>
+            <div class="devices-grid" id="devicesGrid">
+                <div class="empty-state">
+                    <div class="icon">&#128225;</div>
+                    <p>Waiting for devices to connect...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">&#128203; Registered Topics</div>
+            </div>
+            <div class="topics-table" id="topicsTable">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Topic ID</th>
+                            <th>Topic Name</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topicsBody">
+                        <tr><td colspan="2" class="empty-state">No topics registered</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">&#128233; Message Queues</div>
+            </div>
+            <div class="topics-table" id="queuesTable">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Client ID</th>
+                            <th>Queue Size</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="queuesBody">
+                        <tr><td colspan="3" class="empty-state">No queued messages</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = '/api/v1';
+
+        async function fetchJSON(url) {
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error(res.statusText);
+                return await res.json();
+            } catch (e) {
+                console.error('Fetch error:', e);
+                return null;
+            }
+        }
+
+        async function fetchStats() {
+            const data = await fetchJSON(API + '/stats');
+            if (!data) {
+                document.getElementById('connBadge').className = 'connection-badge disconnected';
+                document.getElementById('connBadge').querySelector('span').textContent = 'Disconnected';
+                return;
+            }
+            document.getElementById('connBadge').className = 'connection-badge connected';
+            document.getElementById('connBadge').querySelector('span').textContent = `Gateway #${data.gateway_id || 1}`;
+
+            document.getElementById('statTotal').textContent = data.devices_total || 0;
+            document.getElementById('statOnline').textContent = data.devices_online || 0;
+            document.getElementById('statSleeping').textContent = data.devices_sleeping || 0;
+            document.getElementById('statQueued').textContent = data.total_queued || 0;
+            document.getElementById('statTopics').textContent = data.topics_count || 0;
+            document.getElementById('statUplink').textContent = data.messages_uplink || 0;
+            document.getElementById('statDownlink').textContent = data.messages_downlink || 0;
+            document.getElementById('statDelivered').textContent = data.messages_delivered || 0;
+            document.getElementById('statDropped').textContent = data.messages_dropped || 0;
+        }
+
+        async function fetchDetailedStats() {
+            const data = await fetchJSON(API + '/stats/detailed');
+            if (!data) return;
+            document.getElementById('dropQueueFull').textContent = data.drops_queue_full || 0;
+            document.getElementById('dropSleeping').textContent = data.drops_sleeping || 0;
+            document.getElementById('dropOffline').textContent = data.drops_offline || 0;
+            document.getElementById('dropUnknown').textContent = data.drops_unknown_topic || 0;
+        }
+
+        async function resetStats() {
+            if (confirm('Reset all statistics?')) {
+                await fetch(API + '/stats', { method: 'DELETE' });
+                fetchAll();
+            }
+        }
+
+        async function fetchDevices() {
+            const data = await fetchJSON(API + '/devices');
+            if (!data || !data.devices || data.devices.length === 0) {
+                document.getElementById('devicesGrid').innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">&#128225;</div>
+                        <p>Waiting for devices to connect...</p>
+                    </div>`;
+                return;
+            }
+
+            const html = data.devices.map(d => {
+                let statusClass = d.connected ? (d.sleeping ? 'sleeping' : 'online') : 'offline';
+                let statusText = d.connected ? (d.sleeping ? 'Sleeping' : 'Online') : 'Offline';
+                let cardClass = d.sleeping ? 'device-card sleeping' : 'device-card';
+
+                const subsHtml = (d.subscriptions || []).map(s =>
+                    `<span class="sub-tag">${escapeHtml(s)}</span>`
+                ).join('');
+
+                const queueHtml = d.queue_size > 0
+                    ? `<span class="queue-badge">${d.queue_size} queued</span>`
+                    : '<span style="color:var(--text-secondary);font-size:12px;">Empty</span>';
+
+                return `
+                <div class="${cardClass}">
+                    <div class="device-header">
+                        <div class="device-id">${escapeHtml(d.client_id)}</div>
+                        <div class="device-status ${statusClass}">
+                            <div class="pulse-dot"></div>
+                            ${statusText}
+                        </div>
+                    </div>
+                    <div class="device-meta">
+                        <div class="device-meta-row">
+                            <span class="device-meta-label">Address</span>
+                            <span class="device-meta-value">${escapeHtml(d.address)}</span>
+                        </div>
+                        <div class="device-meta-row">
+                            <span class="device-meta-label">Last Seen</span>
+                            <span class="device-meta-value">${formatTime(d.last_seen)}</span>
+                        </div>
+                        <div class="device-meta-row">
+                            <span class="device-meta-label">Queue</span>
+                            ${queueHtml}
+                        </div>
+                    </div>
+                    ${subsHtml ? `<div class="device-subs">${subsHtml}</div>` : ''}
+                </div>`;
+            }).join('');
+
+            document.getElementById('devicesGrid').innerHTML = html;
+        }
+
+        async function fetchTopics() {
+            const data = await fetchJSON(API + '/topics');
+            if (!data || !data.topics || data.topics.length === 0) {
+                document.getElementById('topicsBody').innerHTML =
+                    '<tr><td colspan="2" style="text-align:center;color:var(--text-secondary);padding:24px;">No topics registered</td></tr>';
+                return;
+            }
+
+            const html = data.topics.map(t => `
+                <tr>
+                    <td><strong>#${t.topic_id}</strong></td>
+                    <td>${escapeHtml(t.topic_name)}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('topicsBody').innerHTML = html;
+        }
+
+        async function fetchQueues() {
+            const data = await fetchJSON(API + '/queues');
+            if (!data || !data.queues || Object.keys(data.queues).length === 0) {
+                document.getElementById('queuesBody').innerHTML =
+                    '<tr><td colspan="3" style="text-align:center;color:var(--text-secondary);padding:24px;">No queued messages</td></tr>';
+                return;
+            }
+
+            const html = Object.entries(data.queues).map(([id, size]) => `
+                <tr>
+                    <td>${escapeHtml(id)}</td>
+                    <td><strong>${size}</strong> messages</td>
+                    <td><button class="refresh-btn" onclick="clearQueue('${escapeHtml(id)}')" style="padding:4px 12px;font-size:12px;">Clear</button></td>
+                </tr>
+            `).join('');
+
+            document.getElementById('queuesBody').innerHTML = html;
+        }
+
+        async function clearQueue(clientId) {
+            await fetch(API + '/queues/' + encodeURIComponent(clientId), { method: 'DELETE' });
+            fetchAll();
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const d = document.createElement('div');
+            d.textContent = text;
+            return d.innerHTML;
+        }
+
+        function formatTime(iso) {
+            if (!iso || iso === '0001-01-01T00:00:00Z') return '-';
+            try {
+                const d = new Date(iso);
+                return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            } catch {
+                return iso;
+            }
+        }
+
+        function fetchAll() {
+            fetchStats();
+            fetchDetailedStats();
+            fetchDevices();
+            fetchTopics();
+            fetchQueues();
+        }
+
+        fetchAll();
+
+        setInterval(() => {
+            if (document.getElementById('autoRefresh').checked) {
+                fetchAll();
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

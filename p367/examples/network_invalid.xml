@@ -1,0 +1,19 @@
+<root>
+    <network>
+        <device>
+            <device-name>core-switch-01</device-name>
+            <mgmt-ip>invalid-ip</mgmt-ip>
+            <max-bandwidth>200000</max-bandwidth>
+            <ssh-port>99999</ssh-port>
+            <netconf-port>-1</netconf-port>
+            <interface>
+                <name>GigabitEthernet0/1</name>
+                <type>invalid-type</type>
+                <mtu>1500</mtu>
+                <status>unknown</status>
+                <bandwidth>-100</bandwidth>
+                <ip>256.1.1.1</ip>
+            </interface>
+        </device>
+    </network>
+</root>

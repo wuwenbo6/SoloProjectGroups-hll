@@ -1,0 +1,18 @@
+{
+  "server": {
+    "port": 3000,
+    "wsPort": 8080
+  },
+  "ota": {
+    "blockSize": 64,
+    "maxRetries": 3,
+    "retryDelay": 1000
+  },
+  "firmware": {
+    "path": "./firmware.ota",
+    "version": "2.0.0",
+    "manufacturerId": 4097,
+    "imageType": 1,
+    "fileVersion": 33554432
+  }
+}

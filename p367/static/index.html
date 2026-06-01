@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netconf YANG 数据验证器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 1.3rem;
+            color: #333;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2 .icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+            font-size: 14px;
+        }
+
+        .form-group select,
+        .form-group input[type="text"],
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-group select:focus,
+        .form-group input[type="text"]:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            font-family: 'Monaco', 'Menlo', monospace;
+            resize: vertical;
+            min-height: 200px;
+            line-height: 1.5;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .file-upload {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .file-upload.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .file-upload p {
+            color: #666;
+            margin: 10px 0;
+        }
+
+        .file-upload .file-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            background: #f5f5f5;
+            padding: 4px;
+            border-radius: 8px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .error-count {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .error-count.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .error-count.errors {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .error-item {
+            background: #fff5f5;
+            border-left: 4px solid #ef4444;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            border-radius: 0 8px 8px 0;
+            transition: all 0.3s ease;
+        }
+
+        .error-item:hover {
+            background: #ffeaea;
+            transform: translateX(4px);
+        }
+
+        .error-path {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            color: #c53030;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .error-message {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        .error-type {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 8px;
+            margin-right: 4px;
+        }
+
+        .error-type.type_mismatch {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .error-type.range_violation {
+            background: #feebc8;
+            color: #c05621;
+        }
+
+        .error-type.length_violation {
+            background: #e9d8fd;
+            color: #6b46c1;
+        }
+
+        .error-type.invalid_enum {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .error-type.missing_mandatory {
+            background: #fefcbf;
+            color: #975a16;
+        }
+
+        .error-type.unknown_element {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .error-type.duplicate_value {
+            background: #fbb6ce;
+            color: #b83280;
+        }
+
+        .error-type.must_violation {
+            background: #fef5e7;
+            color: #d69e2e;
+        }
+
+        .diff-result {
+            padding: 12px;
+            border-left: 4px solid #ccc;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+
+        .diff-result.added {
+            border-left-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .diff-result.removed {
+            border-left-color: #f56565;
+            background: #fff5f5;
+        }
+
+        .diff-result.modified {
+            border-left-color: #ed8936;
+            background: #fffaf0;
+        }
+
+        .diff-path {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .diff-value {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .diff-value .old {
+            color: #e53e3e;
+            text-decoration: line-through;
+        }
+
+        .diff-value .new {
+            color: #38a169;
+            font-weight: 500;
+        }
+
+        .success-banner {
+            background: #d4edda;
+            border: 2px solid #c3e6cb;
+            color: #155724;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .success-banner .icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f0f0f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .model-list {
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+
+        .model-item {
+            padding: 10px 14px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .model-item:last-child {
+            border-bottom: none;
+        }
+
+        .model-item:hover {
+            background: #f8f9ff;
+        }
+
+        .model-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-loaded {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .schema-view {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #10b981;
+        }
+
+        .notification.error {
+            background: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Netconf YANG 数据验证器</h1>
+            <p>上传 YANG 模型，验证 XML/JSON 数据实例，实时展示验证错误</p>
+        </header>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="card">
+                    <h2><span class="icon">📁</span> YANG 模型管理</h2>
+                    
+                    <div class="form-group">
+                        <label>上传 YANG 模型文件</label>
+                        <div class="file-upload" id="fileUpload">
+                            <div class="file-icon">📄</div>
+                            <p>拖拽 .yang 文件到此处，或点击选择</p>
+                            <input type="file" id="yangFile" accept=".yang" style="display: none;">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>模型名称（可选）</label>
+                        <input type="text" id="modelName" placeholder="留空则使用文件名">
+                    </div>
+
+                    <button class="btn btn-primary" id="uploadBtn">
+                        <span>⬆️</span> 上传模型
+                    </button>
+
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label>已加载的模型</label>
+                        <div class="model-list" id="modelList">
+                            <div style="padding: 20px; text-align: center; color: #999;">
+                                暂无模型
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2><span class="icon">📋</span> 数据实例</h2>
+                    
+                    <div class="form-group">
+                        <label>选择模型</label>
+                        <select id="selectModel">
+                            <option value="">-- 请先上传模型 --</option>
+                        </select>
+                    </div>
+
+                    <div class="tabs">
+                        <div class="tab active" data-format="xml">XML</div>
+                        <div class="tab" data-format="json">JSON</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>输入数据</label>
+                        <textarea id="dataInput" placeholder="在此输入 XML 或 JSON 数据..."></textarea>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-primary" id="validateBtn">
+                            <span>✅</span> 验证数据
+                        </button>
+                        <button class="btn btn-secondary" id="clearBtn">
+                            <span>🗑️</span> 清空
+                        </button>
+                        <button class="btn btn-secondary" id="loadExampleBtn">
+                            <span>📝</span> 加载示例
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="card">
+                    <h2><span class="icon">🔍</span> 验证结果</h2>
+                    
+                    <div class="results-header">
+                        <div id="resultsStatus">等待验证...</div>
+                    </div>
+
+                    <div id="resultsContent">
+                        <div style="text-align: center; padding: 40px; color: #999;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
+                            <p>输入数据并点击验证按钮查看结果</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2><span class="icon">🌳</span> 模型结构</h2>
+                    <div id="schemaView" class="schema-view">
+                        选择模型后显示结构...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        const API_BASE = '';
+        let currentFormat = 'xml';
+
+        const examples = {
+            yang: `module device {
+    namespace "http://example.com/device";
+    prefix dev;
+
+    container device-info {
+        leaf hostname {
+            type string {
+                length 1..64;
+            }
+            mandatory true;
+            description "Hostname of the device";
+        }
+
+        leaf ip-address {
+            type string;
+            description "IP address of the device";
+        }
+
+        leaf port {
+            type uint16 {
+                range 1..65535;
+            }
+            default 830;
+            description "NETCONF port number";
+        }
+
+        leaf enabled {
+            type boolean;
+            default true;
+        }
+
+        leaf status {
+            type enumeration {
+                enum "online";
+                enum "offline";
+                enum "maintenance";
+            }
+            default "online";
+        }
+
+        container location {
+            leaf building {
+                type string;
+            }
+            leaf room {
+                type string;
+            }
+            leaf rack {
+                type uint8 {
+                    range 1..48;
+                }
+            }
+        }
+
+        list interface {
+            key "name";
+            leaf name {
+                type string;
+            }
+            leaf type {
+                type string;
+            }
+            leaf mtu {
+                type uint32 {
+                    range 68..9216;
+                }
+                default 1500;
+            }
+        }
+    }
+}`,
+            network_yang: `module network {
+    namespace "http://example.com/network";
+    prefix net;
+
+    typedef port-number {
+        type uint16 {
+            range 1..65535;
+        }
+        description "Port number";
+    }
+
+    typedef vlan-id {
+        type uint16 {
+            range 1..4094;
+        }
+        units "VLAN ID";
+    }
+
+    typedef bandwidth {
+        type uint32 {
+            range 0..100000;
+        }
+        units "Mbps";
+    }
+
+    typedef interface-type {
+        type enumeration {
+            enum "ethernet";
+            enum "optical";
+            enum "wireless";
+            enum "tunnel";
+        }
+    }
+
+    typedef admin-status {
+        type enumeration {
+            enum "up";
+            enum "down";
+            enum "testing";
+        }
+        default "up";
+    }
+
+    container network {
+        container device {
+            leaf device-name {
+                type string;
+                mandatory true;
+            }
+
+            leaf-list allowed-vlans {
+                type vlan-id;
+                description "Allowed VLAN IDs (must be unique)";
+            }
+
+            leaf-list dns-servers {
+                type string;
+                description "DNS servers (must be unique)";
+            }
+
+            leaf max-bandwidth {
+                type bandwidth;
+                default 1000;
+            }
+
+            leaf ssh-port {
+                type port-number;
+                default 22;
+            }
+
+            list interface {
+                key "name";
+                leaf name { type string; }
+                leaf type { type interface-type; }
+                leaf status { type admin-status; }
+                leaf bandwidth { type bandwidth; }
+                leaf-list tagged-vlans {
+                    type vlan-id;
+                }
+            }
+        }
+    }
+}`,
+            xml_valid: `<device>
+    <device-info>
+        <hostname>router-01</hostname>
+        <ip-address>192.168.1.1</ip-address>
+        <port>830</port>
+        <enabled>true</enabled>
+        <status>online</status>
+        <location>
+            <building>HQ</building>
+            <room>A-101</room>
+            <rack>10</rack>
+        </location>
+        <interface>
+            <name>GigabitEthernet0/1</name>
+            <type>ethernet</type>
+            <mtu>1500</mtu>
+        </interface>
+    </device-info>
+</device>`,
+            xml_invalid: `<device>
+    <device-info>
+        <ip-address>192.168.1.1</ip-address>
+        <port>99999</port>
+        <enabled>yes</enabled>
+        <status>unknown</status>
+        <location>
+            <rack>100</rack>
+        </location>
+        <interface>
+            <mtu>9999</mtu>
+        </interface>
+    </device-info>
+</device>`,
+            network_xml_valid: `<network>
+    <device>
+        <device-name>core-switch-01</device-name>
+        <allowed-vlans>10</allowed-vlans>
+        <allowed-vlans>20</allowed-vlans>
+        <allowed-vlans>30</allowed-vlans>
+        <dns-servers>8.8.8.8</dns-servers>
+        <dns-servers>8.8.4.4</dns-servers>
+        <max-bandwidth>10000</max-bandwidth>
+        <ssh-port>22</ssh-port>
+        <interface>
+            <name>GigabitEthernet0/1</name>
+            <type>ethernet</type>
+            <status>up</status>
+            <bandwidth>1000</bandwidth>
+            <tagged-vlans>10</tagged-vlans>
+            <tagged-vlans>20</tagged-vlans>
+        </interface>
+    </device>
+</network>`,
+            network_xml_invalid: `<network>
+    <device>
+        <device-name>core-switch-01</device-name>
+        <allowed-vlans>10</allowed-vlans>
+        <allowed-vlans>20</allowed-vlans>
+        <allowed-vlans>10</allowed-vlans>
+        <dns-servers>8.8.8.8</dns-servers>
+        <dns-servers>8.8.4.4</dns-servers>
+        <dns-servers>8.8.8.8</dns-servers>
+        <max-bandwidth>200000</max-bandwidth>
+        <ssh-port>99999</ssh-port>
+        <interface>
+            <name>GigabitEthernet0/1</name>
+            <type>invalid-type</type>
+            <status>unknown</status>
+            <bandwidth>-100</bandwidth>
+            <tagged-vlans>10</tagged-vlans>
+            <tagged-vlans>20</tagged-vlans>
+            <tagged-vlans>10</tagged-vlans>
+        </interface>
+    </device>
+</network>`,
+            json_valid: `{
+    "device": {
+        "device-info": {
+            "hostname": "router-01",
+            "ip-address": "192.168.1.1",
+            "port": 830,
+            "enabled": true,
+            "status": "online",
+            "location": {
+                "building": "HQ",
+                "room": "A-101",
+                "rack": 10
+            },
+            "interface": [
+                {
+                    "name": "GigabitEthernet0/1",
+                    "type": "ethernet",
+                    "mtu": 1500
+                }
+            ]
+        }
+    }
+}`,
+            json_invalid: `{
+    "device": {
+        "device-info": {
+            "ip-address": "192.168.1.1",
+            "port": 99999,
+            "enabled": "yes",
+            "status": "unknown",
+            "location": {
+                "rack": 100
+            },
+            "unknown-field": "test"
+        }
+    }
+}`
+        };
+
+        const fileUpload = document.getElementById('fileUpload');
+        const yangFile = document.getElementById('yangFile');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const validateBtn = document.getElementById('validateBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const loadExampleBtn = document.getElementById('loadExampleBtn');
+        const dataInput = document.getElementById('dataInput');
+        const selectModel = document.getElementById('selectModel');
+        const modelList = document.getElementById('modelList');
+        const resultsContent = document.getElementById('resultsContent');
+        const resultsStatus = document.getElementById('resultsStatus');
+        const schemaView = document.getElementById('schemaView');
+        const notification = document.getElementById('notification');
+
+        fileUpload.addEventListener('click', () => yangFile.click());
+        fileUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUpload.classList.add('dragover');
+        });
+        fileUpload.addEventListener('dragleave', () => {
+            fileUpload.classList.remove('dragover');
+        });
+        fileUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUpload.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                yangFile.files = files;
+                updateFileDisplay();
+            }
+        });
+        yangFile.addEventListener('change', updateFileDisplay);
+
+        function updateFileDisplay() {
+            const file = yangFile.files[0];
+            if (file) {
+                fileUpload.innerHTML = `
+                    <div class="file-icon">✅</div>
+                    <p><strong>${file.name}</strong></p>
+                    <p style="color: #667eea;">点击更换文件</p>
+                `;
+                if (!document.getElementById('modelName').value) {
+                    document.getElementById('modelName').value = file.name.replace('.yang', '');
+                }
+            }
+        }
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentFormat = tab.dataset.format;
+            });
+        });
+
+        uploadBtn.addEventListener('click', async () => {
+            const file = yangFile.files[0];
+            const name = document.getElementById('modelName').value.trim();
+            
+            if (!file && !name) {
+                showNotification('请选择文件或输入模型内容', 'error');
+                return;
+            }
+
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<span class="spinner"></span> 上传中...';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                if (name) formData.append('name', name);
+
+                const response = await fetch(`${API_BASE}/api/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(result.message, 'success');
+                    loadModels();
+                    yangFile.value = '';
+                    document.getElementById('modelName').value = '';
+                    fileUpload.innerHTML = `
+                        <div class="file-icon">📄</div>
+                        <p>拖拽 .yang 文件到此处，或点击选择</p>
+                    `;
+                } else {
+                    showNotification(result.message, 'error');
+                }
+            } catch (error) {
+                showNotification('上传失败: ' + error.message, 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<span>⬆️</span> 上传模型';
+            }
+        });
+
+        validateBtn.addEventListener('click', async () => {
+            const modelName = selectModel.value;
+            let data = dataInput.value.trim();
+
+            if (!modelName) {
+                showNotification('请选择模型', 'error');
+                return;
+            }
+
+            if (!data) {
+                showNotification('请输入数据', 'error');
+                return;
+            }
+
+            if (currentFormat === 'xml' && !data.startsWith('<root>')) {
+                data = '<root>' + data + '</root>';
+            }
+
+            validateBtn.disabled = true;
+            resultsContent.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/validate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        modelName,
+                        data,
+                        dataFormat: currentFormat
+                    })
+                });
+
+                const result = await response.json();
+                displayResults(result);
+            } catch (error) {
+                showNotification('验证失败: ' + error.message, 'error');
+            } finally {
+                validateBtn.disabled = false;
+            }
+        });
+
+        function displayResults(result) {
+            if (result.errors && result.errors.length > 0) {
+                resultsStatus.innerHTML = `
+                    <span class="error-count errors">
+                        ❌ 发现 ${result.errors.length} 个错误
+                    </span>
+                `;
+                
+                resultsContent.innerHTML = result.errors.map(err => `
+                    <div class="error-item">
+                        <div class="error-path">${escapeHtml(err.path)}</div>
+                        <div class="error-message">${escapeHtml(err.message)}</div>
+                        <span class="error-type">${escapeHtml(err.type)}</span>
+                    </div>
+                `).join('');
+            } else {
+                resultsStatus.innerHTML = `
+                    <span class="error-count success">
+                        ✅ 验证通过
+                    </span>
+                `;
+                resultsContent.innerHTML = `
+                    <div class="success-banner">
+                        <div class="icon">🎉</div>
+                        <div>数据验证通过！所有字段符合 YANG 模型规范。</div>
+                    </div>
+                `;
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        clearBtn.addEventListener('click', () => {
+            dataInput.value = '';
+            resultsContent.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #999;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
+                    <p>输入数据并点击验证按钮查看结果</p>
+                </div>
+            `;
+            resultsStatus.innerHTML = '等待验证...';
+        });
+
+        loadExampleBtn.addEventListener('click', () => {
+            if (currentFormat === 'xml') {
+                dataInput.value = examples.network_xml_invalid;
+            } else {
+                dataInput.value = examples.json_invalid;
+            }
+            
+            if (!selectModel.querySelector('option[value="network-example"]')) {
+                uploadNetworkExampleModel();
+            } else {
+                selectModel.value = 'network-example';
+                showSchema('network-example');
+            }
+        });
+
+        async function uploadNetworkExampleModel() {
+            const blob = new Blob([examples.network_yang], { type: 'text/plain' });
+            const file = new File([blob], 'network-example.yang', { type: 'text/plain' });
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('name', 'network-example');
+
+            try {
+                await fetch(`${API_BASE}/api/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                await loadModels();
+                selectModel.value = 'network-example';
+                showSchema('network-example');
+                showNotification('网络设备示例模型已加载（包含typedef和leaf-list）', 'success');
+            } catch (error) {
+                console.error('Failed to upload network example model:', error);
+            }
+        }
+
+        selectModel.addEventListener('change', () => {
+            const modelName = selectModel.value;
+            if (modelName) {
+                showSchema(modelName);
+            } else {
+                schemaView.textContent = '选择模型后显示结构...';
+            }
+        });
+
+        async function showSchema(modelName) {
+            try {
+                const response = await fetch(`${API_BASE}/api/model?name=${encodeURIComponent(modelName)}`);
+                if (response.ok) {
+                    const text = await response.text();
+                    schemaView.textContent = text;
+                }
+            } catch (error) {
+                schemaView.textContent = '加载结构失败';
+            }
+        }
+
+        async function loadModels() {
+            try {
+                const response = await fetch(`${API_BASE}/api/models`);
+                const result = await response.json();
+                
+                if (result.success && result.models.length > 0) {
+                    modelList.innerHTML = result.models.map(name => `
+                        <div class="model-item">
+                            <span class="model-name">${escapeHtml(name)}</span>
+                            <span class="status-badge status-loaded">已加载</span>
+                        </div>
+                    `).join('');
+
+                    selectModel.innerHTML = '<option value="">-- 请选择模型 --</option>' +
+                        result.models.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+                } else {
+                    modelList.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">暂无模型</div>';
+                    selectModel.innerHTML = '<option value="">-- 请先上传模型 --</option>';
+                }
+            } catch (error) {
+                console.error('Failed to load models:', error);
+            }
+        }
+
+        function showNotification(message, type) {
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        loadModels();
+    </script>
+</body>
+</html>

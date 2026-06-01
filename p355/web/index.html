@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQTT v5 属性路由管理控制台</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1>MQTT v5 属性路由 Broker</h1>
+            <p class="subtitle">基于用户属性（User Properties）的动态消息路由</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="stats-section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📋</div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="totalRules">0</div>
+                        <div class="stat-label">路由规则总数</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="enabledRules">0</div>
+                        <div class="stat-label">已启用规则</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">�</div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="totalHits">0</div>
+                        <div class="stat-label">总命中次数</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📡</div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="activeSubs">0</div>
+                        <div class="stat-label">活跃订阅数</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header">
+                <h2>属性路由规则</h2>
+                <div class="header-buttons">
+                    <button class="btn btn-secondary" onclick="exportStats()">📥 导出统计</button>
+                    <button class="btn btn-secondary" onclick="resetStats()">🔄 重置统计</button>
+                    <button class="btn btn-primary" onclick="openModal()">➕ 添加规则</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="rules-table">
+                    <thead>
+                        <tr>
+                            <th>状态</th>
+                            <th>名称</th>
+                            <th>匹配键</th>
+                            <th>匹配值</th>
+                            <th>匹配类型</th>
+                            <th>目标主题</th>
+                            <th>命中次数</th>
+                            <th>最后命中</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rulesTableBody">
+                        <tr>
+                            <td colspan="9" class="loading">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header">
+                <h2>路由测试</h2>
+            </div>
+            <div class="test-panel">
+                <div class="test-form">
+                    <h3>输入消息属性</h3>
+                    <p class="hint">同一键可输入多行值，自动合并为键→值数组（单键多值）</p>
+                    <div id="propertyInputs">
+                        <div class="property-row">
+                            <input type="text" placeholder="键 (key)" class="prop-key" value="device_type">
+                            <input type="text" placeholder="值 (value)" class="prop-value" value="sensor">
+                            <button class="btn btn-danger btn-sm" onclick="removePropertyRow(this)">✕</button>
+                        </div>
+                        <div class="property-row">
+                            <input type="text" placeholder="键 (key)" class="prop-key" value="device_type">
+                            <input type="text" placeholder="值 (value)" class="prop-value" value="temperature">
+                            <button class="btn btn-danger btn-sm" onclick="removePropertyRow(this)">✕</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="addPropertyRow()">➕ 添加属性</button>
+                    <button class="btn btn-primary" onclick="testRoute()">🔍 测试路由</button>
+                </div>
+                <div class="test-result">
+                    <h3>路由结果</h3>
+                    <div id="testResult" class="result-box">
+                        <p class="placeholder">请点击"测试路由"按钮查看结果</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header">
+                <h2>属性订阅过滤</h2>
+                <button class="btn btn-secondary" onclick="refreshSubscriptions()">🔄 刷新</button>
+            </div>
+            <div class="table-container">
+                <table class="rules-table">
+                    <thead>
+                        <tr>
+                            <th>客户端 ID</th>
+                            <th>订阅主题</th>
+                            <th>属性过滤条件</th>
+                            <th>订阅时间</th>
+                        </tr>
+                    </thead>
+                    <tbody id="subscriptionsTableBody">
+                        <tr>
+                            <td colspan="4" class="loading">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="hint" style="margin-top: 10px;">
+                    💡 MQTT v5 客户端在 SUBSCRIBE 时携带 User Properties 作为过滤条件，只有消息属性匹配时才会收到消息
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">添加路由规则</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="ruleForm" onsubmit="saveRule(event)">
+                <input type="hidden" id="ruleId">
+                <div class="form-group">
+                    <label>规则名称 *</label>
+                    <input type="text" id="ruleName" required placeholder="例如: 温度传感器路由">
+                </div>
+                <div class="form-group">
+                    <label>描述</label>
+                    <textarea id="ruleDescription" rows="2" placeholder="可选描述"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>匹配键 (Key) *</label>
+                        <input type="text" id="matchKey" required placeholder="例如: device_type">
+                    </div>
+                    <div class="form-group">
+                        <label>匹配类型 *</label>
+                        <select id="matchType" required>
+                            <option value="exact">精确匹配</option>
+                            <option value="prefix">前缀匹配</option>
+                            <option value="suffix">后缀匹配</option>
+                            <option value="contains">包含匹配</option>
+                            <option value="regex">通配符匹配</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>匹配值 (Value) *</label>
+                    <input type="text" id="matchValue" required placeholder="例如: temperature_sensor">
+                </div>
+                <div class="form-group">
+                    <label>目标主题 (Target Topic) *</label>
+                    <input type="text" id="targetTopic" required placeholder="例如: devices/sensors/temperature">
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="ruleEnabled" checked>
+                        启用此规则
+                    </label>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NTPv4 NTS Security Timestamp</title>
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1a2332;
+            --bg-input: #0f1724;
+            --border: #2a3a50;
+            --text-primary: #e8edf5;
+            --text-secondary: #8b9dc3;
+            --text-muted: #5a6f8e;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-amber: #f59e0b;
+            --accent-purple: #8b5cf6;
+            --glow-blue: rgba(59, 130, 246, 0.15);
+            --glow-green: rgba(16, 185, 129, 0.15);
+            --glow-red: rgba(239, 68, 68, 0.15);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, #0a0e17 0%, #1a1f35 50%, #0a0e17 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 24px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+        }
+        .header-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+        }
+        .logo-text {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .logo-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .status-badge.secure {
+            background: var(--glow-green);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .status-badge.insecure {
+            background: var(--glow-red);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        .status-badge.secure .status-dot { background: var(--accent-green); }
+        .status-badge.insecure .status-dot { background: var(--accent-red); }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        .timestamp-hero {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 24px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .timestamp-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan), var(--accent-green));
+        }
+        .timestamp-hero .label {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+        }
+        .timestamp-value {
+            font-size: 48px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 30px rgba(6, 182, 212, 0.3);
+            margin-bottom: 8px;
+        }
+        .timestamp-date {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+        .timestamp-meta {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            flex-wrap: wrap;
+        }
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .meta-item .meta-label { color: var(--text-muted); }
+        .meta-item .meta-value { color: var(--text-primary); font-weight: 500; }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 900px) {
+            .grid { grid-template-columns: 1fr; }
+            .timestamp-value { font-size: 32px; }
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-title .icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .card-body { padding: 20px; }
+        .field-group { margin-bottom: 16px; }
+        .field-group:last-child { margin-bottom: 0; }
+        .field-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+        .field-value {
+            font-size: 14px;
+            color: var(--text-primary);
+            padding: 8px 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            word-break: break-all;
+        }
+        .field-value.mono {
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 13px;
+        }
+        .input-field {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .input-field:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px var(--glow-blue);
+        }
+        .input-field::placeholder { color: var(--text-muted); }
+        textarea.input-field {
+            min-height: 80px;
+            resize: vertical;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            color: white;
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); }
+        .btn-secondary {
+            background: var(--bg-input);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { border-color: var(--accent-blue); }
+        .btn-success {
+            background: linear-gradient(135deg, var(--accent-green), #059669);
+            color: white;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent-red), #dc2626);
+            color: white;
+        }
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .ext-field-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .ext-field-card:last-child { margin-bottom: 0; }
+        .ext-field-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .ext-field-type {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .ext-type-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .ext-type-badge.nts {
+            background: var(--glow-blue);
+            color: var(--accent-blue);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .ext-type-badge.other {
+            background: rgba(139, 157, 195, 0.1);
+            color: var(--text-secondary);
+            border: 1px solid rgba(139, 157, 195, 0.2);
+        }
+        .ext-field-detail {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 4px 16px;
+            font-size: 13px;
+        }
+        .ext-field-detail .key { color: var(--text-muted); }
+        .ext-field-detail .val { color: var(--text-primary); font-family: monospace; }
+        .verification-result {
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+        .verification-result.success {
+            background: var(--glow-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .verification-result.failure {
+            background: var(--glow-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .verification-result .result-icon {
+            font-size: 20px;
+            margin-right: 8px;
+        }
+        .verification-result .result-text {
+            font-weight: 600;
+        }
+        .tab-bar {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab:hover { color: var(--text-secondary); }
+        .tab.active {
+            color: var(--accent-blue);
+            border-bottom-color: var(--accent-blue);
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .session-info {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 13px;
+        }
+        .session-info .key { color: var(--text-muted); display: inline; }
+        .session-info .val { color: var(--accent-cyan); font-family: monospace; display: inline; }
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--text-muted);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .toast {
+            position: fixed;
+            top: 80px;
+            right: 24px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 1000;
+            transform: translateX(120%);
+            transition: transform 0.3s;
+        }
+        .toast.show { transform: translateX(0); }
+        .toast.success {
+            background: var(--accent-green);
+            color: white;
+        }
+        .toast.error {
+            background: var(--accent-red);
+            color: white;
+        }
+        .full-width { grid-column: 1 / -1; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-inner">
+            <div class="logo">
+                <div class="logo-icon">&#128274;</div>
+                <div>
+                    <div class="logo-text">NTPv4 NTS</div>
+                    <div class="logo-sub">Network Time Security Extension Parser</div>
+                </div>
+            </div>
+            <div id="statusBadge" class="status-badge insecure">
+                <span class="status-dot"></span>
+                <span id="statusText">Not Connected</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="timestamp-hero">
+            <div class="label">Secure NTS Timestamp (UTC)</div>
+            <div class="timestamp-value" id="secureTimestamp">--:--:--.------</div>
+            <div class="timestamp-date" id="secureDate">----/--/--</div>
+            <div class="timestamp-meta">
+                <div class="meta-item">
+                    <span class="meta-label">Stratum:</span>
+                    <span class="meta-value" id="metaStratum">--</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Leap:</span>
+                    <span class="meta-value" id="metaLeap">--</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Verified:</span>
+                    <span class="meta-value" id="metaVerified">--</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Session:</span>
+                    <span class="meta-value" id="metaSession">--</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon" style="background:var(--glow-blue);color:var(--accent-blue);">&#128270;</span>
+                        NTPv4 Packet Parser
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="field-group">
+                        <div class="field-label">Packet Hex</div>
+                        <textarea class="input-field" id="parseInput" placeholder="e.g. 240406ec..."></textarea>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="parsePacket()">&#128269; Parse</button>
+                        <button class="btn btn-secondary" onclick="loadSamplePacket()">&#128196; Sample</button>
+                    </div>
+                    <div id="parseResult" style="margin-top:16px;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon" style="background:rgba(139,92,246,0.15);color:var(--accent-purple);">&#127850;</span>
+                        NTS Cookie Operations
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="field-group">
+                        <div class="field-label">Key Hex (32/64 bytes, optional)</div>
+                        <input class="input-field" id="cookieKey" placeholder="Auto-generated if empty">
+                    </div>
+                    <div class="field-group">
+                        <div class="field-label">Plaintext Hex</div>
+                        <input class="input-field" id="cookiePlaintext" placeholder="e.g. 757365723d3132">
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-success" onclick="encryptCookie()">&#128274; Encrypt</button>
+                        <button class="btn btn-secondary" onclick="decryptCookie()">&#128275; Decrypt</button>
+                    </div>
+                    <div class="field-group" style="margin-top:12px;">
+                        <div class="field-label">Cookie (Base64)</div>
+                        <input class="input-field" id="cookieB64" placeholder="Base64 encoded cookie">
+                    </div>
+                    <div id="cookieResult" style="margin-top:16px;"></div>
+                </div>
+            </div>
+
+            <div class="card full-width">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon" style="background:var(--glow-green);color:var(--accent-green);">&#9989;</span>
+                        NTS C/S Verification
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="tab-bar">
+                        <div class="tab active" onclick="switchTab('session')">Session</div>
+                        <div class="tab" onclick="switchTab('sign')">Sign</div>
+                        <div class="tab" onclick="switchTab('verify')">Verify</div>
+                        <div class="tab" onclick="switchTab('verifyPacket')">Verify Packet</div>
+                        <div class="tab" onclick="switchTab('uniqueId')">Unique ID</div>
+                        <div class="tab" onclick="switchTab('keyAgreement')">Key Agreement</div>
+                    </div>
+
+                    <div id="tab-session" class="tab-content active">
+                        <div id="sessionInfo"></div>
+                        <button class="btn btn-primary" onclick="createSession()">&#128273; Create NTS Session</button>
+                    </div>
+
+                    <div id="tab-sign" class="tab-content">
+                        <div class="field-group">
+                            <div class="field-label">NTP Transmit Timestamp Hex (8 bytes)</div>
+                            <input class="input-field" id="signTransmit" placeholder="e.g. e8c2b56e00000000">
+                        </div>
+                        <button class="btn btn-success" onclick="ntsSign()">&#9997; Sign (Server + Client)</button>
+                        <div id="signResult" style="margin-top:16px;"></div>
+                    </div>
+
+                    <div id="tab-verify" class="tab-content">
+                        <div class="field-group">
+                            <div class="field-label">Auth Nonce Hex</div>
+                            <input class="input-field" id="verifyNonce" placeholder="">
+                        </div>
+                        <div class="field-group">
+                            <div class="field-label">Auth Ciphertext Hex</div>
+                            <input class="input-field" id="verifyCiphertext" placeholder="">
+                        </div>
+                        <div class="field-group">
+                            <div class="field-label">NTP Transmit Timestamp Hex</div>
+                            <input class="input-field" id="verifyTransmit" placeholder="">
+                        </div>
+                        <button class="btn btn-danger" onclick="ntsVerify()">&#128272; Verify Authenticator</button>
+                        <div id="verifyResult" style="margin-top:16px;"></div>
+                    </div>
+
+                    <div id="tab-verifyPacket" class="tab-content">
+                        <div class="field-group">
+                            <div class="field-label">NTP Packet with NTS Extensions (Hex)</div>
+                            <textarea class="input-field" id="verifyPacketInput" placeholder="Full NTP packet hex with NTS extension fields"></textarea>
+                        </div>
+                        <button class="btn btn-danger" onclick="verifyPacket()">&#128272; Verify NTS Packet</button>
+                        <div id="verifyPacketResult" style="margin-top:16px;"></div>
+                    </div>
+
+                    <div id="tab-uniqueId" class="tab-content">
+                        <div class="field-group">
+                            <div class="field-label">Generate Unique Identifier</div>
+                            <div class="btn-group" style="margin-bottom:12px;">
+                                <button class="btn btn-primary" onclick="generateUniqueId()">&#8635; Generate Random (32B)</button>
+                                <button class="btn btn-secondary" onclick="generateUUIDv4()">&#128451; UUIDv4 (16B)</button>
+                            </div>
+                            <div id="uidGenerateResult"></div>
+                        </div>
+                        <hr style="border-color:var(--border);margin:20px 0;">
+                        <div class="field-group">
+                            <div class="field-label">Validate Unique Identifier</div>
+                            <div class="field-group">
+                                <div class="field-label">Expected ID (Hex)</div>
+                                <input class="input-field" id="uidExpected" placeholder="Expected unique identifier hex">
+                            </div>
+                            <div class="field-group">
+                                <div class="field-label">Provided ID (Hex)</div>
+                                <input class="input-field" id="uidProvided" placeholder="Provided unique identifier hex">
+                            </div>
+                            <button class="btn btn-success" onclick="validateUniqueId()">&#9989; Validate</button>
+                            <div id="uidValidateResult" style="margin-top:16px;"></div>
+                        </div>
+                        <hr style="border-color:var(--border);margin:20px 0;">
+                        <div class="field-group">
+                            <div class="field-label">Unique Identifier Info</div>
+                            <div class="field-group">
+                                <div class="field-label">Identifier (Hex)</div>
+                                <input class="input-field" id="uidInfoInput" placeholder="Enter hex identifier">
+                            </div>
+                            <button class="btn btn-secondary" onclick="getUidInfo()">&#8505; Get Info</button>
+                            <div id="uidInfoResult" style="margin-top:16px;"></div>
+                        </div>
+                    </div>
+
+                    <div id="tab-keyAgreement" class="tab-content">
+                        <div class="field-group">
+                            <div class="btn-group" style="margin-bottom:12px;">
+                                <button class="btn btn-primary" onclick="loadKeyAgreementList()">&#8635; Refresh List</button>
+                                <button class="btn btn-success" onclick="exportAllKeyAgreement()">&#11015; Export All</button>
+                                <button class="btn btn-danger" onclick="deleteAllKeyAgreement()">&#128465; Clear All</button>
+                            </div>
+                            <div id="kaListContainer">
+                                <div class="field-value" style="color:var(--text-muted);text-align:center;">
+                                    Click "Refresh List" to load key agreement records
+                                </div>
+                            </div>
+                        </div>
+                        <hr style="border-color:var(--border);margin:20px 0;">
+                        <div class="field-group" id="kaDetailSection" style="display:none;">
+                            <div class="field-label">Key Agreement Record Detail</div>
+                            <div id="kaDetailContainer"></div>
+                            <div class="btn-group" style="margin-top:12px;">
+                                <button class="btn btn-success" onclick="exportCurrentKa()">&#11015; Export This</button>
+                                <button class="btn btn-danger" onclick="deleteCurrentKa()">&#128465; Delete This</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        let currentSessionId = null;
+        let refreshInterval = null;
+
+        const API_BASE = '';
+
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast ' + type + ' show';
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        function setStatus(secure, text) {
+            const badge = document.getElementById('statusBadge');
+            const statusText = document.getElementById('statusText');
+            badge.className = 'status-badge ' + (secure ? 'secure' : 'insecure');
+            statusText.textContent = text;
+        }
+
+        async function api(endpoint, body = null) {
+            const opts = {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            };
+            if (body) opts.body = JSON.stringify(body);
+            const res = await fetch(API_BASE + endpoint, opts);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Request failed');
+            return data;
+        }
+
+        async function apiGet(endpoint) {
+            const res = await fetch(API_BASE + endpoint);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Request failed');
+            return data;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function renderExtField(ef) {
+            const isNts = ef.is_nts;
+            const badgeClass = isNts ? 'nts' : 'other';
+            const badgeText = isNts ? 'NTS' : 'EXT';
+            const typeName = ef.nts_type_name || `Type ${ef.field_type_hex}`;
+
+            let detailHtml = `
+                <span class="key">Type:</span><span class="val">${escapeHtml(ef.field_type_hex)}</span>
+                <span class="key">Length:</span><span class="val">${ef.length} bytes</span>
+            `;
+            if (ef.value_hex) {
+                const vh = ef.value_hex;
+                detailHtml += `<span class="key">Value:</span><span class="val">${escapeHtml(vh.substring(0, 64))}${vh.length > 64 ? '...' : ''}</span>`;
+            }
+
+            if (ef.nts_parsed) {
+                const p = ef.nts_parsed;
+                if (p.error) {
+                    detailHtml += `<span class="key">Parse Error:</span><span class="val" style="color:var(--accent-red)">${escapeHtml(p.error)}</span>`;
+                } else {
+                    for (const [k, v] of Object.entries(p)) {
+                        if (k === 'type' || k === 'type_code') continue;
+                        const displayVal = typeof v === 'string' ? v : String(v);
+                        const truncated = displayVal.length > 80 ? displayVal.substring(0, 80) + '...' : displayVal;
+                        detailHtml += `<span class="key">${escapeHtml(k)}:</span><span class="val">${escapeHtml(truncated)}</span>`;
+                    }
+                }
+            }
+
+            return `
+                <div class="ext-field-card">
+                    <div class="ext-field-header">
+                        <div class="ext-field-type">
+                            <span class="ext-type-badge ${badgeClass}">${badgeText}</span>
+                            ${escapeHtml(typeName)}
+                        </div>
+                    </div>
+                    <div class="ext-field-detail">${detailHtml}</div>
+                </div>
+            `;
+        }
+
+        async function parsePacket() {
+            const hex = document.getElementById('parseInput').value.trim();
+            if (!hex) { showToast('Please enter packet hex', 'error'); return; }
+            try {
+                const data = await api('/api/parse', { packet_hex: hex });
+                const h = data.header;
+                let html = `
+                    <div class="field-group">
+                        <div class="field-label">NTP Header</div>
+                        <div class="field-value">
+                            LI=${h.leap_indicator}(${h.leap_indicator_desc}) Ver=${h.version} Mode=${h.mode}(${h.mode_desc})<br>
+                            Stratum=${h.stratum} Poll=${h.poll} Precision=${h.precision}<br>
+                            Root Delay=${h.root_delay} Root Dispersion=${h.root_dispersion}<br>
+                            RefID=${h.reference_id_str}<br>
+                            Ref TS: ${h.reference_timestamp}<br>
+                            Org TS: ${h.originate_timestamp}<br>
+                            Rx TS: ${h.receive_timestamp}<br>
+                            Tx TS: ${h.transmit_timestamp}
+                        </div>
+                    </div>
+                `;
+                if (data.extension_fields.length > 0) {
+                    html += '<div class="field-label" style="margin-top:12px;">Extension Fields (' + data.total_extensions + ')</div>';
+                    data.extension_fields.forEach(ef => { html += renderExtField(ef); });
+                }
+                if (data.mac_hex) {
+                    html += `<div class="field-group"><div class="field-label">MAC</div><div class="field-value mono">${escapeHtml(data.mac_hex)}</div></div>`;
+                }
+                document.getElementById('parseResult').innerHTML = html;
+                showToast('Packet parsed successfully');
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function encryptCookie() {
+            const pt = document.getElementById('cookiePlaintext').value.trim();
+            const key = document.getElementById('cookieKey').value.trim();
+            if (!pt) { showToast('Please enter plaintext hex', 'error'); return; }
+            try {
+                const data = await api('/api/cookie/encrypt', {
+                    plaintext_hex: pt,
+                    key_hex: key || null,
+                });
+                document.getElementById('cookieB64').value = data.cookie_b64;
+                let html = '<div class="verification-result success"><span class="result-text">&#128274; Cookie Encrypted</span></div>';
+                html += `<div class="field-value mono" style="margin-top:8px;word-break:break-all;">${escapeHtml(data.cookie_b64)}</div>`;
+                html += `<div style="margin-top:8px;font-size:13px;color:var(--text-muted);">Nonce: ${escapeHtml(data.nonce_hex)}</div>`;
+                document.getElementById('cookieResult').innerHTML = html;
+                showToast('Cookie encrypted');
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function decryptCookie() {
+            const b64 = document.getElementById('cookieB64').value.trim();
+            const key = document.getElementById('cookieKey').value.trim();
+            if (!b64) { showToast('Please enter cookie base64', 'error'); return; }
+            try {
+                const data = await api('/api/cookie/decrypt', {
+                    cookie_b64: b64,
+                    key_hex: key || null,
+                });
+                let html = '<div class="verification-result success"><span class="result-text">&#128275; Cookie Decrypted</span></div>';
+                html += `<div class="field-value mono" style="margin-top:8px;">Hex: ${escapeHtml(data.plaintext_hex)}</div>`;
+                html += `<div class="field-value mono" style="margin-top:4px;">ASCII: ${escapeHtml(data.plaintext_ascii)}</div>`;
+                document.getElementById('cookieResult').innerHTML = html;
+                showToast('Cookie decrypted');
+            } catch (e) {
+                let html = '<div class="verification-result failure"><span class="result-text">&#10060; ' + escapeHtml(e.message) + '</span></div>';
+                document.getElementById('cookieResult').innerHTML = html;
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function createSession() {
+            try {
+                const data = await api('/api/nts/session', {});
+                currentSessionId = data.session_id;
+                document.getElementById('sessionInfo').innerHTML = `
+                    <div class="session-info">
+                        <div><span class="key">Session ID: </span><span class="val">${escapeHtml(data.session_id)}</span></div>
+                        <div><span class="key">C2S Key: </span><span class="val">${escapeHtml(data.c2s_key_hex.substring(0, 32))}...</span></div>
+                        <div><span class="key">S2C Key: </span><span class="val">${escapeHtml(data.s2c_key_hex.substring(0, 32))}...</span></div>
+                        <div><span class="key">Cookie Key: </span><span class="val">${escapeHtml(data.cookie_key_hex.substring(0, 32))}...</span></div>
+                        <div><span class="key">Unique ID: </span><span class="val">${escapeHtml(data.unique_id_hex.substring(0, 32))}...</span></div>
+                    </div>
+                `;
+                document.getElementById('metaSession').textContent = data.session_id.substring(0, 8) + '...';
+                startSecureTime();
+                showToast('NTS session created');
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function ntsSign() {
+            if (!currentSessionId) { showToast('Create a session first', 'error'); return; }
+            const tx = document.getElementById('signTransmit').value.trim();
+            if (!tx) { showToast('Enter transmit timestamp hex', 'error'); return; }
+            try {
+                const data = await api('/api/nts/sign', {
+                    session_id: currentSessionId,
+                    ntp_transmit_hex: tx,
+                });
+                document.getElementById('verifyNonce').value = data.server_auth.nonce_hex;
+                document.getElementById('verifyCiphertext').value = data.server_auth.ciphertext_hex;
+                document.getElementById('verifyTransmit').value = tx;
+
+                let html = '<div class="verification-result success"><span class="result-text">&#9989; Signed Successfully</span></div>';
+                html += `<div style="margin-top:12px;">
+                    <div class="field-label">Server Authenticator</div>
+                    <div class="field-value mono">Nonce: ${escapeHtml(data.server_auth.nonce_hex)}</div>
+                    <div class="field-value mono" style="margin-top:4px;">Ciphertext: ${escapeHtml(data.server_auth.ciphertext_hex)}</div>
+                </div>`;
+                html += `<div style="margin-top:12px;">
+                    <div class="field-label">Client Authenticator</div>
+                    <div class="field-value mono">Nonce: ${escapeHtml(data.client_auth.nonce_hex)}</div>
+                    <div class="field-value mono" style="margin-top:4px;">Ciphertext: ${escapeHtml(data.client_auth.ciphertext_hex)}</div>
+                </div>`;
+                html += `<div style="margin-top:12px;">
+                    <div class="field-label">NTS Cookie</div>
+                    <div class="field-value mono" style="word-break:break-all;">${escapeHtml(data.cookie)}</div>
+                </div>`;
+                document.getElementById('signResult').innerHTML = html;
+                showToast('NTS signed');
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function ntsVerify() {
+            if (!currentSessionId) { showToast('Create a session first', 'error'); return; }
+            const nonce = document.getElementById('verifyNonce').value.trim();
+            const ct = document.getElementById('verifyCiphertext').value.trim();
+            const tx = document.getElementById('verifyTransmit').value.trim();
+            if (!nonce || !ct || !tx) { showToast('Fill all fields', 'error'); return; }
+            try {
+                const data = await api('/api/nts/verify', {
+                    session_id: currentSessionId,
+                    auth_nonce_hex: nonce,
+                    auth_ciphertext_hex: ct,
+                    ntp_transmit_hex: tx,
+                });
+                if (data.verified) {
+                    document.getElementById('verifyResult').innerHTML = `
+                        <div class="verification-result success">
+                            <span class="result-icon">&#9989;</span>
+                            <span class="result-text">Verification PASSED</span>
+                            <div style="margin-top:8px;font-size:13px;color:var(--text-secondary);">
+                                Timestamp Verified: ${data.timestamp_verified ? 'Yes' : 'No'}<br>
+                                Client ID: ${escapeHtml(data.client_id || 'N/A')}
+                            </div>
+                        </div>
+                    `;
+                    showToast('NTS verification passed');
+                } else {
+                    document.getElementById('verifyResult').innerHTML = `
+                        <div class="verification-result failure">
+                            <span class="result-icon">&#10060;</span>
+                            <span class="result-text">Verification FAILED</span>
+                            <div style="margin-top:8px;font-size:13px;color:var(--text-secondary);">${escapeHtml(data.error || 'Unknown error')}</div>
+                        </div>
+                    `;
+                    showToast('NTS verification failed', 'error');
+                }
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function verifyPacket() {
+            const hex = document.getElementById('verifyPacketInput').value.trim();
+            if (!hex) { showToast('Enter packet hex', 'error'); return; }
+            try {
+                const data = await api('/api/nts/verify-packet', { packet_hex: hex });
+                let html = '';
+                if (data.verified === true) {
+                    html += `<div class="verification-result success"><span class="result-icon">&#9989;</span><span class="result-text">NTS Packet Verified</span></div>`;
+                } else if (data.verified === false) {
+                    html += `<div class="verification-result failure"><span class="result-icon">&#10060;</span><span class="result-text">NTS Verification Failed</span><div style="margin-top:4px;font-size:13px;">${escapeHtml(data.verification_error || '')}</div></div>`;
+                } else {
+                    html += `<div class="verification-result" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);"><span class="result-icon">&#9888;&#65039;</span><span class="result-text" style="color:var(--accent-amber);">Incomplete Verification Data</span><div style="margin-top:4px;font-size:13px;">${escapeHtml(data.verification_error || '')}</div></div>`;
+                }
+
+                if (data.header) {
+                    html += `<div style="margin-top:12px;"><div class="field-label">Header Info</div>
+                        <div class="field-value">Tx: ${escapeHtml(data.header.transmit_timestamp)} | Mode: ${data.header.mode}(${data.header.mode_desc}) | Stratum: ${data.header.stratum}</div></div>`;
+                }
+                if (data.extension_fields && data.extension_fields.length > 0) {
+                    html += '<div class="field-label" style="margin-top:12px;">Extension Fields</div>';
+                    data.extension_fields.forEach(ef => { html += renderExtField(ef); });
+                }
+                document.getElementById('verifyPacketResult').innerHTML = html;
+                showToast('Packet verification complete');
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function fetchSecureTime() {
+            try {
+                const url = currentSessionId
+                    ? `/api/nts/secure-time?session_id=${encodeURIComponent(currentSessionId)}`
+                    : '/api/nts/secure-time';
+                const data = await apiGet(url);
+
+                const timeParts = data.utc_time.split('T');
+                const dateStr = timeParts[0];
+                const timeStr = timeParts[1] || '';
+
+                document.getElementById('secureTimestamp').textContent = timeStr;
+                document.getElementById('secureDate').textContent = dateStr;
+                document.getElementById('metaStratum').textContent = data.stratum;
+                document.getElementById('metaLeap').textContent = data.leap_indicator === 0 ? 'No Warning' : 'Alarm';
+                document.getElementById('metaVerified').textContent = data.verified ? 'Yes' : 'No';
+
+                if (data.verified) {
+                    setStatus(true, 'NTS Verified');
+                } else {
+                    setStatus(false, 'Unverified');
+                }
+
+                if (data.extension_fields && data.extension_fields.length > 0) {
+                    let extHtml = '<div class="field-label">NTS Extension Fields</div>';
+                    data.extension_fields.forEach(ef => { extHtml += renderExtField(ef); });
+                    const extContainer = document.getElementById('extFieldsContainer');
+                    if (extContainer) extContainer.innerHTML = extHtml;
+                }
+
+                if (!currentSessionId && data.session_id && typeof data.session_id === 'string') {
+                    currentSessionId = data.session_id;
+                    document.getElementById('metaSession').textContent = data.session_id.substring(0, 8) + '...';
+                }
+            } catch (e) {
+                console.error('Secure time fetch error:', e);
+            }
+        }
+
+        function startSecureTime() {
+            if (refreshInterval) clearInterval(refreshInterval);
+            fetchSecureTime();
+            refreshInterval = setInterval(fetchSecureTime, 1000);
+        }
+
+        function switchTab(name) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + name).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function loadSamplePacket() {
+            const sampleHex = '240406ec0000000000000000000000000000000000000000e8c2b56e00000000e8c2b56e12345678e8c2b56eabcdef00104' +
+                '200200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000' +
+                '020420001122334455667788' +
+                '040420' + '00'.repeat(32) +
+                '00000000000000000000000000000000000000000000000000000000';
+            document.getElementById('parseInput').value = sampleHex;
+            showToast('Sample packet loaded');
+        }
+
+        let currentKaSessionId = null;
+
+        async function generateUniqueId() {
+            try {
+                const data = await apiGet('/api/nts/unique-identifier/generate?length=32');
+                document.getElementById('uidGenerateResult').innerHTML = `
+                    <div class="verification-result success"><span class="result-text">&#128273; Generated Successfully</span></div>
+                    <div class="field-value mono" style="margin-top:8px;">Identifier: ${escapeHtml(data.identifier_hex)}</div>
+                    <div style="margin-top:8px;font-size:13px;color:var(--text-muted);">
+                        Length: ${data.length} bytes | Created: ${escapeHtml(data.created_at_str)}
+                    </div>
+                `;
+                document.getElementById('uidExpected').value = data.identifier_hex;
+                document.getElementById('uidProvided').value = data.identifier_hex;
+                document.getElementById('uidInfoInput').value = data.identifier_hex;
+                showToast('Unique ID generated');
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function generateUUIDv4() {
+            try {
+                const data = await apiGet('/api/nts/unique-identifier/generate-uuid');
+                document.getElementById('uidGenerateResult').innerHTML = `
+                    <div class="verification-result success"><span class="result-text">&#128451; UUIDv4 Generated</span></div>
+                    <div class="field-value mono" style="margin-top:8px;">Identifier: ${escapeHtml(data.identifier_hex)}</div>
+                    <div style="margin-top:8px;font-size:13px;color:var(--text-muted);">
+                        Length: ${data.length} bytes | Created: ${escapeHtml(data.created_at_str)}
+                    </div>
+                `;
+                document.getElementById('uidExpected').value = data.identifier_hex;
+                document.getElementById('uidProvided').value = data.identifier_hex;
+                document.getElementById('uidInfoInput').value = data.identifier_hex;
+                showToast('UUIDv4 generated');
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function validateUniqueId() {
+            const expected = document.getElementById('uidExpected').value.trim();
+            const provided = document.getElementById('uidProvided').value.trim();
+            if (!expected || !provided) {
+                showToast('Enter both expected and provided IDs', 'error');
+                return;
+            }
+            try {
+                const data = await api('/api/nts/unique-identifier/validate', {
+                    expected_id_hex: expected,
+                    provided_id_hex: provided,
+                });
+                if (data.valid) {
+                    document.getElementById('uidValidateResult').innerHTML = `
+                        <div class="verification-result success">
+                            <span class="result-icon">&#9989;</span>
+                            <span class="result-text">Validation PASSED - Identifiers match</span>
+                        </div>
+                    `;
+                    showToast('Unique ID validation passed');
+                } else {
+                    document.getElementById('uidValidateResult').innerHTML = `
+                        <div class="verification-result failure">
+                            <span class="result-icon">&#10060;</span>
+                            <span class="result-text">Validation FAILED - Identifiers do NOT match</span>
+                        </div>
+                    `;
+                    showToast('Unique ID validation failed', 'error');
+                }
+            } catch (e) {
+                document.getElementById('uidValidateResult').innerHTML = `
+                    <div class="verification-result failure">
+                        <span class="result-icon">&#10060;</span>
+                        <span class="result-text">${escapeHtml(e.message)}</span>
+                    </div>
+                `;
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function getUidInfo() {
+            const hex = document.getElementById('uidInfoInput').value.trim();
+            if (!hex) {
+                showToast('Enter identifier hex', 'error');
+                return;
+            }
+            try {
+                const data = await apiGet(`/api/nts/unique-identifier/info?identifier_hex=${encodeURIComponent(hex)}`);
+                document.getElementById('uidInfoResult').innerHTML = `
+                    <div class="field-value">
+                        <strong>Identifier:</strong> ${escapeHtml(data.identifier_hex)}<br>
+                        <strong>Length:</strong> ${data.length} bytes<br>
+                        <strong>Created:</strong> ${escapeHtml(data.created_at_str)}
+                    </div>
+                `;
+                showToast('UID info loaded');
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function loadKeyAgreementList() {
+            try {
+                const data = await apiGet('/api/nts/key-agreement/list');
+                if (data.total === 0) {
+                    document.getElementById('kaListContainer').innerHTML = `
+                        <div class="field-value" style="color:var(--text-muted);text-align:center;">
+                            No key agreement records found. Create an NTS session first.
+                        </div>
+                    `;
+                    return;
+                }
+                let html = '';
+                data.records.forEach(rec => {
+                    html += `
+                        <div class="ext-field-card" onclick="loadKaDetail('${escapeHtml(rec.session_id)}')" style="cursor:pointer;">
+                            <div class="ext-field-header">
+                                <div class="ext-field-type">
+                                    <span class="ext-type-badge nts">${rec.status.toUpperCase()}</span>
+                                    Session: ${escapeHtml(rec.session_id)}
+                                </div>
+                                <div style="font-size:12px;color:var(--text-muted);">
+                                    ${rec.auth_ops} auth ops | ${rec.cookie_ops} cookie ops
+                                </div>
+                            </div>
+                            <div class="ext-field-detail">
+                                <span class="key">Record ID:</span><span class="val">${escapeHtml(rec.record_id.substring(0, 18))}...</span>
+                                <span class="key">Created:</span><span class="val">${escapeHtml(rec.created_at_str)}</span>
+                                <span class="key">Algorithm:</span><span class="val">${escapeHtml(rec.aead_algorithm)}</span>
+                                <span class="key">Unique ID:</span><span class="val">${escapeHtml(rec.unique_id_prefix)}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                document.getElementById('kaListContainer').innerHTML = html;
+                showToast(`Loaded ${data.total} records`);
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function loadKaDetail(sessionId) {
+            currentKaSessionId = sessionId;
+            try {
+                const data = await apiGet(`/api/nts/key-agreement/${encodeURIComponent(sessionId)}?include_key_material=true`);
+                let html = '';
+                html += `
+                    <div class="field-group">
+                        <div class="field-label">Record Info</div>
+                        <div class="field-value">
+                            <strong>Record ID:</strong> ${escapeHtml(data.record_id)}<br>
+                            <strong>Session ID:</strong> ${escapeHtml(data.session_id)}<br>
+                            <strong>Created:</strong> ${escapeHtml(data.created_at_str)}<br>
+                            <strong>Protocol:</strong> ${escapeHtml(data.negotiated_protocol)}<br>
+                            <strong>AEAD:</strong> ${escapeHtml(data.aead_algorithm)}<br>
+                            <strong>Status:</strong> ${escapeHtml(data.status)}
+                        </div>
+                    </div>
+                `;
+                if (data.unique_identifier) {
+                    html += `
+                        <div class="field-group">
+                            <div class="field-label">Unique Identifier</div>
+                            <div class="field-value mono">${escapeHtml(data.unique_identifier.identifier_hex)}</div>
+                            <div style="margin-top:4px;font-size:12px;color:var(--text-muted);">
+                                ${data.unique_identifier.length} bytes
+                            </div>
+                        </div>
+                    `;
+                }
+                if (data.key_material) {
+                    html += `
+                        <div class="field-group">
+                            <div class="field-label">Key Material</div>
+                            <div class="field-value mono">
+                                <strong>C2S Key:</strong> ${escapeHtml(data.key_material.c2s_key_hex)}<br>
+                                <strong>S2C Key:</strong> ${escapeHtml(data.key_material.s2c_key_hex)}<br>
+                                <strong>Cookie Key:</strong> ${escapeHtml(data.key_material.cookie_key_hex)}
+                            </div>
+                        </div>
+                    `;
+                }
+                if (data.server_cookie) {
+                    html += `
+                        <div class="field-group">
+                            <div class="field-label">Server Cookie</div>
+                            <div class="field-value mono" style="word-break:break-all;">${escapeHtml(data.server_cookie)}</div>
+                        </div>
+                    `;
+                }
+                if (data.auth_operations && data.auth_operations.length > 0) {
+                    html += `
+                        <div class="field-group">
+                            <div class="field-label">Auth Operations (${data.auth_operations.length})</div>
+                    `;
+                    data.auth_operations.slice().reverse().forEach((op, idx) => {
+                        const statusClass = op.success ? 'success' : 'failure';
+                        const statusIcon = op.success ? '&#9989;' : '&#10060;';
+                        html += `
+                            <div class="ext-field-card" style="margin-top:8px;">
+                                <div class="ext-field-header">
+                                    <div class="ext-field-type">
+                                        <span class="ext-type-badge ${op.success ? 'nts' : 'other'}">${op.operation}</span>
+                                        <span style="margin-left:8px;">${statusIcon} ${op.success ? 'Success' : 'Failed'}</span>
+                                    </div>
+                                    <div style="font-size:12px;color:var(--text-muted);">${escapeHtml(op.timestamp_str)}</div>
+                                </div>
+                                ${op.error ? `<div style="margin-top:8px;color:var(--accent-red);font-size:13px;">Error: ${escapeHtml(op.error)}</div>` : ''}
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+                if (data.cookie_operations && data.cookie_operations.length > 0) {
+                    html += `
+                        <div class="field-group">
+                            <div class="field-label">Cookie Operations (${data.cookie_operations.length})</div>
+                    `;
+                    data.cookie_operations.slice().reverse().forEach((op, idx) => {
+                        const statusClass = op.success ? 'success' : 'failure';
+                        const statusIcon = op.success ? '&#9989;' : '&#10060;';
+                        html += `
+                            <div class="ext-field-card" style="margin-top:8px;">
+                                <div class="ext-field-header">
+                                    <div class="ext-field-type">
+                                        <span class="ext-type-badge ${op.success ? 'nts' : 'other'}">${op.operation}</span>
+                                        <span style="margin-left:8px;">${statusIcon} ${op.success ? 'Success' : 'Failed'}</span>
+                                    </div>
+                                    <div style="font-size:12px;color:var(--text-muted);">${escapeHtml(op.timestamp_str)}</div>
+                                </div>
+                                ${op.error ? `<div style="margin-top:8px;color:var(--accent-red);font-size:13px;">Error: ${escapeHtml(op.error)}</div>` : ''}
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+
+                document.getElementById('kaDetailContainer').innerHTML = html;
+                document.getElementById('kaDetailSection').style.display = 'block';
+                showToast('Record detail loaded');
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function exportCurrentKa() {
+            if (!currentKaSessionId) {
+                showToast('Select a record first', 'error');
+                return;
+            }
+            try {
+                const url = `/api/nts/key-agreement/${encodeURIComponent(currentKaSessionId)}/export?include_key_material=true&pretty=true`;
+                const res = await fetch(API_BASE + url);
+                const blob = await res.blob();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `key-agreement-${currentKaSessionId}.json`;
+                a.click();
+                showToast('Exported successfully');
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function exportAllKeyAgreement() {
+            try {
+                const data = await api('/api/nts/key-agreement/export', {
+                    session_id: null,
+                    include_key_material: true,
+                    pretty: true,
+                });
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `key-agreement-all-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                showToast('All records exported');
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function deleteCurrentKa() {
+            if (!currentKaSessionId) {
+                showToast('Select a record first', 'error');
+                return;
+            }
+            if (!confirm('Delete this key agreement record? This cannot be undone.')) return;
+            try {
+                const res = await fetch(API_BASE + `/api/nts/key-agreement/${encodeURIComponent(currentKaSessionId)}`, {
+                    method: 'DELETE',
+                });
+                if (!res.ok) throw new Error('Delete failed');
+                currentKaSessionId = null;
+                document.getElementById('kaDetailSection').style.display = 'none';
+                await loadKeyAgreementList();
+                showToast('Record deleted');
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function deleteAllKeyAgreement() {
+            if (!confirm('Delete ALL key agreement records and sessions? This cannot be undone.')) return;
+            try {
+                const res = await fetch(API_BASE + '/api/nts/key-agreement', {
+                    method: 'DELETE',
+                });
+                if (!res.ok) throw new Error('Delete failed');
+                currentKaSessionId = null;
+                document.getElementById('kaDetailSection').style.display = 'none';
+                await loadKeyAgreementList();
+                showToast('All records deleted');
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        startSecureTime();
+    </script>
+</body>
+</html>

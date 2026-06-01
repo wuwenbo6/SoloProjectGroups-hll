@@ -1,0 +1,98 @@
+<div class="post-detail">
+  <div class="page-header">
+    <LinkTo @route="posts" class="btn btn-secondary">← 返回列表</LinkTo>
+    <h2>文章详情</h2>
+  </div>
+
+  {{#if this.isEditing}}
+    <form {{on "submit" this.savePost}} class="edit-form">
+      <div class="form-group">
+        <label>标题</label>
+        <Input @value={{this.editTitle}} required class="form-input" />
+      </div>
+      <div class="form-group">
+        <label>内容</label>
+        <textarea {{on "input" (fn (mut this.editBody) value="target.value")}} 
+                  value={{this.editBody}} 
+                  required 
+                  class="form-textarea"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>作者</label>
+          <Input @value={{this.editAuthor}} required class="form-input" />
+        </div>
+        <div class="form-group">
+          <label>状态</label>
+          <select {{on "change" (fn (mut this.editStatus) value="target.value")}} 
+                  value={{this.editStatus}} 
+                  class="form-input">
+            <option value="draft">草稿</option>
+            <option value="published">已发布</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">保存</button>
+        <button type="button" {{on "click" this.cancelEditing}} class="btn btn-secondary">取消</button>
+      </div>
+    </form>
+  {{else}}
+    <article class="post-full">
+      <header class="post-full-header">
+        <h1>{{this.model.title}}</h1>
+        <div class="post-full-meta">
+          <span class="post-status {{this.model.status}}">{{this.model.status}}</span>
+          <span>作者: {{this.model.author}}</span>
+          <span>{{format-date this.model.createdAt}}</span>
+        </div>
+      </header>
+      <div class="post-full-body">
+        {{this.model.body}}
+      </div>
+      <div class="post-full-actions">
+        <button {{on "click" this.startEditing}} class="btn">编辑</button>
+        <button {{on "click" this.deletePost}} class="btn btn-danger">删除文章</button>
+      </div>
+    </article>
+
+    <section class="comments-section">
+      <h3>评论 ({{this.model.comments.length}})</h3>
+      
+      <form {{on "submit" (prevent-default this.addComment)}} class="comment-form">
+        <div class="form-group">
+          <label>评论内容</label>
+          <textarea {{on "input" (fn (mut this.newCommentBody) value="target.value")}} 
+                    value={{this.newCommentBody}} 
+                    placeholder="写下你的评论..." 
+                    required 
+                    class="form-textarea"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>昵称 (可选)</label>
+            <Input @value={{this.newCommentAuthor}} placeholder="匿名用户" class="form-input" />
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">发表评论</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="comments-list">
+        {{#each this.model.comments as |comment|}}
+          <div class="comment-item">
+            <div class="comment-header">
+              <strong>{{comment.author}}</strong>
+              <span class="comment-date">{{format-date comment.createdAt}}</span>
+              <button {{on "click" (fn this.deleteComment comment)}} class="btn btn-small btn-danger">删除</button>
+            </div>
+            <p class="comment-body">{{comment.body}}</p>
+          </div>
+        {{else}}
+          <p class="no-comments">还没有评论，来发表第一条评论吧！</p>
+        {{/each}}
+      </div>
+    </section>
+  {{/if}}
+</div>

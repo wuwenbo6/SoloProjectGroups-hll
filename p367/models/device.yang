@@ -1,0 +1,71 @@
+module device {
+    namespace "http://example.com/device";
+    prefix dev;
+
+    container device-info {
+        leaf hostname {
+            type string {
+                length 1..64;
+            }
+            mandatory true;
+            description "Hostname of the device";
+        }
+
+        leaf ip-address {
+            type string;
+            description "IP address of the device";
+        }
+
+        leaf port {
+            type uint16 {
+                range 1..65535;
+            }
+            default 830;
+            description "NETCONF port number";
+        }
+
+        leaf enabled {
+            type boolean;
+            default true;
+        }
+
+        leaf status {
+            type enumeration {
+                enum "online";
+                enum "offline";
+                enum "maintenance";
+            }
+            default "online";
+        }
+
+        container location {
+            leaf building {
+                type string;
+            }
+            leaf room {
+                type string;
+            }
+            leaf rack {
+                type uint8 {
+                    range 1..48;
+                }
+            }
+        }
+
+        list interface {
+            key "name";
+            leaf name {
+                type string;
+            }
+            leaf type {
+                type string;
+            }
+            leaf mtu {
+                type uint32 {
+                    range 68..9216;
+                }
+                default 1500;
+            }
+        }
+    }
+}

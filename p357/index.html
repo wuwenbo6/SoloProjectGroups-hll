@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>延时摄影编码器</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-primary: #0f0f1a;
+      --bg-secondary: #1a1a2e;
+      --bg-tertiary: #252542;
+      --bg-hover: #2d2d4a;
+      --accent: #6c63ff;
+      --accent-hover: #7b73ff;
+      --accent-glow: rgba(108, 99, 255, 0.3);
+      --text-primary: #e8e8f0;
+      --text-secondary: #a0a0b8;
+      --text-muted: #6a6a80;
+      --border: #2a2a44;
+      --success: #4caf50;
+      --warning: #ff9800;
+      --danger: #f44336;
+      --radius: 8px;
+      --radius-lg: 12px;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+      -webkit-app-region: drag;
+    }
+    .app-container {
+      display: flex;
+      height: 100vh;
+      -webkit-app-region: no-drag;
+    }
+    .sidebar {
+      width: 320px;
+      min-width: 320px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .sidebar-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--accent), #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+    .sidebar-header p {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .panel {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: var(--bg-hover); }
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid var(--danger);
+    }
+    .btn-danger:hover { background: rgba(244, 67, 54, 0.1); }
+    .btn-icon {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .btn-icon:hover { background: var(--bg-hover); border-color: var(--accent); }
+    .btn-icon.active { background: var(--accent); border-color: var(--accent); }
+    .input-group {
+      margin-bottom: 12px;
+    }
+    .input-group:last-child { margin-bottom: 0; }
+    .input-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .input-label span:last-child {
+      color: var(--accent);
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      background: var(--bg-tertiary);
+      border-radius: 2px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 6px var(--accent-glow);
+    }
+    input[type="number"] {
+      width: 60px;
+      padding: 4px 8px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-primary);
+      font-size: 12px;
+      text-align: center;
+      outline: none;
+    }
+    input[type="number"]:focus { border-color: var(--accent); }
+    .folder-info {
+      padding: 10px 12px;
+      background: var(--bg-tertiary);
+      border-radius: var(--radius);
+      margin-top: 10px;
+      font-size: 12px;
+    }
+    .folder-info .path {
+      color: var(--text-secondary);
+      word-break: break-all;
+      margin-bottom: 6px;
+    }
+    .folder-info .stats {
+      display: flex;
+      gap: 12px;
+      color: var(--text-muted);
+    }
+    .folder-info .stats span { color: var(--accent); font-weight: 500; }
+    .crop-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .crop-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .crop-field label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .crop-field input {
+      width: 100%;
+      padding: 6px 8px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-primary);
+      font-size: 12px;
+      text-align: center;
+      outline: none;
+    }
+    .crop-field input:focus { border-color: var(--accent); }
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-primary);
+    }
+    .preview-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .preview-toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .preview-toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .frame-counter {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .frame-counter span { color: var(--accent); font-weight: 500; }
+    .preview-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .preview-placeholder {
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .preview-placeholder svg {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+    .preview-placeholder p {
+      font-size: 14px;
+    }
+    .preview-image-container {
+      position: relative;
+      max-width: 100%;
+      max-height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .preview-image-container img {
+      max-width: 100%;
+      max-height: calc(100vh - 200px);
+      object-fit: contain;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+    .crop-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+    }
+    .crop-overlay .crop-shade {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.5);
+    }
+    .crop-overlay .crop-border {
+      position: absolute;
+      border: 2px dashed var(--accent);
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+    }
+    .timeline {
+      padding: 12px 20px 20px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+    }
+    .timeline-bar {
+      display: flex;
+      gap: 2px;
+      height: 40px;
+      margin-bottom: 8px;
+      overflow-x: auto;
+      padding: 2px 0;
+    }
+    .timeline-bar::-webkit-scrollbar { height: 4px; }
+    .timeline-bar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .timeline-thumb {
+      min-width: 48px;
+      height: 36px;
+      border-radius: 3px;
+      object-fit: cover;
+      cursor: pointer;
+      opacity: 0.6;
+      transition: all 0.15s;
+      border: 2px solid transparent;
+    }
+    .timeline-thumb:hover { opacity: 0.9; }
+    .timeline-thumb.active {
+      opacity: 1;
+      border-color: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+    .playback-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .play-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .play-btn:hover { background: var(--accent-hover); transform: scale(1.05); }
+    .play-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .speed-select {
+      padding: 4px 8px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-primary);
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+    }
+    .progress-section {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+    }
+    .progress-bar-outer {
+      width: 100%;
+      height: 6px;
+      background: var(--bg-tertiary);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .progress-bar-inner {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #a78bfa);
+      border-radius: 3px;
+      transition: width 0.3s;
+      width: 0%;
+    }
+    .progress-text {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .progress-text .percent { color: var(--accent); font-weight: 500; }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .status-badge.ready { background: rgba(76,175,80,0.15); color: var(--success); }
+    .status-badge.encoding { background: rgba(108,99,255,0.15); color: var(--accent); }
+    .status-badge.error { background: rgba(244,67,54,0.15); color: var(--danger); }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .encoding .status-dot { animation: pulse 1s infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+    .slider-value {
+      min-width: 36px;
+      text-align: right;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .toggle-row label {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .toggle-switch {
+      position: relative;
+      width: 36px;
+      height: 20px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--bg-tertiary);
+      border-radius: 10px;
+      transition: 0.2s;
+      border: 1px solid var(--border);
+    }
+    .toggle-slider:before {
+      content: "";
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      left: 2px;
+      bottom: 2px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(16px);
+      background: white;
+    }
+    .sub-controls {
+      padding: 10px 12px;
+      background: var(--bg-primary);
+      border-radius: var(--radius);
+      margin-top: 8px;
+    }
+    .resolution-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .resolution-row input {
+      flex: 1;
+      padding: 6px 8px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-primary);
+      font-size: 12px;
+      text-align: center;
+      outline: none;
+      width: 0;
+    }
+    .resolution-row input:focus { border-color: var(--accent); }
+    .resolution-row .sep {
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .btn-tiny {
+      padding: 4px 10px;
+      font-size: 11px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-tiny:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .lock-btn {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border-radius: 4px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .lock-btn:hover { background: var(--bg-hover); }
+    .lock-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1>🎬 延时摄影编码器</h1>
+        <p>JPEG序列 → MP4 · FFmpeg编码</p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">📁 输入源</div>
+        <button class="btn btn-secondary" id="btnSelectFolder">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          选择JPEG序列文件夹
+        </button>
+        <div class="folder-info" id="folderInfo" style="display:none">
+          <div class="path" id="folderPath"></div>
+          <div class="stats">
+            <div>文件数: <span id="fileCount">0</span></div>
+            <div>时长: <span id="duration">0s</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">⚙️ 编码参数</div>
+        <div class="input-group">
+          <div class="input-label">
+            <span>帧率 (FPS)</span>
+            <span id="fpsValue">24</span>
+          </div>
+          <div class="input-row">
+            <input type="range" id="fpsSlider" min="1" max="60" value="24" step="1">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">✂️ 图片裁剪 (像素)</div>
+        <div class="crop-grid">
+          <div class="crop-field">
+            <label>上</label>
+            <input type="number" id="cropTop" value="0" min="0" step="1">
+          </div>
+          <div class="crop-field">
+            <label>下</label>
+            <input type="number" id="cropBottom" value="0" min="0" step="1">
+          </div>
+          <div class="crop-field">
+            <label>左</label>
+            <input type="number" id="cropLeft" value="0" min="0" step="1">
+          </div>
+          <div class="crop-field">
+            <label>右</label>
+            <input type="number" id="cropRight" value="0" min="0" step="1">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">☀️ 曝光补偿</div>
+        <div class="input-group">
+          <div class="input-label">
+            <span>亮度调整</span>
+            <span id="exposureValue">0</span>
+          </div>
+          <div class="input-row">
+            <input type="range" id="exposureSlider" min="-100" max="100" value="0" step="1">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">帧间亮度归一化</div>
+        <div class="input-group">
+          <div class="input-label">
+            <span>去闪烁算法</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-secondary);cursor:pointer">
+              <input type="radio" name="deflickerMode" value="none" checked> 关闭
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-secondary);cursor:pointer">
+              <input type="radio" name="deflickerMode" value="ffmpeg"> FFmpeg Deflicker
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-secondary);cursor:pointer">
+              <input type="radio" name="deflickerMode" value="lrt"> LRTimelapse 风格
+            </label>
+          </div>
+        </div>
+        <div class="sub-controls" id="ffmpegDeflickerControls" style="display:none;margin-top:10px">
+          <div class="input-group">
+            <div class="input-label">
+              <span>参考帧数</span>
+              <span id="deflickerSizeValue">5</span>
+            </div>
+            <div class="input-row">
+              <input type="range" id="deflickerSizeSlider" min="2" max="30" value="5" step="1">
+            </div>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:4px">
+            基于相邻帧的滑动窗口平均
+          </div>
+        </div>
+        <div class="sub-controls" id="lrDeflickerControls" style="display:none;margin-top:10px">
+          <div class="input-group">
+            <div class="input-label">
+              <span>平滑强度</span>
+              <span id="lrSmoothnessValue">20%</span>
+            </div>
+            <div class="input-row">
+              <input type="range" id="lrSmoothnessSlider" min="5" max="80" value="20" step="5">
+            </div>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:4px">
+            高斯平滑算法：分析亮度曲线并逐帧补偿
+          </div>
+          <div style="font-size:10px;color:var(--warning);margin-top:4px">
+            此模式会显著增加处理时间
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">分辨率缩放</div>
+        <div class="toggle-row">
+          <label>统一缩放到目标尺寸</label>
+          <div class="toggle-switch">
+            <input type="checkbox" id="chkScale">
+            <span class="toggle-slider"></span>
+          </div>
+        </div>
+        <div class="sub-controls" id="scaleControls" style="display:none">
+          <div class="resolution-row" style="margin-bottom:8px">
+            <input type="number" id="targetWidth" placeholder="宽" min="1" max="7680">
+            <span class="sep">×</span>
+            <input type="number" id="targetHeight" placeholder="高" min="1" max="4320">
+            <button class="lock-btn active" id="btnLockAspect" title="锁定宽高比">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </button>
+          </div>
+          <button class="btn-tiny" id="btnAutoDetect">从首帧自动检测</button>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:6px">
+            使用 Lanczos 算法进行高质量缩放
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">编码设置</div>
+        <div class="input-group">
+          <div class="input-label">
+            <span>编码器</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-secondary);cursor:pointer">
+              <input type="radio" name="codec" value="h264" checked> H.264 (libx264)
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-secondary);cursor:pointer">
+              <input type="radio" name="codec" value="h265"> H.265 (libx265)
+            </label>
+          </div>
+        </div>
+        <div class="input-group" style="margin-top:10px">
+          <div class="input-label">
+            <span>质量 (CRF)</span>
+            <span id="crfValue">18</span>
+          </div>
+          <div class="input-row">
+            <input type="range" id="crfSlider" min="16" max="28" value="18" step="1">
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px">
+          值越小质量越高，H.265 推荐 CRF 23
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">� 输出</div>
+        <button class="btn btn-secondary" id="btnSelectOutput" style="margin-bottom:10px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          选择输出路径
+        </button>
+        <div class="folder-info" id="outputInfo" style="display:none">
+          <div class="path" id="outputPath"></div>
+        </div>
+        <button class="btn btn-primary" id="btnEncode" disabled style="margin-top:10px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          开始编码
+        </button>
+        <button class="btn btn-danger" id="btnCancel" style="display:none;margin-top:8px">
+          取消编码
+        </button>
+      </div>
+
+      <div class="progress-section" id="progressSection" style="display:none">
+        <div class="progress-bar-outer">
+          <div class="progress-bar-inner" id="progressBar"></div>
+        </div>
+        <div class="progress-text">
+          <span id="progressStatus" class="status-badge encoding">
+            <span class="status-dot"></span>编码中
+          </span>
+          <span class="percent" id="progressPercent">0%</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="preview-toolbar">
+        <div class="preview-toolbar-left">
+          <button class="btn-icon" id="btnPrevFrame" title="上一帧" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+          </button>
+          <button class="btn-icon" id="btnNextFrame" title="下一帧" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 18h2V6h-2zM6 18l8.5-6L6 6v12z"/></svg>
+          </button>
+        </div>
+        <div class="frame-counter" id="frameCounter" style="display:none">
+          帧 <span id="currentFrame">1</span> / <span id="totalFrames">0</span>
+        </div>
+        <div class="preview-toolbar-right">
+          <button class="btn-icon" id="btnToggleCrop" title="显示裁剪区域" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"/><path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"/></svg>
+          </button>
+          <label style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="chkApplyPreview" checked> 应用效果到预览
+          </label>
+        </div>
+      </div>
+
+      <div class="preview-area" id="previewArea">
+        <div class="empty-state" id="emptyState">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="2" y="2" width="20" height="20" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+          <p>选择JPEG序列文件夹开始预览</p>
+        </div>
+        <div class="preview-image-container" id="previewContainer" style="display:none">
+          <img id="previewImage" alt="预览">
+          <div class="crop-overlay" id="cropOverlay" style="display:none"></div>
+        </div>
+      </div>
+
+      <div class="timeline" id="timeline" style="display:none">
+        <div class="playback-controls">
+          <button class="play-btn" id="btnPlay" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </button>
+          <button class="play-btn" id="btnStop" style="display:none;background:var(--danger)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16"/></svg>
+          </button>
+          <select class="speed-select" id="speedSelect">
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="2">2x</option>
+            <option value="4">4x</option>
+          </select>
+        </div>
+        <div class="timeline-bar" id="timelineBar"></div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const state = {
+      folderPath: null,
+      outputPath: null,
+      jpegFiles: [],
+      currentIndex: 0,
+      isPlaying: false,
+      playInterval: null,
+      showCrop: false,
+      encoding: false,
+      imageNaturalWidth: 0,
+      imageNaturalHeight: 0,
+      thumbnailCache: {},
+      lockAspect: true,
+      aspectRatio: 16 / 9
+    }
+
+    const els = {
+      btnSelectFolder: document.getElementById('btnSelectFolder'),
+      btnSelectOutput: document.getElementById('btnSelectOutput'),
+      btnEncode: document.getElementById('btnEncode'),
+      btnCancel: document.getElementById('btnCancel'),
+      btnPrevFrame: document.getElementById('btnPrevFrame'),
+      btnNextFrame: document.getElementById('btnNextFrame'),
+      btnPlay: document.getElementById('btnPlay'),
+      btnStop: document.getElementById('btnStop'),
+      btnToggleCrop: document.getElementById('btnToggleCrop'),
+      folderInfo: document.getElementById('folderInfo'),
+      folderPath: document.getElementById('folderPath'),
+      fileCount: document.getElementById('fileCount'),
+      duration: document.getElementById('duration'),
+      fpsSlider: document.getElementById('fpsSlider'),
+      fpsValue: document.getElementById('fpsValue'),
+      exposureSlider: document.getElementById('exposureSlider'),
+      exposureValue: document.getElementById('exposureValue'),
+      cropTop: document.getElementById('cropTop'),
+      cropBottom: document.getElementById('cropBottom'),
+      cropLeft: document.getElementById('cropLeft'),
+      cropRight: document.getElementById('cropRight'),
+      outputInfo: document.getElementById('outputInfo'),
+      outputPath: document.getElementById('outputPath'),
+      progressSection: document.getElementById('progressSection'),
+      progressBar: document.getElementById('progressBar'),
+      progressPercent: document.getElementById('progressPercent'),
+      progressStatus: document.getElementById('progressStatus'),
+      previewArea: document.getElementById('previewArea'),
+      emptyState: document.getElementById('emptyState'),
+      previewContainer: document.getElementById('previewContainer'),
+      previewImage: document.getElementById('previewImage'),
+      cropOverlay: document.getElementById('cropOverlay'),
+      frameCounter: document.getElementById('frameCounter'),
+      currentFrame: document.getElementById('currentFrame'),
+      totalFrames: document.getElementById('totalFrames'),
+      timeline: document.getElementById('timeline'),
+      timelineBar: document.getElementById('timelineBar'),
+      speedSelect: document.getElementById('speedSelect'),
+      chkApplyPreview: document.getElementById('chkApplyPreview'),
+      chkScale: document.getElementById('chkScale'),
+      scaleControls: document.getElementById('scaleControls'),
+      targetWidth: document.getElementById('targetWidth'),
+      targetHeight: document.getElementById('targetHeight'),
+      btnLockAspect: document.getElementById('btnLockAspect'),
+      btnAutoDetect: document.getElementById('btnAutoDetect'),
+      ffmpegDeflickerControls: document.getElementById('ffmpegDeflickerControls'),
+      lrDeflickerControls: document.getElementById('lrDeflickerControls'),
+      deflickerSizeSlider: document.getElementById('deflickerSizeSlider'),
+      deflickerSizeValue: document.getElementById('deflickerSizeValue'),
+      lrSmoothnessSlider: document.getElementById('lrSmoothnessSlider'),
+      lrSmoothnessValue: document.getElementById('lrSmoothnessValue'),
+      crfSlider: document.getElementById('crfSlider'),
+      crfValue: document.getElementById('crfValue')
+    }
+
+    els.btnSelectFolder.addEventListener('click', async () => {
+      const folder = await window.api.selectFolder()
+      if (!folder) return
+      state.folderPath = folder
+      const result = await window.api.scanJpegs(folder)
+      if (!result.success) return
+      state.jpegFiles = result.files
+      state.currentIndex = 0
+      updateFolderInfo()
+      updateTimeline()
+      showFrame(0)
+      updateEncodeButton()
+    })
+
+    els.btnSelectOutput.addEventListener('click', async () => {
+      const path = await window.api.selectOutput()
+      if (!path) return
+      state.outputPath = path
+      els.outputInfo.style.display = 'block'
+      els.outputPath.textContent = path
+      updateEncodeButton()
+    })
+
+    els.fpsSlider.addEventListener('input', () => {
+      els.fpsValue.textContent = els.fpsSlider.value
+      updateFolderInfo()
+    })
+
+    els.exposureSlider.addEventListener('input', () => {
+      els.exposureValue.textContent = els.exposureSlider.value
+      if (els.chkApplyPreview.checked) applyPreviewEffects()
+    })
+
+    ;['cropTop', 'cropBottom', 'cropLeft', 'cropRight'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        if (state.showCrop) updateCropOverlay()
+        if (els.chkApplyPreview.checked) applyPreviewEffects()
+      })
+    })
+
+    els.btnPrevFrame.addEventListener('click', () => {
+      if (state.currentIndex > 0) showFrame(state.currentIndex - 1)
+    })
+
+    els.btnNextFrame.addEventListener('click', () => {
+      if (state.currentIndex < state.jpegFiles.length - 1) showFrame(state.currentIndex + 1)
+    })
+
+    els.btnPlay.addEventListener('click', startPlayback)
+    els.btnStop.addEventListener('click', stopPlayback)
+
+    els.speedSelect.addEventListener('change', () => {
+      if (state.isPlaying) {
+        stopPlayback()
+        startPlayback()
+      }
+    })
+
+    els.btnToggleCrop.addEventListener('click', () => {
+      state.showCrop = !state.showCrop
+      els.btnToggleCrop.classList.toggle('active', state.showCrop)
+      els.cropOverlay.style.display = state.showCrop ? 'block' : 'none'
+      if (state.showCrop) updateCropOverlay()
+    })
+
+    document.querySelectorAll('input[name="deflickerMode"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        const mode = document.querySelector('input[name="deflickerMode"]:checked').value
+        els.ffmpegDeflickerControls.style.display = mode === 'ffmpeg' ? 'block' : 'none'
+        els.lrDeflickerControls.style.display = mode === 'lrt' ? 'block' : 'none'
+      })
+    })
+
+    els.deflickerSizeSlider.addEventListener('input', () => {
+      els.deflickerSizeValue.textContent = els.deflickerSizeSlider.value
+    })
+
+    els.lrSmoothnessSlider.addEventListener('input', () => {
+      els.lrSmoothnessValue.textContent = els.lrSmoothnessSlider.value + '%'
+    })
+
+    els.chkScale.addEventListener('change', () => {
+      els.scaleControls.style.display = els.chkScale.checked ? 'block' : 'none'
+    })
+
+    document.querySelectorAll('input[name="codec"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        const codec = document.querySelector('input[name="codec"]:checked').value
+        if (codec === 'h265' && parseInt(els.crfSlider.value) < 23) {
+          els.crfSlider.value = 23
+          els.crfValue.textContent = '23'
+        }
+      })
+    })
+
+    els.crfSlider.addEventListener('input', () => {
+      els.crfValue.textContent = els.crfSlider.value
+    })
+
+    els.btnLockAspect.addEventListener('click', () => {
+      state.lockAspect = !state.lockAspect
+      els.btnLockAspect.classList.toggle('active', state.lockAspect)
+      if (state.lockAspect) {
+        els.btnLockAspect.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
+      } else {
+        els.btnLockAspect.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><line x1="4" y1="4" x2="20" y2="20" stroke-width="2.5"/></svg>'
+      }
+    })
+
+    els.targetWidth.addEventListener('input', () => {
+      if (state.lockAspect && els.targetWidth.value) {
+        const w = parseInt(els.targetWidth.value)
+        if (w > 0) {
+          els.targetHeight.value = Math.round(w / state.aspectRatio)
+        }
+      }
+    })
+
+    els.targetHeight.addEventListener('input', () => {
+      if (state.lockAspect && els.targetHeight.value) {
+        const h = parseInt(els.targetHeight.value)
+        if (h > 0) {
+          els.targetWidth.value = Math.round(h * state.aspectRatio)
+        }
+      }
+    })
+
+    els.btnAutoDetect.addEventListener('click', async () => {
+      if (state.jpegFiles.length === 0) return
+      const result = await window.api.getImageDimensions(state.jpegFiles[0].path)
+      if (result.success) {
+        els.targetWidth.value = result.width
+        els.targetHeight.value = result.height
+        state.aspectRatio = result.width / result.height
+      }
+    })
+
+    els.btnEncode.addEventListener('click', startEncoding)
+    els.btnCancel.addEventListener('click', async () => {
+      await window.api.cancelEncode()
+      stopEncoding()
+    })
+
+    window.api.onEncodeProgress((percent) => {
+      els.progressBar.style.width = percent + '%'
+      els.progressPercent.textContent = percent + '%'
+    })
+
+    function updateFolderInfo() {
+      if (!state.folderPath) return
+      els.folderInfo.style.display = 'block'
+      els.folderPath.textContent = state.folderPath
+      els.fileCount.textContent = state.jpegFiles.length
+      const fps = parseInt(els.fpsSlider.value)
+      const dur = state.jpegFiles.length / fps
+      els.duration.textContent = dur.toFixed(1) + 's'
+    }
+
+    function updateTimeline() {
+      els.timeline.style.display = 'block'
+      els.timelineBar.innerHTML = ''
+      const step = Math.max(1, Math.floor(state.jpegFiles.length / 50))
+      for (let i = 0; i < state.jpegFiles.length; i += step) {
+        const thumb = document.createElement('img')
+        thumb.className = 'timeline-thumb'
+        thumb.dataset.index = i
+        thumb.loading = 'lazy'
+        window.api.getImageData(state.jpegFiles[i].path).then(result => {
+          if (result.success) thumb.src = result.data
+        })
+        thumb.addEventListener('click', () => {
+          showFrame(parseInt(thumb.dataset.index))
+        })
+        els.timelineBar.appendChild(thumb)
+      }
+      els.totalFrames.textContent = state.jpegFiles.length
+      els.frameCounter.style.display = 'inline'
+      els.btnPrevFrame.disabled = false
+      els.btnNextFrame.disabled = false
+      els.btnPlay.disabled = false
+      els.btnToggleCrop.disabled = false
+    }
+
+    async function showFrame(index) {
+      if (index < 0 || index >= state.jpegFiles.length) return
+      state.currentIndex = index
+      els.currentFrame.textContent = index + 1
+
+      const result = await window.api.getImageData(state.jpegFiles[index].path)
+      if (result.success) {
+        els.emptyState.style.display = 'none'
+        els.previewContainer.style.display = 'flex'
+        els.previewImage.src = result.data
+        els.previewImage.onload = () => {
+          state.imageNaturalWidth = els.previewImage.naturalWidth
+          state.imageNaturalHeight = els.previewImage.naturalHeight
+          state.aspectRatio = state.imageNaturalWidth / state.imageNaturalHeight
+          applyPreviewEffects()
+          if (state.showCrop) updateCropOverlay()
+        }
+      }
+
+      document.querySelectorAll('.timeline-thumb').forEach(t => {
+        t.classList.toggle('active', parseInt(t.dataset.index) === index)
+      })
+    }
+
+    function applyPreviewEffects() {
+      if (!els.chkApplyPreview.checked) {
+        els.previewImage.style.filter = ''
+        els.previewImage.style.clipPath = ''
+        return
+      }
+      const exposure = parseInt(els.exposureSlider.value)
+      const brightness = 1 + exposure / 100
+      els.previewImage.style.filter = `brightness(${brightness})`
+
+      const ct = parseInt(els.cropTop.value) || 0
+      const cb = parseInt(els.cropBottom.value) || 0
+      const cl = parseInt(els.cropLeft.value) || 0
+      const cr = parseInt(els.cropRight.value) || 0
+      const w = state.imageNaturalWidth
+      const h = state.imageNaturalHeight
+
+      if (ct + cb + cl + cr > 0 && w > 0 && h > 0) {
+        const topP = (ct / h * 100).toFixed(2)
+        const rightP = (cr / w * 100).toFixed(2)
+        const bottomP = (cb / h * 100).toFixed(2)
+        const leftP = (cl / w * 100).toFixed(2)
+        els.previewImage.style.clipPath = `inset(${topP}% ${rightP}% ${bottomP}% ${leftP}%)`
+      } else {
+        els.previewImage.style.clipPath = ''
+      }
+    }
+
+    function updateCropOverlay() {
+      if (!state.showCrop) return
+      const ct = parseInt(els.cropTop.value) || 0
+      const cb = parseInt(els.cropBottom.value) || 0
+      const cl = parseInt(els.cropLeft.value) || 0
+      const cr = parseInt(els.cropRight.value) || 0
+
+      const img = els.previewImage
+      const displayW = img.clientWidth
+      const displayH = img.clientHeight
+
+      if (displayW === 0 || displayH === 0) return
+
+      const scaleX = displayW / state.imageNaturalWidth
+      const scaleY = displayH / state.imageNaturalHeight
+
+      const topPx = ct * scaleY
+      const bottomPx = cb * scaleY
+      const leftPx = cl * scaleX
+      const rightPx = cr * scaleX
+
+      els.cropOverlay.innerHTML = `
+        <div class="crop-shade" style="top:0;left:0;right:0;height:${topPx}px"></div>
+        <div class="crop-shade" style="bottom:0;left:0;right:0;height:${bottomPx}px"></div>
+        <div class="crop-shade" style="top:${topPx}px;left:0;width:${leftPx}px;height:${displayH - topPx - bottomPx}px"></div>
+        <div class="crop-shade" style="top:${topPx}px;right:0;width:${rightPx}px;height:${displayH - topPx - bottomPx}px"></div>
+      `
+    }
+
+    function startPlayback() {
+      if (state.jpegFiles.length === 0) return
+      state.isPlaying = true
+      els.btnPlay.style.display = 'none'
+      els.btnStop.style.display = 'flex'
+      const fps = parseInt(els.fpsSlider.value)
+      const speed = parseFloat(els.speedSelect.value)
+      const interval = 1000 / (fps * speed)
+      state.playInterval = setInterval(() => {
+        let next = state.currentIndex + 1
+        if (next >= state.jpegFiles.length) next = 0
+        showFrame(next)
+      }, interval)
+    }
+
+    function stopPlayback() {
+      state.isPlaying = false
+      if (state.playInterval) {
+        clearInterval(state.playInterval)
+        state.playInterval = null
+      }
+      els.btnPlay.style.display = 'flex'
+      els.btnStop.style.display = 'none'
+    }
+
+    function updateEncodeButton() {
+      els.btnEncode.disabled = !(state.folderPath && state.outputPath && state.jpegFiles.length > 0)
+    }
+
+    async function startEncoding() {
+      if (state.encoding) return
+      state.encoding = true
+      els.progressSection.style.display = 'block'
+      els.progressBar.style.width = '0%'
+      els.progressPercent.textContent = '0%'
+      els.progressStatus.className = 'status-badge encoding'
+      els.progressStatus.innerHTML = '<span class="status-dot"></span>编码中'
+      els.btnEncode.disabled = true
+      els.btnCancel.style.display = 'block'
+
+      const deflickerMode = document.querySelector('input[name="deflickerMode"]:checked').value
+      const codec = document.querySelector('input[name="codec"]:checked').value
+
+      const result = await window.api.encodeVideo({
+        inputFolder: state.folderPath,
+        outputFolder: state.outputPath,
+        framerate: parseInt(els.fpsSlider.value),
+        cropTop: parseInt(els.cropTop.value) || 0,
+        cropBottom: parseInt(els.cropBottom.value) || 0,
+        cropLeft: parseInt(els.cropLeft.value) || 0,
+        cropRight: parseInt(els.cropRight.value) || 0,
+        exposure: parseInt(els.exposureSlider.value) || 0,
+        deflicker: deflickerMode === 'ffmpeg',
+        deflickerSize: parseInt(els.deflickerSizeSlider.value) || 5,
+        useLrDeflicker: deflickerMode === 'lrt',
+        lrSmoothness: parseInt(els.lrSmoothnessSlider.value) || 20,
+        targetWidth: els.chkScale.checked ? (parseInt(els.targetWidth.value) || 0) : 0,
+        targetHeight: els.chkScale.checked ? (parseInt(els.targetHeight.value) || 0) : 0,
+        codec: codec,
+        crf: parseInt(els.crfSlider.value) || 18
+      })
+
+      if (result.success) {
+        els.progressStatus.className = 'status-badge ready'
+        els.progressStatus.innerHTML = '<span class="status-dot"></span>完成'
+        els.progressBar.style.width = '100%'
+        els.progressPercent.textContent = '100%'
+      } else {
+        els.progressStatus.className = 'status-badge error'
+        els.progressStatus.innerHTML = '<span class="status-dot"></span>失败: ' + (result.error || '未知错误')
+      }
+
+      state.encoding = false
+      els.btnCancel.style.display = 'none'
+      els.btnEncode.disabled = false
+    }
+
+    function stopEncoding() {
+      state.encoding = false
+      els.progressStatus.className = 'status-badge error'
+      els.progressStatus.innerHTML = '<span class="status-dot"></span>已取消'
+      els.btnCancel.style.display = 'none'
+      els.btnEncode.disabled = false
+    }
+
+    window.addEventListener('resize', () => {
+      if (state.showCrop) updateCropOverlay()
+    })
+  </script>
+</body>
+</html>

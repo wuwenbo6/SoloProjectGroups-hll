@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BLE Beacon Scanner</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <h1>📡 BLE Beacon Scanner</h1>
+      <span class="mode-badge" id="modeBadge">未连接</span>
+    </div>
+    <div class="header-right">
+      <label class="toggle-label">
+        <input type="checkbox" id="simModeToggle">
+        <span class="toggle-switch"></span>
+        模拟模式
+      </label>
+      <button id="btnStart" class="btn btn-start">▶ 开始扫描</button>
+      <button id="btnStop" class="btn btn-stop" disabled>■ 停止扫描</button>
+      <button id="btnClear" class="btn btn-clear">🗑 清空</button>
+      <button id="btnExport" class="btn btn-export">📤 导出数据</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-value" id="totalCount">0</div>
+        <div class="stat-label">设备数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="ibeaconCount">0</div>
+        <div class="stat-label">iBeacon</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="eddystoneCount">0</div>
+        <div class="stat-label">Eddystone</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="avgRssi">--</div>
+        <div class="stat-label">平均 RSSI</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="avgDistance">--</div>
+        <div class="stat-label">平均距离 (m)</div>
+      </div>
+    </section>
+
+    <section class="filter-bar">
+      <input type="text" id="filterInput" placeholder="🔍 搜索 UUID / URL / 地址...">
+      <select id="filterType">
+        <option value="all">全部类型</option>
+        <option value="ibeacon">iBeacon</option>
+        <option value="eddystone-url">Eddystone URL</option>
+        <option value="eddystone-tlm">Eddystone TLM</option>
+        <option value="eddystone-uid">Eddystone UID</option>
+      </select>
+    </section>
+
+    <section class="beacon-list" id="beaconList">
+      <div class="empty-state">
+        <div class="empty-icon">📡</div>
+        <p>点击「开始扫描」搜索附近的 BLE 信标</p>
+        <p class="empty-hint">如无蓝牙适配器，请开启「模拟模式」体验</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

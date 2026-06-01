@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCS Diameter 服务器 - 消费事件监控</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+        }
+        .status-connected {
+            animation: pulse-green 2s infinite;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .event-new {
+            animation: slideIn 0.3s ease-out;
+            background-color: rgba(34, 197, 94, 0.1);
+        }
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold">OCS Diameter 服务器</h1>
+                    <p class="text-blue-100 mt-1">在线计费系统 - 信用控制请求监控</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <div id="connectionStatus" class="w-3 h-3 rounded-full bg-yellow-500 status-connected"></div>
+                        <span id="connectionText" class="text-sm">连接中...</span>
+                    </div>
+                    <button onclick="clearAllData()" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        清除数据
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6">
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+            <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">总请求数</p>
+                        <p id="totalRequests" class="text-2xl font-bold text-gray-800 mt-1">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">活跃会话</p>
+                        <p id="activeSessions" class="text-2xl font-bold text-gray-800 mt-1">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">总上行流量</p>
+                        <p id="totalUpload" class="text-2xl font-bold text-gray-800 mt-1">0 B</p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">总下行流量</p>
+                        <p id="totalDownload" class="text-2xl font-bold text-gray-800 mt-1">0 B</p>
+                    </div>
+                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">总流量</p>
+                        <p id="totalTraffic" class="text-2xl font-bold text-gray-800 mt-1">0 B</p>
+                    </div>
+                    <div class="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">已授予配额</p>
+                        <p id="totalCredits" class="text-2xl font-bold text-gray-800 mt-1">0 B</p>
+                    </div>
+                    <div class="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">账户总余额</p>
+                        <p id="totalBalance" class="text-2xl font-bold text-gray-800 mt-1">¥0.00</p>
+                    </div>
+                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">累计收入</p>
+                        <p id="totalRevenue" class="text-2xl font-bold text-gray-800 mt-1">¥0.00</p>
+                    </div>
+                    <div class="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">请求类型分布</h2>
+                <div class="h-64">
+                    <canvas id="requestTypeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">结果码分布</h2>
+                <div class="h-64">
+                    <canvas id="resultCodeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">业务流量分布</h2>
+                <div class="h-64">
+                    <canvas id="serviceChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
+            <div class="p-5 border-b border-gray-100">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">业务统计</h2>
+                <div id="serviceStats" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div class="text-center py-4 text-gray-400">暂无业务数据</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-white rounded-xl shadow-sm border border-gray-100">
+            <div class="p-5 border-b border-gray-100">
+                <div class="flex items-center gap-4 mb-4">
+                    <button onclick="switchTab('events')" id="tabEvents" class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-blue-600 text-white">
+                        事件监控
+                    </button>
+                    <button onclick="switchTab('accounts')" id="tabAccounts" class="px-4 py-2 rounded-lg font-medium text-sm transition-colors text-gray-600 hover:bg-gray-100">
+                        账户管理
+                    </button>
+                    <button onclick="switchTab('cdrs')" id="tabCdrs" class="px-4 py-2 rounded-lg font-medium text-sm transition-colors text-gray-600 hover:bg-gray-100">
+                        CDR话单
+                    </button>
+                </div>
+
+                <div id="eventsContent">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-semibold text-gray-800">消费事件列表</h2>
+                        <div class="flex items-center gap-3">
+                            <select id="filterService" onchange="applyFilter()" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">全部业务</option>
+                            </select>
+                            <select id="filterType" onchange="applyFilter()" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">全部类型</option>
+                                <option value="INITIAL">INITIAL</option>
+                                <option value="UPDATE">UPDATE</option>
+                                <option value="TERMINATION">TERMINATION</option>
+                            </select>
+                            <input id="filterSession" type="text" placeholder="搜索会话ID..." onkeyup="applyFilter()" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="accountsContent" class="hidden">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-semibold text-gray-800">账户管理</h2>
+                        <div class="flex items-center gap-3">
+                            <button onclick="showRechargeModal()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                                账户充值
+                            </button>
+                            <button onclick="showAddAccountModal()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                                新增账户
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="cdrsContent" class="hidden">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-semibold text-gray-800">CDR话单</h2>
+                        <div class="flex items-center gap-3">
+                            <select id="cdrFilterType" onchange="refreshCdrs()" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">全部类型</option>
+                                <option value="INITIAL">INITIAL</option>
+                                <option value="UPDATE">UPDATE</option>
+                                <option value="TERMINATION">TERMINATION</option>
+                            </select>
+                            <input id="cdrFilterMsisdn" type="text" placeholder="搜索MSISDN..." onkeyup="refreshCdrs()" class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-40">
+                            <button onclick="exportCdrs('csv')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg>
+                                导出CSV
+                            </button>
+                            <button onclick="exportCdrs('json')" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg>
+                                导出JSON
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="overflow-x-auto scrollbar-thin" style="max-height: 600px; overflow-y: auto;">
+                <table class="w-full">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">时间</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">业务</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">会话ID</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">序号</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">上行</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">下行</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">剩余配额</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">授予配额</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">结果</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eventTableBody" class="divide-y divide-gray-100">
+                        <tr>
+                            <td colspan="11" class="px-4 py-12 text-center text-gray-400">
+                                <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                等待消费事件...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="accountsTableContainer" class="hidden overflow-x-auto scrollbar-thin" style="max-height: 600px; overflow-y: auto;">
+                <table class="w-full">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MSISDN</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IMSI</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">账户余额</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">累计充值</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">累计消费</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accountTableBody" class="divide-y divide-gray-100">
+                        <tr>
+                            <td colspan="8" class="px-4 py-12 text-center text-gray-400">
+                                加载账户数据...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="cdrsTableContainer" class="hidden overflow-x-auto scrollbar-thin" style="max-height: 600px; overflow-y: auto;">
+                <table class="w-full">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">时间</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MSISDN</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">业务</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">流量</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">授予配额</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">扣费金额</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">余额</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">结果</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cdrTableBody" class="divide-y divide-gray-100">
+                        <tr>
+                            <td colspan="9" class="px-4 py-12 text-center text-gray-400">
+                                加载CDR数据...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div id="rechargeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+                <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800">账户充值</h3>
+                    <button onclick="closeRechargeModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-5">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">选择账户</label>
+                        <select id="rechargeAccount" class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">充值金额（元）</label>
+                        <input type="number" id="rechargeAmount" step="0.01" min="0.01" placeholder="请输入充值金额" class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button onclick="submitRecharge()" class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-medium transition-colors">
+                        确认充值
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="addAccountModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+                <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800">新增账户</h3>
+                    <button onclick="closeAddAccountModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-5">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">MSISDN（手机号）</label>
+                        <input type="text" id="newAccountMsisdn" placeholder="请输入手机号" class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">IMSI</label>
+                        <input type="text" id="newAccountImsi" placeholder="请输入IMSI" class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">初始余额（元）</label>
+                        <input type="number" id="newAccountBalance" step="0.01" min="0" value="100.00" class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button onclick="submitAddAccount()" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-medium transition-colors">
+                        创建账户
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="eventDetailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
+                <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800">事件详情</h3>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="modalContent" class="p-5 overflow-y-auto" style="max-height: calc(80vh - 65px);">
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let allEvents = [];
+        let eventSource = null;
+        let requestTypeChart = null;
+        let resultCodeChart = null;
+        let serviceChart = null;
+
+        const SERVICE_NAMES = {
+            0: '默认业务',
+            1: '语音',
+            2: '数据',
+            3: '视频',
+            4: '短信',
+            5: '彩信',
+            6: 'VoLTE'
+        };
+
+        const SERVICE_COLORS = [
+            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+            '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1'
+        ];
+
+        function getServiceName(serviceId) {
+            if (serviceId === null || serviceId === undefined) return '未知';
+            return SERVICE_NAMES[serviceId] || `业务${serviceId}`;
+        }
+
+        function formatBytes(bytes) {
+            if (!bytes) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            let i = 0;
+            while (bytes >= 1024 && i < units.length - 1) {
+                bytes /= 1024;
+                i++;
+            }
+            return `${bytes.toFixed(2)} ${units[i]}`;
+        }
+
+        function initCharts() {
+            const typeCtx = document.getElementById('requestTypeChart').getContext('2d');
+            requestTypeChart = new Chart(typeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['INITIAL', 'UPDATE', 'TERMINATION'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            const rcCtx = document.getElementById('resultCodeChart').getContext('2d');
+            resultCodeChart = new Chart(rcCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '数量',
+                        data: [],
+                        backgroundColor: '#6366f1',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                    }
+                }
+            });
+
+            const svcCtx = document.getElementById('serviceChart').getContext('2d');
+            serviceChart = new Chart(svcCtx, {
+                type: 'pie',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: SERVICE_COLORS,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        function updateStats(stats) {
+            document.getElementById('totalRequests').textContent = stats.total_requests.toLocaleString();
+            document.getElementById('activeSessions').textContent = stats.active_sessions;
+            document.getElementById('totalUpload').textContent = stats.total_upload_bytes_formatted;
+            document.getElementById('totalDownload').textContent = stats.total_download_bytes_formatted;
+            document.getElementById('totalTraffic').textContent = stats.total_traffic_formatted;
+            document.getElementById('totalCredits').textContent = stats.total_credits_granted_formatted;
+
+            if (stats.request_types) {
+                requestTypeChart.data.datasets[0].data = [
+                    stats.request_types.INITIAL || 0,
+                    stats.request_types.UPDATE || 0,
+                    stats.request_types.TERMINATION || 0
+                ];
+                requestTypeChart.update();
+            }
+
+            if (stats.result_codes) {
+                const labels = Object.keys(stats.result_codes);
+                const data = Object.values(stats.result_codes);
+                resultCodeChart.data.labels = labels;
+                resultCodeChart.data.datasets[0].data = data;
+                resultCodeChart.update();
+            }
+
+            if (stats.services) {
+                const serviceIds = Object.keys(stats.services);
+                updateServiceFilter(serviceIds);
+                updateServiceStats(stats.services);
+
+                const svcLabels = serviceIds.map(id => getServiceName(parseInt(id)));
+                const svcData = serviceIds.map(id => {
+                    const svc = stats.services[id];
+                    return (svc.total_upload_bytes || 0) + (svc.total_download_bytes || 0);
+                });
+                serviceChart.data.labels = svcLabels;
+                serviceChart.data.datasets[0].data = svcData;
+                serviceChart.update();
+            }
+        }
+
+        function updateServiceFilter(serviceIds) {
+            const select = document.getElementById('filterService');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">全部业务</option>';
+            serviceIds.forEach(id => {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = getServiceName(parseInt(id));
+                if (id === currentValue) option.selected = true;
+                select.appendChild(option);
+            });
+        }
+
+        function updateServiceStats(services) {
+            const container = document.getElementById('serviceStats');
+            const serviceIds = Object.keys(services);
+
+            if (serviceIds.length === 0) {
+                container.innerHTML = '<div class="text-center py-4 text-gray-400 col-span-full">暂无业务数据</div>';
+                return;
+            }
+
+            container.innerHTML = serviceIds.map(id => {
+                const svc = services[id];
+                const totalTraffic = (svc.total_upload_bytes || 0) + (svc.total_download_bytes || 0);
+                return `
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="text-sm font-semibold text-gray-800 mb-2">${getServiceName(parseInt(id))}</div>
+                        <div class="space-y-1 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">请求数</span>
+                                <span class="font-medium">${svc.total_requests || 0}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">上行</span>
+                                <span class="font-medium text-purple-600">${formatBytes(svc.total_upload_bytes || 0)}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">下行</span>
+                                <span class="font-medium text-orange-600">${formatBytes(svc.total_download_bytes || 0)}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">总流量</span>
+                                <span class="font-medium text-blue-600">${formatBytes(totalTraffic)}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">剩余配额</span>
+                                <span class="font-medium ${(svc.remaining_units || 0) < 20 * 1024 * 1024 ? 'text-red-600' : 'text-green-600'}">${formatBytes(svc.remaining_units || 0)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getTypeBadge(type) {
+            const colors = {
+                'INITIAL': 'bg-blue-100 text-blue-700',
+                'UPDATE': 'bg-green-100 text-green-700',
+                'TERMINATION': 'bg-orange-100 text-orange-700'
+            };
+            return `<span class="px-2 py-1 rounded-full text-xs font-medium ${colors[type] || 'bg-gray-100 text-gray-700'}">${type}</span>`;
+        }
+
+        function getServiceBadge(serviceId) {
+            const colors = [
+                'bg-blue-100 text-blue-700',
+                'bg-green-100 text-green-700',
+                'bg-purple-100 text-purple-700',
+                'bg-orange-100 text-orange-700',
+                'bg-pink-100 text-pink-700',
+                'bg-cyan-100 text-cyan-700'
+            ];
+            const idx = (serviceId || 0) % colors.length;
+            return `<span class="px-2 py-1 rounded-full text-xs font-medium ${colors[idx]}">${getServiceName(serviceId)}</span>`;
+        }
+
+        function getResultBadge(code) {
+            return code === 2001
+                ? `<span class="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">${code}</span>`
+                : `<span class="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">${code}</span>`;
+        }
+
+        function getRemainingBadge(remaining) {
+            if (!remaining || remaining < 0) remaining = 0;
+            const isLow = remaining < 20 * 1024 * 1024;
+            return `<span class="px-2 py-1 rounded-full text-xs font-medium ${isLow ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}">${formatBytes(remaining)}</span>`;
+        }
+
+        function renderEvents(events) {
+            const tbody = document.getElementById('eventTableBody');
+            if (events.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="px-4 py-12 text-center text-gray-400">
+                            <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                            暂无数据
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = events.map((event, index) => `
+                <tr class="hover:bg-gray-50 cursor-pointer transition-colors ${index === 0 ? 'event-new' : ''}" onclick='showEventDetail(${JSON.stringify(event).replace(/'/g, "&#39;")})'>
+                    <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">${new Date(event.timestamp).toLocaleString('zh-CN')}</td>
+                    <td class="px-4 py-3">${getServiceBadge(event.service_id)}</td>
+                    <td class="px-4 py-3 text-sm text-gray-800 font-mono text-xs max-w-[150px] truncate" title="${event.session_id}">${event.session_id}</td>
+                    <td class="px-4 py-3">${getTypeBadge(event.request_type)}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">#${event.request_number}</td>
+                    <td class="px-4 py-3 text-sm text-purple-600 font-medium">${event.upload_bytes_formatted || '0 B'}</td>
+                    <td class="px-4 py-3 text-sm text-orange-600 font-medium">${event.download_bytes_formatted || '0 B'}</td>
+                    <td class="px-4 py-3">${getRemainingBadge(event.remaining_units)}</td>
+                    <td class="px-4 py-3 text-sm text-emerald-600 font-medium">${event.credits_granted_formatted || '0 B'}</td>
+                    <td class="px-4 py-3">${getResultBadge(event.result_code)}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">${event.msisdn || event.imsi || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function showEventDetail(event) {
+            const modal = document.getElementById('eventDetailModal');
+            const content = document.getElementById('modalContent');
+
+            const formatField = (key, value) => {
+                if (value === null || value === undefined) return '-';
+                if (key.includes('bytes') || key.includes('credits') || key === 'remaining_units') {
+                    return event[key + '_formatted'] || formatBytes(value);
+                }
+                if (key === 'request_type') {
+                    return getTypeBadge(value);
+                }
+                if (key === 'result_code') {
+                    return getResultBadge(value);
+                }
+                if (key === 'service_id') {
+                    return getServiceBadge(value);
+                }
+                return value;
+            };
+
+            const fields = [
+                { key: 'timestamp', label: '时间' },
+                { key: 'session_id', label: '会话ID' },
+                { key: 'service_id', label: '业务类型' },
+                { key: 'request_type', label: '请求类型' },
+                { key: 'request_number', label: '请求序号' },
+                { key: 'result_code', label: '结果码' },
+                { key: 'upload_bytes', label: '上行字节数' },
+                { key: 'download_bytes', label: '下行字节数' },
+                { key: 'total_bytes', label: '总字节数' },
+                { key: 'remaining_units', label: '剩余配额' },
+                { key: 'credits_granted', label: '本次授予配额' },
+                { key: 'session_total_upload', label: '会话累计上行' },
+                { key: 'session_total_download', label: '会话累计下行' },
+                { key: 'session_total_credits', label: '会话累计配额' },
+                { key: 'msisdn', label: 'MSISDN' },
+                { key: 'imsi', label: 'IMSI' }
+            ];
+
+            content.innerHTML = `
+                <div class="grid grid-cols-2 gap-4">
+                    ${fields.map(f => `
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <p class="text-xs text-gray-500 mb-1">${f.label}</p>
+                            <p class="text-sm text-gray-800 font-medium">${formatField(f.key, event[f.key])}</p>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="mt-4 bg-gray-50 rounded-lg p-4">
+                    <p class="text-xs text-gray-500 mb-2">原始JSON</p>
+                    <pre class="text-xs text-gray-600 overflow-x-auto">${JSON.stringify(event, null, 2)}</pre>
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('eventDetailModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function applyFilter() {
+            const service = document.getElementById('filterService').value;
+            const type = document.getElementById('filterType').value;
+            const session = document.getElementById('filterSession').value.toLowerCase();
+
+            let filtered = [...allEvents];
+            if (service) {
+                filtered = filtered.filter(e => e.service_id == service);
+            }
+            if (type) {
+                filtered = filtered.filter(e => e.request_type === type);
+            }
+            if (session) {
+                filtered = filtered.filter(e => e.session_id.toLowerCase().includes(session));
+            }
+
+            renderEvents(filtered);
+        }
+
+        async function fetchEvents() {
+            try {
+                const response = await fetch('/api/events?limit=100');
+                const data = await response.json();
+                allEvents = data.events.reverse();
+                applyFilter();
+            } catch (e) {
+                console.error('Failed to fetch events:', e);
+            }
+        }
+
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                updateStats(data);
+            } catch (e) {
+                console.error('Failed to fetch stats:', e);
+            }
+        }
+
+        async function clearAllData() {
+            if (confirm('确定要清除所有事件和统计数据吗？')) {
+                try {
+                    await fetch('/api/clear', { method: 'POST' });
+                    allEvents = [];
+                    renderEvents([]);
+                    fetchStats();
+                } catch (e) {
+                    console.error('Failed to clear data:', e);
+                }
+            }
+        }
+
+        function connectSSE() {
+            const statusDot = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('connectionText');
+
+            eventSource = new EventSource('/api/events/stream');
+
+            eventSource.onopen = () => {
+                statusDot.className = 'w-3 h-3 rounded-full bg-green-500 status-connected';
+                statusText.textContent = '已连接';
+            };
+
+            eventSource.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'event') {
+                        allEvents.unshift(data.data);
+                        if (allEvents.length > 100) allEvents.pop();
+                        applyFilter();
+                        fetchStats();
+                    }
+                } catch (e) {
+                    console.error('SSE message error:', e);
+                }
+            };
+
+            eventSource.onerror = () => {
+                statusDot.className = 'w-3 h-3 rounded-full bg-red-500';
+                statusText.textContent = '连接断开';
+                setTimeout(() => {
+                    eventSource.close();
+                    connectSSE();
+                }, 3000);
+            };
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        document.getElementById('eventDetailModal').addEventListener('click', (e) => {
+            if (e.target.id === 'eventDetailModal') closeModal();
+        });
+
+        let allCdrs = [];
+        let allAccounts = {};
+
+        function switchTab(tab) {
+            ['Events', 'Accounts', 'Cdrs'].forEach(t => {
+                document.getElementById('tab' + t).className = t.toLowerCase() === tab
+                    ? 'px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-blue-600 text-white'
+                    : 'px-4 py-2 rounded-lg font-medium text-sm transition-colors text-gray-600 hover:bg-gray-100';
+            });
+
+            document.getElementById('eventsContent').classList.toggle('hidden', tab !== 'events');
+            document.getElementById('accountsContent').classList.toggle('hidden', tab !== 'accounts');
+            document.getElementById('cdrsContent').classList.toggle('hidden', tab !== 'cdrs');
+            document.querySelector('.overflow-x-auto').classList.toggle('hidden', tab !== 'events');
+            document.getElementById('accountsTableContainer').classList.toggle('hidden', tab !== 'accounts');
+            document.getElementById('cdrsTableContainer').classList.toggle('hidden', tab !== 'cdrs');
+
+            if (tab === 'accounts') {
+                fetchAccounts();
+            } else if (tab === 'cdrs') {
+                refreshCdrs();
+            }
+        }
+
+        function formatCurrency(amount) {
+            return '¥' + (amount || 0).toFixed(2);
+        }
+
+        async function fetchAccounts() {
+            try {
+                const response = await fetch('/api/accounts');
+                const data = await response.json();
+                allAccounts = data.accounts;
+                renderAccounts();
+                updateAccountDropdowns();
+            } catch (e) {
+                console.error('Failed to fetch accounts:', e);
+            }
+        }
+
+        function renderAccounts() {
+            const tbody = document.getElementById('accountTableBody');
+            const accounts = Object.values(allAccounts);
+
+            if (accounts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-12 text-center text-gray-400">暂无账户数据</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = accounts.map(acc => `
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-sm font-mono text-gray-800">${acc.msisdn}</td>
+                    <td class="px-4 py-3 text-sm font-mono text-gray-600">${acc.imsi || '-'}</td>
+                    <td class="px-4 py-3 text-sm font-semibold ${acc.balance < 10 ? 'text-red-600' : 'text-green-600'}">${formatCurrency(acc.available_balance)}</td>
+                    <td class="px-4 py-3 text-sm text-blue-600">${formatCurrency(acc.total_recharged)}</td>
+                    <td class="px-4 py-3 text-sm text-orange-600">${formatCurrency(acc.total_charged)}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${acc.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                            ${acc.is_active ? '正常' : '停用'}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">${new Date(acc.created_at).toLocaleString('zh-CN')}</td>
+                    <td class="px-4 py-3">
+                        <button onclick="quickRecharge('${acc.msisdn}')" class="text-green-600 hover:text-green-700 text-sm font-medium mr-3">充值</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateAccountDropdowns() {
+            const select = document.getElementById('rechargeAccount');
+            const accounts = Object.values(allAccounts);
+            select.innerHTML = accounts.map(acc =>
+                `<option value="${acc.msisdn}">${acc.msisdn} (余额: ${formatCurrency(acc.available_balance)})</option>`
+            ).join('');
+        }
+
+        function showRechargeModal() {
+            fetchAccounts().then(() => {
+                document.getElementById('rechargeModal').classList.remove('hidden');
+                document.getElementById('rechargeModal').classList.add('flex');
+            });
+        }
+
+        function closeRechargeModal() {
+            document.getElementById('rechargeModal').classList.add('hidden');
+            document.getElementById('rechargeModal').classList.remove('flex');
+            document.getElementById('rechargeAmount').value = '';
+        }
+
+        function quickRecharge(msisdn) {
+            fetchAccounts().then(() => {
+                document.getElementById('rechargeAccount').value = msisdn;
+                document.getElementById('rechargeModal').classList.remove('hidden');
+                document.getElementById('rechargeModal').classList.add('flex');
+            });
+        }
+
+        async function submitRecharge() {
+            const msisdn = document.getElementById('rechargeAccount').value;
+            const amount = parseFloat(document.getElementById('rechargeAmount').value);
+
+            if (!amount || amount <= 0) {
+                alert('请输入有效的充值金额');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/accounts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ msisdn, recharge_amount: amount })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`充值成功！账户余额：${formatCurrency(data.balance)}`);
+                    closeRechargeModal();
+                    fetchAccounts();
+                    fetchAccountStats();
+                } else {
+                    alert('充值失败：' + (data.error || '未知错误'));
+                }
+            } catch (e) {
+                console.error('Recharge failed:', e);
+                alert('充值失败，请稍后重试');
+            }
+        }
+
+        function showAddAccountModal() {
+            document.getElementById('addAccountModal').classList.remove('hidden');
+            document.getElementById('addAccountModal').classList.add('flex');
+        }
+
+        function closeAddAccountModal() {
+            document.getElementById('addAccountModal').classList.add('hidden');
+            document.getElementById('addAccountModal').classList.remove('flex');
+            document.getElementById('newAccountMsisdn').value = '';
+            document.getElementById('newAccountImsi').value = '';
+            document.getElementById('newAccountBalance').value = '100.00';
+        }
+
+        async function submitAddAccount() {
+            const msisdn = document.getElementById('newAccountMsisdn').value.trim();
+            const imsi = document.getElementById('newAccountImsi').value.trim();
+            const balance = parseFloat(document.getElementById('newAccountBalance').value) || 0;
+
+            if (!msisdn) {
+                alert('请输入MSISDN');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/accounts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ msisdn, imsi, initial_balance: balance })
+                });
+                const data = await response.json();
+
+                if (data.msisdn) {
+                    alert('账户创建成功！');
+                    closeAddAccountModal();
+                    fetchAccounts();
+                    fetchAccountStats();
+                } else {
+                    alert('创建失败：' + (data.error || '未知错误'));
+                }
+            } catch (e) {
+                console.error('Create account failed:', e);
+                alert('创建失败，请稍后重试');
+            }
+        }
+
+        async function refreshCdrs() {
+            const type = document.getElementById('cdrFilterType').value;
+            const msisdn = document.getElementById('cdrFilterMsisdn').value.trim();
+
+            let url = '/api/cdrs?limit=100';
+            if (type) url += '&cdr_type=' + type;
+            if (msisdn) url += '&msisdn=' + encodeURIComponent(msisdn);
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                allCdrs = data.cdrs;
+                renderCdrs();
+            } catch (e) {
+                console.error('Failed to fetch CDRs:', e);
+            }
+        }
+
+        function renderCdrs() {
+            const tbody = document.getElementById('cdrTableBody');
+            if (allCdrs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-12 text-center text-gray-400">暂无CDR数据</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = allCdrs.map(cdr => `
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">${new Date(cdr.created_at).toLocaleString('zh-CN')}</td>
+                    <td class="px-4 py-3">${getTypeBadge(cdr.cdr_type)}</td>
+                    <td class="px-4 py-3 text-sm font-mono text-gray-800">${cdr.msisdn || '-'}</td>
+                    <td class="px-4 py-3">${getServiceBadge(cdr.service_id)}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">${cdr.total_bytes_formatted || formatBytes(cdr.total_bytes)}</td>
+                    <td class="px-4 py-3 text-sm text-emerald-600">${cdr.credits_granted_formatted || formatBytes(cdr.credits_granted)}</td>
+                    <td class="px-4 py-3 text-sm text-orange-600 font-medium">${formatCurrency(cdr.charged_amount)}</td>
+                    <td class="px-4 py-3 text-sm font-medium ${cdr.balance_after < 10 ? 'text-red-600' : 'text-green-600'}">${formatCurrency(cdr.balance_after)}</td>
+                    <td class="px-4 py-3">${getResultBadge(cdr.result_code)}</td>
+                </tr>
+            `).join('');
+        }
+
+        function exportCdrs(format) {
+            const type = document.getElementById('cdrFilterType').value;
+            const msisdn = document.getElementById('cdrFilterMsisdn').value.trim();
+
+            let url = `/api/cdrs/export/${format}?`;
+            if (type) url += 'cdr_type=' + type + '&';
+            if (msisdn) url += 'msisdn=' + encodeURIComponent(msisdn);
+
+            window.location.href = url;
+        }
+
+        async function fetchAccountStats() {
+            try {
+                const response = await fetch('/api/accounts/stats');
+                const data = await response.json();
+                document.getElementById('totalBalance').textContent = formatCurrency(data.total_balance);
+            } catch (e) {
+                console.error('Failed to fetch account stats:', e);
+            }
+        }
+
+        async function fetchCdrStats() {
+            try {
+                const response = await fetch('/api/cdrs/stats');
+                const data = await response.json();
+                document.getElementById('totalRevenue').textContent = formatCurrency(data.total_revenue);
+            } catch (e) {
+                console.error('Failed to fetch CDR stats:', e);
+            }
+        }
+
+        const originalUpdateStats = updateStats;
+        function updateStats(data) {
+            originalUpdateStats(data);
+            fetchAccountStats();
+            fetchCdrStats();
+        }
+
+        document.getElementById('rechargeModal').addEventListener('click', (e) => {
+            if (e.target.id === 'rechargeModal') closeRechargeModal();
+        });
+
+        document.getElementById('addAccountModal').addEventListener('click', (e) => {
+            if (e.target.id === 'addAccountModal') closeAddAccountModal();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                closeRechargeModal();
+                closeAddAccountModal();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            fetchEvents();
+            fetchStats();
+            connectSSE();
+            setInterval(fetchStats, 5000);
+        });
+    </script>
+</body>
+</html>

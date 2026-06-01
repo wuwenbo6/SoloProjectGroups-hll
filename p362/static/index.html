@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RIPng Simulator</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0e17;--surface:#111827;--surface2:#1e293b;--border:#334155;
+  --text:#e2e8f0;--text2:#94a3b8;--primary:#3b82f6;--primary-dim:#1e40af;
+  --green:#22c55e;--yellow:#eab308;--red:#ef4444;--orange:#f97316;
+  --purple:#a855f7;--cyan:#06b6d4;--pink:#ec4899;
+}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header h1{font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--primary),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header .subtitle{font-size:12px;color:var(--text2);margin-top:2px}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{padding:8px 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:500;transition:all .2s;display:flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--primary);background:#1e3a5f}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.primary:hover{background:#2563eb}
+.btn.danger{border-color:var(--red);color:var(--red)}
+.btn.danger:hover{background:#3b1111}
+.btn.success{border-color:var(--green);color:var(--green)}
+.btn.success:hover{background:#0b2e14}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.main{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 24px;max-width:1600px;margin:0 auto}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.panel-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.2)}
+.panel-header h2{font-size:14px;font-weight:600;color:var(--text)}
+.panel-header .badge{background:var(--primary-dim);color:var(--primary);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.panel-body{padding:16px;max-height:500px;overflow-y:auto}
+.panel-body::-webkit-scrollbar{width:6px}
+.panel-body::-webkit-scrollbar-track{background:transparent}
+.panel-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.topology-canvas{width:100%;height:360px;position:relative;background:radial-gradient(ellipse at center,#0f172a 0%,#0a0e17 70%)}
+.router-node{position:absolute;transform:translate(-50%,-50%);background:var(--surface2);border:2px solid var(--primary);border-radius:12px;padding:12px 16px;min-width:80px;text-align:center;cursor:pointer;transition:all .3s;z-index:10}
+.router-node:hover{border-color:var(--cyan);box-shadow:0 0 20px rgba(59,130,246,.3)}
+.router-node .rid{font-size:14px;font-weight:700;color:var(--primary)}
+.router-node .rinfo{font-size:10px;color:var(--text2);margin-top:4px}
+.router-node.active{border-color:var(--green);box-shadow:0 0 20px rgba(34,197,94,.3)}
+.router-node.down{border-color:var(--red);opacity:.6}
+.link-line{position:absolute;z-index:5;pointer-events:none}
+.routing-table{width:100%;border-collapse:collapse;font-size:12px}
+.routing-table th{text-align:left;padding:8px 10px;color:var(--text2);font-weight:600;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.routing-table td{padding:6px 10px;border-bottom:1px solid rgba(51,65,85,.5)}
+.routing-table tr:hover{background:rgba(59,130,246,.05)}
+.routing-table .local{color:var(--green)}
+.routing-table .learned{color:var(--cyan)}
+.routing-table .invalid{color:var(--red);text-decoration:line-through}
+.metric-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:600}
+.metric-badge.m0{background:#0b2e14;color:var(--green)}
+.metric-badge.m1{background:#0b2e14;color:#4ade80}
+.metric-badge.m2{background:#1a2e0b;color:#a3e635}
+.metric-badge.m3{background:#2e2b0b;color:var(--yellow)}
+.metric-badge.m4{background:#2e1f0b;color:var(--orange)}
+.metric-badge.minf{background:#2e0b0b;color:var(--red)}
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--border)}
+.tab{padding:10px 16px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.event-log{font-family:'JetBrains Mono','Fira Code',monospace;font-size:11px;line-height:1.6}
+.event-item{padding:4px 0;border-bottom:1px solid rgba(51,65,85,.3);display:flex;gap:8px}
+.event-time{color:var(--text2);min-width:70px}
+.event-type{min-width:100px;font-weight:600}
+.event-type.route_update{color:var(--cyan)}
+.event-type.timer_tick{color:var(--yellow)}
+.event-type.periodic_update{color:var(--purple)}
+.event-type.link_change{color:var(--orange)}
+.event-type.request{color:var(--pink)}
+.event-type.triggered_update{color:var(--green)}
+.event-detail{color:var(--text);flex:1}
+.full-width{grid-column:1/-1}
+.status-bar{display:flex;gap:16px;align-items:center;padding:8px 16px;background:rgba(0,0,0,.3);border-radius:8px;font-size:12px}
+.status-item{display:flex;align-items:center;gap:6px}
+.status-dot{width:8px;height:8px;border-radius:50%}
+.status-dot.running{background:var(--green);animation:pulse 1.5s infinite}
+.status-dot.stopped{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.preset-grid{display:flex;gap:8px;flex-wrap:wrap}
+.link-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:8px;margin-bottom:6px;border:1px solid var(--border)}
+.link-item .link-name{font-weight:600;font-size:13px}
+.link-item .link-routers{font-size:11px;color:var(--text2)}
+.link-item .link-status{font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px}
+.link-item .link-status.up{background:#0b2e14;color:var(--green)}
+.link-item .link-status.down{background:#2e0b0b;color:var(--red)}
+.tooltip{position:absolute;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;z-index:1000;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:300px}
+.aggregate{color:var(--purple)}
+.aggregate-badge{background:rgba(168,85,247,.15);color:var(--purple);padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px}
+.form-group input,.form-group select{width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px}
+.form-row{display:flex;gap:8px}
+.form-row .form-group{flex:1}
+.capture-list{max-height:300px;overflow-y:auto}
+.capture-item{padding:8px 12px;background:var(--surface2);border-radius:6px;margin-bottom:6px;border:1px solid var(--border);font-size:12px}
+.capture-item.send{border-left:3px solid var(--green)}
+.capture-item.recv{border-left:3px solid var(--primary)}
+.capture-item .capture-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.capture-item .capture-meta{color:var(--text2);font-size:11px}
+.capture-item .capture-entries{margin-top:6px;padding-top:6px;border-top:1px solid rgba(51,65,85,.5)}
+.capture-item .capture-entry{font-size:11px;color:var(--text2);padding:2px 0}
+.packet-badge{padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600}
+.packet-badge.request{background:rgba(236,72,153,.15);color:var(--pink)}
+.packet-badge.response{background:rgba(59,130,246,.15);color:var(--primary)}
+select{padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px}
+.empty-state{text-align:center;padding:40px;color:var(--text2);font-size:13px}
+.split-horizon-badge{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600}
+.split-horizon-badge.none{background:#2e1f0b;color:var(--orange)}
+.split-horizon-badge.simple{background:#0b2e2e;color:var(--cyan)}
+.split-horizon-badge.poison{background:#1a0b2e;color:var(--purple)}
+.router-tabs{display:flex;gap:4px;padding:0 16px;background:rgba(0,0,0,.2);flex-wrap:wrap}
+.router-tab{padding:8px 14px;font-size:12px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;border-radius:6px 6px 0 0;transition:all .2s}
+.router-tab:hover{color:var(--text);background:rgba(59,130,246,.05)}
+.router-tab.active{color:var(--primary);border-bottom-color:var(--primary);background:rgba(59,130,246,.1)}
+.speed-control{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)}
+.speed-control input[type="range"]{width:80px;accent-color:var(--primary)}
+.packet-anim{position:absolute;z-index:20;pointer-events:none;transition:all .6s ease-in-out}
+.packet-dot{width:10px;height:10px;border-radius:50%;background:var(--yellow);box-shadow:0 0 10px var(--yellow)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>RIPng Simulator</h1>
+    <div class="subtitle">IPv6 Routing Information Protocol Next Generation - 水平分割 / 毒性反转模拟</div>
+  </div>
+  <div class="controls">
+    <select id="presetSelect">
+      <option value="">-- 选择预设拓扑 --</option>
+      <option value="linear">线性拓扑 (3路由器)</option>
+      <option value="triangle">三角形拓扑 (3路由器)</option>
+      <option value="complex">复杂拓扑 (5路由器)</option>
+    </select>
+    <button class="btn primary" onclick="loadPreset()">加载拓扑</button>
+    <div style="width:1px;height:24px;background:var(--border)"></div>
+    <button class="btn" onclick="stepOnce()" id="btnStep">▶ 单步</button>
+    <button class="btn" onclick="stepMulti(10)" id="btnStep10">▶▶ 10步</button>
+    <button class="btn success" onclick="toggleRun()" id="btnRun">⏵ 自动运行</button>
+    <div class="speed-control">
+      速度:
+      <input type="range" id="speedSlider" min="100" max="3000" value="1000" step="100">
+      <span id="speedLabel">1.0s</span>
+    </div>
+    <button class="btn danger" onclick="resetSim()">↺ 重置</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="panel full-width" style="grid-row:1">
+    <div class="panel-header">
+      <h2>🌐 网络拓扑</h2>
+      <div class="status-bar">
+        <div class="status-item"><div class="status-dot stopped" id="statusDot"></div><span id="statusText">已停止</span></div>
+        <div class="status-item">步数: <strong id="stepCount">0</strong></div>
+        <div class="status-item">路由器: <strong id="routerCount">0</strong></div>
+        <div class="status-item">链路: <strong id="linkCount">0</strong></div>
+      </div>
+    </div>
+    <div class="topology-canvas" id="topologyCanvas"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>📋 路由表</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer">
+          <input type="checkbox" id="fullIPv6Toggle" onchange="toggleFullIPv6()">
+          完整格式
+        </label>
+        <div class="badge" id="routeCountBadge">0 条路由</div>
+      </div>
+    </div>
+    <div class="router-tabs" id="routerTabs"></div>
+    <div class="panel-body" id="routingTablePanel">
+      <div class="empty-state">请先加载拓扑预设</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>🔗 链路管理</h2>
+    </div>
+    <div class="panel-body" id="linkPanel">
+      <div class="empty-state">请先加载拓扑预设</div>
+    </div>
+  </div>
+
+  <div class="panel full-width">
+    <div class="panel-header">
+      <h2>📝 事件日志</h2>
+      <button class="btn" onclick="clearEvents()" style="padding:4px 10px;font-size:11px">清除</button>
+    </div>
+    <div class="panel-body event-log" id="eventLog" style="max-height:300px">
+      <div class="empty-state">等待事件...</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>🔄 路由汇总</h2>
+      <div class="badge" id="captureStatus">未捕获</div>
+    </div>
+    <div class="panel-body" id="aggregatePanel">
+      <div class="form-group">
+        <label>选择路由器</label>
+        <select id="aggregateRouterSelect">
+          <option value="">-- 请选择路由器 --</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>汇总前缀</label>
+          <input type="text" id="aggregatePrefix" placeholder="例如: 2001:db8::/32">
+        </div>
+        <div class="form-group">
+          <label>Metric</label>
+          <input type="number" id="aggregateMetric" value="1" min="1" max="15">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>包含的路由 (逗号分隔，可选)</label>
+        <input type="text" id="aggregateIncludes" placeholder="2001:db8:1::/48, 2001:db8:2::/48">
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn primary" onclick="addAggregateRoute()">➕ 添加汇总</button>
+        <button class="btn" onclick="autoAggregate()">🔍 自动汇总</button>
+      </div>
+      <div id="aggregateList" style="margin-top:12px">
+        <div class="empty-state">暂无汇总路由</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>📦 报文抓包</h2>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span class="badge" id="packetCountBadge">0 包</span>
+        <button class="btn" onclick="toggleCapture()" id="btnToggleCapture" style="padding:4px 10px;font-size:11px">⏸ 暂停</button>
+        <button class="btn" onclick="clearCapture()" style="padding:4px 10px;font-size:11px">🗑 清除</button>
+        <button class="btn success" onclick="exportCaptureJSON()" style="padding:4px 10px;font-size:11px">⬇ JSON</button>
+        <button class="btn success" onclick="exportCapturePCAP()" style="padding:4px 10px;font-size:11px">⬇ PCAP</button>
+      </div>
+    </div>
+    <div class="panel-body capture-list" id="captureList">
+      <div class="empty-state">暂无捕获报文</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let ws = null;
+let simData = {routers:{}, links:{}, step:0, running:false};
+let selectedRouter = null;
+let events = [];
+let isRunning = false;
+let showFullIPv6 = false;
+
+const routerColors = ['#3b82f6','#22c55e','#f97316','#a855f7','#ec4899','#06b6d4','#eab308','#ef4444'];
+
+function formatIPv6Full(addr) {
+  if (!addr || addr === '::') return addr;
+  let parts = addr.split('::');
+  let left = parts[0] || '';
+  let right = parts[1] || '';
+  let leftParts = left.split(':').filter(p => p);
+  let rightParts = right.split(':').filter(p => p);
+  let allParts = [...leftParts, ...rightParts];
+  let numZeros = 8 - allParts.length;
+  let result = [];
+  for (let i = 0; i < leftParts.length; i++) {
+    result.push(leftParts[i].padStart(4, '0'));
+  }
+  for (let i = 0; i < numZeros; i++) {
+    result.push('0000');
+  }
+  for (let i = 0; i < rightParts.length; i++) {
+    result.push(rightParts[i].padStart(4, '0'));
+  }
+  return result.join(':');
+}
+
+function formatAddr(addr) {
+  if (!addr) return '-';
+  return showFullIPv6 ? formatIPv6Full(addr) : addr;
+}
+
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    handleWSMessage(msg);
+  };
+  ws.onclose = () => {
+    setTimeout(connectWS, 2000);
+  };
+}
+
+function handleWSMessage(msg) {
+  switch(msg.type) {
+    case 'init':
+      simData = msg.data;
+      renderAll();
+      break;
+    case 'route_update':
+    case 'router_added':
+    case 'link_added':
+    case 'link_up':
+    case 'link_down':
+    case 'step':
+    case 'reset':
+      if (msg.data) {
+        if (msg.data.routers) simData.routers = msg.data.routers;
+        if (msg.data.links) simData.links = msg.data.links;
+        if (msg.data.step !== undefined) simData.step = msg.data.step;
+        if (msg.data.running !== undefined) simData.running = msg.data.running;
+      }
+      if (msg.step) simData.step = msg.step;
+      renderAll();
+      break;
+  }
+}
+
+async function api(method, path) {
+  try {
+    const res = await fetch(`/api/${path}`, {method});
+    return await res.json();
+  } catch(e) { console.error(e); }
+}
+
+function loadPreset() {
+  const v = document.getElementById('presetSelect').value;
+  if (!v) return;
+  if (isRunning) toggleRun();
+  api('POST', `preset?name=${v}`).then(() => fetchSnapshot());
+}
+
+async function fetchSnapshot() {
+  const res = await fetch('/api/snapshot');
+  simData = await res.json();
+  renderAll();
+}
+
+function stepOnce() { api('POST', 'step'); }
+
+function stepMulti(n) { api('POST', `step?count=${n}`); }
+
+async function toggleRun() {
+  if (isRunning) {
+    await api('POST', 'stop');
+    isRunning = false;
+    document.getElementById('btnRun').textContent = '⏵ 自动运行';
+    document.getElementById('btnRun').classList.remove('danger');
+    document.getElementById('btnRun').classList.add('success');
+    document.getElementById('statusDot').className = 'status-dot stopped';
+    document.getElementById('statusText').textContent = '已停止';
+  } else {
+    const speed = document.getElementById('speedSlider').value;
+    await api('POST', `run?speed=${speed}`);
+    isRunning = true;
+    document.getElementById('btnRun').textContent = '⏹ 停止';
+    document.getElementById('btnRun').classList.remove('success');
+    document.getElementById('btnRun').classList.add('danger');
+    document.getElementById('statusDot').className = 'status-dot running';
+    document.getElementById('statusText').textContent = '运行中';
+  }
+}
+
+function resetSim() {
+  if (isRunning) toggleRun();
+  api('POST', 'reset');
+  events = [];
+  selectedRouter = null;
+}
+
+function toggleLink(name) { api('POST', `toggle-link?link=${name}`); }
+
+function clearEvents() {
+  events = [];
+  document.getElementById('eventLog').innerHTML = '<div class="empty-state">等待事件...</div>';
+}
+
+function renderAll() {
+  renderTopology();
+  renderRouterTabs();
+  renderRoutingTable();
+  renderLinks();
+  renderStatus();
+  updateRouterSelect();
+  renderAggregates();
+}
+
+function renderStatus() {
+  document.getElementById('stepCount').textContent = simData.step || 0;
+  document.getElementById('routerCount').textContent = Object.keys(simData.routers || {}).length;
+  document.getElementById('linkCount').textContent = Object.keys(simData.links || {}).length;
+}
+
+function renderTopology() {
+  const canvas = document.getElementById('topologyCanvas');
+  const routerIDs = Object.keys(simData.routers || {});
+  if (routerIDs.length === 0) {
+    canvas.innerHTML = '<div class="empty-state" style="padding-top:140px">请加载拓扑预设以查看网络图</div>';
+    return;
+  }
+
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  const cx = w / 2;
+  const cy = h / 2;
+
+  const positions = {};
+  const n = routerIDs.length;
+
+  if (n <= 3) {
+    const r = Math.min(w, h) * 0.32;
+    routerIDs.forEach((id, i) => {
+      const angle = -Math.PI/2 + (2 * Math.PI * i / n);
+      positions[id] = {x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle)};
+    });
+  } else {
+    const r = Math.min(w, h) * 0.35;
+    routerIDs.forEach((id, i) => {
+      const angle = -Math.PI/2 + (2 * Math.PI * i / n);
+      positions[id] = {x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle)};
+    });
+  }
+
+  let html = '<svg width="100%" height="100%" style="position:absolute;top:0;left:0;z-index:1">';
+
+  const links = simData.links || {};
+  for (const [lname, link] of Object.entries(links)) {
+    if (!link.routers || link.routers.length < 2) continue;
+    for (let i = 0; i < link.routers.length - 1; i++) {
+      for (let j = i+1; j < link.routers.length; j++) {
+        const r1 = positions[link.routers[i]];
+        const r2 = positions[link.routers[j]];
+        if (!r1 || !r2) continue;
+        const color = link.is_up ? '#334155' : '#7f1d1d';
+        const dash = link.is_up ? '' : 'stroke-dasharray="8 4"';
+        html += `<line x1="${r1.x}" y1="${r1.y}" x2="${r2.x}" y2="${r2.y}" stroke="${color}" stroke-width="2" ${dash}/>`;
+        const mx = (r1.x + r2.x) / 2;
+        const my = (r1.y + r2.y) / 2;
+        html += `<text x="${mx}" y="${my-8}" text-anchor="middle" fill="#64748b" font-size="10">${lname}</text>`;
+        if (link.cost > 1) {
+          html += `<text x="${mx}" y="${my+10}" text-anchor="middle" fill="#94a3b8" font-size="9">cost:${link.cost}</text>`;
+        }
+      }
+    }
+  }
+  html += '</svg>';
+
+  routerIDs.forEach((id, i) => {
+    const pos = positions[id];
+    const router = simData.routers[id];
+    const color = routerColors[i % routerColors.length];
+    const routeCount = router.routes ? router.routes.filter(r => r.metric < 16).length : 0;
+    const isActive = selectedRouter === id;
+    html += `<div class="router-node ${isActive?'active':''}" style="left:${pos.x}px;top:${pos.y}px;border-color:${color}" onclick="selectRouter('${id}')">`;
+    html += `<div class="rid" style="color:${color}">${id}</div>`;
+    html += `<div class="rinfo">${routeCount} routes`;
+    const shMode = router.split_horizon;
+    const shLabel = shMode === 2 ? 'Poison' : shMode === 1 ? 'Split' : 'None';
+    const shClass = shMode === 2 ? 'poison' : shMode === 1 ? 'simple' : 'none';
+    html += ` <span class="split-horizon-badge ${shClass}">${shLabel}</span>`;
+    html += `</div></div>`;
+  });
+
+  canvas.innerHTML = html;
+}
+
+function selectRouter(id) {
+  selectedRouter = id;
+  renderAll();
+}
+
+function renderRouterTabs() {
+  const tabs = document.getElementById('routerTabs');
+  const routerIDs = Object.keys(simData.routers || {});
+  if (routerIDs.length === 0) {
+    tabs.innerHTML = '';
+    return;
+  }
+  if (!selectedRouter || !simData.routers[selectedRouter]) {
+    selectedRouter = routerIDs[0];
+  }
+  let html = '';
+  routerIDs.forEach((id, i) => {
+    const color = routerColors[i % routerColors.length];
+    const cls = id === selectedRouter ? 'active' : '';
+    html += `<div class="router-tab ${cls}" onclick="selectRouter('${id}')" style="${cls?'border-bottom-color:'+color:''}">${id}</div>`;
+  });
+  tabs.innerHTML = html;
+}
+
+function toggleFullIPv6() {
+  showFullIPv6 = document.getElementById('fullIPv6Toggle').checked;
+  renderRoutingTable();
+}
+
+function renderRoutingTable() {
+  const panel = document.getElementById('routingTablePanel');
+  if (!selectedRouter || !simData.routers[selectedRouter]) {
+    panel.innerHTML = '<div class="empty-state">请先加载拓扑预设</div>';
+    return;
+  }
+
+  const router = simData.routers[selectedRouter];
+  const routes = router.routes || [];
+
+  let totalRoutes = routes.filter(r => r.metric < 16).length;
+  document.getElementById('routeCountBadge').textContent = `${totalRoutes} 条路由`;
+
+  if (routes.length === 0) {
+    panel.innerHTML = '<div class="empty-state">路由表为空</div>';
+    return;
+  }
+
+  const sorted = [...routes].sort((a,b) => {
+    if (a.is_local && !b.is_local) return -1;
+    if (!a.is_local && b.is_local) return 1;
+    return a.prefix.prefix < b.prefix.prefix ? -1 : 1;
+  });
+
+  let html = '<table class="routing-table"><thead><tr>';
+  html += '<th>目的网络</th><th>下一跳 (Link-Local)</th><th>度量</th><th>来源</th><th>接口</th><th>状态</th>';
+  html += '</tr></thead><tbody>';
+
+  sorted.forEach(r => {
+    const prefix = formatAddr(r.prefix.addr) + '/' + r.prefix.bits;
+    const isInvalid = r.metric >= 16;
+    const cls = r.is_local ? 'local' : (isInvalid ? 'invalid' : (r.is_aggregate ? 'aggregate' : 'learned'));
+    const nh = r.is_local ? '直连' : (r.next_hop.addr === '::' ? r.learned_from : formatAddr(r.next_hop.addr));
+    const nhIsLinkLocal = !r.is_local && r.next_hop.addr && r.next_hop.addr.startsWith('fe80:');
+    const metricCls = r.metric === 0 ? 'm0' : r.metric === 1 ? 'm1' : r.metric === 2 ? 'm2' : r.metric === 3 ? 'm3' : r.metric >= 16 ? 'minf' : 'm4';
+    const status = r.is_garbage ? '🗑 垃圾回收' : r.is_local ? '🟢 直连' : r.is_aggregate ? '🟣 汇总' : isInvalid ? '🔴 不可达' : '🔵 学习';
+    const ifName = r.interface_name || '-';
+    const llBadge = nhIsLinkLocal ? '<span style="color:var(--purple);font-size:10px;padding:1px 4px;border-radius:3px;background:rgba(168,85,247,0.2);">LL</span>' : '';
+    const aggBadge = r.is_aggregate ? '<span class="aggregate-badge">AGG</span>' : '';
+
+    html += `<tr class="${cls}">`;
+    html += `<td style="font-family:monospace;font-size:11px">${prefix} ${aggBadge}</td>`;
+    html += `<td style="font-family:monospace;font-size:11px">${nh} ${llBadge}</td>`;
+    html += `<td><span class="metric-badge ${metricCls}">${r.metric}</span></td>`;
+    html += `<td>${r.is_local ? '-' : r.learned_from}</td>`;
+    html += `<td>${ifName}</td>`;
+    html += `<td>${status}</td>`;
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  panel.innerHTML = html;
+}
+
+function renderLinks() {
+  const panel = document.getElementById('linkPanel');
+  const links = simData.links || {};
+  if (Object.keys(links).length === 0) {
+    panel.innerHTML = '<div class="empty-state">请先加载拓扑预设</div>';
+    return;
+  }
+
+  let html = '';
+  for (const [name, link] of Object.entries(links)) {
+    const statusCls = link.is_up ? 'up' : 'down';
+    const statusText = link.is_up ? 'UP' : 'DOWN';
+    const toggleText = link.is_up ? '断开' : '连接';
+    const toggleCls = link.is_up ? 'danger' : 'success';
+    html += `<div class="link-item">`;
+    html += `<div><div class="link-name">${name}</div><div class="link-routers">${link.routers.join(' ↔ ')} · cost:${link.cost}</div></div>`;
+    html += `<div style="display:flex;gap:8px;align-items:center">`;
+    html += `<span class="link-status ${statusCls}">${statusText}</span>`;
+    html += `<button class="btn ${toggleCls}" style="padding:4px 10px;font-size:11px" onclick="toggleLink('${name}')">${toggleText}</button>`;
+    html += `</div></div>`;
+  }
+  panel.innerHTML = html;
+}
+
+function addEvent(type, detail) {
+  const time = new Date().toLocaleTimeString('zh-CN', {hour12:false});
+  events.push({time, type, detail});
+  if (events.length > 500) events = events.slice(-300);
+  renderEvents();
+}
+
+function renderEvents() {
+  const log = document.getElementById('eventLog');
+  if (events.length === 0) {
+    log.innerHTML = '<div class="empty-state">等待事件...</div>';
+    return;
+  }
+  const recent = events.slice(-100);
+  let html = '';
+  recent.forEach(e => {
+    const typeMap = {
+      'ROUTE_ADD':'route_update','ROUTE_UPDATE':'route_update','ROUTE_BETTER':'route_update',
+      'ROUTE_INVALID':'route_update','ROUTE_TIMEOUT':'timer_tick','ROUTE_GARBAGE':'timer_update',
+      'ROUTE_REVIVE':'route_update','ADD_LOCAL':'route_update',
+      'PERIODIC_UPDATE':'periodic_update','LINK_CHANGE':'link_change',
+      'REQUEST':'request','TRIGGERED_UPDATE':'triggered_update'
+    };
+    const cls = typeMap[e.type] || '';
+    html += `<div class="event-item">`;
+    html += `<span class="event-time">${e.time}</span>`;
+    html += `<span class="event-type ${cls}">${e.type}</span>`;
+    html += `<span class="event-detail">${e.detail}</span>`;
+    html += '</div>';
+  });
+  log.innerHTML = html;
+  log.scrollTop = log.scrollHeight;
+}
+
+document.getElementById('speedSlider').addEventListener('input', (e) => {
+  const v = e.target.value;
+  document.getElementById('speedLabel').textContent = (v/1000).toFixed(1) + 's';
+});
+
+function updateRouterSelect() {
+  const select = document.getElementById('aggregateRouterSelect');
+  const routers = simData.routers || {};
+  const currentValue = select.value;
+  select.innerHTML = '<option value="">-- 请选择路由器 --</option>';
+  for (const id of Object.keys(routers).sort()) {
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = id;
+    select.appendChild(opt);
+  }
+  if (routers[currentValue]) {
+    select.value = currentValue;
+  }
+}
+
+function renderAggregates() {
+  const panel = document.getElementById('aggregateList');
+  const routerId = document.getElementById('aggregateRouterSelect').value;
+  if (!routerId || !simData.routers[routerId]) {
+    panel.innerHTML = '<div class="empty-state">请选择路由器</div>';
+    return;
+  }
+  const routes = simData.routers[routerId].routes || [];
+  const aggregates = routes.filter(r => r.is_aggregate);
+  if (aggregates.length === 0) {
+    panel.innerHTML = '<div class="empty-state">暂无汇总路由</div>';
+    return;
+  }
+  let html = '';
+  aggregates.forEach(agg => {
+    const prefix = formatAddr(agg.prefix.addr) + '/' + agg.prefix.bits;
+    const includes = agg.aggregated && agg.aggregated.length > 0 
+      ? `<div style="font-size:11px;color:var(--text2);margin-top:4px">包含: ${agg.aggregated.join(', ')}</div>` 
+      : '';
+    html += `<div class="link-item">
+      <div>
+        <span class="link-name aggregate" style="font-family:monospace">${prefix}</span>
+        ${includes}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="metric-badge m${agg.metric}">${agg.metric}</span>
+        <button class="btn danger" onclick="removeAggregateRoute('${routerId}', '${prefix}')" style="padding:2px 8px;font-size:11px">删除</button>
+      </div>
+    </div>`;
+  });
+  panel.innerHTML = html;
+}
+
+async function addAggregateRoute() {
+  const routerId = document.getElementById('aggregateRouterSelect').value;
+  const prefix = document.getElementById('aggregatePrefix').value.trim();
+  const metric = parseInt(document.getElementById('aggregateMetric').value) || 1;
+  const includesStr = document.getElementById('aggregateIncludes').value.trim();
+  
+  if (!routerId || !prefix) {
+    alert('请选择路由器并输入汇总前缀');
+    return;
+  }
+  
+  const aggregated = includesStr ? includesStr.split(',').map(s => s.trim()).filter(s => s) : [];
+  
+  try {
+    const res = await fetch('/api/add-aggregate-route', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({router_id: routerId, prefix, aggregated, metric})
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      document.getElementById('aggregatePrefix').value = '';
+      document.getElementById('aggregateIncludes').value = '';
+      addEvent('ADD_AGGREGATE', `Added aggregate ${prefix} to ${routerId}`);
+    }
+  } catch(e) {
+    alert('添加失败: ' + e.message);
+  }
+}
+
+async function removeAggregateRoute(routerId, prefix) {
+  try {
+    const res = await fetch(`/api/remove-aggregate-route?router=${encodeURIComponent(routerId)}&prefix=${encodeURIComponent(prefix)}`, {
+      method: 'POST'
+    });
+    const data = await res.json();
+    if (data.removed) {
+      addEvent('REMOVE_AGGREGATE', `Removed aggregate ${prefix} from ${routerId}`);
+    }
+  } catch(e) {
+    alert('删除失败: ' + e.message);
+  }
+}
+
+async function autoAggregate() {
+  const routerId = document.getElementById('aggregateRouterSelect').value;
+  if (!routerId) {
+    alert('请选择路由器');
+    return;
+  }
+  try {
+    const res = await fetch(`/api/auto-aggregate?router=${encodeURIComponent(routerId)}&min_prefix_len=48`, {
+      method: 'POST'
+    });
+    const data = await res.json();
+    if (data.status === 'ok' && data.aggregated.length > 0) {
+      alert(`发现 ${data.count} 个可能的汇总:\n${data.aggregated.join('\n')}`);
+    } else {
+      alert('未发现可汇总的路由');
+    }
+  } catch(e) {
+    alert('自动汇总失败: ' + e.message);
+  }
+}
+
+let captureEnabled = true;
+let capturedPackets = [];
+
+async function fetchCapturePackets() {
+  try {
+    const res = await fetch('/api/capture/packets');
+    const data = await res.json();
+    capturedPackets = data.packets || [];
+    renderCapture();
+  } catch(e) {
+    console.error('Fetch capture failed:', e);
+  }
+}
+
+function renderCapture() {
+  const panel = document.getElementById('captureList');
+  const badge = document.getElementById('packetCountBadge');
+  const statusBadge = document.getElementById('captureStatus');
+  const btn = document.getElementById('btnToggleCapture');
+  
+  badge.textContent = `${capturedPackets.length} 包`;
+  statusBadge.textContent = captureEnabled ? '捕获中' : '已暂停';
+  statusBadge.style.background = captureEnabled ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.15)';
+  statusBadge.style.color = captureEnabled ? 'var(--green)' : 'var(--red)';
+  btn.textContent = captureEnabled ? '⏸ 暂停' : '▶ 继续';
+  
+  if (capturedPackets.length === 0) {
+    panel.innerHTML = '<div class="empty-state">暂无捕获报文</div>';
+    return;
+  }
+  
+  const recent = capturedPackets.slice(-50).reverse();
+  let html = '';
+  recent.forEach(pkt => {
+    const time = new Date(pkt.timestamp).toLocaleTimeString('zh-CN', {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    const cmd = pkt.message.command === 1 ? 'Request' : 'Response';
+    const cmdCls = pkt.message.command === 1 ? 'request' : 'response';
+    const entries = pkt.message.entries || [];
+    let entriesHtml = '';
+    entries.forEach(e => {
+      const prefix = formatAddr(e.prefix.addr) + '/' + e.prefix.bits;
+      entriesHtml += `<div class="capture-entry">${prefix} metric=${e.metric}</div>`;
+    });
+    html += `<div class="capture-item ${pkt.direction}">
+      <div class="capture-header">
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="packet-badge ${cmdCls}">${cmd}</span>
+          <span style="font-weight:600">${pkt.packet_index}# ${pkt.sender_id} → ${pkt.receiver_id || '组播'}</span>
+        </div>
+        <span class="capture-meta">${time} · ${pkt.link_name || '-'}</span>
+      </div>
+      ${entriesHtml ? `<div class="capture-entries">${entriesHtml}</div>` : ''}
+    </div>`;
+  });
+  panel.innerHTML = html;
+}
+
+async function toggleCapture() {
+  captureEnabled = !captureEnabled;
+  try {
+    await fetch(`/api/capture/toggle?enabled=${captureEnabled}`, {method: 'POST'});
+    renderCapture();
+  } catch(e) {
+    console.error('Toggle capture failed:', e);
+  }
+}
+
+async function clearCapture() {
+  try {
+    await fetch('/api/capture/clear', {method: 'POST'});
+    capturedPackets = [];
+    renderCapture();
+  } catch(e) {
+    console.error('Clear capture failed:', e);
+  }
+}
+
+async function exportCaptureJSON() {
+  try {
+    const a = document.createElement('a');
+    a.href = '/api/capture/export/json';
+    a.download = 'ripng_capture.json';
+    a.click();
+  } catch(e) {
+    console.error('Export JSON failed:', e);
+  }
+}
+
+async function exportCapturePCAP() {
+  try {
+    const a = document.createElement('a');
+    a.href = '/api/capture/export/pcap';
+    a.download = 'ripng_capture.pcap';
+    a.click();
+  } catch(e) {
+    console.error('Export PCAP failed:', e);
+  }
+}
+
+document.getElementById('aggregateRouterSelect').addEventListener('change', () => {
+  renderAggregates();
+});
+
+let capturePollTimer = null;
+function startCapturePolling() {
+  if (capturePollTimer) clearInterval(capturePollTimer);
+  capturePollTimer = setInterval(fetchCapturePackets, 1000);
+}
+
+window.addEventListener('beforeunload', () => { 
+  if(ws) ws.close();
+  if(capturePollTimer) clearInterval(capturePollTimer);
+});
+
+connectWS();
+fetchSnapshot();
+startCapturePolling();
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+module network {
+    namespace "http://example.com/network";
+    prefix net;
+
+    typedef port-number {
+        type uint16 {
+            range 1..65535;
+        }
+        description "Port number";
+    }
+
+    typedef vlan-id {
+        type uint16 {
+            range 1..4094;
+        }
+        units "VLAN ID";
+        description "IEEE 802.1Q VLAN identifier";
+    }
+
+    typedef bandwidth {
+        type uint32 {
+            range 0..100000;
+        }
+        units "Mbps";
+        description "Bandwidth in megabits per second";
+    }
+
+    typedef ip-address {
+        type string {
+            pattern '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}';
+        }
+        description "IPv4 address format";
+    }
+
+    typedef interface-type {
+        type enumeration {
+            enum "ethernet";
+            enum "optical";
+            enum "wireless";
+            enum "tunnel";
+        }
+        description "Type of network interface";
+    }
+
+    typedef admin-status {
+        type enumeration {
+            enum "up";
+            enum "down";
+            enum "testing";
+        }
+        default "up";
+        description "Administrative status";
+    }
+
+    container network {
+        container device {
+            leaf device-name {
+                type string {
+                    length 1..128;
+                }
+                mandatory true;
+                description "Unique device name";
+            }
+
+            leaf mgmt-ip {
+                type ip-address;
+                mandatory true;
+                description "Management IP address";
+            }
+
+            leaf-list allowed-vlans {
+                type vlan-id;
+                description "List of allowed VLAN IDs on this device";
+            }
+
+            leaf-list dns-servers {
+                type ip-address;
+                description "DNS server IP addresses (must be unique)";
+            }
+
+            leaf max-bandwidth {
+                type bandwidth;
+                default 1000;
+                description "Maximum bandwidth capacity";
+            }
+
+            leaf ssh-port {
+                type port-number;
+                default 22;
+                description "SSH service port";
+            }
+
+            leaf netconf-port {
+                type port-number;
+                default 830;
+                description "NETCONF service port";
+            }
+
+            list interface {
+                key "name";
+                leaf name {
+                    type string;
+                }
+                leaf type {
+                    type interface-type;
+                }
+                leaf mtu {
+                    type uint32 {
+                        range 68..9216;
+                    }
+                    default 1500;
+                }
+                leaf status {
+                    type admin-status;
+                }
+                leaf bandwidth {
+                    type bandwidth;
+                }
+                leaf ip {
+                    type ip-address;
+                }
+                leaf-list tagged-vlans {
+                    type vlan-id;
+                    description "VLANs tagged on this interface";
+                }
+            }
+        }
+    }
+}

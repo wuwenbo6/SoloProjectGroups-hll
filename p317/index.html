@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eCPRI 帧解析 & Cookie 解密监控</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .tab-nav {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px 10px 0 0;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            background: rgba(255,255,255,0.3);
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255,255,255,0.5);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .control-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group input, .control-group textarea {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            font-family: monospace;
+        }
+
+        .control-group input:focus, .control-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(17, 153, 142, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 175, 25, 0.4);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn-info:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .card h2.cookie-title {
+            border-bottom-color: #f5af19;
+        }
+
+        .stream-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .stream-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: transform 0.2s;
+        }
+
+        .stream-item:hover {
+            transform: translateX(5px);
+            background: #e9ecef;
+        }
+
+        .stream-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .stream-id {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stream-badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .stream-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 8px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .latency-good { color: #38ef7d; }
+        .latency-warning { color: #f5af19; }
+        .latency-bad { color: #eb3349; }
+
+        .seq-in-order { color: #38ef7d; }
+        .seq-gap { color: #f5af19; }
+        .seq-reorder { color: #4facfe; }
+        .seq-duplicate { color: #eb3349; }
+        .seq-first { color: #667eea; }
+        .seq-out-of-window { color: #999; }
+
+        .window-bar {
+            display: flex;
+            height: 24px;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #e9ecef;
+            margin-top: 8px;
+        }
+
+        .window-bar-segment {
+            height: 100%;
+            transition: width 0.3s;
+        }
+
+        .window-legend {
+            display: flex;
+            gap: 15px;
+            margin-top: 8px;
+            font-size: 12px;
+            flex-wrap: wrap;
+        }
+
+        .window-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+        }
+
+        .frames-table-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            position: sticky;
+            top: 0;
+        }
+
+        th.cookie-th {
+            background: #f5af19;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .message-type-iq {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .message-type-control {
+            background: #fff3e0;
+            color: #f57c00;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-active {
+            background: #38ef7d;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .auto-refresh label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .test-controls input {
+            width: 100px;
+            padding: 8px 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+        }
+
+        .cookie-decrypt-form {
+            display: grid;
+            gap: 15px;
+        }
+
+        .cookie-decrypt-form .form-row {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .cookie-decrypt-form textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: monospace;
+            resize: vertical;
+        }
+
+        .cookie-decrypt-form textarea:focus {
+            outline: none;
+            border-color: #f5af19;
+        }
+
+        .cookie-decrypt-form label {
+            font-weight: 600;
+            color: #555;
+            min-width: 120px;
+            padding-top: 12px;
+        }
+
+        .cookie-result {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .cookie-result.success {
+            border-left: 4px solid #38ef7d;
+        }
+
+        .cookie-result.error {
+            border-left: 4px solid #eb3349;
+        }
+
+        .cookie-field {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .cookie-field:last-child {
+            border-bottom: none;
+        }
+
+        .cookie-field-name {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .cookie-field-value {
+            font-family: monospace;
+            color: #333;
+            background: #e9ecef;
+            padding: 4px 12px;
+            border-radius: 6px;
+        }
+
+        .cookie-field-value.offset-info {
+            font-size: 12px;
+            color: #888;
+            background: transparent;
+        }
+
+        .cookie-encrypt-form {
+            display: grid;
+            gap: 12px;
+        }
+
+        .cookie-encrypt-form .form-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .cookie-encrypt-form label {
+            font-weight: 600;
+            color: #555;
+            min-width: 120px;
+        }
+
+        .cookie-encrypt-form input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: monospace;
+        }
+
+        .cookie-encrypt-form input:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .result-box {
+            background: #f0f4ff;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .field-layout-table {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .field-layout-table td {
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+
+        .field-layout-table td:first-child {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .security-note {
+            background: #fff3e0;
+            border-left: 4px solid #f5af19;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 13px;
+            color: #e65100;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 eCPRI 帧解析 & 🔐 Cookie 解密监控</h1>
+
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('ecpri')">📡 eCPRI 帧解析</button>
+            <button class="tab-btn" onclick="switchTab('cookie')">🔐 Cookie 解密 (AES-SIV-CMAC)</button>
+        </div>
+
+        <!-- eCPRI Tab -->
+        <div id="tab-ecpri" class="tab-content active">
+            <div class="controls">
+                <div class="control-group">
+                    <input type="text" id="hexInput" placeholder="输入十六进制 eCPRI 帧数据 (例如: 1000001400010001...)">
+                    <button class="btn btn-primary" onclick="parseFrame()">解析帧</button>
+                </div>
+                
+                <div class="test-controls">
+                    <input type="number" id="frameCount" value="50" min="1" max="500" placeholder="帧数">
+                    <input type="number" id="streamCount" value="5" min="1" max="20" placeholder="流数">
+                    <button class="btn btn-success" onclick="generateTestData()">生成测试数据</button>
+                </div>
+
+                <div class="auto-refresh">
+                    <label>
+                        <input type="checkbox" id="autoRefresh" checked>
+                        自动刷新
+                    </label>
+                    <span id="refreshStatus">自动刷新已启用</span>
+                    <button class="btn btn-info" onclick="exportPcapng()" style="margin-left: auto;">📥 导出 PCAPng</button>
+                </div>
+                
+                <div class="test-controls" style="border-top: 1px solid #e0e0e0; padding-top: 15px; margin-top: 15px;">
+                    <label style="font-weight: 600; color: #555; min-width: 120px;">星座图流ID:</label>
+                    <select id="iqStreamSelect" style="padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 6px; cursor: pointer;" onchange="fetchIQSamples()">
+                        <option value="all">所有流</option>
+                    </select>
+                    <label style="font-weight: 600; color: #555; margin-left: 15px; min-width: 100px;">采样点数:</label>
+                    <input type="number" id="iqSampleLimit" value="500" min="100" max="5000" style="width: 100px; padding: 8px 10px; border: 2px solid #e0e0e0; border-radius: 6px;">
+                    <button class="btn btn-primary" onclick="fetchIQSamples()">刷新星座图</button>
+                </div>
+            </div>
+
+            <div class="dashboard">
+                <div class="card">
+                    <h2>📊 流状态监控</h2>
+                    <div class="stream-list" id="streamList">
+                        <div class="empty-state">暂无数据流</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>🌟 I/Q 星座图</h2>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                        <canvas id="iqCanvas" width="350" height="350" style="border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa;"></canvas>
+                        <div id="iqStats" style="font-size: 12px; color: #666; text-align: center;">暂无采样点</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>📈 延迟统计</h2>
+                    <div id="latencyChart" style="height: 300px; display: flex; align-items: center; justify-content: center; color: #999;">
+                        暂无数据
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📋 最近帧记录</h2>
+                <div class="frames-table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>序列号</th>
+                                <th>消息类型</th>
+                                <th>流ID</th>
+                                <th>延迟 (ms)</th>
+                                <th>RTC时间戳</th>
+                                <th>RTC偏移 (ns)</th>
+                                <th>序列状态</th>
+                                <th>时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="framesTable">
+                            <tr><td colspan="8" style="text-align: center; color: #999;">暂无帧数据</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cookie Tab -->
+        <div id="tab-cookie" class="tab-content">
+            <div class="dashboard">
+                <div class="card">
+                    <h2 class="cookie-title">🔓 Cookie 解密</h2>
+                    <div class="cookie-decrypt-form">
+                        <div class="form-row">
+                            <label>密钥 (Hex)</label>
+                            <textarea id="decryptKey" placeholder="输入 AES-SIV 密钥 (32/48/64 字节的十六进制)&#10;例如: 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <label>Cookie 数据 (Base64)</label>
+                            <textarea id="decryptCookieData" placeholder="输入 Base64 编码的 Cookie 数据&#10;格式: [版本1B][标志1B][Nonce长度1B][Nonce][SIV+密文]"></textarea>
+                        </div>
+                        <div class="form-row" style="justify-content: flex-end; gap: 10px;">
+                            <button class="btn btn-warning" onclick="decryptCookie()">🔓 解密 Cookie</button>
+                            <button class="btn btn-info" onclick="generateTestCookie()">📋 生成测试数据</button>
+                        </div>
+                    </div>
+                    <div id="decryptResult"></div>
+
+                    <div class="security-note">
+                        ⚠️ 安全提示：解析前会严格检查每个字段的长度，防止越界访问。SIV 认证失败将拒绝返回任何明文数据。
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2 class="cookie-title">🔒 Cookie 加密</h2>
+                    <div class="cookie-encrypt-form">
+                        <div class="form-row">
+                            <label>密钥 (Hex)</label>
+                            <input type="text" id="encryptKey" placeholder="同解密密钥 (64 hex chars for AES-128-SIV)">
+                        </div>
+                        <div class="form-row">
+                            <label>Session ID (Hex)</label>
+                            <input type="text" id="encryptSessionId" placeholder="16字节 (32 hex chars)，留空自动生成">
+                        </div>
+                        <div class="form-row">
+                            <label>User ID</label>
+                            <input type="number" id="encryptUserId" value="1001" min="0">
+                        </div>
+                        <div class="form-row">
+                            <label>Timestamp</label>
+                            <input type="number" id="encryptTimestamp" placeholder="留空使用当前时间">
+                        </div>
+                        <div class="form-row">
+                            <label>Flags</label>
+                            <input type="number" id="encryptFlags" value="0" min="0">
+                        </div>
+                        <div class="form-row">
+                            <label>TTL (秒)</label>
+                            <input type="number" id="encryptTtl" value="3600" min="0">
+                        </div>
+                        <div class="form-row" style="justify-content: flex-end;">
+                            <button class="btn btn-success" onclick="encryptCookie()">🔒 加密 Cookie</button>
+                        </div>
+                    </div>
+                    <div id="encryptResult"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="cookie-title">📐 Cookie 字段布局</h2>
+                <div id="fieldLayout"></div>
+                <table class="field-layout-table">
+                    <thead>
+                        <tr>
+                            <th class="cookie-th">字段名</th>
+                            <th class="cookie-th">偏移</th>
+                            <th class="cookie-th">长度</th>
+                            <th class="cookie-th">类型</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fieldLayoutTable">
+                    </tbody>
+                </table>
+                <div class="security-note" style="margin-top: 15px;">
+                    🛡️ 越界防护：每个字段提取前都会检查 offset + length 是否超过明文长度，确保不会越界读取内存。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let refreshInterval = null;
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function getLatencyClass(latency) {
+            if (latency < 10) return 'latency-good';
+            if (latency < 50) return 'latency-warning';
+            return 'latency-bad';
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleTimeString();
+        }
+
+        function formatTimestamp(ts) {
+            const date = new Date(ts * 1000);
+            return date.toLocaleString();
+        }
+
+        async function fetchStreams() {
+            try {
+                const response = await fetch('/api/streams');
+                const data = await response.json();
+                if (data.success) {
+                    updateStreamsUI(data.streams);
+                }
+            } catch (e) {
+                console.error('Failed to fetch streams:', e);
+            }
+        }
+
+        function updateStreamsUI(streams) {
+            const container = document.getElementById('streamList');
+            if (streams.length === 0) {
+                container.innerHTML = '<div class="empty-state">暂无数据流</div>';
+                return;
+            }
+            container.innerHTML = streams.map(stream => {
+                const total = stream.gap_count + stream.duplicate_count + stream.reorder_count + Math.max(0, stream.frame_count - stream.gap_count - stream.duplicate_count - stream.reorder_count);
+                const inOrderPct = total > 0 ? Math.max(0, (stream.frame_count - stream.gap_count - stream.duplicate_count - stream.reorder_count) / total * 100) : 0;
+                const gapPct = total > 0 ? stream.gap_count / total * 100 : 0;
+                const dupPct = total > 0 ? stream.duplicate_count / total * 100 : 0;
+                const reorderPct = total > 0 ? stream.reorder_count / total * 100 : 0;
+                return `
+                <div class="stream-item">
+                    <div class="stream-header">
+                        <span class="stream-id">
+                            <span class="status-indicator status-active"></span>
+                            流 #${stream.stream_id}
+                        </span>
+                        <span class="stream-badge">${stream.frame_count} 帧</span>
+                    </div>
+                    <div class="stream-stats">
+                        <div class="stat-item">
+                            <div class="stat-value ${getLatencyClass(stream.avg_latency_ms)}">${stream.avg_latency_ms.toFixed(2)}</div>
+                            <div class="stat-label">平均延迟 (ms)</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${stream.expected_seq !== null ? stream.expected_seq : '-'}</div>
+                            <div class="stat-label">期望序列号</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value seq-gap">${stream.gap_count}</div>
+                            <div class="stat-label">间隙</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value seq-reorder">${stream.reorder_count}</div>
+                            <div class="stat-label">乱序</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value seq-duplicate">${stream.duplicate_count}</div>
+                            <div class="stat-label">重复</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${stream.window_buffered}</div>
+                            <div class="stat-label">窗口缓存</div>
+                        </div>
+                    </div>
+                    <div class="window-bar" title="序列号状态分布">
+                        <div class="window-bar-segment" style="width:${inOrderPct}%;background:#38ef7d;" title="有序 ${inOrderPct.toFixed(1)}%"></div>
+                        <div class="window-bar-segment" style="width:${gapPct}%;background:#f5af19;" title="间隙 ${gapPct.toFixed(1)}%"></div>
+                        <div class="window-bar-segment" style="width:${reorderPct}%;background:#4facfe;" title="乱序 ${reorderPct.toFixed(1)}%"></div>
+                        <div class="window-bar-segment" style="width:${dupPct}%;background:#eb3349;" title="重复 ${dupPct.toFixed(1)}%"></div>
+                    </div>
+                    <div class="window-legend">
+                        <span class="window-legend-item"><span class="legend-dot" style="background:#38ef7d;"></span>有序</span>
+                        <span class="window-legend-item"><span class="legend-dot" style="background:#f5af19;"></span>间隙</span>
+                        <span class="window-legend-item"><span class="legend-dot" style="background:#4facfe;"></span>乱序</span>
+                        <span class="window-legend-item"><span class="legend-dot" style="background:#eb3349;"></span>重复</span>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        async function fetchFrames() {
+            try {
+                const response = await fetch('/api/frames?limit=50');
+                const data = await response.json();
+                if (data.success) {
+                    updateFramesUI(data.frames);
+                }
+            } catch (e) {
+                console.error('Failed to fetch frames:', e);
+            }
+        }
+
+        function getSeqStatusClass(status) {
+            const map = {
+                'in_order': 'seq-in-order',
+                'gap': 'seq-gap',
+                'reorder': 'seq-reorder',
+                'duplicate': 'seq-duplicate',
+                'first': 'seq-first',
+                'out_of_window': 'seq-out-of-window',
+            };
+            return map[status] || '';
+        }
+
+        function getSeqStatusText(status) {
+            const map = {
+                'in_order': '✓ 有序',
+                'gap': '⚠ 间隙',
+                'reorder': '↻ 乱序',
+                'duplicate': '✕ 重复',
+                'first': '● 首帧',
+                'out_of_window': '⊘ 窗口外',
+            };
+            return map[status] || (status || '-');
+        }
+
+        function formatRtcTimestamp(ts) {
+            if (ts === null || ts === undefined) return '-';
+            return ts.toString();
+        }
+
+        function formatRtcOffset(off) {
+            if (off === null || off === undefined) return '-';
+            const sign = off >= 0 ? '+' : '';
+            return sign + off.toLocaleString() + ' ns';
+        }
+
+        function updateFramesUI(frames) {
+            const tbody = document.getElementById('framesTable');
+            if (frames.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #999;">暂无帧数据</td></tr>';
+                return;
+            }
+            tbody.innerHTML = frames.map(frame => {
+                const messageClass = frame.message_type.includes('IQ') ? 'message-type-iq' : 'message-type-control';
+                const seqClass = getSeqStatusClass(frame.seq_status);
+                const seqText = getSeqStatusText(frame.seq_status);
+                return `
+                    <tr>
+                        <td>${frame.sequence_id !== null ? frame.sequence_id : '-'}</td>
+                        <td><span class="${messageClass}">${frame.message_type}</span></td>
+                        <td>${frame.stream_id !== null ? frame.stream_id : '-'}</td>
+                        <td class="${frame.latency_ms !== null ? getLatencyClass(frame.latency_ms) : ''}">${frame.latency_ms !== null ? frame.latency_ms.toFixed(2) : '-'}</td>
+                        <td style="font-family:monospace;font-size:12px;">${formatRtcTimestamp(frame.rtc_timestamp)}</td>
+                        <td style="font-family:monospace;font-size:12px;">${formatRtcOffset(frame.rtc_time_offset)}</td>
+                        <td class="${seqClass}" style="font-weight:600;">${seqText}</td>
+                        <td>${formatTime(frame.timestamp)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function parseFrame() {
+            const hexInput = document.getElementById('hexInput').value.trim();
+            if (!hexInput) { alert('请输入十六进制数据'); return; }
+            try {
+                const response = await fetch('/api/parse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ hex_data: hexInput })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('解析成功！');
+                    fetchStreams();
+                    fetchFrames();
+                } else {
+                    alert('解析失败: ' + data.error);
+                }
+            } catch (e) {
+                alert('请求失败: ' + e.message);
+            }
+        }
+
+        async function generateTestData() {
+            const count = parseInt(document.getElementById('frameCount').value) || 50;
+            const streamCount = parseInt(document.getElementById('streamCount').value) || 5;
+            try {
+                await fetch('/api/generate-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ count, stream_count: streamCount })
+                });
+            } catch (e) {
+                console.error('Failed to generate test data:', e);
+            }
+        }
+
+        function toggleAutoRefresh() {
+            const checkbox = document.getElementById('autoRefresh');
+            const status = document.getElementById('refreshStatus');
+            if (checkbox.checked) {
+                refreshInterval = setInterval(() => {
+                    fetchStreams();
+                    fetchFrames();
+                    fetchIQSamples();
+                }, 1000);
+                status.textContent = '自动刷新已启用';
+            } else {
+                if (refreshInterval) {
+                    clearInterval(refreshInterval);
+                    refreshInterval = null;
+                }
+                status.textContent = '自动刷新已禁用';
+            }
+        }
+
+        document.getElementById('autoRefresh').addEventListener('change', toggleAutoRefresh);
+        document.getElementById('hexInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') parseFrame();
+        });
+
+        async function decryptCookie() {
+            const key = document.getElementById('decryptKey').value.trim();
+            const cookieData = document.getElementById('decryptCookieData').value.trim();
+            const resultDiv = document.getElementById('decryptResult');
+
+            if (!key) { resultDiv.innerHTML = renderError('请输入密钥'); return; }
+            if (!cookieData) { resultDiv.innerHTML = renderError('请输入 Cookie 数据'); return; }
+
+            try {
+                const response = await fetch('/api/cookie/decrypt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key, cookie_data: cookieData })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const c = data.cookie;
+                    resultDiv.innerHTML = `
+                        <div class="cookie-result success">
+                            <h3 style="color: #2e7d32; margin-bottom: 15px;">✅ 解密成功</h3>
+                            <div class="cookie-field">
+                                <span class="cookie-field-name">Session ID</span>
+                                <span class="cookie-field-value">${c.session_id}</span>
+                            </div>
+                            <div class="cookie-field">
+                                <span class="cookie-field-name">User ID</span>
+                                <span class="cookie-field-value">${c.user_id}</span>
+                            </div>
+                            <div class="cookie-field">
+                                <span class="cookie-field-name">Timestamp</span>
+                                <span class="cookie-field-value">${c.timestamp} (${formatTimestamp(c.timestamp)})</span>
+                            </div>
+                            <div class="cookie-field">
+                                <span class="cookie-field-name">Flags</span>
+                                <span class="cookie-field-value">0x${c.flags.toString(16).padStart(8, '0')}</span>
+                            </div>
+                            <div class="cookie-field">
+                                <span class="cookie-field-name">TTL</span>
+                                <span class="cookie-field-value">${c.ttl}s</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = renderError(data.error);
+                }
+            } catch (e) {
+                resultDiv.innerHTML = renderError('请求失败: ' + e.message);
+            }
+        }
+
+        async function encryptCookie() {
+            const key = document.getElementById('encryptKey').value.trim();
+            const sessionId = document.getElementById('encryptSessionId').value.trim();
+            const userId = parseInt(document.getElementById('encryptUserId').value) || 0;
+            const timestamp = parseInt(document.getElementById('encryptTimestamp').value) || Math.floor(Date.now() / 1000);
+            const flags = parseInt(document.getElementById('encryptFlags').value) || 0;
+            const ttl = parseInt(document.getElementById('encryptTtl').value) || 3600;
+            const resultDiv = document.getElementById('encryptResult');
+
+            if (!key) { resultDiv.innerHTML = renderError('请输入密钥'); return; }
+
+            try {
+                const response = await fetch('/api/cookie/encrypt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        key,
+                        session_id: sessionId,
+                        user_id: userId,
+                        timestamp,
+                        flags,
+                        ttl
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="result-box">
+                            <strong>加密结果 (Base64):</strong><br>
+                            <span id="encResult">${data.cookie_data}</span>
+                            <br><br>
+                            <strong>Nonce:</strong> ${data.nonce}<br>
+                            <strong>明文大小:</strong> ${data.plaintext_size} bytes
+                            <br><br>
+                            <button class="btn btn-info" onclick="copyToDecrypt()" style="font-size:12px; padding:6px 16px;">
+                                📋 复制到解密区
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = renderError(data.error);
+                }
+            } catch (e) {
+                resultDiv.innerHTML = renderError('请求失败: ' + e.message);
+            }
+        }
+
+        async function generateTestCookie() {
+            const key = document.getElementById('decryptKey').value.trim();
+            if (!key) {
+                const testKey = Array.from({length: 32}, (_, i) => i.toString(16).padStart(2, '0')).join('');
+                document.getElementById('decryptKey').value = testKey;
+                document.getElementById('encryptKey').value = testKey;
+            }
+            const encKey = document.getElementById('decryptKey').value.trim() || 
+                Array.from({length: 32}, (_, i) => i.toString(16).padStart(2, '0')).join('');
+
+            try {
+                const response = await fetch('/api/cookie/encrypt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        key: encKey,
+                        user_id: 42,
+                        flags: 1,
+                        ttl: 7200
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('decryptKey').value = encKey;
+                    document.getElementById('decryptCookieData').value = data.cookie_data;
+                    document.getElementById('encryptKey').value = encKey;
+                } else {
+                    alert('生成失败: ' + data.error);
+                }
+            } catch (e) {
+                alert('请求失败: ' + e.message);
+            }
+        }
+
+        function copyToDecrypt() {
+            const encResult = document.getElementById('encResult');
+            if (encResult) {
+                document.getElementById('decryptCookieData').value = encResult.textContent;
+                document.getElementById('decryptKey').value = document.getElementById('encryptKey').value;
+            }
+        }
+
+        function renderError(msg) {
+            return `<div class="cookie-result error"><h3 style="color: #c62828;">❌ 错误</h3><p style="margin-top:10px;">${msg}</p></div>`;
+        }
+
+        async function loadFieldLayout() {
+            try {
+                const response = await fetch('/api/cookie/fields');
+                const data = await response.json();
+                if (data.success) {
+                    const tbody = document.getElementById('fieldLayoutTable');
+                    tbody.innerHTML = Object.entries(data.fields).map(([name, info]) => `
+                        <tr>
+                            <td>${name}</td>
+                            <td>${info.offset}</td>
+                            <td>${info.length}</td>
+                            <td>${info.type}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (e) {
+                console.error('Failed to load field layout:', e);
+            }
+        }
+
+        function updateStreamSelect(streams) {
+            const select = document.getElementById('iqStreamSelect');
+            const currentValue = select.value;
+            let options = '<option value="all">所有流</option>';
+            streams.forEach(s => {
+                options += `<option value="${s.stream_id}">流 #${s.stream_id}</option>`;
+            });
+            select.innerHTML = options;
+            if (streams.some(s => s.stream_id == currentValue)) {
+                select.value = currentValue;
+            }
+        }
+
+        const STREAM_COLORS = {
+            1: '#667eea', 2: '#f5af19', 3: '#38ef7d', 4: '#eb3349', 5: '#4facfe',
+            6: '#9c27b0', 7: '#ff9800', 8: '#795548', 9: '#607d8b', 10: '#e91e63'
+        };
+
+        function getStreamColor(streamId) {
+            return STREAM_COLORS[streamId] || `hsl(${(streamId * 137) % 360}, 70%, 50%)`;
+        }
+
+        async function fetchIQSamples() {
+            const streamSelect = document.getElementById('iqStreamSelect');
+            const limitInput = document.getElementById('iqSampleLimit');
+            const streamId = streamSelect.value === 'all' ? '' : streamSelect.value;
+            const limit = limitInput.value || 500;
+
+            try {
+                const url = streamId 
+                    ? `/api/iq-samples?stream_id=${streamId}&limit=${limit}`
+                    : `/api/iq-samples?limit=${limit}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data.success) {
+                    drawIQConstellation(data.samples);
+                }
+            } catch (e) {
+                console.error('Failed to fetch IQ samples:', e);
+            }
+        }
+
+        function drawIQConstellation(samples) {
+            const canvas = document.getElementById('iqCanvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            const statsDiv = document.getElementById('iqStats');
+
+            ctx.fillStyle = '#fafafa';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(width / 2, 0);
+            ctx.lineTo(width / 2, height);
+            ctx.moveTo(0, height / 2);
+            ctx.lineTo(width, height / 2);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#f0f0f0';
+            for (let i = 1; i <= 4; i++) {
+                ctx.beginPath();
+                ctx.arc(width / 2, height / 2, (width / 2) * (i / 5), 0, 2 * Math.PI);
+                ctx.stroke();
+            }
+
+            if (!samples || samples.length === 0) {
+                statsDiv.textContent = '暂无采样点';
+                return;
+            }
+
+            let maxAbs = 1;
+            samples.forEach(s => {
+                maxAbs = Math.max(maxAbs, Math.abs(s.i), Math.abs(s.q));
+            });
+            const scale = (width / 2 - 20) / maxAbs;
+
+            const streamCounts = {};
+            samples.forEach(s => {
+                const x = width / 2 + s.i * scale;
+                const y = height / 2 - s.q * scale;
+                const color = getStreamColor(s.stream_id);
+
+                ctx.beginPath();
+                ctx.arc(x, y, 2, 0, 2 * Math.PI);
+                ctx.fillStyle = color + '80';
+                ctx.fill();
+
+                streamCounts[s.stream_id] = (streamCounts[s.stream_id] || 0) + 1;
+            });
+
+            const streamsInfo = Object.entries(streamCounts)
+                .map(([id, count]) => `流#${id}: ${count}点`)
+                .join(' | ');
+            
+            statsDiv.innerHTML = `
+                <strong>${samples.length}</strong> 个采样点 | ${streamsInfo}<br>
+                I 范围: ${Math.min(...samples.map(s => s.i))} ~ ${Math.max(...samples.map(s => s.i))} |
+                Q 范围: ${Math.min(...samples.map(s => s.q))} ~ ${Math.max(...samples.map(s => s.q))}
+            `;
+        }
+
+        function exportPcapng() {
+            window.location.href = '/api/export/pcapng';
+        }
+
+        const originalUpdateStreamsUI = updateStreamsUI;
+        updateStreamsUI = function(streams) {
+            updateStreamSelect(streams);
+            originalUpdateStreamsUI(streams);
+        };
+
+        toggleAutoRefresh();
+        fetchStreams();
+        fetchFrames();
+        fetchIQSamples();
+        loadFieldLayout();
+    </script>
+</body>
+</html>

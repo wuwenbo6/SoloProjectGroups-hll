@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQTT over QUIC Broker - 连接监控</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 1rem;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px 30px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .status-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .status-label {
+            font-size: 0.9rem;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 1000px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .card-content {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .client-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .client-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #00d4ff;
+            transition: all 0.3s ease;
+        }
+
+        .client-item.disconnected {
+            border-left-color: #ff4757;
+            opacity: 0.6;
+        }
+
+        .client-item.path-changed {
+            animation: pathChange 0.5s ease;
+        }
+
+        @keyframes pathChange {
+            0%, 100% { background: rgba(255, 255, 255, 0.03); }
+            50% { background: rgba(123, 44, 191, 0.3); }
+        }
+
+        .client-id {
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .client-info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .client-info span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .dot.connected {
+            background: #2ed573;
+            box-shadow: 0 0 10px #2ed573;
+        }
+
+        .dot.disconnected {
+            background: #ff4757;
+        }
+
+        .event-log {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .event-item {
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .event-item.connected {
+            background: rgba(46, 213, 115, 0.15);
+            border-left: 3px solid #2ed573;
+        }
+
+        .event-item.disconnected {
+            background: rgba(255, 71, 87, 0.15);
+            border-left: 3px solid #ff4757;
+        }
+
+        .event-item.path_changed {
+            background: rgba(123, 44, 191, 0.15);
+            border-left: 3px solid #7b2cbf;
+        }
+
+        .event-item.message {
+            background: rgba(0, 212, 255, 0.15);
+            border-left: 3px solid #00d4ff;
+        }
+
+        .event-item.publish {
+            background: rgba(255, 159, 67, 0.15);
+            border-left: 3px solid #ff9f43;
+        }
+
+        .event-time {
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .event-content {
+            color: #e0e0e0;
+        }
+
+        .event-client {
+            font-weight: 600;
+            color: #00d4ff;
+        }
+
+        .message-topic {
+            color: #ff9f43;
+            font-weight: 600;
+        }
+
+        .message-payload {
+            color: #2ed573;
+            font-family: monospace;
+        }
+
+        .connection-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .connection-indicator.connected {
+            background: rgba(46, 213, 115, 0.2);
+            border: 1px solid #2ed573;
+            color: #2ed573;
+        }
+
+        .connection-indicator.disconnected {
+            background: rgba(255, 71, 87, 0.2);
+            border: 1px solid #ff4757;
+            color: #ff4757;
+        }
+
+        .messages-card {
+            grid-column: 1 / -1;
+        }
+
+        .scrollbar-style::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollbar-style::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .scrollbar-style::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        .scrollbar-style::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-indicator disconnected" id="wsStatus">
+        <span class="dot disconnected" id="wsDot"></span>
+        <span>WebSocket: 未连接</span>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>MQTT over QUIC Broker</h1>
+            <p class="subtitle">实时监控 - 支持网络切换连接保持</p>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-value" id="totalClients">0</div>
+                <div class="status-label">总客户端</div>
+            </div>
+            <div class="status-item">
+                <div class="status-value" id="onlineClients">0</div>
+                <div class="status-label">在线客户端</div>
+            </div>
+            <div class="status-item">
+                <div class="status-value" id="wsClients">0</div>
+                <div class="status-label">监控连接</div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">客户端列表</span>
+                    <span style="font-size: 0.8rem; color: #888;" id="clientCount">0 个客户端</span>
+                </div>
+                <div class="card-content scrollbar-style" id="clientList">
+                    <div class="client-list">
+                        <p style="color: #888; text-align: center; padding: 20px;">暂无客户端连接</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">事件日志</span>
+                    <button onclick="clearEvents()" style="background: rgba(255,255,255,0.1); border: none; padding: 5px 15px; border-radius: 5px; color: #888; cursor: pointer;">清空</button>
+                </div>
+                <div class="card-content scrollbar-style" id="eventLog">
+                    <div class="event-log"></div>
+                </div>
+            </div>
+
+            <div class="card messages-card">
+                <div class="card-header">
+                    <span class="card-title">消息流</span>
+                    <button onclick="clearMessages()" style="background: rgba(255,255,255,0.1); border: none; padding: 5px 15px; border-radius: 5px; color: #888; cursor: pointer;">清空</button>
+                </div>
+                <div class="card-content scrollbar-style" id="messageLog" style="max-height: 300px;">
+                    <div class="event-log"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let clients = {};
+        let eventCount = 0;
+        let messageCount = 0;
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+
+            ws.onopen = function() {
+                document.getElementById('wsStatus').className = 'connection-indicator connected';
+                document.getElementById('wsDot').className = 'dot connected';
+                document.getElementById('wsStatus').querySelector('span:last-child').textContent = 'WebSocket: 已连接';
+                fetchStatus();
+            };
+
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                handleEvent(data);
+            };
+
+            ws.onclose = function() {
+                document.getElementById('wsStatus').className = 'connection-indicator disconnected';
+                document.getElementById('wsDot').className = 'dot disconnected';
+                document.getElementById('wsStatus').querySelector('span:last-child').textContent = 'WebSocket: 重连中...';
+                setTimeout(connectWebSocket, 3000);
+            };
+
+            ws.onerror = function() {
+                ws.close();
+            };
+        }
+
+        function handleEvent(data) {
+            const time = new Date(data.timestamp).toLocaleTimeString();
+
+            if (data.type === 'connected') {
+                clients[data.clientId] = {
+                    clientId: data.clientId,
+                    addr: data.addr,
+                    connId: data.connId,
+                    connected: true,
+                    subscriptions: 0,
+                    queueCount: 0,
+                    using0RTT: data.using0RTT || false,
+                    migrationCount: 0,
+                    lastMigrationDuration: null,
+                    avgMigrationDuration: null
+                };
+                addEvent('connected', time, data.clientId, data.message, data.addr, data);
+            } else if (data.type === 'disconnected') {
+                if (clients[data.clientId]) {
+                    clients[data.clientId].connected = false;
+                }
+                addEvent('disconnected', time, data.clientId, data.message, data.addr, data);
+            } else if (data.type === 'path_changed') {
+                if (clients[data.clientId]) {
+                    clients[data.clientId].addr = data.addr;
+                    clients[data.clientId].using0RTT = data.using0RTT || false;
+                    clients[data.clientId].migrationCount = data.migrationCount || 0;
+                    clients[data.clientId].lastMigrationDuration = data.migrationDuration;
+                    clients[data.clientId].avgMigrationDuration = data.avgDuration;
+                }
+                addEvent('path_changed', time, data.clientId, data.message, data.addr, data);
+            } else if (data.type === 'message') {
+                addMessage(time, data.clientId, data.topic, data.payload, 'receive');
+            } else if (data.type === 'publish') {
+                addMessage(time, data.clientId, data.topic, data.payload, 'publish');
+            }
+
+            updateClientList();
+            updateStats();
+        }
+
+        function formatDuration(ns) {
+            if (!ns || ns === 0) return '-';
+            const ms = ns / 1000000;
+            if (ms < 1) return '< 1ms';
+            return ms.toFixed(2) + 'ms';
+        }
+
+        function addEvent(type, time, clientId, message, addr, data) {
+            const log = document.querySelector('#eventLog .event-log');
+            const item = document.createElement('div');
+            item.className = `event-item ${type}`;
+            
+            let extraInfo = '';
+            if (type === 'path_changed') {
+                if (data.using0RTT) {
+                    extraInfo += `<span style="color:#2ed573; font-weight:600; margin-left:10px;">⚡ 0-RTT</span>`;
+                }
+                if (data.migrationDuration) {
+                    extraInfo += `<span style="color:#ff9f43; margin-left:10px;">⏱ ${formatDuration(data.migrationDuration)}</span>`;
+                }
+                if (data.migrationCount) {
+                    extraInfo += `<span style="color:#00d4ff; margin-left:10px;">🔄 #${data.migrationCount}</span>`;
+                }
+            }
+            
+            item.innerHTML = `
+                <div class="event-time">${time}</div>
+                <div class="event-content">
+                    <span class="event-client">${clientId}</span>: ${message}
+                    ${addr ? `<br><small style="color:#888;">地址: ${addr}</small>` : ''}
+                    ${extraInfo}
+                </div>
+            `;
+            log.insertBefore(item, log.firstChild);
+            eventCount++;
+
+            while (log.children.length > 50) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        function addMessage(time, clientId, topic, payload, direction) {
+            const log = document.querySelector('#messageLog .event-log');
+            const item = document.createElement('div');
+            item.className = `event-item ${direction === 'receive' ? 'message' : 'publish'}`;
+            item.innerHTML = `
+                <div class="event-time">${time} | ${direction === 'receive' ? '接收' : '发布'}</div>
+                <div class="event-content">
+                    <span class="event-client">${clientId}</span> → 
+                    <span class="message-topic">${topic}</span>: 
+                    <span class="message-payload">${payload}</span>
+                </div>
+            `;
+            log.insertBefore(item, log.firstChild);
+            messageCount++;
+
+            while (log.children.length > 50) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        function updateClientList() {
+            const list = document.querySelector('#clientList .client-list');
+            const clientArray = Object.values(clients);
+
+            if (clientArray.length === 0) {
+                list.innerHTML = '<p style="color: #888; text-align: center; padding: 20px;">暂无客户端连接</p>';
+                return;
+            }
+
+            list.innerHTML = clientArray.map(client => `
+                <div class="client-item ${client.connected ? '' : 'disconnected'}">
+                    <div class="client-id">
+                        <span class="dot ${client.connected ? 'connected' : 'disconnected'}"></span>
+                        ${client.clientId}
+                    </div>
+                    <div class="client-info">
+                        <span>📡 ${client.addr || '-'}</span>
+                        <span>🔗 ${client.connId ? client.connId.substring(0, 12) + '...' : '-'}</span>
+                        <span>📋 ${client.subscriptions || 0} 订阅</span>
+                        <span>📦 ${client.queueCount || 0} 队列</span>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('clientCount').textContent = `${clientArray.length} 个客户端`;
+        }
+
+        function updateStats() {
+            const clientArray = Object.values(clients);
+            document.getElementById('totalClients').textContent = clientArray.length;
+            document.getElementById('onlineClients').textContent = clientArray.filter(c => c.connected).length;
+        }
+
+        function clearEvents() {
+            document.querySelector('#eventLog .event-log').innerHTML = '';
+        }
+
+        function clearMessages() {
+            document.querySelector('#messageLog .event-log').innerHTML = '';
+        }
+
+        async function fetchStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                document.getElementById('wsClients').textContent = data.websocketClients || 0;
+                
+                if (data.clients) {
+                    data.clients.forEach(c => {
+                        clients[c.clientId] = {
+                            clientId: c.clientId,
+                            addr: c.currentAddr,
+                            connId: c.connId,
+                            connected: c.connected,
+                            subscriptions: c.subscriptionsCount,
+                            queueCount: c.queueCount
+                        };
+                    });
+                    updateClientList();
+                    updateStats();
+                }
+            } catch (e) {
+                console.error('Fetch status error:', e);
+            }
+        }
+
+        connectWebSocket();
+        setInterval(fetchStatus, 5000);
+    </script>
+</body>
+</html>

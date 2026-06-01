@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CBOR Converter - CBOR 诊断表示法转换器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-content">
+        <div class="logo">
+          <div class="logo-icon">⚡</div>
+          <div>
+            <h1 class="logo-title">CBOR Converter</h1>
+            <p class="logo-subtitle">CBOR 二进制 ↔ 诊断表示法</p>
+          </div>
+        </div>
+        <div class="tabs">
+          <button class="tab active" data-tab="decode">解码</button>
+          <button class="tab" data-tab="encode">编码</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section id="decode-section" class="section active">
+        <div class="examples">
+          <span class="examples-label">示例数据</span>
+          <div class="examples-buttons" id="examples-container"></div>
+        </div>
+
+        <div class="grid">
+          <div class="panel">
+            <div class="input-section">
+              <div class="input-header">
+                <span class="input-label">Hex 输入</span>
+                <span class="byte-count" id="decode-byte-count">0 bytes</span>
+              </div>
+              <textarea 
+                id="hex-input" 
+                class="textarea-code"
+                placeholder="输入CBOR的Hex编码，例如：18 2A"
+                spellcheck="false"
+              ></textarea>
+            </div>
+
+            <div class="upload-section" id="upload-section">
+              <div class="upload-icon">📁</div>
+              <p class="upload-text">
+                拖拽CBOR文件至此处，或 <span class="upload-link" id="upload-link">点击上传</span>
+              </p>
+              <input type="file" id="file-input" class="hidden" accept="*/*" />
+              <div class="upload-file-info hidden" id="upload-file-info">
+                <span class="file-icon">📄</span>
+                <span class="filename" id="filename"></span>
+                <button class="clear-file" id="clear-file">✕</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="output-section">
+              <div class="output-header">
+                <span class="input-label">诊断表示法</span>
+                <div class="output-actions">
+                  <button class="copy-btn" id="copy-diagnostic" disabled>
+                    <span id="copy-diagnostic-icon">📋</span>
+                    <span id="copy-diagnostic-text">复制</span>
+                  </button>
+                  <button class="copy-btn" id="export-yaml" disabled>
+                    <span>📄</span>
+                    <span>导出 YAML</span>
+                  </button>
+                </div>
+              </div>
+              <pre class="output-code" id="diagnostic-output"><span class="placeholder">解码结果将在此处显示...</span></pre>
+            </div>
+
+            <button class="swap-btn" id="swap-to-encode" disabled>
+              <span class="swap-icon">⇄</span>
+              <span>将此结果用于编码</span>
+            </button>
+
+            <div class="tree-section">
+              <span class="input-label">解析树</span>
+              <div class="tree-container" id="tree-container">
+                <span class="placeholder">解码后查看解析树结构...</span>
+              </div>
+            </div>
+
+            <div class="cddl-section">
+              <div class="input-header">
+                <span class="input-label">CDDL Schema 验证</span>
+                <div class="output-actions">
+                  <select class="cddl-example-select" id="cddl-example-select">
+                    <option value="">选择 CDDL 示例...</option>
+                    <option value="Simple Object">Simple Object</option>
+                    <option value="Nested Structure">Nested Structure</option>
+                    <option value="Tagged Epoch Time">Tagged Epoch Time</option>
+                    <option value="Array with Size">Array with Size</option>
+                  </select>
+                  <button class="copy-btn" id="validate-cddl" disabled>
+                    <span>✓</span>
+                    <span>验证</span>
+                  </button>
+                </div>
+              </div>
+              <textarea 
+                id="cddl-input" 
+                class="textarea-code cddl-input"
+                placeholder="输入 CDDL Schema，例如：
+person = { name: text, age: uint }"
+                spellcheck="false"
+              ></textarea>
+              <div class="validation-result" id="validation-result"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="encode-section" class="section">
+        <div class="syntax-hint">
+          <span class="syntax-label">语法提示：</span>
+          字符串 <code class="str">"text"</code>，字节串 <code class="bytes">h'0123'</code>，
+          整数 <code class="num">42</code>，标签 <code class="tag">{"_tag": 1, "value": ...}</code>，
+          数组 <code>[1, 2]</code>，不定数组 <code>[_ 1, 2 _]</code>，映射 <code>{1: "a"}</code>
+        </div>
+
+        <div class="grid">
+          <div class="panel">
+            <div class="input-section">
+              <div class="input-header">
+                <span class="input-label">诊断表示法输入</span>
+                <span class="hint-text">支持 JSON 格式及 CBOR 扩展语法</span>
+              </div>
+              <textarea 
+                id="encode-input" 
+                class="textarea-code encode-input"
+                placeholder="输入诊断表示法，例如：{&quot;name&quot;: &quot;hello&quot;} 或 CBOR 特有语法：h&apos;48656c6c6f&apos;"
+                spellcheck="false"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="output-section">
+              <div class="output-header">
+                <span class="input-label">CBOR Hex 输出</span>
+                <div class="output-actions">
+                  <span class="byte-count" id="encode-byte-count">0 bytes</span>
+                  <button class="copy-btn" id="copy-hex" disabled>
+                    <span id="copy-hex-icon">📋</span>
+                    <span id="copy-hex-text">复制</span>
+                  </button>
+                  <button class="copy-btn" id="download-bin" disabled>
+                    <span>⬇️</span>
+                    <span>下载</span>
+                  </button>
+                </div>
+              </div>
+              <pre class="output-code hex-output" id="hex-output"><span class="placeholder">编码结果将在此处显示...</span></pre>
+            </div>
+
+            <button class="swap-btn" id="swap-to-decode" disabled>
+              <span class="swap-icon">⇄</span>
+              <span>将此结果用于解码</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="error-toast hidden" id="error-toast"></div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
