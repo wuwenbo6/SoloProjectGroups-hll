@@ -1,0 +1,15 @@
+server:
+  http_port: 8080
+  syslog_port: 5140
+  winlog_port: 5985
+
+elasticsearch:
+  url: http://localhost:9200
+  index_prefix: log_analyzer
+
+rules:
+  default_rules_dir: ./rules
+  event_window_seconds: 300
+
+logging:
+  level: info
